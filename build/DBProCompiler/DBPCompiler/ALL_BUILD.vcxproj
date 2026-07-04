@@ -178,6 +178,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{F30021AB-EA25-322B-A8DF-EFD6C40C2B4E}</Project>
       <Name>DBPCompiler</Name>
     </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\DBProCompiler\DBPCompiler\dbp_compiler_lib.vcxproj">
+      <Project>{82DE5E4D-163C-32FE-A29C-ADDBFC5F9A6C}</Project>
+      <Name>dbp_compiler_lib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

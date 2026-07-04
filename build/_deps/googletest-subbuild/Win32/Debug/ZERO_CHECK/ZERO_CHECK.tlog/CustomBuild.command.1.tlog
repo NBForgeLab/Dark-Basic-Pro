@@ -1,0 +1,10 @@
+^D:\GITHUB-REPO\DARK-BASIC-PRO\BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKEFILES\9DCE6255F5693BD59431E6149B588E45\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/GitHub-repo/Dark-Basic-Pro/build/_deps/googletest-subbuild -BD:/GitHub-repo/Dark-Basic-Pro/build/_deps/googletest-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/GitHub-repo/Dark-Basic-Pro/build/_deps/googletest-subbuild/googletest-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

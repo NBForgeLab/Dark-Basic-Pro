@@ -165,89 +165,52 @@ static void CheckLength(const char *p, db3::uint l)
 # define CheckLength(p,l) (void)0
 #endif
 
-CStr::CStr(): CTOR_INIT_NULL()
+CStr::CStr() : m_pStr(nullptr), m_dwSize(0)
 {
-}
-CStr::~CStr()
-{
-#ifdef __AARON_STRPERF__
-	db3::Memory(m_pStr, 0);
-#else
-	SAFE_DELETE(m_pStr);
-#endif
 }
 
-CStr::CStr(LPSTR pText): CTOR_INIT_NULL()
+CStr::~CStr()
 {
-#ifdef __AARON_STRPERF__
-	db3::Duplicate(m_pStr, pText, m_dwSize, m_dwLen);
-#else
+}
+
+CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0)
+{
 	if(pText)
 	{
 		int length=strlen(pText);
-		m_pStr = new char[length+1];
-		if(m_pStr) ZeroMemory(m_pStr, length+1);
-		if(m_pStr) strcpy(m_pStr, pText);
+		m_pStr.reset(new char[length+1]);
+		if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
+		if(m_pStr) strcpy(m_pStr.get(), pText);
 		m_dwSize = length;
 	}
 	else
 	{
 		int length=0;
-		m_pStr = new char[length+1];
-		if(m_pStr) ZeroMemory(m_pStr, length+1);
+		m_pStr.reset(new char[length+1]);
+		if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
 		m_dwSize = length;
 	}
-#endif
 }
 
-CStr::CStr(DWORD dwTextSize): CTOR_INIT_NULL()
+CStr::CStr(DWORD dwTextSize) : m_pStr(nullptr), m_dwSize(0)
 {
-#ifdef __AARON_STRPERF__
-	dwTextSize++;
-
-	if (db3::Memory(m_pStr, dwTextSize))
-	{
-		memset(m_pStr, 0, dwTextSize);
-
-		m_dwSize = dwTextSize;
-		m_dwLen = 0;
-	}
-#else
 	int length=dwTextSize;
-	m_pStr = new char[length+1];
-	if(m_pStr) ZeroMemory(m_pStr, length+1);
+	m_pStr.reset(new char[length+1]);
+	if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
 	m_dwSize = length;
-#endif
 }
 
 void CStr::Enlarge(DWORD length)
 {
-#ifdef __AARON_STRPERF__
-	if (length < m_dwSize)
-		return;
-
-	db3::uint n = db3::AlignSize(length + 1);
-
-	if (!db3::Memory(m_pStr, n))
-		return;
-
-	m_dwSize = n;
-	if (m_dwLen >= m_dwSize)
-	{
-		m_dwLen = m_dwSize - 1;
-		m_pStr[m_dwLen] = '\0';
-	}
-
-	CheckLength(m_pStr, m_dwLen);
-#else
 	char* pNewStr = new char[length+1];
 	if(pNewStr) ZeroMemory(pNewStr, length+1);
-	if(pNewStr && m_pStr) strcpy(pNewStr, m_pStr);
-	if(m_pStr) delete m_pStr;
+	if(pNewStr && m_pStr) strcpy(pNewStr, m_pStr.get());
 	m_dwSize=length;
-	m_pStr=pNewStr;
-#endif
+	m_pStr.reset(pNewStr);
 }
+
+// Redirect all manual raw pointer operations to unique_ptr's managed pointer
+#define m_pStr m_pStr.get()
 
 void CStr::SetText(LPSTR pText)
 {

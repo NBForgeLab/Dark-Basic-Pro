@@ -6,11 +6,14 @@
 #define AFX_STR_H__95C8EB95_D88D_48CF_9F08_36248C3E570E__INCLUDED_
 
 #include "windows.h"
+#include <memory>
 
 #include <DB3.h>
 #include <DB3Factory.h>
 
 #include "PerfMacros.h"
+// Disable performance macros to use safe smart pointers for strings
+#undef __AARON_STRPERF__
 
 class CResultData;
 
@@ -23,7 +26,7 @@ class CStr: public db3::TObject<CStr>
 		CStr(LPSTR pText);
 		CStr(DWORD dwTextSize);
 		void		Enlarge(DWORD length);
-		LPSTR		GetStr(void) const { if(m_pStr) return m_pStr; else return ""; }
+		LPSTR		GetStr(void) const { return m_pStr ? m_pStr.get() : const_cast<LPSTR>(""); }
 		double		GetValue(void) const;
 		void		SetText(LPSTR pStr);
 		void		SetText(CStr* pStrText);
@@ -36,11 +39,7 @@ class CStr: public db3::TObject<CStr>
 		void		SetDWORDNumericText(DWORD dwNumText);
 		void		AddNumericText(DWORD dwNumText);
 		void		AddDoubleText(double dNumText);
-#ifdef __AARON_STRPERF__
 		DWORD		Length(void) const { return m_dwLen; }
-#else
-		DWORD		Length(void) const { return strlen(m_pStr); }
-#endif
 		LPSTR		GetLeftOfPosition(DWORD Position) const;
 		LPSTR		GetRightOfPosition(DWORD Position) const;
 		void		CopyToPtr(LPSTR pPointer) const;
@@ -104,13 +103,11 @@ class CStr: public db3::TObject<CStr>
 		bool		IsConstant(void) const;
 
 	private:
-#ifdef __AARON_STRPERF__
-		db3::uint	m_dwSize, m_dwLen;
-		char		*m_pStr;
-#else
-		DWORD		m_dwSize;
-		LPSTR		m_pStr;
-#endif
+		std::unique_ptr<char[]> m_pStr;
+		DWORD                   m_dwSize;
+		DWORD                   m_dwLen;
+
+		void                    UpdateLen(void);
 };
 
 #endif // !defined(AFX_STR_H__95C8EB95_D88D_48CF_9F08_36248C3E570E__INCLUDED_)

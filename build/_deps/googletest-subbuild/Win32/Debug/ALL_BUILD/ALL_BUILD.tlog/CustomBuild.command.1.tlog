@@ -1,0 +1,10 @@
+^D:\GITHUB-REPO\DARK-BASIC-PRO\BUILD\_DEPS\GOOGLETEST-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/GitHub-repo/Dark-Basic-Pro/build/_deps/googletest-subbuild -BD:/GitHub-repo/Dark-Basic-Pro/build/_deps/googletest-subbuild --check-stamp-file D:/GitHub-repo/Dark-Basic-Pro/build/_deps/googletest-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
