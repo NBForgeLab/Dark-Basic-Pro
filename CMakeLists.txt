@@ -18,6 +18,15 @@ if(MSVC)
     add_compile_options(/EHsc /W3 /Zc:forScope-)
 endif()
 
+# Fetch and configure spdlog library
+include(FetchContent)
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.12.0
+)
+FetchContent_MakeAvailable(spdlog)
+
 # مسارات مخرجات البناء الموحدة
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)

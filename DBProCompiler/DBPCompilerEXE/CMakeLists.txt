@@ -38,4 +38,5 @@ target_link_libraries(DarkEXE PRIVATE
     dxguid
     odbc32
     odbccp32
+    spdlog::spdlog
 )

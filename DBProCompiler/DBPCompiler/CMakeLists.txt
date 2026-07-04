@@ -71,4 +71,4 @@ endif()
 add_executable(DBPCompiler WIN32 ${SOURCES})
 
 # Target libraries
-target_link_libraries(DBPCompiler PRIVATE winmm)
+target_link_libraries(DBPCompiler PRIVATE winmm spdlog::spdlog)
