@@ -22,6 +22,7 @@ include_directories(
 # Source files for the static library (excluding Main.cpp and resources)
 set(LIB_SOURCES
     ASMWriter.cpp
+    CompilerContext.cpp
     DBMWriter.cpp
     DBPCompiler.cpp
     DataTable.cpp

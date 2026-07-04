@@ -28,6 +28,8 @@
 #define EXTWORDSMAX			32
 #define MAX_EXCLUSIONS		256
 
+class CompilerContext;
+
 // Define Class
 class CDBPCompiler  
 {
@@ -171,6 +173,8 @@ class CDBPCompiler
 		// Exclusion Files
 		DWORD			g_dwExcludeFilesCount;
 		LPSTR			g_pExcludeFiles [ MAX_EXCLUSIONS ];
+
+		CompilerContext* m_pContext;
 };
 
 #endif // !defined(AFX_DBPCOMPILER_H__59BB1DE5_04A2_4BBC_9790_52F5C94E07F9__INCLUDED_)

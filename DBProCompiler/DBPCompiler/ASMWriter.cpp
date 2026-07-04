@@ -29,7 +29,7 @@ extern CVarTable* g_pVarTable;
 extern CStructTable* g_pStructTable;
 extern CDebugInfo g_DebugInfo;
 extern CError* g_pErrorReport;
-extern CASMWriter* g_pASMWriter;
+extern ICodeGenerator* g_pASMWriter;
 
 // External Global Vars
 extern DWORD g_dwEscapeValueMem;

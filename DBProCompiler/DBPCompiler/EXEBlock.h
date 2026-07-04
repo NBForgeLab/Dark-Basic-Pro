@@ -1,3 +1,4 @@
+#pragma once
 // EXEBlock.h: interface for the CEXEBlock class.
 
 // Includes used for DX check

@@ -77,6 +77,9 @@ FetchContent_MakeAvailable(googletest)
 add_executable(dbp_tests
     tests/test_main.cpp
     tests/test_logger.cpp
+    tests/test_vartable.cpp
+    tests/test_context.cpp
+    tests/test_str.cpp
 )
 target_link_libraries(dbp_tests PRIVATE
     gtest

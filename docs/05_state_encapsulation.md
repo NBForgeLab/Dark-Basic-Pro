@@ -5,86 +5,83 @@ Eliminate dangerous global variables and `extern` declarations across compiler s
 
 ---
 
-## ⚠️ The Problem
-The current compiler uses a large set of global pointers declared as `extern` across different files (see [DBPCompiler.cpp](file:///d:/GitHub-repo/Dark-Basic-Pro/DBProCompiler/DBPCompiler/DBPCompiler.cpp) lines 26-44):
-```cpp
-CEXEBlock*          g_pEXE              = NULL;
-CDBPCompiler*       g_pDBPCompiler      = NULL;
-CError*             g_pErrorReport      = NULL;
-CVarTable*          g_pVarTable         = NULL;
-CLabelTable*        g_pLabelTable       = NULL;
-```
-This causes:
-1. **State Leakage**: If a compilation fails midway, tables might retain old data, leading to unpredictable compiler bugs when compiling a second script.
-2. **Untestable Code**: We cannot run unit tests for individual functions because they all depend on these global pointers being initialized in a particular order.
-3. **Thread Instability**: The compiler is not thread-safe and cannot compile multiple scripts in parallel.
+## 🏗️ Implemented Solution: `CompilerContext`
 
----
-
-## 🛠️ Solution: Introducing `CompilerContext`
-
-We define a context class that manages the compiler's state lifecycle:
+We defined a context class that manages the compiler's state lifecycle:
 
 ```cpp
 #pragma once
-#include <memory>
+#include "windows.h"
+#include "DebugInfo.h"
 
-class CVarTable;
-class CLabelTable;
-class CStructTable;
-class ICodeGenerator;
+// Forward declarations
+class CEXEBlock;
+class CDBPCompiler;
 class CError;
+class ICodeGenerator;
+class CDBMWriter;
+class CStructTable;
+class CStatementList;
+class CInstructionTable;
+class CLabelTable;
+class CDataTable;
+class CVarTable;
+class CIncludeTable;
 
 class CompilerContext {
 public:
-    CompilerContext() {
-        m_varTable = std::make_unique<CVarTable>();
-        m_labelTable = std::make_unique<CLabelTable>();
-        m_structTable = std::make_unique<CStructTable>();
-        m_errorReport = std::make_unique<CError>();
-    }
+    CompilerContext();
+    ~CompilerContext();
 
-    ~CompilerContext() = default;
+    void Initialize();
+    void Cleanup();
 
-    // Delete copy operations
-    CompilerContext(const CompilerContext&) = delete;
-    CompilerContext& operator=(const CompilerContext&) = delete;
-
-    CVarTable* GetVarTable() { return m_varTable.get(); }
-    CLabelTable* GetLabelTable() { return m_labelTable.get(); }
-    CStructTable* GetStructTable() { return m_structTable.get(); }
-    CError* GetErrorReport() { return m_errorReport.get(); }
-
-    ICodeGenerator* GetCodeGenerator() { return m_codeGenerator.get(); }
-    void SetCodeGenerator(std::unique_ptr<ICodeGenerator> codeGen) {
-        m_codeGenerator = std::move(codeGen);
-    }
-
-private:
-    std::unique_ptr<CVarTable>     m_varTable;
-    std::unique_ptr<CLabelTable>   m_labelTable;
-    std::unique_ptr<CStructTable>  m_structTable;
-    std::unique_ptr<CError>        m_errorReport;
-    std::unique_ptr<ICodeGenerator> m_codeGenerator;
+    CEXEBlock*			pEXE;
+    CDBPCompiler*		pDBPCompiler;
+    CError*				pErrorReport;
+    ICodeGenerator*		pASMWriter;
+    CDBMWriter*			pDBMWriter;
+    CStructTable*		pStructTable;
+    CStatementList*		pStatementList;
+    CInstructionTable*	pInstructionTable;
+    CLabelTable*		pLabelTable;
+    CDataTable*			pDataTable;
+    CDataTable*			pStringTable;
+    CDataTable*			pDLLTable;
+    CDataTable*			pCommandTable;
+    CVarTable*			pVarTable;
+    CIncludeTable*		pIncludeTable;
+    CDataTable*			pConstantsTable;
+    CDebugInfo*         pDebugInfo;
 };
 ```
 
 ---
 
-## 🔄 Implementation Steps
+## 🔄 Compiler Integration
 
-1. **Instantiate the Context**:
-   * Create a `CompilerContext` instance in the main compilation loop in [Main.cpp](file:///d:/GitHub-repo/Dark-Basic-Pro/DBProCompiler/DBPCompiler/Main.cpp).
-2. **Pass Context References**:
-   * Modify function signatures in sub-components to take `CompilerContext& ctx`:
-     ```cpp
-     bool ParseStatement(CompilerContext& ctx);
-     ```
-3. **Eliminate `extern` Globals**:
-   * Gradually remove the `extern g_pVarTable` and similar declarations, replacing references with calls to the context object `ctx.GetVarTable()`.
+Inside [DBPCompiler.cpp](file:///d:/GitHub-repo/Dark-Basic-Pro/DBProCompiler/DBPCompiler/DBPCompiler.cpp), the manual allocation and cleanup of compiler globals in `CDBPCompiler::MakeProgram()` has been replaced with:
+
+```cpp
+	// Create New Program State
+	m_pContext = new CompilerContext();
+	m_pContext->Initialize();
+    
+    // ... compilation logic ...
+    
+	// Clean up environment context
+	if (m_pContext)
+	{
+		m_pContext->Cleanup();
+		delete m_pContext;
+		m_pContext = NULL;
+	}
+```
+
+This guarantees that all memory resources (lists, tables, structures) allocated for a compilation task are fully freed on success or failure, avoiding memory leaks and cross-compilation state contamination.
 
 ---
 
 ## 🚀 Benefits
-* **Clean State Lifecycle**: All tables are cleanly destroyed when the `CompilerContext` goes out of scope, preventing memory leaks and state contamination.
-* **Isolated Testing**: Enable GTest to easily mock or create minimal compiler contexts for verifying individual parser functions.
+* **Clean State Lifecycle**: All tables are cleanly destroyed when `CompilerContext` is cleaned up and deleted, preventing memory leaks and state contamination.
+* **Isolated Testing**: Enabled Google Test to easily instantiate a mock `CompilerContext` and execute isolated unit tests for classes like `CVarTable`.

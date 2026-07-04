@@ -182,13 +182,33 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{F1C60472-9007-3499-8FB5-11EF1C5FB2DD}</Project>
       <Name>DarkEXE</Name>
     </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\DBProCompiler\DBPCompiler\dbp_compiler_lib.vcxproj">
+      <Project>{82DE5E4D-163C-32FE-A29C-ADDBFC5F9A6C}</Project>
+      <Name>dbp_compiler_lib</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\dbp_tests.vcxproj">
+      <Project>{6E5506A5-3BDD-3B6E-B6C3-785ACA80A769}</Project>
+      <Name>dbp_tests</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\googletest-build\googlemock\gmock.vcxproj">
+      <Project>{550D541A-2A80-37AB-B649-210BDCA91E21}</Project>
+      <Name>gmock</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\googletest-build\googlemock\gmock_main.vcxproj">
+      <Project>{6D32DF74-3A06-37B7-BF44-65022C6B19CB}</Project>
+      <Name>gmock_main</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\googletest-build\googletest\gtest.vcxproj">
+      <Project>{E1ECCE16-5899-309C-8FFB-7892E68A9DBA}</Project>
+      <Name>gtest</Name>
+    </ProjectReference>
+    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\googletest-build\googletest\gtest_main.vcxproj">
+      <Project>{EE0C1598-E13E-3DE3-A846-82D3CCF0EE6B}</Project>
+      <Name>gtest_main</Name>
+    </ProjectReference>
     <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-build\spdlog.vcxproj">
       <Project>{C231F6C7-C38E-38E6-812D-C5C551768D34}</Project>
       <Name>spdlog</Name>
-    </ProjectReference>
-    <ProjectReference Include="D:\GitHub-repo\Dark-Basic-Pro\build\test_logger.vcxproj">
-      <Project>{94795396-07A2-399B-86F0-E0348DFE26AD}</Project>
-      <Name>test_logger</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

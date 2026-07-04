@@ -13,6 +13,7 @@
 #include "Statement.h"
 #include "EXEBlock.h"
 #include "Str.h"
+#include "ICodeGenerator.h"
 
 // ASKTask Defines
 #define ASMMAXCOUNT 300
@@ -385,11 +386,11 @@
 #define PMODE_MEMREL 9
 #define PMODE_EBPREL 10
 
-class CASMWriter  
+class CASMWriter : public ICodeGenerator  
 {
 	public:
 		CASMWriter();
-		virtual ~CASMWriter();
+		virtual ~CASMWriter() override;
 
 		void SetDefaultCompileFlags ( bool bArraySafetyFlag );
 		void SetArrayCheckFlag(bool bFlag) { m_bArrayCheckFlag = bFlag; }
@@ -502,7 +503,6 @@ class CASMWriter
 
 		// Work Variables
 	public:
-		DWORD					m_dwLineNumber;
 
 	private:
 		CMathOp*				m_pP1MathOp;

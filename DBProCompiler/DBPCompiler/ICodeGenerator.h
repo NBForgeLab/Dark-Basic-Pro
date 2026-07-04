@@ -1,15 +1,3 @@
-# Phase 6: Backend Abstraction
-
-## 🎯 Goal
-Decouple the frontend compiler parser (syntax and statements) from the target backend (binary machine code generator). Currently, the parser directly references `CASMWriter` to write raw 32-bit x86 opcodes. Decoupling this logic via an interface is essential for future target support (e.g. x64).
-
----
-
-## 🛠️ Implemented Design: `ICodeGenerator` Interface
-
-We introduced the abstract interface class `ICodeGenerator` containing the virtual functions required by the compiler parser frontend. The global assembly emission pointer `g_pASMWriter` has been updated to type `ICodeGenerator*` to decouple it from the concrete `CASMWriter` implementation.
-
-```cpp
 #pragma once
 #include "windows.h"
 #include "Str.h"
@@ -110,10 +98,3 @@ public:
     virtual bool GetCondToggle(void) = 0;
     virtual void SetCondToggle(bool bFlag) = 0;
 };
-```
-
----
-
-## 🚀 Benefits
-* **Backend Extensibility**: Adding 64-bit target generation requires writing a new class (e.g., `CASMWriterx64 : public ICodeGenerator`) and plugging it into the compiler context. The frontend parsing logic remains untouched.
-* **Alternate Backends**: Enables future possibilities like generating WebAssembly, LLVM IR, or byte-code interpreters.

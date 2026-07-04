@@ -8,6 +8,7 @@
 #include "macros.h"
 #include "ASMWriter.h"
 #include "DBPCompiler.h"
+#include "CompilerContext.h"
 #include "InstructionTable.h"
 #include "StatementList.h"
 #include "StructTable.h"
@@ -27,7 +28,7 @@
 CEXEBlock*			g_pEXE				= NULL;
 CDBPCompiler*		g_pDBPCompiler		= NULL;
 CError*				g_pErrorReport		= NULL;
-CASMWriter*			g_pASMWriter		= NULL;
+ICodeGenerator*		g_pASMWriter		= NULL;
 CDBMWriter*			g_pDBMWriter		= NULL;
 CStructTable*		g_pStructTable		= NULL;
 CStatementList*		g_pStatementList	= NULL;
@@ -59,6 +60,7 @@ CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
 	m_pCompilerFilename = new CStr(pCompilerFilename);
 	m_pCompilerPathOnly = new CStr(pCompilerFilename);
 	m_pCompilerPathOnly->TrimToPathOnly();
+	m_pContext = NULL;
 
 	// Clear these strings
 	m_pAbsolutePathToProjectFile=NULL;
@@ -1158,16 +1160,8 @@ bool CDBPCompiler::MakeProgram(void)
 	bool bResult=true;
 
 	// Create New Program
-	g_pStructTable = new CStructTable;
-	g_pASMWriter = new CASMWriter;
-	g_pDBMWriter = new CDBMWriter;
-	g_pLabelTable = new CLabelTable("*");
-	g_pDataTable = new CDataTable;
-	g_pStringTable = new CDataTable("*");
-	g_pDLLTable = new CDataTable("*");
-	g_pCommandTable = new CDataTable("*");
-	g_pVarTable = new CVarTable("$_ESP_");
-	g_pStatementList = new CStatementList;
+	m_pContext = new CompilerContext();
+	m_pContext->Initialize();
 
 	// Set Compile Defaults
 	g_pASMWriter->SetDefaultCompileFlags ( m_bSafeArrays );
@@ -1178,9 +1172,6 @@ bool CDBPCompiler::MakeProgram(void)
 	// Clear last DBM file
 	DeleteFile(GetInternalFile(PATH_TEMPDBMFILE));
 	DeleteFile(GetInternalFile(PATH_TEMPEXBFILE));
-
-	// Create CEXE Object
-	g_pEXE = new CEXEBlock;
 
 	// Settings for Executable
 	g_pEXE->m_dwInitialDisplayMode=1;
@@ -1391,53 +1382,13 @@ bool CDBPCompiler::MakeProgram(void)
 	SAFE_DELETE(g_pEXE);
 
 	// Free Objects from Statement List First and List itself
-	g_pStatementList->GetPreScanStatements()->FreeObjects();
-	g_pStatementList->GetProgramStatements()->FreeObjects();
-	SAFE_DELETE(g_pStatementList);
-
-	// Free ASMWriter Database
-	g_pASMWriter->FreeAll();
-
-	// Free Large Lists
-	if(g_pLabelTable)
+	// Clean up environment context
+	if (m_pContext)
 	{
-		g_pLabelTable->Free();
-		g_pLabelTable=NULL;
+		m_pContext->Cleanup();
+		delete m_pContext;
+		m_pContext = NULL;
 	}
-	if(g_pStructTable)
-	{
-		g_pStructTable->Free();
-		g_pStructTable=NULL;
-	}
-	if(g_pDataTable)
-	{
-		g_pDataTable->Free();
-		g_pDataTable=NULL;
-	}
-	if(g_pStringTable)
-	{
-		g_pStringTable->Free();
-		g_pStringTable=NULL;
-	}
-	if(g_pDLLTable)
-	{
-		g_pDLLTable->Free();
-		g_pDLLTable=NULL;
-	}
-	if(g_pCommandTable)
-	{
-		g_pCommandTable->Free();
-		g_pCommandTable=NULL;
-	}
-	if(g_pVarTable)
-	{
-		g_pVarTable->Free();
-		g_pVarTable=NULL;
-	}
-
-	// Delete All Lists
-	SAFE_DELETE(g_pASMWriter);
-	SAFE_DELETE(g_pDBMWriter);
 
 	// Complete
 	return bResult;

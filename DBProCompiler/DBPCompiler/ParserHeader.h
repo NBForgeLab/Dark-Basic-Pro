@@ -19,6 +19,6 @@
 
 // External Class Pointers
 extern CError*				g_pErrorReport;
-extern CASMWriter*			g_pASMWriter;
+extern ICodeGenerator*			g_pASMWriter;
 extern CDBMWriter*			g_pDBMWriter;
 extern CStatementList*		g_pStatementList;
