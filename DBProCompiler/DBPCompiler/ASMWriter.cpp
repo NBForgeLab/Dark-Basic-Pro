@@ -13,6 +13,7 @@
 #include "DebugInfo.h"
 #include "Errors.h"
 #include "DBPCompiler.h"
+#include "DBPLogger.h"
 
 #include <DB3Time.h>
 
@@ -432,6 +433,8 @@ bool CASMWriter::CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPS
 
 bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPSTR lpOpData, LPSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize)
 {
+	DBP_TRACE("Generated instruction: preOp={}, op1={}, op2={}", iPreOpCode, iOpCode1, iOpCode2);
+
 	// Check and expand if MCB too small
 	CheckAndExpandMCBMemory();
 

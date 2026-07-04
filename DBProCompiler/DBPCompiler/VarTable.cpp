@@ -6,6 +6,7 @@
 #include "StatementList.h"
 #include "StructTable.h"
 #include "VarTable.h"
+#include "DBPLogger.h"
 #include "time.h"
 
 // Special access to global pointer to struct table (so can do full scan)
@@ -198,6 +199,8 @@ CVarTable* CVarTable::Subtract(DWORD dwCountdown)
 
 bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal)
 {
+	DBP_TRACE("Registering variable: name={}, type={}, isGlobal={}", pName ? pName : "null", pType ? pType : "null", bIsGlobal);
+
 	// Ignore if no variables addable
 	if(g_pStatementList->GetVariableAddParse()==false)
 		return true;
