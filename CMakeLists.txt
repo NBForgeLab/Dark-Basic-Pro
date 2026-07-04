@@ -64,3 +64,8 @@ link_directories(
 # إضافة المشاريع الفرعية للترجمة والمشغل
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
+
+# Target for testing (TDD)
+add_executable(test_logger tests/test_logger.cpp)
+target_link_libraries(test_logger PRIVATE spdlog::spdlog)
+target_include_directories(test_logger PRIVATE DBProCompiler/DBPCompiler)
