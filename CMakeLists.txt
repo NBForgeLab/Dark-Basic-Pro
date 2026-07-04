@@ -65,7 +65,22 @@ link_directories(
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 
-# Target for testing (TDD)
-add_executable(test_logger tests/test_logger.cpp)
-target_link_libraries(test_logger PRIVATE spdlog::spdlog)
-target_include_directories(test_logger PRIVATE DBProCompiler/DBPCompiler)
+# Fetch Google Test
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/release-1.11.0.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# Target for testing (Google Test suite)
+add_executable(dbp_tests
+    tests/test_main.cpp
+    tests/test_logger.cpp
+)
+target_link_libraries(dbp_tests PRIVATE
+    gtest
+    dbp_compiler_lib
+    spdlog::spdlog
+)
+target_include_directories(dbp_tests PRIVATE DBProCompiler/DBPCompiler)

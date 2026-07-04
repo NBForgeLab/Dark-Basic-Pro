@@ -19,8 +19,8 @@ include_directories(
     ../TGCOnline
 )
 
-# Source files
-set(SOURCES
+# Source files for the static library (excluding Main.cpp and resources)
+set(LIB_SOURCES
     ASMWriter.cpp
     DBMWriter.cpp
     DBPCompiler.cpp
@@ -35,7 +35,6 @@ set(SOURCES
     InstructionTable.cpp
     InstructionTableEntry.cpp
     LabelTable.cpp
-    Main.cpp
     MathOp.cpp
     Parameter.cpp
     ParseFunction.cpp
@@ -55,10 +54,9 @@ set(SOURCES
     icons/DIB.C
     icons/ICONS.C
     ../TGCOnline/CertificateKey.cpp
-    DBPCompiler.rc
 )
 
-# Force MSVC to compile .C files as C instead of C++ (resolves void* conversion errors)
+# Force MSVC to compile .C files as C instead of C++
 if(MSVC)
     set_source_files_properties(
         icons/DIB.C
@@ -67,8 +65,11 @@ if(MSVC)
     )
 endif()
 
-# Compile as a Win32 GUI Application (resolves missing _main error)
-add_executable(DBPCompiler WIN32 ${SOURCES})
+# Create static library to allow linking with tests
+add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
+target_link_libraries(dbp_compiler_lib PUBLIC winmm spdlog::spdlog)
+target_include_directories(dbp_compiler_lib PUBLIC . icons ../TGCOnline)
 
-# Target libraries
-target_link_libraries(DBPCompiler PRIVATE winmm spdlog::spdlog)
+# Compile main executable linking to the compiler library
+add_executable(DBPCompiler WIN32 Main.cpp DBPCompiler.rc)
+target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
