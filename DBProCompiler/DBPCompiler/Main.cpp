@@ -17,6 +17,7 @@
 // Custom Includes
 #include "Str.h"
 #include "DBPCompiler.h"
+#include "DBPLogger.h"
 
 #include <DB3Time.h>
 
@@ -492,6 +493,9 @@ bool IsTickValidated(DWORD dwRandomValue)
 // Program Code
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	// Initialize logger
+	DBPLogger::Initialize("dbp.log");
+	DBP_INFO("DarkBasic Pro Compiler initialized.");
 #if _DEBUG
 	db3::CProfile<> prof("WinMain:Debug");
 #else
