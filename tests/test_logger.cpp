@@ -64,5 +64,28 @@ int main() {
     }
     ASSERT(startFound);
 
+    // -------------------------------------------------------------
+    // Test 3: Format tracing and log levels (TDD)
+    // -------------------------------------------------------------
+    std::string testLog3 = "test_format.log";
+    if (std::filesystem::exists(testLog3)) {
+        std::filesystem::remove(testLog3);
+    }
+    DBPLogger::Initialize(testLog3);
+    DBP_TRACE("Trace variable: {} = {}", "myVar", 100);
+    DBP_WARN("Warning test: code={}", 404);
+    DBP_ERROR("Error test: msg={}", "critical failure");
+    spdlog::shutdown();
+
+    std::ifstream infile3(testLog3);
+    std::string line3;
+    int matches = 0;
+    while (std::getline(infile3, line3)) {
+        if (line3.find("Trace variable: myVar = 100") != std::string::npos) matches++;
+        if (line3.find("Warning test: code=404") != std::string::npos) matches++;
+        if (line3.find("Error test: msg=critical failure") != std::string::npos) matches++;
+    }
+    ASSERT(matches == 3);
+
     return 0; // Success
 }

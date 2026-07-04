@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\83fd59b15f80f2810173cb2a8640fa8a\spdlog-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\71671b15b7bf1633e13236f3800d4a23\spdlog-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\391569a7f278093f23cd9a5c1c28a8f5\spdlog-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\GitHub-repo\Dark-Basic-Pro\build\_deps\spdlog-subbuild\CMakeFiles\spdlog-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{B918BF5F-3569-34B6-81E8-459B70AE67BF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

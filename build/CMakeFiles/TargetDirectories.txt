@@ -1,5 +1,8 @@
+D:/GitHub-repo/Dark-Basic-Pro/build/CMakeFiles/test_logger.dir
 D:/GitHub-repo/Dark-Basic-Pro/build/CMakeFiles/ALL_BUILD.dir
 D:/GitHub-repo/Dark-Basic-Pro/build/CMakeFiles/ZERO_CHECK.dir
+D:/GitHub-repo/Dark-Basic-Pro/build/_deps/spdlog-build/CMakeFiles/spdlog.dir
+D:/GitHub-repo/Dark-Basic-Pro/build/_deps/spdlog-build/CMakeFiles/ALL_BUILD.dir
 D:/GitHub-repo/Dark-Basic-Pro/build/DBProCompiler/DBPCompiler/CMakeFiles/DBPCompiler.dir
 D:/GitHub-repo/Dark-Basic-Pro/build/DBProCompiler/DBPCompiler/CMakeFiles/ALL_BUILD.dir
 D:/GitHub-repo/Dark-Basic-Pro/build/DBProCompiler/DBPCompilerEXE/CMakeFiles/DarkEXE.dir
