@@ -385,7 +385,7 @@ bool IsTickValidated(DWORD dwRandomValue)
 		// Change Directory now
 		chdir(g_pDBPCompiler->GetInternalFile(PATH_ROOTPATH));
 
-		HANDLE hFile = CreateFile("DBProAssistNet.exe", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(L"DBProAssistNet.exe", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hFile!=INVALID_HANDLE_VALUE)
 		{
 			// Close File
@@ -449,7 +449,8 @@ bool IsTickValidated(DWORD dwRandomValue)
 	strcpy(pFullLine, pAssistFilename);
 	strcat(pFullLine, " ");
 	strcat(pFullLine, lpCmdLine);
-	if(CreateProcess(	NULL, pFullLine,
+	std::wstring wFullLine = TextConvert::UTF8ToUTF16(pFullLine);
+	if(CreateProcessW(	NULL, &wFullLine[0],
 						NULL, NULL, false,
 						NORMAL_PRIORITY_CLASS,
 						NULL, NULL,	&si, &pi))
@@ -557,11 +558,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		// lee - 060207 - added extra data as some users get this and insist they only have the demo installed
 		char line[512];
 		#ifdef DEMOPROTECTEDMODE
-		 wsprintf ( line, "Demo installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
+		 sprintf_s( line, "Demo installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
 		#else
-		 wsprintf ( line, "Full installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
+		 sprintf_s( line, "Full installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
 		#endif
-		MessageBox(NULL, line, "Compiler Error", MB_OK);
+		MessageBoxW(NULL, TextConvert::UTF8ToUTF16(line).c_str(), L"Compiler Error", MB_OK);
 		SAFE_DELETE(g_pErrorReport);
 		return 0;
 	 }
@@ -712,9 +713,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					ZeroMemory(&si, sizeof(STARTUPINFO));
 					si.cb=sizeof(STARTUPINFO);
 					ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-					char pFullLine[_MAX_PATH];
-					strcpy_s(pFullLine, "TGCOnline.exe");
-					if(CreateProcess(	NULL, pFullLine,
+					wchar_t wFullLine[_MAX_PATH] = L"TGCOnline.exe";
+					if(CreateProcessW(	NULL, wFullLine,
 										NULL, NULL, false,
 										NORMAL_PRIORITY_CLASS,
 										NULL, NULL,	&si, &pi))

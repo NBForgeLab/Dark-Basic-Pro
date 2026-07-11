@@ -22,6 +22,7 @@
 #include "Str.h"
 #include "shlobj.h"
 #include "DBPLogger.h"
+#include "TextConvert.h"
 
 #include <DB3Time.h>
 
@@ -312,7 +313,7 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 bool CDBPCompiler::LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize)
 {
 	// Load DBA into memory
-	HANDLE hFile = CreateFile(pDBAFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pDBAFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Create memory and transfer file data to it
@@ -509,7 +510,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 		if ( FileExists ( pFullSourceDump ) ) DeleteFile ( pFullSourceDump );
 
 		// Write Full Source Dump File
-		HANDLE hFile = CreateFile(pFullSourceDump, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFullSourceDump).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hFile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD BytesWritten=0;
@@ -1832,7 +1833,7 @@ LPSTR CDBPCompiler::GetInternalFile(DWORD dwFileID)
 
 bool CDBPCompiler::FileExists(LPSTR pFilename)
 {
-	HANDLE hFile = CreateFile(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Close File
@@ -1971,7 +1972,7 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	GetPrivateProfileString("MULTITHREADING", "ThreadCount", "0", textfiles, sizeof(textfiles), path);
 	if (!g_WorkQueue.Init( static_cast<db3::uint>(atoi(textfiles)) ))
 	{
-		MessageBox( GetActiveWindow(), "Failed to initialize work queue", "Error", MB_ICONERROR|MB_OK );
+		MessageBoxW( GetActiveWindow(), L"Failed to initialize work queue", L"Error", MB_ICONERROR|MB_OK );
 		return false;
 	}
 
@@ -1979,19 +1980,19 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 #if 0
 	// indicate the number of threads used
 	sprintf_s(textfiles, "%u", static_cast<unsigned int>(m_WorkQueue.GetThreadCount()));
-	MessageBoxA(0, textfiles, "Thread Count", 64);
+	MessageBoxW(0, TextConvert::UTF8ToUTF16(textfiles).c_str(), L"Thread Count", 64);
 
 	// provide some work
 	db3::CSignal sig;
 	const char *items[] = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P" };
-	void(*func)(const char *) = [](const char *text)->void{MessageBoxA(0, text, "Worker", 64);};
+	void(*func)(const char *) = [](const char *text)->void{MessageBoxW(0, TextConvert::UTF8ToUTF16(text).c_str(), L"Worker", 64);};
 	for(db3::uint i=0; i<sizeof(items)/sizeof(items[0]); i++)
 	{
 		m_WorkQueue.Enqueue(func, items[i], &sig);
 	}
 	sig.Sync();
 	//m_WorkQueue.Sync();
-	//m_WorkQueue.Enqueue([&](char *text)->void{MessageBoxA(0, text, "Worker", 64);},textfiles);
+	//m_WorkQueue.Enqueue([&](char *text)->void{MessageBoxW(0, TextConvert::UTF8ToUTF16(text).c_str(), L"Worker", 64);},textfiles);
 #endif
 
 	// Get all directives from the global directives SETUP.INI
@@ -2052,7 +2053,7 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	{
 		// if DBPRO\TEMP exists, make sure we can WRITE to it, otherwise use USER temp
 		_chdir ( GetInternalFile(PATH_TEMPFOLDER) );
-		HANDLE hFile = CreateFile( "_temp.temp", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+		HANDLE hFile = CreateFileW( L"_temp.temp", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
 		if ( hFile==INVALID_HANDLE_VALUE )
 		{
 			// no create access to temp - do not use
@@ -2141,7 +2142,7 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 															);
 #endif
 		// Not all internal files exist for compiler
-		MessageBoxA(NULL, missing, g_pDBPCompiler->GetWordString(9), MB_OK|MB_ICONERROR);
+		MessageBoxW(NULL, TextConvert::UTF8ToUTF16(missing).c_str(), TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetWordString(9)).c_str(), MB_OK|MB_ICONERROR);
 		return false;
 	}
 
