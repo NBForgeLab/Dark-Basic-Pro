@@ -1,6 +1,8 @@
 #ifndef DBPROPHYSICS_PHYSERRORS_H
 #define DBPROPHYSICS_PHYSERRORS_H
 
+#include <intrin.h>
+#include <stdlib.h>
 
 #define Stringize( L )			#L
 #define MakeString( M, L )		M(L)
@@ -13,7 +15,15 @@
 #endif
 
 
-#define ON_FAIL_DLL_SECURITY_RETURN(retval)
+#define ON_FAIL_DLL_SECURITY_RETURN(retval) \
+	DWORD* pErrPtr = (DWORD*)physics->DBPro_globalPtr->g_pErrorHandlerRef; \
+	if (pErrPtr) { \
+		DWORD* pESPPtr = pErrPtr + 1; \
+		DWORD dwRecordedESP = *pESPPtr; \
+		DWORD dwCurrentESP = (DWORD)_AddressOfReturnAddress(); \
+		int iDifference = abs((int)(dwCurrentESP - dwRecordedESP)); \
+		if (iDifference > 1024) return retval; \
+	}
 
 
 

@@ -12,9 +12,11 @@
 extern SharedData *g_pShared;
 extern int g_iLightmapFileFormat;
 
+#include <cmath>
+
 inline int FtoI( float f )
 {
-	return static_cast<int>(f);
+	return static_cast<int>(std::lround(f));
 }
 
 #endif
