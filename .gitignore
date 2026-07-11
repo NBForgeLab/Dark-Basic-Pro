@@ -1,0 +1,26 @@
+# CMake build directories
+/build/
+/.cmake/
+
+# CMake output binaries
+/bin/
+/bin/Debug/
+/bin/Release/
+
+# Visual Studio user files
+*.user
+*.suo
+*.userOS
+*.sln.docstates
+.vs/
+
+# Compilation outputs
+*.obj
+*.lib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.tlog
+*.log

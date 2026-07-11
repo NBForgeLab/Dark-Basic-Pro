@@ -1,3 +1,0 @@
-[2026-07-04 21:44:38.338] [dbp_compiler] [trace] Trace variable: myVar = 100
-[2026-07-04 21:44:38.338] [dbp_compiler] [warning] Warning test: code=404
-[2026-07-04 21:44:38.338] [dbp_compiler] [error] Error test: msg=critical failure
