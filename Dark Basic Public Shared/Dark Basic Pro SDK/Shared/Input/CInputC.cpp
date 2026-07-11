@@ -5,6 +5,7 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #include "cinputc.h"
 #include "controller.h"
+#include "RawInputManager.h"
 #include ".\..\..\Shared\Error\cerror.h"
 #include ".\..\..\Shared\Core\globstruct.h"
 #include "time.h"
@@ -218,85 +219,23 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 
 DARKSDK void SetupKeyboardEx ( DWORD dwForeOrBackGround )
 {
-	// setup the keyboard
-	if ( dwForeOrBackGround==1 ) dwForeOrBackGround=DISCL_BACKGROUND; else dwForeOrBackGround=DISCL_FOREGROUND;
-
-	// variable declarations
-	HRESULT hr;		// used to check return codes
-
-	// create the device
-	if ( FAILED ( hr = m_lpDI->CreateDevice ( GUID_SysKeyboard, &m_lpDIKeyboard, NULL ) ) )
+	if (g_phWnd)
 	{
-		// if it fails call the destructor and show an error message
-		Destructor ( );
-		Error ( "Unable to access keyboard for input library" );
+		RawInputManager::GetInstance().Initialize(g_phWnd);
 	}
-	
-	// set the data format
-	if ( FAILED ( hr = m_lpDIKeyboard->SetDataFormat ( &c_dfDIKeyboard ) ) )
-	{
-		// if it fails call the destructor and show an error message
-		Destructor ( );
-		Error ( "Failed to set data format for keyboard in input library" );
-	}
-	
-	// request foregound, non exclusive and disable windows key DISCL_BACKGROUND
-//	if ( FAILED ( hr = m_lpDIKeyboard->SetCooperativeLevel ( g_phWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE ) ) ) //| DISCL_FOREGROUND | DISCL_NONEXCLUSIVE ) ) ) //| DISCL_NOWINKEY ) ) )
-	if ( FAILED ( hr = m_lpDIKeyboard->SetCooperativeLevel ( g_phWnd, dwForeOrBackGround | DISCL_NONEXCLUSIVE ) ) ) //| DISCL_FOREGROUND | DISCL_NONEXCLUSIVE ) ) ) //| DISCL_NOWINKEY ) ) )
-//	if ( FAILED ( hr = m_lpDIKeyboard->SetCooperativeLevel ( g_phWnd, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE ) ) ) //| DISCL_FOREGROUND | DISCL_NONEXCLUSIVE ) ) ) //| DISCL_NOWINKEY ) ) )
-	{
-		// if it fails call the destructor and show an error message
-		Destructor ( );
-		Error ( "Failed to set cooperative level for keyboard in input library" );
-	}
-
-	// now acquire the device, we may not always be able to acquire
-	// so we don't need to check for an error here
-	if ( m_lpDIKeyboard )
-		m_lpDIKeyboard->Acquire ( );
 }
 
 DARKSDK void SetupKeyboard ( void )
 {
-	SetupKeyboardEx ( DISCL_FOREGROUND );
+	SetupKeyboardEx ( 0 );
 }
 
 DARKSDK void SetupMouseEx ( DWORD dwForeOrBackGround )
 {
-	// setup the mouse, this is an essential
-	if ( dwForeOrBackGround==1 ) dwForeOrBackGround=DISCL_BACKGROUND; else dwForeOrBackGround=DISCL_FOREGROUND;
-
-	// device and must be present
-	HRESULT hr = NULL;
-
-	// create the device
-	if ( FAILED ( hr = m_lpDI->CreateDevice ( GUID_SysMouse, &m_lpDIMouse, NULL ) ) )
+	if (g_phWnd)
 	{
-		Destructor ( );
-		Error ( "Unable to access mouse for input library" );
+		RawInputManager::GetInstance().Initialize(g_phWnd);
 	}
-
-	// request background and non exclusive mode
-	//if ( FAILED ( hr = m_lpDIMouse->SetCooperativeLevel ( g_phWnd, DISCL_NONEXCLUSIVE | dwForeOrBackGround ) ) )
-	if ( FAILED ( hr = m_lpDIMouse->SetCooperativeLevel ( g_phWnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND ) ) )
-	{
-		Destructor ( );
-		Error ( "Failed to set cooperative level for mouse in input library" );
-	}
-
-	// set the data format
-	if ( FAILED ( hr = m_lpDIMouse->SetDataFormat ( &c_dfDIMouse ) ) )
-	{
-		if ( FAILED ( hr = m_lpDIMouse->SetDataFormat ( &c_dfDIMouse2 ) ) )
-		{
-			// 091013 - do not kill input device - just silently ignore this attempt Destructor ( );
-			Error ( "Failed to set data format for mouse in input library" );
-		}
-	}
-
-	// now acquire the device
-	if ( m_lpDIMouse )
-		m_lpDIMouse->Acquire ( );
 }
 
 DARKSDK void SetupMouse ( void )
@@ -582,61 +521,24 @@ DARKSDK BOOL CALLBACK ChecklistAddFFValueFlag(LPDIDEVICEINSTANCE pdinst, LPVOID 
 
 DARKSDK void UpdateKeyboard ( void )
 {
-	bool bInvalid=true;
-
-	HRESULT  hr;
-	if ( FAILED ( hr = m_lpDIKeyboard->GetDeviceState ( sizeof ( m_KeyBuffer ), ( LPVOID ) &m_KeyBuffer ) ) )
-	{
-		// the device has probably been lost if the
-		// get device state has failed, attempt to
-		// reacquire it
-		if ( hr == DIERR_INPUTLOST || hr != S_OK )
-		{
-			if ( m_lpDIKeyboard )
-			{
-				hr = m_lpDIKeyboard->Acquire ( );
-			}
-		}
-	}
-	else
-		bInvalid=false;
-
-	if(bInvalid)
-	{
-		memset ( &m_KeyBuffer, 0, sizeof ( m_KeyBuffer ) );
-	}
+	const BYTE* pKeyBuffer = RawInputManager::GetInstance().GetKeyBuffer();
+	memcpy(m_KeyBuffer, pKeyBuffer, sizeof(m_KeyBuffer));
 }
 
 DARKSDK void UpdateMouse ( void )
 {
-	bool bInvalid=true;
+	int dx = 0, dy = 0, dz = 0;
+	BYTE buttons[4] = {0};
+	RawInputManager::GetInstance().GetMouseState(dx, dy, dz, buttons);
 
-	HRESULT  hr;
-    if ( FAILED ( hr = m_lpDIMouse->GetDeviceState ( sizeof ( m_MouseBuffer ), ( LPVOID ) &m_MouseBuffer ) ) )
-	{
-		// the device has probably been lost if the
-		// get device state has failed, attempt to
-		// reacquire it
-		if ( hr == DIERR_INPUTLOST || hr != S_OK )
-		{
-			if ( m_lpDIMouse )
-				hr = m_lpDIMouse->Acquire ( );
+	m_MouseBuffer.lX = dx;
+	m_MouseBuffer.lY = dy;
+	m_MouseBuffer.lZ = dz;
+	memcpy(m_MouseBuffer.rgbButtons, buttons, 4);
 
-			// Get capture data
-			if ( SUCCEEDED ( hr = m_lpDIMouse->GetDeviceState ( sizeof ( m_MouseBuffer ), ( LPVOID ) &m_MouseBuffer ) ) )
-				bInvalid=false;
-		}
-	}
-	else
-		bInvalid=false;
+	RawInputManager::GetInstance().ResetMouseDeltas();
 
-	if(bInvalid)
-	{
-		memset ( &m_MouseBuffer, 0, sizeof ( m_MouseBuffer ) );
-		return;
-	}
-
-	// Accumilate Deltas
+	// Accumulate Deltas
 	g_iMouseDeltaX+=m_MouseBuffer.lX;
 	g_iMouseDeltaY+=m_MouseBuffer.lY;
 	g_iMouseDeltaZ+=m_MouseBuffer.lZ;
