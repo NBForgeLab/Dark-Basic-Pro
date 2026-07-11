@@ -167,10 +167,13 @@ static void CheckLength(const char *p, db3::uint l)
 
 CStr::CStr() : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 {
+	m_pStr = new char[1];
+	if (m_pStr) m_pStr[0] = 0;
 }
 
 CStr::~CStr()
 {
+	delete[] m_pStr;
 }
 
 CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
@@ -178,17 +181,17 @@ CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 	if(pText)
 	{
 		int length=strlen(pText);
-		m_pStr.reset(new char[length+1]);
-		if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
-		if(m_pStr) strcpy(m_pStr.get(), pText);
+		m_pStr = new char[length+1];
+		if(m_pStr) ZeroMemory(m_pStr, length+1);
+		if(m_pStr) strcpy(m_pStr, pText);
 		m_dwSize = length;
 		m_dwLen = length;
 	}
 	else
 	{
 		int length=0;
-		m_pStr.reset(new char[length+1]);
-		if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
+		m_pStr = new char[length+1];
+		if(m_pStr) ZeroMemory(m_pStr, length+1);
 		m_dwSize = length;
 		m_dwLen = 0;
 	}
@@ -197,8 +200,8 @@ CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 CStr::CStr(DWORD dwTextSize) : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 {
 	int length=dwTextSize;
-	m_pStr.reset(new char[length+1]);
-	if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
+	m_pStr = new char[length+1];
+	if(m_pStr) ZeroMemory(m_pStr, length+1);
 	m_dwSize = length;
 	m_dwLen = 0;
 }
@@ -207,19 +210,17 @@ void CStr::Enlarge(DWORD length)
 {
 	char* pNewStr = new char[length+1];
 	if(pNewStr) ZeroMemory(pNewStr, length+1);
-	if(pNewStr && m_pStr) strcpy(pNewStr, m_pStr.get());
+	if(pNewStr && m_pStr) strcpy(pNewStr, m_pStr);
+	delete[] m_pStr;
 	m_dwSize=length;
-	m_pStr.reset(pNewStr);
+	m_pStr = pNewStr;
 	UpdateLen();
 }
 
 void CStr::UpdateLen(void)
 {
-	m_dwLen = m_pStr ? strlen(m_pStr.get()) : 0;
+	m_dwLen = m_pStr ? strlen(m_pStr) : 0;
 }
-
-// Redirect all manual raw pointer operations to unique_ptr's managed pointer
-#define m_pStr m_pStr.get()
 
 void CStr::SetText(LPSTR pText)
 {
@@ -571,6 +572,7 @@ void CStr::CopyFromPtr(LPSTR pPointer, LPSTR pPointerEnd, DWORD length)
 		for(DWORD n=0; n<length; n++)
 			m_pStr[n] = *(pPointer+n);
 		m_pStr[n] = 0;
+		UpdateLen();
 	}
 #endif
 }
@@ -1087,6 +1089,7 @@ void CStr::EatEdgeSpacesandTabs(DWORD* pdwHowMany)
 			// Reverse string
 			strrev(m_pStr);
 		}
+		UpdateLen();
 	}
 #endif
 }
@@ -1136,6 +1139,7 @@ void CStr::EatTrailingEdgeSpacesandTabs(void)
 
 		// Reverse string
 		strrev(m_pStr);
+		UpdateLen();
 	}
 #endif
 }
@@ -1159,6 +1163,7 @@ void CStr::EatChar(DWORD dwPos)
 			m_pStr[n]=m_pStr[n+1];
 		}
 		m_dwLen--;
+		UpdateLen();
 	}
 #endif
 }
@@ -1191,6 +1196,7 @@ void CStr::EatSpeechMarks(void)
 					m_pStr[n]=m_pStr[n+1];
 				}
 				m_pStr[n]=0;
+				UpdateLen();
 			}
 		}
 	}
@@ -1248,6 +1254,7 @@ bool CStr::EatLeadingChars(void)
 			// Reverse string
 			strrev(m_pStr);
 		}
+		UpdateLen();
 	}
 	return true;
 #endif
@@ -1355,9 +1362,7 @@ void CStr::Shorten(DWORD dwNewLength)
 	if(m_pStr)
 	{
 		m_pStr[dwNewLength]=0;
-#ifdef __AARON_STRPERF__
-		m_dwLen = dwNewLength;
-#endif
+		UpdateLen();
 	}
 
 	CheckLength(m_pStr, m_dwLen);

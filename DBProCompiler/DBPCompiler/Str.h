@@ -22,11 +22,14 @@ class CStr: public db3::TObject<CStr>
 	public:
 		CStr();
 		virtual ~CStr();
+		// Disable copy and assignment to prevent double-free bugs
+		CStr(const CStr&) = delete;
+		CStr& operator=(const CStr&) = delete;
 	public:
 		CStr(LPSTR pText);
 		CStr(DWORD dwTextSize);
 		void		Enlarge(DWORD length);
-		LPSTR		GetStr(void) const { return m_pStr ? m_pStr.get() : const_cast<LPSTR>(""); }
+		LPSTR		GetStr(void) const { return m_pStr; }
 		double		GetValue(void) const;
 		void		SetText(LPSTR pStr);
 		void		SetText(CStr* pStrText);
@@ -103,7 +106,7 @@ class CStr: public db3::TObject<CStr>
 		bool		IsConstant(void) const;
 
 	private:
-		std::unique_ptr<char[]> m_pStr;
+		char*                   m_pStr;
 		DWORD                   m_dwSize;
 		DWORD                   m_dwLen;
 

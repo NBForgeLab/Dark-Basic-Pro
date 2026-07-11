@@ -68,3 +68,18 @@ TEST(CStrTest, TrimmingAndFormatting) {
     sPath.TrimToPathOnly();
     EXPECT_STREQ(sPath.GetStr(), "C:\\MyDir\\MySubDir\\");
 }
+
+TEST(CStrTest, LengthSynchronizationAfterMutations) {
+    CStr testStr("  hello world   ");
+    EXPECT_EQ(testStr.Length(), 16);
+
+    // Perform trim/eat operations
+    testStr.EatTrailingEdgeSpacesandTabs();
+    EXPECT_EQ(testStr.Length(), 13);
+    EXPECT_STREQ(testStr.GetStr(), "  hello world");
+
+    DWORD chopped = 0;
+    testStr.EatEdgeSpacesandTabs(&chopped);
+    EXPECT_EQ(testStr.Length(), 11);
+    EXPECT_STREQ(testStr.GetStr(), "hello world");
+}
