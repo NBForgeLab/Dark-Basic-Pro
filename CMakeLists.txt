@@ -82,10 +82,14 @@ add_executable(dbp_tests
     tests/test_str.cpp
     tests/test_structural.cpp
     tests/test_unicode.cpp
+    tests/test_raw_input.cpp
 )
 target_link_libraries(dbp_tests PRIVATE
     gtest
     dbp_compiler_lib
     spdlog::spdlog
 )
-target_include_directories(dbp_tests PRIVATE DBProCompiler/DBPCompiler)
+target_include_directories(dbp_tests PRIVATE 
+    DBProCompiler/DBPCompiler
+    "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
+)
