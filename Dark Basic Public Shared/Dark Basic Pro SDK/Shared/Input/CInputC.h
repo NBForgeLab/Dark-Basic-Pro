@@ -5,44 +5,15 @@
 // INCLUDES / LIBS ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-// Removed DirectInput8, using Raw Input & XInput
+// Removed DirectInput8 APIs, using Raw Input & XInput.
+// We include dinput.h ONLY for legacy key/mouse/joystick scan codes and structural definitions.
+// We do NOT link to dinput8.lib or call DirectInput8Create.
+#define DIRECTINPUT_VERSION 0x0800
 #include <windows.h>
+#include <dinput.h>
+#include <xinput.h>
 
-// Mock structures to maintain type signatures of legacy buffers
-#ifndef DIJOYSTATE2
-struct DIJOYSTATE2 {
-    LONG    lX;
-    LONG    lY;
-    LONG    lZ;
-    LONG    lRx;
-    LONG    lRy;
-    LONG    lRz;
-    LONG    rglSlider[2];
-    DWORD   rgdwPOV[4];
-    BYTE    rgbButtons[128];
-    LONG    rglVSlider[2];
-};
-#endif
-
-#ifndef DIMOUSESTATE
-struct DIMOUSESTATE {
-    LONG    lX;
-    LONG    lY;
-    LONG    lZ;
-    BYTE    rgbButtons[4];
-};
-#endif
-
-#ifndef DIDEVCAPS
-struct DIDEVCAPS {
-    DWORD dwSize;
-    DWORD dwFlags;
-    DWORD dwDevType;
-    DWORD dwAxes;
-    DWORD dwButtons;
-    DWORD dwPOVs;
-};
-#endif
+void MapXInputToDIJoyState(const XINPUT_STATE& state, DIJOYSTATE2& joyState);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

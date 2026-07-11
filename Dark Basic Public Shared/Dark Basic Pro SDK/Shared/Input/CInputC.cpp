@@ -15,9 +15,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 // shared data segment
-DBPRO_GLOBAL void*			m_lpDI				= NULL;			// direct input interface
-DBPRO_GLOBAL void*	m_lpDIKeyboard      = NULL;			// keyboard interface
-DBPRO_GLOBAL void*	m_lpDIMouse         = NULL;			// mouse interface
+DBPRO_GLOBAL LPDIRECTINPUT8			m_lpDI				= NULL;			// direct input interface
+DBPRO_GLOBAL LPDIRECTINPUTDEVICE8	m_lpDIKeyboard      = NULL;			// keyboard interface
+DBPRO_GLOBAL LPDIRECTINPUTDEVICE8	m_lpDIMouse         = NULL;			// mouse interface
 
 // U73 - 210309 - support for multiple controllers (upto 8)
 #define								CONTROLDEVICEMAX					8
@@ -87,11 +87,16 @@ DBPRO_GLOBAL int			g_iMouseDeltaX						= 0;
 DBPRO_GLOBAL int			g_iMouseDeltaY						= 0;
 DBPRO_GLOBAL int			g_iMouseDeltaZ						= 0;
 
+#ifndef DBP_TESTS_COMPILATION
 DBPRO_GLOBAL GlobStruct*					g_pGlob								= NULL;					// glob struct
+#else
+extern GlobStruct*							g_pGlob;
+#endif
 
 DBPRO_GLOBAL PTR_FuncCreateStr		g_pCreateDeleteStringFunction	= NULL;
 
 DBPRO_GLOBAL int			g_iTouchFriendly					= 0;
+DBPRO_GLOBAL int			g_iJoystickDeadzone					= 200;
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -105,29 +110,16 @@ DBPRO_GLOBAL int			g_iTouchFriendly					= 0;
 
 DARKSDK void Constructor ( HINSTANCE hInstance )
 {
-	// setup the input library
-
-	// variable declarations
-	HRESULT		hr;		// used to check error codes
-	
 	// clear out the keyboard buffer
 	memset ( &m_KeyBuffer, 0, sizeof ( m_KeyBuffer ) );
-
-	// setup the direct input interface
-	if ( FAILED ( hr = DirectInput8Create ( hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, ( void** ) &m_lpDI, NULL ) ) )
-	{
-		MessageBox ( NULL, "Unable to create DirectInput interface", "Unable to create DirectInput interface", MB_OK );
-		Error ( "Unable to create DirectInput interface" );
-		return;
-	}
+	memset ( &m_JoyStickBuffer, 0, sizeof ( m_JoyStickBuffer ) );
+	memset ( &m_ControlDeviceBuffer, 0, sizeof ( m_ControlDeviceBuffer ) );
 
 	// No Controller as default
-	m_iCDI = 0; // U73 - 210309 - support for multiple controllers
+	m_iCDI = 0;
 
 	strcpy(gFindController, "");
 	giChoseSameControllerByIndex = 0;
-
-    // Init now done using PassCoreData(...)
 }
 
 DARKSDK void ClearData ( void )
@@ -153,38 +145,10 @@ DARKSDK void FreeControlDevice ( void )
 
 DARKSDK void FreeDevices( void )
 {
-	// control device (force feedback, etc)
-	FreeControlDevice();
-
-	// keyboard
-    if ( m_lpDIKeyboard )
-    {
-        m_lpDIKeyboard->Unacquire ( );
-        m_lpDIKeyboard->Release   ( );
-		m_lpDIKeyboard = NULL;
-    }
-
-	// mouse
-	if ( m_lpDIMouse )
-    {
-        m_lpDIMouse->Unacquire ( );
-        m_lpDIMouse->Release   ( );
-		m_lpDIMouse = NULL;
-    }
 }
 
 DARKSDK void Destructor ( void )
 {
-	// release all created devices
-	if ( m_lpDI )
-    {
-		// Free devices
-		FreeDevices();
-
-		// now release interface
-        m_lpDI->Release ( );
-		m_lpDI = NULL; 
-    }
 }
 
 DARKSDK void RefreshD3D ( int iMode )
@@ -318,6 +282,44 @@ DARKSDK void UpdateMouse ( void )
 	g_iMouseLocalZ = g_iMouseLocalZ + m_MouseBuffer.lZ;
 }
 
+void MapXInputToDIJoyState(const XINPUT_STATE& state, DIJOYSTATE2& joyState)
+{
+	joyState.lX = state.Gamepad.sThumbLX;
+	joyState.lY = -state.Gamepad.sThumbLY;
+	joyState.lRx = state.Gamepad.sThumbRX;
+	joyState.lRy = -state.Gamepad.sThumbRY;
+
+	joyState.lZ = (state.Gamepad.bLeftTrigger - state.Gamepad.bRightTrigger) * 128;
+
+	WORD wButtons = state.Gamepad.wButtons;
+	joyState.rgbButtons[0] = (wButtons & XINPUT_GAMEPAD_A) ? 0x80 : 0x00;
+	joyState.rgbButtons[1] = (wButtons & XINPUT_GAMEPAD_B) ? 0x80 : 0x00;
+	joyState.rgbButtons[2] = (wButtons & XINPUT_GAMEPAD_X) ? 0x80 : 0x00;
+	joyState.rgbButtons[3] = (wButtons & XINPUT_GAMEPAD_Y) ? 0x80 : 0x00;
+	joyState.rgbButtons[4] = (wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 0x80 : 0x00;
+	joyState.rgbButtons[5] = (wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 0x80 : 0x00;
+	joyState.rgbButtons[6] = (wButtons & XINPUT_GAMEPAD_BACK) ? 0x80 : 0x00;
+	joyState.rgbButtons[7] = (wButtons & XINPUT_GAMEPAD_START) ? 0x80 : 0x00;
+	joyState.rgbButtons[8] = (wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 0x80 : 0x00;
+	joyState.rgbButtons[9] = (wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 0x80 : 0x00;
+
+	DWORD pov = -1;
+	if (wButtons & XINPUT_GAMEPAD_DPAD_UP) {
+		if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 4500;
+		else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 31500;
+		else pov = 0;
+	} else if (wButtons & XINPUT_GAMEPAD_DPAD_DOWN) {
+		if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 13500;
+		else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 22500;
+		else pov = 18000;
+	} else if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
+		pov = 9000;
+	} else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
+		pov = 27000;
+	}
+	joyState.rgdwPOV[0] = pov;
+}
+
 DARKSDK void UpdateControlDevice ( void )
 {
 	ZeroMemory(&m_ControlDeviceBuffer, sizeof(DIJOYSTATE2));
@@ -329,40 +331,7 @@ DARKSDK void UpdateControlDevice ( void )
 	ZeroMemory(&state, sizeof(XINPUT_STATE));
 	if (XInputGetState(dwUserIndex, &state) == ERROR_SUCCESS)
 	{
-		m_ControlDeviceBuffer.lX = state.Gamepad.sThumbLX;
-		m_ControlDeviceBuffer.lY = -state.Gamepad.sThumbLY;
-		m_ControlDeviceBuffer.lRx = state.Gamepad.sThumbRX;
-		m_ControlDeviceBuffer.lRy = -state.Gamepad.sThumbRY;
-
-		m_ControlDeviceBuffer.lZ = (state.Gamepad.bLeftTrigger - state.Gamepad.bRightTrigger) * 128;
-
-		WORD wButtons = state.Gamepad.wButtons;
-		m_ControlDeviceBuffer.rgbButtons[0] = (wButtons & XINPUT_GAMEPAD_A) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[1] = (wButtons & XINPUT_GAMEPAD_B) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[2] = (wButtons & XINPUT_GAMEPAD_X) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[3] = (wButtons & XINPUT_GAMEPAD_Y) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[4] = (wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[5] = (wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[6] = (wButtons & XINPUT_GAMEPAD_BACK) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[7] = (wButtons & XINPUT_GAMEPAD_START) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[8] = (wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 0x80 : 0x00;
-		m_ControlDeviceBuffer.rgbButtons[9] = (wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 0x80 : 0x00;
-
-		DWORD pov = -1;
-		if (wButtons & XINPUT_GAMEPAD_DPAD_UP) {
-			if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 4500;
-			else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 31500;
-			else pov = 0;
-		} else if (wButtons & XINPUT_GAMEPAD_DPAD_DOWN) {
-			if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 13500;
-			else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 22500;
-			else pov = 18000;
-		} else if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
-			pov = 9000;
-		} else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
-			pov = 27000;
-		}
-		m_ControlDeviceBuffer.rgdwPOV[0] = pov;
+		MapXInputToDIJoyState(state, m_ControlDeviceBuffer);
 	}
 }
 

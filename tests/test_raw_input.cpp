@@ -1,5 +1,13 @@
 #include <gtest/gtest.h>
 #include "RawInputManager.h"
+#include "CInputC.h"
+#include <xinput.h>
+
+// Mock functions to satisfy CInputC.cpp linker requirements in test build
+void RunTimeError(unsigned long code) {}
+void GlobExpandChecklist(unsigned long index, unsigned long size) {}
+class CRuntimeErrorHandler;
+CRuntimeErrorHandler* g_pErrorHandler = nullptr;
 
 TEST(RawInputTest, KeyboardInputAndMapping) {
     auto& manager = RawInputManager::GetInstance();
@@ -63,4 +71,55 @@ TEST(RawInputTest, MouseInputAccumulation) {
     manager.GetMouseState(dx, dy, dz, buttons);
     EXPECT_EQ(dx, 0);
     EXPECT_EQ(dy, 0);
+}
+
+TEST(XInputTest, GamepadMapping) {
+    XINPUT_STATE state;
+    ZeroMemory(&state, sizeof(XINPUT_STATE));
+    DIJOYSTATE2 joyState;
+    ZeroMemory(&joyState, sizeof(DIJOYSTATE2));
+
+    // 1. Test Thumbsticks
+    state.Gamepad.sThumbLX = 15000;
+    state.Gamepad.sThumbLY = -12000;
+    state.Gamepad.sThumbRX = -18000;
+    state.Gamepad.sThumbRY = 20000;
+
+    MapXInputToDIJoyState(state, joyState);
+    EXPECT_EQ(joyState.lX, 15000);
+    EXPECT_EQ(joyState.lY, 12000); // Inverted Y
+    EXPECT_EQ(joyState.lRx, -18000);
+    EXPECT_EQ(joyState.lRy, -20000); // Inverted Y
+
+    // 2. Test Triggers
+    state.Gamepad.bLeftTrigger = 200;
+    state.Gamepad.bRightTrigger = 50;
+
+    MapXInputToDIJoyState(state, joyState);
+    EXPECT_EQ(joyState.lZ, 19200); // (200 - 50) * 128
+
+    // 3. Test Buttons
+    state.Gamepad.wButtons = XINPUT_GAMEPAD_A | XINPUT_GAMEPAD_RIGHT_SHOULDER | XINPUT_GAMEPAD_START;
+
+    MapXInputToDIJoyState(state, joyState);
+    EXPECT_EQ(joyState.rgbButtons[0], 0x80); // A
+    EXPECT_EQ(joyState.rgbButtons[1], 0x00); // B (not pressed)
+    EXPECT_EQ(joyState.rgbButtons[5], 0x80); // Right Shoulder
+    EXPECT_EQ(joyState.rgbButtons[7], 0x80); // Start
+
+    // 4. Test D-pad POV Mapping
+    // UP only -> 0 degrees (0)
+    state.Gamepad.wButtons = XINPUT_GAMEPAD_DPAD_UP;
+    MapXInputToDIJoyState(state, joyState);
+    EXPECT_EQ(joyState.rgdwPOV[0], 0);
+
+    // DOWN + LEFT -> 225 degrees (22500)
+    state.Gamepad.wButtons = XINPUT_GAMEPAD_DPAD_DOWN | XINPUT_GAMEPAD_DPAD_LEFT;
+    MapXInputToDIJoyState(state, joyState);
+    EXPECT_EQ(joyState.rgdwPOV[0], 22500);
+
+    // Released -> -1
+    state.Gamepad.wButtons = 0;
+    MapXInputToDIJoyState(state, joyState);
+    EXPECT_EQ(joyState.rgdwPOV[0], 0xFFFFFFFF);
 }
