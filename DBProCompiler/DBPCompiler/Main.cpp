@@ -18,6 +18,7 @@
 #include "Str.h"
 #include "DBPCompiler.h"
 #include "DBPLogger.h"
+#include "TextConvert.h"
 
 #include <DB3Time.h>
 
@@ -535,7 +536,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	g_pErrorReport = new CError;
 
 	// Compiler needs to know where it is (file dependent)
-	GetModuleFileName(hInstance, g_ActualCompilerFilename, 256);
+	{
+		wchar_t wPath[MAX_PATH];
+		GetModuleFileNameW(hInstance, wPath, MAX_PATH);
+		std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
+		strncpy(g_ActualCompilerFilename, utf8Path.c_str(), 255);
+		g_ActualCompilerFilename[255] = '\0';
+	}
 
 	// lee - 130406 - u6rc8 - an extra check to prevent DEMO users using the UPGRADE to improve their demo-version
 	#ifndef TRIALPERIOD 

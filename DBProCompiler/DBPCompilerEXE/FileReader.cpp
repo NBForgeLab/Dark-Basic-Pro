@@ -7,6 +7,7 @@
 #pragma warning(disable : 4996)
 #include "FileReader.h"
 #include <filesystem>
+#include "../DBPCompiler/TextConvert.h"
 #include "direct.h"
 
 // Externals
@@ -582,7 +583,7 @@ void CFileReader::GoodDeleteFile(LPSTR filename)
 	if ( bSkip==false )
 	{
 		std::error_code ec;
-		std::filesystem::remove(filename, ec);
+		std::filesystem::remove(std::filesystem::path(TextConvert::UTF8ToUTF16(filename)), ec);
 	}
 }
 

@@ -5,6 +5,7 @@
 #include "EXEBlock.h"
 #include "DataType.h"
 #include "PluginRegistry.h"
+#include "TextConvert.h"
 #include <filesystem>
 #include "direct.h"
 #include "..\DBPCompilerEXE\resource.h"
@@ -870,7 +871,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						// Module is a DLL
 						if(FileExists(pTryDLLName))
 						{
-							hDLLMod[dllindex]=LoadLibrary(pTryDLLName);
+							hDLLMod[dllindex]=LoadLibraryW(TextConvert::UTF8ToUTF16(pTryDLLName).c_str());
 							if(hDLLMod[dllindex]==NULL)
 							{
 								if(*pReturnError==NULL) *pReturnError = new char[1024];

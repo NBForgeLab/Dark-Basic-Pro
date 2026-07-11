@@ -8,6 +8,7 @@
 #include "FileReader.h"
 #include "windows.h"
 #include "direct.h"
+#include "../DBPCompiler/TextConvert.h"
 #include "time.h"
 
 // Defines and Externs
@@ -709,7 +710,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	// Prepare Virtual Directory from Data Appended to EXE File
 	char ActualEXEFilename[_MAX_PATH];
-	GetModuleFileName(hInstance, ActualEXEFilename, _MAX_PATH);
+	{
+		wchar_t wPath[_MAX_PATH];
+		GetModuleFileNameW(hInstance, wPath, _MAX_PATH);
+		std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
+		strncpy(ActualEXEFilename, utf8Path.c_str(), _MAX_PATH - 1);
+		ActualEXEFilename[_MAX_PATH - 1] = '\0';
+	}
 
 	// Get current working directory (for temp folder compare)
 	char CurrentDirectory[_MAX_PATH];
