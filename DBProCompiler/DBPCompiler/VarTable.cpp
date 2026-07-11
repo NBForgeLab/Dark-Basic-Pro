@@ -27,8 +27,18 @@ extern CStatementList* g_pStatementList;
 
 # define ALLOWED_DBVAR ALLOWED_IDENT ALLOWED_MISCL
 
-typedef db3::TDictionary<CVarTable> map_type;
-map_type CVarTable::g_Table(ALLOWED_DBVAR, map_type::ECase::Insensitive, map_type::EOnDestruct::DeleteEntries);
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+
+std::unordered_map<std::string, CVarTable*> CVarTable::g_Table;
+
+static std::string to_lower(const std::string& s)
+{
+	std::string res = s;
+	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+	return res;
+}
 
 inline const char *MakeIntVarName(const char *scope, const char *name)
 {
@@ -82,11 +92,9 @@ CVarTable::CVarTable(LPSTR pStr)
 	m_pPrev=NULL;
 
 #ifdef __AARON_VARTABLEPERF__
-	auto entry = g_Table.Lookup(pStr);
-	assert_msg(entry != nullptr, "g_Table.Lookup() failed!");
-	assert_msg(entry->P == nullptr, "Variable already exists");
-
-	entry->P = this;
+	std::string lowerStr = to_lower(pStr);
+	assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Variable already exists");
+	g_Table[lowerStr] = this;
 #endif
 }
 
@@ -95,10 +103,11 @@ CVarTable::~CVarTable()
 #ifdef __AARON_VARTABLEPERF__
 	if (m_pVarName)
 	{
-		auto entry = g_Table.Find(m_pVarName->GetStr());
-		if (entry && entry->P == this)
+		std::string lowerStr = to_lower(m_pVarName->GetStr());
+		auto it = g_Table.find(lowerStr);
+		if (it != g_Table.end() && it->second == this)
 		{
-			entry->P = nullptr;
+			g_Table.erase(it);
 		}
 	}
 #endif
@@ -106,6 +115,9 @@ CVarTable::~CVarTable()
 
 void CVarTable::Free(void)
 {
+#ifdef __AARON_VARTABLEPERF__
+	g_Table.clear();
+#endif
 	CVarTable* pCurrent = this;
 	while(pCurrent)
 	{
@@ -424,12 +436,9 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 
 #ifdef __AARON_VARTABLEPERF__
 	const char *pIntVarName = MakeIntVarName(pVarScopeStr->GetStr(), pName);
-
-	auto entry = g_Table.Lookup(pIntVarName);
-	assert_msg(entry != nullptr, "g_Table.Lookup() failed!");
-	assert_msg(entry->P == nullptr, "Variable already exists");
-
-	entry->P = pNewVar;
+	std::string lowerIntVarName = to_lower(pIntVarName);
+	assert_msg(g_Table.find(lowerIntVarName) == g_Table.end() || g_Table[lowerIntVarName] == nullptr, "Variable already exists");
+	g_Table[lowerIntVarName] = pNewVar;
 #endif
 
 	// Increment var qty index counter
@@ -446,15 +455,15 @@ CVarTable* CVarTable::FindVariable(LPSTR pScope, LPSTR pName, DWORD dwArrFlag)
 {
 #ifdef __AARON_VARTABLEPERF__
 	const char *pIntName = MakeIntVarName(pScope, pName);
-
-	auto entry = g_Table.Find(pIntName);
-	if (!entry || !entry->P)
+	std::string lowerIntName = to_lower(pIntName);
+	auto it = g_Table.find(lowerIntName);
+	if (it == g_Table.end() || !it->second)
 		return nullptr;
 
-	if (entry->P->GetArrFlag()!=dwArrFlag)
+	if (it->second->GetArrFlag()!=dwArrFlag)
 		return nullptr;
 
-	return entry->P;
+	return it->second;
 #else
 	// Start search in middle of list
 	CVarTable* pCurrent = this;

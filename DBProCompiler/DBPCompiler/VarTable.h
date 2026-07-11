@@ -9,7 +9,8 @@
 #include "PerfMacros.h"
 
 #ifdef __AARON_VARTABLEPERF__
-# include <DB3Dict.h>
+# include <unordered_map>
+# include <string>
 #endif
 
 class CVarTable  
@@ -100,7 +101,7 @@ class CVarTable
 
 		// Dictionary
 #ifdef __AARON_VARTABLEPERF__
-		static db3::TDictionary<CVarTable> g_Table;
+		static std::unordered_map<std::string, CVarTable*> g_Table;
 #endif
 };
 

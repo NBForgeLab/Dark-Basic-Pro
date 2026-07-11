@@ -73,3 +73,16 @@ TEST_F(VarTableTest, AddAndFindVariable) {
     CVarTable* pVar = g_pVarTable->FindVariable(nullptr, "myIntegerVar", 0);
     ASSERT_NE(pVar, nullptr);
 }
+
+TEST_F(VarTableTest, DictionaryCaseInsensitiveLookupAndFree) {
+    g_pStatementList->SetVariableAddParse(true);
+    
+    DWORD dwAction = 0;
+    bool bRes = g_pVarTable->AddVariable("MyIntegerVar", "integer", 0, 10, true, &dwAction, false);
+    EXPECT_TRUE(bRes);
+    
+    // Case-insensitive find
+    CVarTable* pFound = g_pVarTable->FindVariable(nullptr, "myintegervar", 0);
+    ASSERT_NE(pFound, nullptr);
+    EXPECT_STREQ(pFound->GetVarName()->GetStr(), "MyIntegerVar");
+}
