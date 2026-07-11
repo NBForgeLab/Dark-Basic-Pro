@@ -96,8 +96,8 @@ typedef struct
 
 /****************************************************************************/
 // Exported function prototypes
-LPICONRESOURCE ReadIconFromICOFile( LPCTSTR szFileName );
-BOOL WriteIconToICOFile( LPICONRESOURCE lpIR, LPCTSTR szFileName );
+LPICONRESOURCE ReadIconFromICOFile( LPCSTR szFileName );
+BOOL WriteIconToICOFile( LPICONRESOURCE lpIR, LPCSTR szFileName );
 //HICON MakeIconFromResource( LPICONIMAGE lpIcon );
 //LPICONRESOURCE ReadIconFromEXEFile( LPCTSTR szFileName );
 //BOOL IconImageToClipBoard( LPICONIMAGE lpii );
@@ -107,6 +107,6 @@ BOOL WriteIconToICOFile( LPICONRESOURCE lpIR, LPCTSTR szFileName );
 //BOOL DrawANDMask( HDC hDC, RECT Rect, LPICONIMAGE lpIcon );
 RECT GetXORImageRect( RECT Rect, LPICONIMAGE lpIcon );
 BOOL MakeNewANDMaskBasedOnPoint( LPICONIMAGE lpIcon, POINT pt );
-BOOL IconImageFromBMPFile( LPCTSTR szFileName, LPICONIMAGE lpii, BOOL bStretchToFit );
+BOOL IconImageFromBMPFile( LPCSTR szFileName, LPICONIMAGE lpii, BOOL bStretchToFit );
 //BOOL IconImageToBMPFile( LPCTSTR szFileName, LPICONIMAGE lpii );
 /****************************************************************************/

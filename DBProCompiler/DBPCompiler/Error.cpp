@@ -8,6 +8,7 @@
 #include "StatementList.h"
 #include "DBPCompiler.h"
 #include "IncludeTable.h"
+#include "TextConvert.h"
 
 // External Class Pointer
 extern CDBPCompiler* g_pDBPCompiler;
@@ -37,7 +38,7 @@ CError::CError()
 //	if(m_hWndMonitor)
 //	{
 		m_bEstablishedConnectionToMonitor=true;
-		m_hMonitorFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,"DBPROEDITORMESSAGE");
+		m_hMonitorFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
 		m_lpVoidMonitor = MapViewOfFile(m_hMonitorFileMap,FILE_MAP_WRITE,0,0,256);
 //	}
 
@@ -191,7 +192,7 @@ void CError::OutputInternalErrorReport(void)
 	LPSTR lpString = GetErrorString();
 
 	// Deposit in File
-	HANDLE hFile = CreateFile(g_pDBPCompiler->GetInternalFile(PATH_TEMPERRORFILE), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetInternalFile(PATH_TEMPERRORFILE)).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		DWORD BytesWritten=0;
@@ -597,15 +598,15 @@ void CError::ProgressReport(LPSTR lpString, DWORD dwValue)
 //		if(hWnd)
 //		{
 			// Create Virtual File for Error Transfer
-			HANDLE hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,"DBPROEDITORMESSAGE");
+			HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
 			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
 
 			// Copy to Virtual File
 			LPSTR pTemp = new char[256];
-			wsprintf(pTemp, "%s %d", lpString, dwValue);
+			sprintf_s(pTemp, 256, "%s %d", lpString, dwValue);
 			*(DWORD*)lpVoid = dwValue;
 			strcpy((LPSTR)lpVoid+4, pTemp);
-			delete pTemp;
+			delete[] pTemp;
 
 			// Release virtual file
 			UnmapViewOfFile(lpVoid);

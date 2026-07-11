@@ -1186,7 +1186,7 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 			else
 			{
 				char pErrorDetail[512];
-				wsprintf(pErrorDetail, "Failed to 'Calculate DataOffsetAndTypeFromFieldString' : %s %s %s %s", pVarName->GetStr(), pFieldData->GetStr(), pFirstName, pTypeName );
+				sprintf_s(pErrorDetail, 512, "Failed to 'Calculate DataOffsetAndTypeFromFieldString' : %s %s %s %s", pVarName->GetStr(), pFieldData->GetStr(), pFirstName->GetStr(), pTypeName );
 				g_pErrorReport->AddErrorString(pErrorDetail);
 				SAFE_DELETE(pFirstName);
 				SAFE_DELETE(pTypeName);

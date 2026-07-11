@@ -18,3 +18,12 @@
 //# include "../../Dark Basic Public Shared/Dark Basic Pro SDK/Shared/global.h"
 #include "DB3.h"
 #endif
+
+#ifdef UNICODE
+#undef GetPrivateProfileString
+#define GetPrivateProfileString GetPrivateProfileStringA
+#undef WritePrivateProfileString
+#define WritePrivateProfileString WritePrivateProfileStringA
+#undef wsprintf
+#define wsprintf wsprintfA
+#endif

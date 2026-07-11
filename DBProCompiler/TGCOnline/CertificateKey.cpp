@@ -4,6 +4,7 @@
 
 // Includes
 #include <time.h>
+#include <stdio.h>
 #include "certificatekey.h"
 
 // DBPRO Trial Duration hardcoded
@@ -300,7 +301,7 @@ TMD5ChecksumFreeMD5		gCMD5ChecksumFreeMD5;
 
 void InitMD5DLL ( void )
 {
-	hMD5DLLHandle = LoadLibrary("MD5.DLL");
+	hMD5DLLHandle = LoadLibraryA("MD5.DLL");
 	if ( hMD5DLLHandle )
 	{
 		gCMD5ChecksumGetMD5	= ( TMD5ChecksumGetMD5 ) GetProcAddress ( hMD5DLLHandle, "?GetMD5@@YAPADPAEI@Z" );
@@ -309,7 +310,7 @@ void InitMD5DLL ( void )
 	else
 	{
 		//leeadd - 280206 - u60 - now uses a MD5.DLL in the Compiler folder
-		MessageBox ( NULL, "Upgrade 6.0 onwards requires the MD5.DLL in the Compiler folder", "MD5 Error", MB_OK );
+		MessageBoxA ( NULL, "Upgrade 6.0 onwards requires the MD5.DLL in the Compiler folder", "MD5 Error", MB_OK );
 	}
 }
 
@@ -330,13 +331,13 @@ bool WriteToRegistry(char* PerfmonNamesKey, char* key, LPSTR Datavalue)
 	strcpy(ObjectType,"Num");
 
 	// Try to create it first
-	Status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, ObjectType, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
+	Status = RegCreateKeyExA(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, ObjectType, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
 	
 	// If it has been created before, then open it
 	if(dwDisposition==REG_OPENED_EXISTING_KEY)
 	{
 		RegCloseKey(hKeyNames);
-		Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_WRITE, &hKeyNames);
+		Status = RegOpenKeyExA(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_WRITE, &hKeyNames);
 	}
 	
 	// We got the handle, now store the window placement data
@@ -344,7 +345,7 @@ bool WriteToRegistry(char* PerfmonNamesKey, char* key, LPSTR Datavalue)
 	{
 		DWORD Size = strlen(Datavalue);
 		DWORD Type = REG_SZ;
-        Status = RegSetValueEx ( hKeyNames, key, 0, Type, (LPBYTE)Datavalue, Size );
+        Status = RegSetValueExA ( hKeyNames, key, 0, Type, (LPBYTE)Datavalue, Size );
 	}
 
 	// free usages
@@ -363,7 +364,7 @@ bool ReadFromRegistry ( LPSTR PerfmonNamesKey, LPSTR key, LPSTR* pReturnString )
 	strcpy(ObjectType,"Num");
 
 	// Try to create it first
-	Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
+	Status = RegOpenKeyExA(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
 		
 	// We got the handle, now use it
 	LPSTR pData = NULL;
@@ -373,7 +374,7 @@ bool ReadFromRegistry ( LPSTR PerfmonNamesKey, LPSTR key, LPSTR* pReturnString )
 		DWORD Type = REG_SZ;
 		pData = new char [ Size ];
 		memset ( pData, 0, Size );
-		Status = RegQueryValueEx(hKeyNames, key, NULL, &Type, (LPBYTE)pData, &Size);
+		Status = RegQueryValueExA(hKeyNames, key, NULL, &Type, (LPBYTE)pData, &Size);
 		RegCloseKey(hKeyNames);
 	}
 
@@ -446,7 +447,7 @@ LPSTR GenerateMangledDate ( int iDay )
 {
 	// create date string
 	char datenumber[32];
-	wsprintf ( datenumber, " %d ", iDay );
+	sprintf_s ( datenumber, 32, " %d ", iDay );
 
 	// return string
 	LPSTR pProductDate = NULL;
@@ -670,7 +671,7 @@ int AmIActive ( int iProductIndex, LPSTR pDaysLeft )
 							_getcwd ( pAbsCertificateFilename, 1024 );
 							strcat ( pAbsCertificateFilename, "\\");
 							strcat ( pAbsCertificateFilename, pCertificateFilename );
-							GetPrivateProfileString ( "PRODUCT", "DATE", "", pMangledDate, 256, pAbsCertificateFilename );
+							GetPrivateProfileStringA ( "PRODUCT", "DATE", "", pMangledDate, 256, pAbsCertificateFilename );
 
 							// if trial, or full version, is it still active?
 							int iDaysLeft = IsStillActive ( iProductIndex, pMangledDate );
@@ -682,7 +683,7 @@ int AmIActive ( int iProductIndex, LPSTR pDaysLeft )
 									if ( iDaysLeft==0 )
 										strcpy ( pDaysLeft, "" );
 									else
-										wsprintf ( pDaysLeft, "%d", iDaysLeft );
+										sprintf_s ( pDaysLeft, 256, "%d", iDaysLeft );
 								}
 								iActiveResult = 1;//valid
 							}
@@ -753,7 +754,7 @@ void GenerateHWKey ( void )
 			for ( int iTarget=0; iTarget<2; iTarget++ )
 			{
 				// get identifier of hardware device
-				wsprintf ( pHDKey, "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target ID %d\\Logical Unit Id 0", iPort, iBus, iTarget );
+				sprintf_s ( pHDKey, 1024, "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target ID %d\\Logical Unit Id 0", iPort, iBus, iTarget );
 				ReadFromRegistry ( pHDKey, "Identifier", &pHardDriveIdentifier[iPort][iBus][iTarget] );
 			}
 		}
@@ -795,7 +796,7 @@ void ReadLocalHWKey ( void )
 		char pAbsLocalFilename [ _MAX_PATH ];
 		getcwd ( pAbsLocalFilename, 1024 );
 		strcat ( pAbsLocalFilename, "\\local.ini");
-		GetPrivateProfileString ( "LOCAL", "CERT", "", pString, 256, pAbsLocalFilename );
+		GetPrivateProfileStringA ( "LOCAL", "CERT", "", pString, 256, pAbsLocalFilename );
 		_chdir ( ".." );
 	}
 

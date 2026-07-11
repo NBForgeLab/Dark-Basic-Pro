@@ -475,7 +475,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 			{
 				// U74 - 110509 - ensure RETURN commands not inside a user function
 				char err[512];
-				wsprintf ( err, "Cannot use RETURN command inside a function at line %d.", m_dwLineNumber );
+				sprintf_s ( err, 512, "Cannot use RETURN command inside a function at line %d.", m_dwLineNumber );
 				g_pErrorReport->AddErrorString(err);
 				return false;
 			}

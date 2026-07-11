@@ -10,6 +10,7 @@
 #include "macros.h"
 #include "wingdi.h"
 #include "Encryptor.h"
+#include "TextConvert.h"
 
 // 'C' Includes
 extern "C"
@@ -236,7 +237,7 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 	if(pCompressDLL)
 	{
 		// Load PCK Data 
-		HANDLE hreadfile = CreateFile(destPCKfilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hreadfile==INVALID_HANDLE_VALUE)
 		{
 			// Report failure
@@ -252,7 +253,7 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 		CloseHandle(hreadfile);
 
 		// Dynamically load compress.dll and use it to compress
-		HMODULE hModule = LoadLibrary(pCompressDLL);
+		HMODULE hModule = LoadLibraryW(TextConvert::UTF8ToUTF16(pCompressDLL).c_str());
 		COMPRESSFUNC CompressBlock = ( COMPRESSFUNC ) GetProcAddress ( hModule, "compress_block" );
 
 		// Compress PCK Data
@@ -310,8 +311,8 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 {
 	// Create File and place EXE Runner Code
-	DeleteFile(EXEfilename);
-	m_hfile = CreateFile(EXEfilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	DeleteFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str());
+	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(m_hfile==INVALID_HANDLE_VALUE)
 	{
 		char err[256];
@@ -327,8 +328,8 @@ bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 	if ( g_bLocalTempFolder ) wCoreCode = IDR_X1;
 
 	// Get EXE Runner Code
-	m_SizeOfEXECode = SizeofResource(NULL, FindResource(NULL, MAKEINTRESOURCE(wCoreCode), "X"));
-	HGLOBAL hGlobal = LoadResource(NULL, FindResource(NULL, MAKEINTRESOURCE(wCoreCode), "X"));
+	m_SizeOfEXECode = SizeofResource(NULL, FindResourceW(NULL, MAKEINTRESOURCE(wCoreCode), L"X"));
+	HGLOBAL hGlobal = LoadResource(NULL, FindResourceW(NULL, MAKEINTRESOURCE(wCoreCode), L"X"));
 	LPVOID lpResDataBuffer = LockResource(hGlobal);
 	if(m_SizeOfEXECode<=0)
 	{
@@ -370,8 +371,8 @@ bool CFileBuilder::AddFileToConstruct(LPSTR FilenameString, LPSTR pPlacement)
 	// Add single file to construction
 	if(m_hfile)
 	{
-		// Open file to be added
-		HANDLE hreadfile = CreateFile(FilenameString, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		// Load Temporary PCK Data 
+		HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(FilenameString).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hreadfile==INVALID_HANDLE_VALUE)
 		{
 			char err[256];
@@ -423,9 +424,9 @@ bool CFileBuilder::AddFileToConstruct(LPSTR FilenameString, LPSTR pPlacement)
 
 bool CFileBuilder::ConstructPCK(LPSTR PCKfilename)
 {
-	// Create File
-	DeleteFile(PCKfilename);
-	m_hfile = CreateFile(PCKfilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	// Create PCK File from Data
+	DeleteFileW(TextConvert::UTF8ToUTF16(PCKfilename).c_str());
+	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(PCKfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(m_hfile==INVALID_HANDLE_VALUE)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'CFileBuilder::ConstructPCK'");
@@ -455,7 +456,7 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 	// Simply scans the EXE and locates the Version Block, and directly replaces it
 	LPSTR pEXEData = NULL;
 	DWORD dwSizeOfEXECode = 0;	
-	HANDLE hreadfile = CreateFile(pFilenameEXE, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
 		// Read EXE into memory
@@ -501,7 +502,7 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 		}
 
 		// Write EXE back out
-		HANDLE hwritefile = CreateFile(pFilenameEXE, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hwritefile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD byteswritten=0;
@@ -816,7 +817,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	if(pVerComments)
 	{
 		// Access Resource from EXE
-		HMODULE hEXE = LoadLibraryEx(ModuleName, NULL, LOAD_LIBRARY_AS_DATAFILE);
+		HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(ModuleName).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
 		HRSRC hRes=FindResource(hEXE, (LPCTSTR)1, RT_VERSION);
 		DWORD dwDataSize = SizeofResource(hEXE, hRes);
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
@@ -902,7 +903,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	for(short icon=1; icon<=2; icon++)
 	{
 		// Get Icon Rsource Size From Existing Resource
-		HMODULE hEXE = LoadLibrary(ModuleName);
+		HMODULE hEXE = LoadLibraryW(TextConvert::UTF8ToUTF16(ModuleName).c_str());
 		LPCTSTR pResName = 0;
 
 		// Determined by icon order in EXE
@@ -948,14 +949,14 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 			strcpy(pWorkIcon, pPathToPluginFolderForBuilder);
 			MakeICOFromBMP(pFilename, pWorkIcon);
 			strcat(pWorkIcon, "workicon.ico");
-			if(icon==1) hImage = LoadImage( NULL, pWorkIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImage( NULL, pWorkIcon, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			if(icon==1) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pWorkIcon).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pWorkIcon).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 		}
 		else
 		{
 			// Load Icon Image File
-			if(icon==1) hImage = LoadImage( NULL, pLargeIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImage( NULL, pSmallIcon, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			if(icon==1) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pLargeIcon).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pSmallIcon).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 		}
 		GetIconInfo((HICON)hImage, &IconInfo);
 		hCol = IconInfo.hbmColor;
@@ -1010,7 +1011,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		if(icon==2) memcpy(pIconMem+MaskOffset, pMaskArray, (dwBitsSize/8)*2);
 
 		// Open EXE for editing (lee - 060406 - u6rc6 - win98/me cannot do this natively)
-		HANDLE hUpdateRes = BeginUpdateResource( ModuleName, FALSE);
+		HANDLE hUpdateRes = BeginUpdateResourceW( TextConvert::UTF8ToUTF16(ModuleName).c_str(), FALSE);
 		if ( hUpdateRes )
 		{
 			// Add Icon to Executable
@@ -1090,8 +1091,8 @@ bool CFileBuilder::SaveIconCursorFileFromInfo(	LPSTR pszFullFileName,
 {
 	// Open the file for writing.
 	DWORD byteswritten;
-	DeleteFile(pszFullFileName);
-	HANDLE hfile = CreateFile(pszFullFileName, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	DeleteFileW(TextConvert::UTF8ToUTF16(pszFullFileName).c_str());
+	HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(pszFullFileName).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hfile==INVALID_HANDLE_VALUE)
 		return false;
 
@@ -1202,7 +1203,7 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	// Get pre-build EXE (with modified icon/etc data)
 	LPSTR pEXEData = NULL;
 	DWORD dwSizeOfEXECode = 0;	
-	HANDLE hreadfile = CreateFile(EXEfilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
 		// Read pre-build EXE into memory
@@ -1225,7 +1226,7 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	// Get pre-build PCK file
 	LPSTR pPCKData = NULL;
 	DWORD dwSizeOfPCKData = 0;	
-	hreadfile = CreateFile(destPCKfilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
 		// Read pre-build EXE into memory
@@ -1243,8 +1244,8 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	}
 
 	// Create File and place EXE Runner Code
-	DeleteFile(EXEfilename);
-	m_hfile = CreateFile(EXEfilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	DeleteFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str());
+	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(m_hfile==INVALID_HANDLE_VALUE)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'CFileBuilder::AddPCKToEXE'");
@@ -1284,7 +1285,7 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	SAFE_DELETE(pPCKData);
 
 	// Delete PCK File now redundant
-	DeleteFile(destPCKfilename);
+	DeleteFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str());
 
 	// Complete
 	return true;
@@ -1303,7 +1304,7 @@ bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, L
 	// Simply scans the EXE and locates the pattern in the data, and replaces it
 	LPSTR pEXEData = NULL;
 	DWORD dwSizeOfEXECode = 0;	
-	HANDLE hreadfile = CreateFile(pFilenameEXE, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
 		// Read EXE into memory
@@ -1349,7 +1350,7 @@ bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, L
 		}
 
 		// Write EXE back out
-		HANDLE hwritefile = CreateFile(pFilenameEXE, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hwritefile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD byteswritten=0;

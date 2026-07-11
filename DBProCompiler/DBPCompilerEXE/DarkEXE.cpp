@@ -217,7 +217,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		strcpy ( pUniqueFileMapName, CEXE.m_pAbsoluteAppFile );
 		strcat ( pUniqueFileMapName, "(FileMap)" );
 		DWORD dwWriteDataSize = strlen(pDebugMeString)+1;
-		HANDLE hWriteFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize+4,pUniqueFileMapName);
+		HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize+4,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
 		if(hWriteFileMap)
 		{
 			LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize+4);
@@ -252,7 +252,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		if ( pUniqueMutexName[n]=='\\' ) pUniqueMutexName[n] = '_';
 		if ( pUniqueMutexName[n]=='/' ) pUniqueMutexName[n] = '_';
 	}
-	HANDLE pAppMutex = OpenMutex ( MUTEX_ALL_ACCESS, FALSE, pUniqueMutexName );
+	HANDLE pAppMutex = OpenMutexW ( MUTEX_ALL_ACCESS, FALSE, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str() );
 	if ( pAppMutex )
 	{
 		// it appears another process has already created an identical mutex
@@ -271,7 +271,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 			if ( pUniqueFileMapName[n]=='/' ) pUniqueFileMapName[n] = '_';
 		}
 
-		HANDLE hFileMap = OpenFileMapping(FILE_MAP_READ,FALSE,pUniqueFileMapName);
+		HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
 		if(hFileMap)
 		{
 			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,0);
@@ -302,7 +302,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 			// order to keep this section simple, we simply pass in the memory address
 			// of the GLOBSTRUCT data, which includes all the information needed
 			DWORD dwWriteDataSize = 4;
-			HANDLE hWriteFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize,pUniqueFileMapName);
+			HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
 			if(hWriteFileMap)
 			{
 				LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize);
@@ -316,7 +316,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 			}
 
 			// friendly message
-			MessageBox ( NULL, pUniqueMutexName, "DBP App has deposited the glob struct in the filemap as a DWORD, and now wants to OWN this mutex...give it to me!", MB_OK );
+			MessageBoxW ( NULL, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str(), L"DBP App has deposited the glob struct in the filemap as a DWORD, and now wants to OWN this mutex...give it to me!", MB_OK );
 
 			// now wait for the external debugger to release the mutex
 			DWORD dwWaitResult = WaitForSingleObject ( pAppMutex, 5000L );
@@ -357,7 +357,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		*pReturnError = new char[1024];
 		LPSTR pRuntimeErrorString = NULL;
 		if(CEXE.m_pRuntimeErrorStringsArray) pRuntimeErrorString = (LPSTR)CEXE.m_pRuntimeErrorStringsArray[dwRTError];
-		wsprintf(*pReturnError, "Runtime Error %d - %s at line %d", dwRTError, pRuntimeErrorString, dwRTErrorLine);
+		sprintf_s(*pReturnError, 1024, "Runtime Error %d - %s at line %d", dwRTError, pRuntimeErrorString, dwRTErrorLine);
 		bResult=false;
 	}
 
@@ -423,7 +423,7 @@ void CreateTempWindow ( HINSTANCE hInstance, LPSTR pFullAppPath, DWORD dwWindowW
 			pAppName[strlen(pAppName)-4]=0;
 
 	// Register window
-	WNDCLASS wc;
+	WNDCLASSA wc;
 	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = TempWindowProc;
 	wc.cbClsExtra = 0;
@@ -434,10 +434,10 @@ void CreateTempWindow ( HINSTANCE hInstance, LPSTR pFullAppPath, DWORD dwWindowW
 	wc.hbrBackground = NULL;
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = pAppName;
-	RegisterClass( &wc );
+	RegisterClassA( &wc );
 
 	// Create Window
-	g_hTempWindow = CreateWindowEx( 
+	g_hTempWindow = CreateWindowExA( 
 										0,                      // no extended styles           
 										pAppName,				// class name                   
 										pAppName,				// window name                  
@@ -529,14 +529,14 @@ void DeleteContentsOfDBPDATA ( bool bOnlyIfOlderThan2DAYS )
 					strcpy(file, filedata.name);
 					char old[_MAX_PATH];
 					getcwd(old, _MAX_PATH);
-					BOOL bResult = RemoveDirectory(file);
+					BOOL bResult = RemoveDirectoryW(TextConvert::UTF8ToUTF16(file).c_str());
 					if(bResult==FALSE)
 					{
 						chdir(file);
 						FFindCloseFile();
 						DeleteContentsOfDBPDATA ( bOnlyIfOlderThan2DAYS );
 						chdir(old);
-						BOOL bResult = RemoveDirectory(file);
+						BOOL bResult = RemoveDirectoryW(TextConvert::UTF8ToUTF16(file).c_str());
 						FFindFirstFile();
 					}
 					iAttempts--;
@@ -544,7 +544,7 @@ void DeleteContentsOfDBPDATA ( bool bOnlyIfOlderThan2DAYS )
 			}
 			else
 			{
-				DeleteFile(filedata.name);
+				DeleteFileW(TextConvert::UTF8ToUTF16(filedata.name).c_str());
 			}
 		}
 		FFindNextFile();
@@ -618,7 +618,7 @@ void DeleteAllOldDBPDATAFolders(void)
 			rmdir(gpDBPDataName);
 
 			// Create new folder name from build data
-			wsprintf(gpDBPDataName, "%s%d", pBuildStart, dwBuildID);
+			sprintf_s(gpDBPDataName, _MAX_PATH, "%s%d", pBuildStart, dwBuildID);
 		}
 		else
 		{
@@ -655,29 +655,29 @@ void DumpDebugReport ( void )
 
 	// Create Report File (by date and time)
 	char pLineToReport [ _MAX_PATH ];
-	wsprintf ( pLineToReport, "%s", pReportFile );
-	WritePrivateProfileString ( "COMMON", "PathToEXE", pReportFile, pReportFile );
+	sprintf_s ( pLineToReport, _MAX_PATH, "%s", pReportFile );
+	WritePrivateProfileStringA ( "COMMON", "PathToEXE", pReportFile, pReportFile );
 	if ( CEXE.m_dwRuntimeErrorDWORD==0 )
 	{
 		// crashed out inside a function - hard crash (ie access NULL ptr)
 		if ( g_pGlob )
-			wsprintf ( pLineToReport, "Internal Code:%d", g_pGlob->dwInternalFunctionCode );
+			sprintf_s ( pLineToReport, _MAX_PATH, "Internal Code:%d", g_pGlob->dwInternalFunctionCode );
 		else
-			wsprintf ( pLineToReport, "Unknown Internal Location - email this file and TEMP\\FullSourceDump.dba to bugs@thegamecreators.com" );
+			strcpy_s ( pLineToReport, _MAX_PATH, "Unknown Internal Location - email this file and TEMP\\FullSourceDump.dba to bugs@thegamecreators.com" );
 	}
 	else
 	{
 		// regular runtime error
-		wsprintf ( pLineToReport, "%d", CEXE.m_dwRuntimeErrorDWORD );
+		sprintf_s ( pLineToReport, _MAX_PATH, "%d", CEXE.m_dwRuntimeErrorDWORD );
 	}
-	WritePrivateProfileString ( "CEXE", "m_dwRuntimeErrorDWORD", pLineToReport, pReportFile );
-	wsprintf ( pLineToReport, "%d", CEXE.m_dwRuntimeErrorLineDWORD );
-	WritePrivateProfileString ( "CEXE", "m_dwRuntimeErrorLineDWORD", pLineToReport, pReportFile );			
+	WritePrivateProfileStringA ( "CEXE", "m_dwRuntimeErrorDWORD", pLineToReport, pReportFile );
+	sprintf_s ( pLineToReport, _MAX_PATH, "%d", CEXE.m_dwRuntimeErrorLineDWORD );
+	WritePrivateProfileStringA ( "CEXE", "m_dwRuntimeErrorLineDWORD", pLineToReport, pReportFile );			
 }
 
 bool FileExists(LPSTR pFilename)
 {
-	HANDLE hFile = CreateFile(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(hFile);
@@ -748,7 +748,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	chdir(CurrentDirectory);
 	#else
 	// Find temporary directory (C:\WINDOWS\Temp)
-	GetTempPath(_MAX_PATH, WindowsTempDirectory);
+	GetTempPathA(_MAX_PATH, WindowsTempDirectory);
 	if(stricmp(WindowsTempDirectory, CurrentDirectory)!=NULL)
 	{
 		// XP Temp Folder
@@ -764,7 +764,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	else
 	{
 		// Pre-XP Temp Folder
-		GetWindowsDirectory(WindowsTempDirectory, _MAX_PATH);
+		GetWindowsDirectoryA(WindowsTempDirectory, _MAX_PATH);
 		_chdir(WindowsTempDirectory);
 		mkdir("temp");
 		chdir("temp");
@@ -830,7 +830,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		// Prepare executable and then run it
 		strcpy(pPCKFilename, gUnpackDirectory);
 		strcat(pPCKFilename, "\\_virtual.pck");
-		DeleteFile(pPCKFilename);
+		DeleteFileW(TextConvert::UTF8ToUTF16(pPCKFilename).c_str());
 
 		// Send critical start info to CEXE
 		CEXE.StartInfo(gUnpackDirectory, gEncryptionKey);
@@ -882,8 +882,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				}
 				//MessageBox(NULL, pFullError, "Error", MB_TOPMOST | MB_OK);
 				char err[512];
-				wsprintf ( err, "GameGuru has detected an unexpected issue and needs to restart your session. If this problem persists, please contact support with error code (%s)", pErrorString );
-				MessageBox(NULL, err, "GameGuru Problem Detected", MB_TOPMOST | MB_OK);
+				sprintf_s ( err, 512, "GameGuru has detected an unexpected issue and needs to restart your session. If this problem persists, please contact support with error code (%s)", pErrorString );
+				MessageBoxW(NULL, TextConvert::UTF8ToUTF16(err).c_str(), L"GameGuru Problem Detected", MB_TOPMOST | MB_OK);
 				SAFE_DELETE(pErrorString);
 			}
 

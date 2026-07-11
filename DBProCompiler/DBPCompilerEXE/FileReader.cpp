@@ -65,7 +65,7 @@ bool CFileReader::MakePCKFromEXE(LPSTR ActualEXEFilename, LPSTR pPCKFilename)
 	else
 	{
 		// Load Data segment into memory
-		HANDLE hfile = CreateFile(ActualEXEFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(ActualEXEFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hfile==INVALID_HANDLE_VALUE)
 			return false;
 
@@ -100,7 +100,7 @@ bool CFileReader::MakePCKFromEXE(LPSTR ActualEXEFilename, LPSTR pPCKFilename)
 
 			// Create new PCK File from Data
 			GoodDeleteFile(pPCKFilename);
-			hfile = CreateFile(pPCKFilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+			hfile = CreateFileW(TextConvert::UTF8ToUTF16(pPCKFilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 			if(hfile!=INVALID_HANDLE_VALUE)
 			{
 				// Write Data to File (becomes the PCK File from the EXE File)
@@ -143,7 +143,7 @@ typedef int ( *UNCOMPRESSFUNC ) ( DWORD*, int );
 bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 {
 	// Load Data segment into memory
-	HANDLE hfile = CreateFile(pPCKFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(pPCKFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hfile==INVALID_HANDLE_VALUE)
 		return false;
 
@@ -223,7 +223,7 @@ bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 			if(stricmp(filename, "compress.dll")==NULL)
 			{
 				// Uncompress rest of PCK Data
-				HMODULE hModule = LoadLibrary(filename);
+				HMODULE hModule = LoadLibraryW(TextConvert::UTF8ToUTF16(filename).c_str());
 				UNCOMPRESSFUNC UncompressBlock = ( UNCOMPRESSFUNC ) GetProcAddress ( hModule, "decompress_block" );
 
 				// Compress PCK Data
@@ -287,7 +287,7 @@ bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 	// Error message
 	if(bCompressedMediaFound)
 	{
-		MessageBox(NULL, "Cannot Install Compressed Files", "Error", MB_OK);
+		MessageBoxW(NULL, L"Cannot Install Compressed Files", L"Error", MB_OK);
 		return false;
 	}
 
@@ -297,7 +297,7 @@ bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 
 bool CFileReader::FileExists(LPSTR pFilename)
 {
-	HANDLE hFile = CreateFile(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Close File
@@ -378,7 +378,7 @@ bool CFileReader::CreateInstallerFolder(LPSTR ActualEXEFilename)
 	chdir(pOldDir);
 
 	// Load Data segment into memory
-	HANDLE hfile = CreateFile(ActualEXEFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(ActualEXEFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hfile==INVALID_HANDLE_VALUE)
 		return false;
 
@@ -462,7 +462,7 @@ bool CFileReader::CreateFileFromData(LPSTR UseFilename, char* dataptr, DWORD dat
 
 	// Open File
 	GoodDeleteFile(UseFilename);
-	HANDLE hfile = CreateFile(UseFilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(UseFilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hfile==INVALID_HANDLE_VALUE)
 		return false;
 
@@ -633,7 +633,7 @@ bool CFileReader::RemoveVirtualFileTable(void)
 			StripPathOnly(pPathOnly);
 			if(strlen(pPathOnly)>0)
 			{
-				RemoveDirectory(pPathOnly);
+				RemoveDirectoryW(TextConvert::UTF8ToUTF16(pPathOnly).c_str());
 			}
 
 			// Next file

@@ -10,6 +10,7 @@
 
 // Custom Includes
 #include "DBMWriter.h"
+#include "TextConvert.h"
 
 #include <DB3Time.h>
 
@@ -295,7 +296,7 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 		if(g_pDBPCompiler->GetProduceDBMFile())
 		{
 			db3::CProfile<> prof("CDBMWriter::WriteProgramAsEXEOrDEBUG() -> Deposit in DBM File");
-			HANDLE hFile = CreateFile(g_pDBPCompiler->GetInternalFile(PATH_TEMPDBMFILE), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetInternalFile(PATH_TEMPDBMFILE)).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 			if(hFile!=INVALID_HANDLE_VALUE)
 			{
 				DWORD BytesWritten=0;

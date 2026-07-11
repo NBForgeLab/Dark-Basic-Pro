@@ -346,7 +346,7 @@ bool CEXEBlock::FileExists(LPSTR pFilename)
 
 bool CEXEBlock::Save(char* lpFilename)
 {
-	HANDLE hFile = CreateFile(lpFilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Settings
@@ -519,7 +519,7 @@ bool CEXEBlock::StartInfo(LPSTR pUnpackFolderName, DWORD dwEncryptionKey)
 bool CEXEBlock::Load(char* lpFilename)
 {
 	// Load EXE Filedata
-	HANDLE hFile = CreateFile(lpFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Settings
@@ -731,22 +731,22 @@ bool CEXEBlock::CheckIfGotLatestDirectX ( bool bSilent )
 	DWORD dwRequiresVersion = 0x00090003;
 
 	// lee - 270206 - u60 - new check, right out of DXSKDEC2005
-    TCHAR strResult[128];
+    char strResult[128];
     HRESULT hr = GetDXVersion( &g_dwDirectXVersion, g_strDirectXVersion, 10 );
     if( SUCCEEDED(hr) )
     {
         if( g_dwDirectXVersion > 0 )
-			wsprintf ( strResult, "DirectX %s installed (%d). Requires %s.", g_strDirectXVersion, g_dwDirectXVersion, pDXRequired );
+			sprintf_s ( strResult, 128, "DirectX %S installed (%d). Requires %s.", g_strDirectXVersion, g_dwDirectXVersion, pDXRequired );
         else
-            wsprintf ( strResult, "DirectX not installed" );
+            strcpy_s ( strResult, 128, "DirectX not installed" );
     }
     else
-        wsprintf ( strResult, "Unknown version of DirectX installed" );
+        strcpy_s ( strResult, 128, "Unknown version of DirectX installed" );
 
 	if ( g_dwDirectXVersion < dwRequiresVersion && bSilent==false )
 	{
 		// fail immediately if not got dx!
-		MessageBox(NULL, strResult, "DirectX Error", MB_OK | MB_ICONERROR);
+		MessageBoxW(NULL, TextConvert::UTF8ToUTF16(strResult).c_str(), L"DirectX Error", MB_OK | MB_ICONERROR);
 		return false;
 	}
 	#endif
@@ -875,7 +875,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							if(hDLLMod[dllindex]==NULL)
 							{
 								if(*pReturnError==NULL) *pReturnError = new char[1024];
-								wsprintf(*pReturnError,"Failed to load DLL (%d: %s)", dllindex, pTryDLLName);
+								sprintf_s(*pReturnError, 1024, "Failed to load DLL (%d: %s)", dllindex, pTryDLLName);
 								SAFE_DELETE(pTryDLLName);
 								bResult=false;
 								_chdir(m_pUnpackFolderName);//leeadd-270308-ifCWDswitched
@@ -1450,7 +1450,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							ref=m_dwNumberOfReferences;
 							if(*pReturnError==NULL) *pReturnError = new char[1024];
 							int dlli = dll - 1; if(dlli<0) dlli=0;
-							wsprintf(*pReturnError, "Could not find function '%s' in %d:%s", pStr, index, (LPSTR)m_pDLLFilenameArray[dlli]);
+							sprintf_s(*pReturnError, 1024, "Could not find function '%s' in %d:%s", pStr, index, (LPSTR)m_pDLLFilenameArray[dlli]);
 							bResult=false;
 						}
 					}

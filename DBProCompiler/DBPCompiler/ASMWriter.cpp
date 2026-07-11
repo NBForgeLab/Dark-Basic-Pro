@@ -14,6 +14,7 @@
 #include "Errors.h"
 #include "DBPCompiler.h"
 #include "DBPLogger.h"
+#include "TextConvert.h"
 
 #include <DB3Time.h>
 
@@ -805,7 +806,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 	if(g_DebugInfo.DebugModeOn())
 	{
 		// Find Debugger to send to
-		HWND hWnd = FindWindow(NULL,"DBProDebugger");
+		HWND hWnd = FindWindowW(NULL, L"DBProDebugger");
 		if(hWnd==NULL && g_bIsInternalDebugger==true)
 		{
 			// Internal Debugger has been termined, so terminate App too...
@@ -846,7 +847,8 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				ZeroMemory(&si, sizeof(STARTUPINFO));
 				si.cb=sizeof(STARTUPINFO);
 				ZeroMemory(&g_InternalDebuggerProcessInfo, sizeof(PROCESS_INFORMATION));
-				if(CreateProcess(	NULL, g_pDBPCompiler->GetInternalFile(PATH_DEBUGGERFILE),
+				std::wstring wCmdLine = TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetInternalFile(PATH_DEBUGGERFILE));
+				if(CreateProcessW(	NULL, &wCmdLine[0],
 									NULL, NULL, false,
 									NORMAL_PRIORITY_CLASS,
 									NULL, NULL,	&si, &g_InternalDebuggerProcessInfo))
@@ -2410,7 +2412,7 @@ LRESULT CASMWriter::SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize)
 	LRESULT lResult=0;
 
 	// Create Virtual File for Transfer
-	HANDLE hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwDataSize+4,"DBPRODEBUGGERMESSAGE");
+	HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwDataSize+4,L"DBPRODEBUGGERMESSAGE");
 	if(hFileMap)
 	{
 		LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,dwDataSize+4);
@@ -2421,7 +2423,7 @@ LRESULT CASMWriter::SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize)
 			memcpy((LPSTR)lpVoid+4, pData, dwDataSize);
 
 			// Find Debugger to send to
-			HWND hWnd = FindWindow(NULL,"DBProDebugger");
+			HWND hWnd = FindWindowW(NULL, L"DBProDebugger");
 			if(hWnd)
 			{
 				// Found - transmit

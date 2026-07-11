@@ -33,6 +33,6 @@ WORD PaletteSize (LPSTR lpbi);
 DWORD BytesPerLine( LPBITMAPINFOHEADER lpBMIH );
 LPBYTE ConvertDIBFormat( LPBITMAPINFO lpSrcDIB, UINT nWidth, UINT nHeight, UINT nColors, BOOL bStretch );
 void SetMonoDIBPixel( LPBYTE pANDBits, DWORD dwWidth, DWORD dwHeight, DWORD x, DWORD y, BOOL bWhite );
-LPBYTE ReadBMPFile( LPCTSTR szFileName );
-BOOL WriteBMPFile( LPCTSTR szFileName, LPBYTE lpDIB );
+LPBYTE ReadBMPFile( LPCSTR szFileName );
+BOOL WriteBMPFile( LPCSTR szFileName, LPBYTE lpDIB );
 /****************************************************************************/

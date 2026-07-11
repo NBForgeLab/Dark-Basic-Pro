@@ -213,7 +213,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 		if(g_pErrorReport->IsError())
 		{
 			// Create Virtual File for Error Transfer
-			HANDLE hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,"DBPROEDITORMESSAGE");
+			HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
 			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
 			LPSTR lpString = g_pErrorReport->GetParserErrorString();
 			if(g_pErrorReport->IsParserError())
@@ -233,7 +233,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 				strcpy((LPSTR)lpVoid, lpString);
 
 			// Find Editor to send to
-			HWND hWnd = FindWindow("TDBPROEDITOR",NULL);
+			HWND hWnd = FindWindowW(L"TDBPROEDITOR",NULL);
 			if(hWnd)
 			{
 				// Found editor, transmit
@@ -242,7 +242,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 			else
 			{
 				// No Editor, use Own Window (causes crashes lots)
-				MessageBox(NULL, lpString, "COMPILER ERROR", MB_OK);
+				MessageBoxW(NULL, TextConvert::UTF8ToUTF16(lpString).c_str(), L"COMPILER ERROR", MB_OK);
 			}
 
 			// Release virtual file
@@ -348,7 +348,7 @@ bool CDBPCompiler::LoadRawFromMMF(LPSTR pDBAMMFName, LPSTR* ppData, DWORD* pdwDa
 	LPSTR pData=NULL;
 
 	// First Four Bytes are Size of Message
-	HANDLE hFileMap = OpenFileMapping(FILE_MAP_READ,FALSE,pDBAMMFName);
+	HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,TextConvert::UTF8ToUTF16(pDBAMMFName).c_str());
 	if(hFileMap)
 	{
 		LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,0);
@@ -507,7 +507,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 		char pFullSourceDump [ _MAX_PATH ];
 		strcpy ( pFullSourceDump, g_pDBPCompiler->GetInternalFile(PATH_TEMPFOLDER) );
 		strcat ( pFullSourceDump, "\\FullSourceDump.dba" );
-		if ( FileExists ( pFullSourceDump ) ) DeleteFile ( pFullSourceDump );
+		if ( FileExists ( pFullSourceDump ) ) DeleteFileW ( TextConvert::UTF8ToUTF16(pFullSourceDump).c_str() );
 
 		// Write Full Source Dump File
 		HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFullSourceDump).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -1172,8 +1172,8 @@ bool CDBPCompiler::MakeProgram(void)
 	g_pStructTable->SetStructDefaults();
 
 	// Clear last DBM file
-	DeleteFile(GetInternalFile(PATH_TEMPDBMFILE));
-	DeleteFile(GetInternalFile(PATH_TEMPEXBFILE));
+	DeleteFileW(TextConvert::UTF8ToUTF16(GetInternalFile(PATH_TEMPDBMFILE)).c_str());
+	DeleteFileW(TextConvert::UTF8ToUTF16(GetInternalFile(PATH_TEMPEXBFILE)).c_str());
 
 	// Settings for Executable
 	g_pEXE->m_dwInitialDisplayMode=1;
@@ -2063,14 +2063,14 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 		{
 			// remove - successful - temp file valid to use
 			CloseHandle( hFile );
-			DeleteFile ( "_temp.temp" );
+			DeleteFileW ( L"_temp.temp" );
 		}
 	}
 	if ( bUseUserFolderForTemp==true )
 	{
 		// U69 - create new USER TEMP folder
 		_chdir ( storethisone );
-		SHGetFolderPath( NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path );
+		SHGetFolderPathA( NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path );
 		LPSTR pDBProTEMP = "Dark Basic Professional TEMP";
 		if ( _chdir ( pDBProTEMP )==-1 )
 		{

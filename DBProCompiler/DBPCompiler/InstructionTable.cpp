@@ -12,6 +12,7 @@
 #include "direct.h"
 #include "DBPCompiler.h"
 #include "io.h"
+#include "TextConvert.h"
 
 // External Class Pointers
 extern CVarTable* g_pVarTable;
@@ -83,7 +84,7 @@ int FGetActualTypeValue(int flagvalue)
 
 bool FileExist(LPSTR pFilename)
 {
-	HANDLE hReadFile = CreateFile(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hReadFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hReadFile!=INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(hReadFile);
@@ -1442,7 +1443,7 @@ LPSTR CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwData
 	// Simply scans the EXE and locates the pattern in the data, and replaces it
 	DWORD dwSizeOfEXECode = 0;	
 	DWORD dwOverallDataSize = 0;
-	HMODULE hEXE = LoadLibraryEx(pFilenameEXE, NULL, LOAD_LIBRARY_AS_DATAFILE);
+	HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
 	if ( hEXE )
 	{
 		// look for string table data in packed data format
@@ -1518,7 +1519,7 @@ bool CInstructionTable::VerifyCertificateForPlugin ( LPSTR pDLLName, LPSTR pProd
 
 		sprintf_s(buf, sizeof(buf), "Licensed Plugin \"%s\" is not recognised by compiler! "
 			"Visit www.thegamecreators.com for an update.", pDLLName);
-		MessageBox ( NULL, buf, "Plugin Error", MB_OK );
+		MessageBoxW ( NULL, TextConvert::UTF8ToUTF16(buf).c_str(), L"Plugin Error", MB_OK );
 		return false;
 	}
 
@@ -1718,7 +1719,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 	else
 	{
 		// if not a protected plugin, open for direct string reading
-		hModule = LoadLibraryEx ( pFilename, NULL, LOAD_LIBRARY_AS_DATAFILE );
+		hModule = LoadLibraryExW ( TextConvert::UTF8ToUTF16(pFilename).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE );
 		if ( hModule  )
 		{
 			// Load DLL Decorated Names via unprotected resource
@@ -1728,7 +1729,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 			LPSTR pTempStr = new char[dwLength+1];
 			while(dwTry<1000)
 			{
-				int iStrQty = LoadString(hModule, 1+dwTry, pTempStr, 2);
+				int iStrQty = LoadStringA(hModule, 1+dwTry, pTempStr, 2);
 				if(iStrQty!=0) dwMax=1+dwTry;
 				dwTry++;
 			}
@@ -1737,7 +1738,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 			for(DWORD n=0; n<dwMax; n++)
 			{
 				// Get String
-				int iChar = LoadString(hModule, 1+n, pTempStr, dwLength);
+				int iChar = LoadStringA(hModule, 1+n, pTempStr, dwLength);
 
 				// Parse it for info
 				if(iChar>0)
