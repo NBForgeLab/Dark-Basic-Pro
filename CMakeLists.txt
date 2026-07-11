@@ -3,7 +3,12 @@ cmake_minimum_required(VERSION 3.20)
 # يجب وضع إعداد المعمارية قبل تعريف المشروع
 set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Force Win32 Platform" FORCE)
 
-project(DarkBasicPro LANGUAGES C CXX)
+project(DarkBasicPro LANGUAGES C CXX ASM_MASM)
+
+# Enable SAFESEH for MASM on Win32
+if(MSVC)
+    set(CMAKE_ASM_MASM_FLAGS "${CMAKE_ASM_MASM_FLAGS} /safeseh")
+endif()
 
 # التحقق من أن المعمارية الحالية هي 32-bit (x86)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -85,6 +90,7 @@ add_executable(dbp_tests
     tests/test_raw_input.cpp
     "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
+    "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
 )
 target_link_libraries(dbp_tests PRIVATE
     gtest
@@ -92,6 +98,7 @@ target_link_libraries(dbp_tests PRIVATE
     spdlog::spdlog
     xinput
 )
+target_link_options(dbp_tests PRIVATE /SAFESEH:NO)
 target_compile_definitions(dbp_tests PRIVATE DBP_TESTS_COMPILATION)
 target_include_directories(dbp_tests PRIVATE 
     DBProCompiler/DBPCompiler

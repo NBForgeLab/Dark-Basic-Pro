@@ -39,3 +39,23 @@ TEST(StructuralTest, PluginRegistryRegisterAndGet) {
     registry.Clear();
     EXPECT_EQ(registry.GetPlugin("GFX"), nullptr);
 }
+
+extern "C" DWORD __cdecl asm_dynamic_call(void* func, const DWORD* args, int argc);
+
+static DWORD __stdcall dummy_stdcall(DWORD a, DWORD b) {
+    return a * 10 + b;
+}
+
+static DWORD __cdecl dummy_cdecl(DWORD a, DWORD b, DWORD c) {
+    return a + b + c;
+}
+
+TEST(DynamicCallTest, AssemblyCallParity) {
+    DWORD args_stdcall[] = { 5, 8 };
+    DWORD res_stdcall = asm_dynamic_call((void*)&dummy_stdcall, args_stdcall, 2);
+    EXPECT_EQ(res_stdcall, 58);
+
+    DWORD args_cdecl[] = { 10, 20, 30 };
+    DWORD res_cdecl = asm_dynamic_call((void*)&dummy_cdecl, args_cdecl, 3);
+    EXPECT_EQ(res_cdecl, 60);
+}

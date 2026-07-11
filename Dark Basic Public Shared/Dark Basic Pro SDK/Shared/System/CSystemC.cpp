@@ -159,92 +159,14 @@ DARKSDK bool CallExist(HINSTANCE hDLLModule, char* DecoratedName)
 		return false;
 }
 
+extern "C" DWORD __cdecl asm_dynamic_call(void* func, const DWORD* args, int argc);
+
 DARKSDK bool Call(HINSTANCE hDLLModule, char* DecoratedName, DWORD* pDataAddress, int paramnum, DWORD* ReturnData)
 {
-	typedef DWORD (__stdcall *FuncPtr0)();
-	typedef DWORD (__stdcall *FuncPtr1)(DWORD);
-	typedef DWORD (__stdcall *FuncPtr2)(DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr3)(DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr4)(DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr5)(DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr6)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr7)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr8)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr9)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr10)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr11)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr12)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr13)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr14)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr15)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr16)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr17)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr18)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr19)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr20)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr21)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr22)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr23)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr24)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr25)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr26)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr27)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr28)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr29)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr30)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr31)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-	typedef DWORD (__stdcall *FuncPtr32)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-
 	FARPROC fpAddress = (FARPROC)GetProcAddress(hDLLModule, DecoratedName);
 	if(!fpAddress) return false;
 
-	DWORD res = 0;
-	switch(paramnum)
-	{
-		case 0:  res = ((FuncPtr0)fpAddress)(); break;
-		case 1:  res = ((FuncPtr1)fpAddress)(pDataAddress[0]); break;
-		case 2:  res = ((FuncPtr2)fpAddress)(pDataAddress[0], pDataAddress[1]); break;
-		case 3:  res = ((FuncPtr3)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2]); break;
-		case 4:  res = ((FuncPtr4)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3]); break;
-		case 5:  res = ((FuncPtr5)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4]); break;
-		case 6:  res = ((FuncPtr6)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5]); break;
-		case 7:  res = ((FuncPtr7)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6]); break;
-		case 8:  res = ((FuncPtr8)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7]); break;
-		case 9:  res = ((FuncPtr9)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8]); break;
-		case 10: res = ((FuncPtr10)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9]); break;
-		case 11: res = ((FuncPtr11)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10]); break;
-		case 12: res = ((FuncPtr12)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11]); break;
-		case 13: res = ((FuncPtr13)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12]); break;
-		case 14: res = ((FuncPtr14)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13]); break;
-		case 15: res = ((FuncPtr15)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14]); break;
-		case 16: res = ((FuncPtr16)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15]); break;
-		case 17: res = ((FuncPtr17)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16]); break;
-		case 18: res = ((FuncPtr18)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17]); break;
-		case 19: res = ((FuncPtr19)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18]); break;
-		case 20: res = ((FuncPtr20)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19]); break;
-		case 21: res = ((FuncPtr21)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20]); break;
-		case 22: res = ((FuncPtr22)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21]); break;
-		case 23: res = ((FuncPtr23)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22]); break;
-		case 24: res = ((FuncPtr24)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23]); break;
-		case 25: res = ((FuncPtr25)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24]); break;
-		case 26: res = ((FuncPtr26)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25]); break;
-		case 27: res = ((FuncPtr27)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25], pDataAddress[26]); break;
-		case 28: res = ((FuncPtr28)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25], pDataAddress[26], pDataAddress[27]); break;
-		case 29: res = ((FuncPtr29)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25], pDataAddress[26], pDataAddress[27], pDataAddress[28]); break;
-		case 30: res = ((FuncPtr30)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25], pDataAddress[26], pDataAddress[27], pDataAddress[28], pDataAddress[29]); break;
-		case 31: res = ((FuncPtr31)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25], pDataAddress[26], pDataAddress[27], pDataAddress[28], pDataAddress[29], pDataAddress[30]); break;
-		case 32: res = ((FuncPtr32)fpAddress)(pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4], pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9], pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14], pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19], pDataAddress[20], pDataAddress[21], pDataAddress[22], pDataAddress[23], pDataAddress[24], pDataAddress[25], pDataAddress[26], pDataAddress[27], pDataAddress[28], pDataAddress[29], pDataAddress[30], pDataAddress[31]); break;
-		default:
-			// Dynamic fallback using standard array loop
-			typedef DWORD (__stdcall *FuncPtrGeneric)(DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD);
-			res = ((FuncPtrGeneric)fpAddress)(
-				pDataAddress[0], pDataAddress[1], pDataAddress[2], pDataAddress[3], pDataAddress[4],
-				pDataAddress[5], pDataAddress[6], pDataAddress[7], pDataAddress[8], pDataAddress[9],
-				pDataAddress[10], pDataAddress[11], pDataAddress[12], pDataAddress[13], pDataAddress[14],
-				pDataAddress[15], pDataAddress[16], pDataAddress[17], pDataAddress[18], pDataAddress[19]
-			);
-			break;
-	}
+	DWORD res = asm_dynamic_call((void*)fpAddress, pDataAddress, paramnum);
 
 	if(ReturnData)
 		*ReturnData = res;
