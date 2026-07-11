@@ -21,6 +21,7 @@
 #include "Error.h"
 #include "Str.h"
 #include "shlobj.h"
+#include "DBPLogger.h"
 
 #include <DB3Time.h>
 
@@ -1418,7 +1419,7 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 
 	// Check for .DBPRO Extension
 	bool bFilenameIsProjectFile=false;
-	if(strcmp(pStrExt, ".dbpro")==NULL) bFilenameIsProjectFile=true;
+	if(stricmp(pStrExt, ".dbpro")==NULL) bFilenameIsProjectFile=true;
 	//SAFE_DELETE(pStrExt);
 
 	// Extract relative path

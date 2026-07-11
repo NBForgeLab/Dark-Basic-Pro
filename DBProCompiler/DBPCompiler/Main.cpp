@@ -567,11 +567,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	 }
 	#endif
 
-	// Compiler to create DBM
 	g_pDBPCompiler = new CDBPCompiler(g_ActualCompilerFilename);
 	if(g_pDBPCompiler)
 	{
 		CStr strProjectFilename(lpCmdLine);
+		strProjectFilename.EatTrailingEdgeSpacesandTabs();
+		strProjectFilename.EatSpeechMarks();
 		if(strProjectFilename.Length()>0)
 		{
 			// Load All Required Internal Files
@@ -675,13 +676,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					// Read in Project File
 					{
 						db3::CProfile<> prof("CDBPCompiler::LoadProjectFile");
-						g_pDBPCompiler->LoadProjectFile(lpCmdLine);
+						g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
 					}
 
 					// Load in all data from fields
 					{
 						db3::CProfile<> prof("CDBPCompiler::GetAllProjectFields");
-						g_pDBPCompiler->GetAllProjectFields(lpCmdLine);
+						g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
 					}
 
 					// Prepare Compiler With Debug Info
