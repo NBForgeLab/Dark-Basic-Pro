@@ -6,6 +6,8 @@ add_compile_definitions(
     WIN32
     _WINDOWS
     DARKEXE
+    UNICODE
+    _UNICODE
 )
 
 if(MSVC)

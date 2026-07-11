@@ -58,20 +58,24 @@ set(LIB_SOURCES
     ../TGCOnline/CertificateKey.cpp
 )
 
-# Force MSVC to compile .C files as C instead of C++
+# Force MSVC to compile .C files as C instead of C++ and compile without UNICODE
 if(MSVC)
     set_source_files_properties(
         icons/DIB.C
         icons/ICONS.C
-        PROPERTIES COMPILE_FLAGS "/TC"
+        PROPERTIES 
+        COMPILE_FLAGS "/TC"
+        COMPILE_DEFINITIONS "WIN32;_WINDOWS;NOGETDXVERSIONCODE;ALWAYSCOMPILEMODE"
     )
 endif()
 
 # Create static library to allow linking with tests
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
+target_compile_definitions(dbp_compiler_lib PRIVATE UNICODE _UNICODE)
 target_link_libraries(dbp_compiler_lib PUBLIC winmm spdlog::spdlog)
 target_include_directories(dbp_compiler_lib PUBLIC . icons ../TGCOnline)
 
 # Compile main executable linking to the compiler library
 add_executable(DBPCompiler WIN32 Main.cpp DBPCompiler.rc)
+target_compile_definitions(DBPCompiler PRIVATE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)

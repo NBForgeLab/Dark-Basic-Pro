@@ -99,7 +99,7 @@ target_link_libraries(dbp_tests PRIVATE
     xinput
 )
 target_link_options(dbp_tests PRIVATE /SAFESEH:NO)
-target_compile_definitions(dbp_tests PRIVATE DBP_TESTS_COMPILATION)
+target_compile_definitions(dbp_tests PRIVATE DBP_TESTS_COMPILATION UNICODE _UNICODE)
 target_include_directories(dbp_tests PRIVATE 
     DBProCompiler/DBPCompiler
     "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
