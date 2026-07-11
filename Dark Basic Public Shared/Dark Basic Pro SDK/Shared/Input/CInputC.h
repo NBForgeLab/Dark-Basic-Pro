@@ -5,12 +5,47 @@
 // INCLUDES / LIBS ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-#define DIRECTINPUT_VERSION 0x0800
-#pragma comment ( lib, "dinput8.lib" )
-#include <dinput.h>
+// Removed DirectInput8, using Raw Input & XInput
+#include <windows.h>
 
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
+// Mock structures to maintain type signatures of legacy buffers
+#ifndef DIJOYSTATE2
+struct DIJOYSTATE2 {
+    LONG    lX;
+    LONG    lY;
+    LONG    lZ;
+    LONG    lRx;
+    LONG    lRy;
+    LONG    lRz;
+    LONG    rglSlider[2];
+    DWORD   rgdwPOV[4];
+    BYTE    rgbButtons[128];
+    LONG    rglVSlider[2];
+};
+#endif
+
+#ifndef DIMOUSESTATE
+struct DIMOUSESTATE {
+    LONG    lX;
+    LONG    lY;
+    LONG    lZ;
+    BYTE    rgbButtons[4];
+};
+#endif
+
+#ifndef DIDEVCAPS
+struct DIDEVCAPS {
+    DWORD dwSize;
+    DWORD dwFlags;
+    DWORD dwDevType;
+    DWORD dwAxes;
+    DWORD dwButtons;
+    DWORD dwPOVs;
+};
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -52,8 +87,7 @@ DARKSDK void 			SetupForceFeedback 			( void );
 DARKSDK void 			UpdateKeyboard     			( void );
 DARKSDK void 			UpdateMouse					( void );
 
-DARKSDK BOOL CALLBACK	EnumerateJoysticksCallback	( const DIDEVICEINSTANCE* pdidInstance, VOID* pContext );
-DARKSDK BOOL CALLBACK	EnumAxesCallback			( const DIDEVICEOBJECTINSTANCE* pdidoi, VOID* pContext );
+
 
 DARKSDK char			InKey      					( void );
 DARKSDK void			ClearData 					( void );

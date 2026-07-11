@@ -15,9 +15,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 // shared data segment
-DBPRO_GLOBAL LPDIRECTINPUT8			m_lpDI				= NULL;			// direct input interface
-DBPRO_GLOBAL LPDIRECTINPUTDEVICE8	m_lpDIKeyboard      = NULL;			// keyboard interface
-DBPRO_GLOBAL LPDIRECTINPUTDEVICE8	m_lpDIMouse         = NULL;			// mouse interface
+DBPRO_GLOBAL void*			m_lpDI				= NULL;			// direct input interface
+DBPRO_GLOBAL void*	m_lpDIKeyboard      = NULL;			// keyboard interface
+DBPRO_GLOBAL void*	m_lpDIMouse         = NULL;			// mouse interface
 
 // U73 - 210309 - support for multiple controllers (upto 8)
 #define								CONTROLDEVICEMAX					8
@@ -254,266 +254,39 @@ DARKSDK HRESULT SetDIDwordProperty(LPDIRECTINPUTDEVICE8 pDev, REFGUID guidProper
    return pDev->SetProperty(guidProperty, &dipdw.diph);
 }
 
-DARKSDK BOOL CALLBACK EnumAxesCallback ( const DIDEVICEOBJECTINSTANCE* pdidoi, VOID* pContext )
-{
-	return DIENUM_STOP;
-}
+// Legacy DirectInput joystick enumeration callbacks removed
 
-DARKSDK BOOL CALLBACK EnumerateControllerCallback(LPDIDEVICEINSTANCE pdinst, LPVOID pvRef)
-{
-	HRESULT					hRes;
-	LPDIRECTINPUTDEVICE8	lpdid8Game;  
-
-	// lee - 200206 - u60 - search index used to determine controller choice of same-name
-	int iSearchIndex = 0;
-	if ( pvRef )
-	{
-		iSearchIndex = *(int*)pvRef;
-		*(int*)pvRef = (*(int*)pvRef) + 1;
-	}
-
-	// must match required name
-	if(strcmp(gFindController, "")!=NULL)
-		if(strcmp(pdinst->tszProductName, gFindController)!=0)
-			return DIENUM_CONTINUE;
-
-	// matches name, but ensure search index is correct
-	// U73 - 210309 - added !=0 so giChoseSameControllerByIndex of zero ignores index selection altogether!
-	if ( giChoseSameControllerByIndex!=0 )
-		if ( iSearchIndex != giChoseSameControllerByIndex )
-			return DIENUM_CONTINUE;
-
-	// create the DirectInput joystick device 
-	hRes = m_lpDI->CreateDevice(pdinst->guidInstance, &lpdid8Game, NULL);
-	if(FAILED(hRes))
-		return DIENUM_CONTINUE;  
-
-	// set joystick behaviour
-	//hRes = lpdid8Game->SetCooperativeLevel(g_phWnd, DISCL_EXCLUSIVE | DISCL_BACKGROUND);
-	hRes = lpdid8Game->SetCooperativeLevel(g_phWnd, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
-	if(FAILED(hRes))
-	{ 
-		lpdid8Game->Release();      
-		return DIENUM_CONTINUE;   
-	} 
-
-	// set data format
-	hRes = lpdid8Game->SetDataFormat(&c_dfDIJoystick2);
-	if(FAILED(hRes))
-	{ 
-		lpdid8Game->Release();      
-		return DIENUM_CONTINUE;    
-	}  
-
-	// set property for axis range
-	DIPROPRANGE diprg;   
-	diprg.diph.dwSize       = sizeof(diprg); 
-	diprg.diph.dwHeaderSize = sizeof(diprg.diph); 
-	diprg.diph.dwObj        = DIJOFS_X; 
-	diprg.diph.dwHow        = DIPH_BYOFFSET;  
-	diprg.lMin              = -1000; 
-	diprg.lMax              = +1000;  
-	hRes = lpdid8Game->SetProperty(DIPROP_RANGE, &diprg.diph);  
-	diprg.diph.dwObj        = DIJOFS_Y; 
-	hRes = lpdid8Game->SetProperty(DIPROP_RANGE, &diprg.diph);  
-	diprg.diph.dwObj        = DIJOFS_Z; 
-	hRes = lpdid8Game->SetProperty(DIPROP_RANGE, &diprg.diph);  
-
-	// Switch off auto-center - FF actions cancel it later on :(*
-	DIPROPDWORD DIPropAutoCenter; 
-	DIPropAutoCenter.diph.dwSize = sizeof(DIPropAutoCenter);
-	DIPropAutoCenter.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-	DIPropAutoCenter.diph.dwObj = 0;
-	DIPropAutoCenter.diph.dwHow = DIPH_DEVICE;
-	DIPropAutoCenter.dwData = FALSE; 
-	hRes = lpdid8Game->SetProperty(DIPROP_AUTOCENTER, &DIPropAutoCenter.diph);
-
-	// Release any previous controllers
-	// Aquire successful device
-	m_lpDIControlDevice[m_iCDI].Acquire( lpdid8Game ); 
-
-	// copy found device to found-name
-	strcpy(gFindController, pdinst->tszProductName);
-	//giChoseSameControllerByIndex = iSearchIndex; //210309 - do not interfere with selection by NAME if giChoseSameControllerByIndex is zero!
-	if ( giChoseSameControllerByIndex!=0 ) giChoseSameControllerByIndex = iSearchIndex;
-
-    // Stop after the first successful device has been found and created
-    return DIENUM_STOP;
-}
-
-DARKSDK BOOL CALLBACK DIEnumEffectsProc(LPCDIEFFECTINFO pei, LPVOID pv)
-{
-	*((GUID *)pv) = pei->guid;
-	return DIENUM_STOP;
-}
-
-DARKSDK bool DB_CreateFFDirectionEffect(short id, int magnitude, bool bStart)
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        return m_lpDIControlDevice[m_iCDI].DirectionEffect(id, magnitude, bStart);
-    return false;
-}
-
-
-
-
-DARKSDK bool DB_CreateFFAngleEffect(int magnitude, int angle, int delay, bool bStart)
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        return m_lpDIControlDevice[m_iCDI].AngleEffect(magnitude, angle, delay, bStart);
-    return false;
-}
-
-DARKSDK bool DB_CreateFFChainsawEffect(int magnitude, int delay, bool bStart)
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        return m_lpDIControlDevice[m_iCDI].ChainsawEffect(magnitude, delay, bStart);
-    return false;
-}
-
-DARKSDK bool DB_CreateFFShootEffect(int magnitude, int delay, bool bStart)
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        return m_lpDIControlDevice[m_iCDI].ShootEffect(magnitude, delay, bStart);
-    return false;
-}
-
-DARKSDK bool DB_CreateFFImpactEffect(int magnitude, int delay, bool bStart)
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        return m_lpDIControlDevice[m_iCDI].ImpactEffect(magnitude, delay, bStart);
-    return false;
-}
-
-DARKSDK bool DB_CreateFFWaterEffect(int magnitude, int delay, bool bStart)
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        return m_lpDIControlDevice[m_iCDI].WaterEffect(magnitude, delay, bStart);
-    return false;
-}
+DARKSDK bool DB_CreateFFDirectionEffect(short id, int magnitude, bool bStart) { return false; }
+DARKSDK bool DB_CreateFFAngleEffect(int magnitude, int angle, int delay, bool bStart) { return false; }
+DARKSDK bool DB_CreateFFChainsawEffect(int magnitude, int delay, bool bStart) { return false; }
+DARKSDK bool DB_CreateFFShootEffect(int magnitude, int delay, bool bStart) { return false; }
+DARKSDK bool DB_CreateFFImpactEffect(int magnitude, int delay, bool bStart) { return false; }
+DARKSDK bool DB_CreateFFWaterEffect(int magnitude, int delay, bool bStart) { return false; }
 
 DARKSDK bool DB_SelectNewControlDevice(void)
 {
-	// 091013 - previous mouse init call can DESTROY input ptr!!
-	if ( m_lpDI )
+	XINPUT_STATE state;
+	ZeroMemory(&state, sizeof(XINPUT_STATE));
+	if (XInputGetState(m_iCDI, &state) == ERROR_SUCCESS)
 	{
-		// Release any previous controllers
-		m_lpDIControlDevice[m_iCDI].Release();
-
-		// Emumerate for the name (with forcefeedback)
-		int iSearchIndex = 0;
-		m_lpDI->EnumDevices ( DI8DEVCLASS_GAMECTRL, (LPDIENUMDEVICESCALLBACK)EnumerateControllerCallback, (LPVOID)&iSearchIndex, DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
-		if(m_lpDIControlDevice[m_iCDI])
-		{
-			// New Controller Device
-			m_lpDIControlDevice[m_iCDI].SetName(gFindController);
-
-			// Got ForceFeedback
-			m_lpDIControlDevice[m_iCDI].SetForceFeedback();
-			return true;
-		}
-		else
-		{
-			// Emumerate for the name : 'gFindController' (without FF)
-			int iSearchIndex = 0;
-			m_lpDI->EnumDevices ( DI8DEVCLASS_GAMECTRL, (LPDIENUMDEVICESCALLBACK)EnumerateControllerCallback, (LPVOID)&iSearchIndex, DIEDFL_ATTACHEDONLY);
-			if(m_lpDIControlDevice[m_iCDI])
-			{
-				// New Controller Device
-				m_lpDIControlDevice[m_iCDI].SetName(gFindController);
-
-				return true;
-			}
-		}
+		return true;
 	}
 	return false;
 }
 
-DARKSDK void DB_StopFFEffect()
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        m_lpDIControlDevice[m_iCDI].StopEffect();
-}
-
-DARKSDK void DB_AutoCenter(bool AutoCenterOn )
-{
-    if (m_lpDIControlDevice[m_iCDI])
-        m_lpDIControlDevice[m_iCDI].AutoCenter( AutoCenterOn );
-}
+DARKSDK void DB_StopFFEffect() {}
+DARKSDK void DB_AutoCenter(bool AutoCenterOn) {}
 
 DARKSDK void SetupForceFeedback ( void )
 {
-	// Sets up default control device for any force feedback or normal joystick
-	strcpy(gFindController, "");
+	// Setup default control device
+	strcpy(gFindController, "Xbox Controller");
 	giChoseSameControllerByIndex = 0;
 	DB_SelectNewControlDevice();
 }
 
 DBPRO_GLOBAL bool g_bCreateChecklistNow=false;
-DBPRO_GLOBAL DWORD g_dwMaxStringSizeInEnum=0;//must be done this way as cannot create dynamic mem inside a DX enum
-
-DARKSDK BOOL CALLBACK ChecklistInputControllers(LPDIDEVICEINSTANCE pdinst, LPVOID pvRef)
-{
-	LPDIRECTINPUT			pdi = (LPDIRECTINPUT)pvRef;   
-	char					productname[256];
-
-	// Convert wide name to char name
-	strcpy(productname, pdinst->tszProductName);
-
-	// Ensure checklist item prepared
-	DWORD dwLengthOfName=strlen(productname);
-	if(g_dwMaxStringSizeInEnum<dwLengthOfName) g_dwMaxStringSizeInEnum=dwLengthOfName;
-
-	// Reset Capability Flags
-	if(g_bCreateChecklistNow)
-	{
-		g_pGlob->checklist[g_pGlob->checklistqty].valuea=0;
-		g_pGlob->checklist[g_pGlob->checklistqty].valueb=0;
-		g_pGlob->checklist[g_pGlob->checklistqty].valuec=0;
-		g_pGlob->checklist[g_pGlob->checklistqty].valued=0;
-
-		// Record found controller and move on
-		g_pGlob->checklist[g_pGlob->checklistqty].dwStringSize = strlen(productname);
-		strcpy(g_pGlob->checklist[g_pGlob->checklistqty].string, productname);
-
-        // Look for matching names.
-        // Count them to provide a device index
-        int Count = 0;
-        for (int i = 0; i < g_pGlob->checklistqty; ++i)
-        {
-            if (strcmp(productname, g_pGlob->checklist[i].string) == 0)
-            {
-                ++Count;
-            }
-        }
-        g_pGlob->checklist[g_pGlob->checklistqty].valueb = Count;
-	}
-	g_pGlob->checklistqty++;
-
-	// Until no more..
-    return DIENUM_CONTINUE;
-}
-
-DARKSDK BOOL CALLBACK ChecklistAddFFValueFlag(LPDIDEVICEINSTANCE pdinst, LPVOID pvRef)
-{
-	LPDIRECTINPUT			pdi = (LPDIRECTINPUT)pvRef;   
-	char					productname[256];
-
-	// Convert wide name to char name
-	strcpy(productname, pdinst->tszProductName);
-
-	for(int ffi=0; ffi<g_pGlob->checklistqty; ffi++)
-	{
-		if(strcmp(g_pGlob->checklist[ffi].string, productname)==0)
-		{
-			// This device is Forcefeedback also!
-			g_pGlob->checklist[ffi].valuea=1;
-		}
-	}
-
-	// Until no more..
-    return DIENUM_CONTINUE;
-}
+// Checklist helper functions removed as controllers are now enumerated via XInput
 
 //
 // Update Functions
@@ -547,21 +320,56 @@ DARKSDK void UpdateMouse ( void )
 
 DARKSDK void UpdateControlDevice ( void )
 {
-	if(m_lpDIControlDevice[m_iCDI])
-	{
-        m_lpDIControlDevice[m_iCDI].Poll( m_ControlDeviceBuffer );
-        return;
-	}
-
-	// Clear control device flags if not aquired
 	ZeroMemory(&m_ControlDeviceBuffer, sizeof(DIJOYSTATE2));
+
+	DWORD dwUserIndex = m_iCDI;
+	if (dwUserIndex >= 4) dwUserIndex = 0;
+
+	XINPUT_STATE state;
+	ZeroMemory(&state, sizeof(XINPUT_STATE));
+	if (XInputGetState(dwUserIndex, &state) == ERROR_SUCCESS)
+	{
+		m_ControlDeviceBuffer.lX = state.Gamepad.sThumbLX;
+		m_ControlDeviceBuffer.lY = -state.Gamepad.sThumbLY;
+		m_ControlDeviceBuffer.lRx = state.Gamepad.sThumbRX;
+		m_ControlDeviceBuffer.lRy = -state.Gamepad.sThumbRY;
+
+		m_ControlDeviceBuffer.lZ = (state.Gamepad.bLeftTrigger - state.Gamepad.bRightTrigger) * 128;
+
+		WORD wButtons = state.Gamepad.wButtons;
+		m_ControlDeviceBuffer.rgbButtons[0] = (wButtons & XINPUT_GAMEPAD_A) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[1] = (wButtons & XINPUT_GAMEPAD_B) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[2] = (wButtons & XINPUT_GAMEPAD_X) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[3] = (wButtons & XINPUT_GAMEPAD_Y) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[4] = (wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[5] = (wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[6] = (wButtons & XINPUT_GAMEPAD_BACK) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[7] = (wButtons & XINPUT_GAMEPAD_START) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[8] = (wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 0x80 : 0x00;
+		m_ControlDeviceBuffer.rgbButtons[9] = (wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 0x80 : 0x00;
+
+		DWORD pov = -1;
+		if (wButtons & XINPUT_GAMEPAD_DPAD_UP) {
+			if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 4500;
+			else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 31500;
+			else pov = 0;
+		} else if (wButtons & XINPUT_GAMEPAD_DPAD_DOWN) {
+			if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 13500;
+			else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 22500;
+			else pov = 18000;
+		} else if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) {
+			pov = 9000;
+		} else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) {
+			pov = 27000;
+		}
+		m_ControlDeviceBuffer.rgdwPOV[0] = pov;
+	}
 }
 
 DARKSDK void UpdateJoystick ( void )
 {
 	UpdateControlDevice();
 	memcpy(&m_JoyStickBuffer, &m_ControlDeviceBuffer, sizeof(DIJOYSTATE2));
-	return;
 }
 
 //
@@ -1281,23 +1089,23 @@ DARKSDK int JoystickInformation( int iInfo )
     switch (iInfo)
     {
     case 0:
-        return m_lpDIControlDevice[m_iCDI].ButtonCount;
+        return 10; // 10 buttons (Xbox controller standard)
     case 1:
-        return m_lpDIControlDevice[m_iCDI].HasForceFeedback();
+        return 1; // Has vibration force feedback
     case 2:
-        return m_lpDIControlDevice[m_iCDI].HasZ ? 1 : 0;
+        return 1; // Has Z (triggers)
     case 3:
-        return m_lpDIControlDevice[m_iCDI].HasRx ? 1 : 0;
+        return 1; // Has Rx
     case 4:
-        return m_lpDIControlDevice[m_iCDI].HasRy ? 1 : 0;
+        return 1; // Has Ry
     case 5:
-        return m_lpDIControlDevice[m_iCDI].HasRz ? 1 : 0;
+        return 1; // Has Rz
     case 6:
-        return m_lpDIControlDevice[m_iCDI].SliderCount;
+        return 0; // SliderCount
     case 7:
-        return m_lpDIControlDevice[m_iCDI].PovCount;
+        return 1; // PovCount
     case 8:
-        return m_lpDIControlDevice[m_iCDI].Deadzone / 10;
+        return g_iJoystickDeadzone / 10;
     default:
         return 0;
     }
@@ -1309,32 +1117,31 @@ DARKSDK void SetJoystickDeadzone(int Percentage)
         Percentage = 0;
     if (Percentage > 99)
         Percentage = 99;
-    m_lpDIControlDevice[m_iCDI].Deadzone = Percentage * 10;
+    g_iJoystickDeadzone = Percentage * 10;
 }
 
 DARKSDK int JoystickUp ( void )
 {
 	UpdateJoystick();
-
-	if(m_JoyStickBuffer.lY < -m_lpDIControlDevice[m_iCDI].Deadzone) return 1; else return 0;
+	if(m_JoyStickBuffer.lY < -g_iJoystickDeadzone) return 1; else return 0;
 }
 
 DARKSDK int JoystickDown ( void )
 {
 	UpdateJoystick();
-	if(m_JoyStickBuffer.lY > m_lpDIControlDevice[m_iCDI].Deadzone) return 1; else return 0;
+	if(m_JoyStickBuffer.lY > g_iJoystickDeadzone) return 1; else return 0;
 }
 
 DARKSDK int JoystickLeft ( void )
 {
 	UpdateJoystick();
-	if(m_JoyStickBuffer.lX < -m_lpDIControlDevice[m_iCDI].Deadzone) return 1; else return 0;
+	if(m_JoyStickBuffer.lX < -g_iJoystickDeadzone) return 1; else return 0;
 }
 
 DARKSDK int JoystickRight ( void )
 {
 	UpdateJoystick();
-	if(m_JoyStickBuffer.lX > m_lpDIControlDevice[m_iCDI].Deadzone) return 1; else return 0;
+	if(m_JoyStickBuffer.lX > g_iJoystickDeadzone) return 1; else return 0;
 }
 
 DARKSDK int JoystickX ( void )
@@ -1666,26 +1473,11 @@ DARKSDK void ForceWaterEffect( int iMagnitude, int iDuration )
 
 DARKSDK void ForceAutoCenterOn( void )
 {
-	if(m_lpDIControlDevice[m_iCDI].HasForceFeedback()==false)
-	{
-		RunTimeError(RUNTIMEERROR_INPUTFORCEFEEDBACKNOTAVAIL);
-		return;
-	}
-
-    DB_AutoCenter(true);
 }
 
 DARKSDK void ForceAutoCenterOff( void )
 {
-	if(m_lpDIControlDevice[m_iCDI].HasForceFeedback()==false)
-	{
-		RunTimeError(RUNTIMEERROR_INPUTFORCEFEEDBACKNOTAVAIL);
-		return;
-	}
-
-    DB_AutoCenter(false);
 }
-
 
 //
 // Control Device Commands
@@ -1693,46 +1485,53 @@ DARKSDK void ForceAutoCenterOff( void )
 
 DARKSDK void PerformChecklistControlDevices( void )
 {
-	HRESULT hRes;
-
-	// Generate Checklist
 	if(g_pGlob)
 	{
 		g_pGlob->checklistqty=0;
 		g_pGlob->checklisthasvalues=true;
 		g_pGlob->checklisthasstrings=true;
-		g_bCreateChecklistNow=false;
-		hRes = m_lpDI->EnumDevices ( DI8DEVCLASS_GAMECTRL, (LPDIENUMDEVICESCALLBACK)ChecklistInputControllers, NULL, DIEDFL_ATTACHEDONLY);
 
-		// Ensure checklist is large enough
-		for(int c=0; c<g_pGlob->checklistqty; c++)
-			GlobExpandChecklist(c, g_dwMaxStringSizeInEnum);
-
-		g_pGlob->checklistqty=0;
-		g_bCreateChecklistNow=true;
-		hRes = m_lpDI->EnumDevices ( DI8DEVCLASS_GAMECTRL, (LPDIENUMDEVICESCALLBACK)ChecklistInputControllers, NULL, DIEDFL_ATTACHEDONLY);
-		if(hRes==DI_OK)
+		for (DWORD i = 0; i < 4; ++i)
 		{
-			// Additionally overwrite capability flags if any devices are forcefeedback..
-			m_lpDI->EnumDevices ( DI8DEVCLASS_GAMECTRL, (LPDIENUMDEVICESCALLBACK)ChecklistAddFFValueFlag, NULL, DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+			XINPUT_STATE state;
+			ZeroMemory(&state, sizeof(XINPUT_STATE));
+			if (XInputGetState(i, &state) == ERROR_SUCCESS)
+			{
+				char productname[256];
+				wsprintf(productname, "Xbox Controller %d", i + 1);
 
-			// Checklist is valid
-			g_pGlob->checklistexists=true;
+				int qty = g_pGlob->checklistqty;
+				GlobExpandChecklist(qty, strlen(productname) + 1);
+
+				g_pGlob->checklist[qty].valuea = 1;
+				g_pGlob->checklist[qty].valueb = i;
+				g_pGlob->checklist[qty].valuec = 0;
+				g_pGlob->checklist[qty].valued = 0;
+				g_pGlob->checklist[qty].dwStringSize = strlen(productname);
+				strcpy(g_pGlob->checklist[qty].string, productname);
+
+				g_pGlob->checklistqty++;
+			}
 		}
-		else
-			g_pGlob->checklistexists=false;
+		g_pGlob->checklistexists = true;
 	}
 }
 
 DARKSDK void SetControlDeviceEx( DWORD pName, int iSubIndex )
 {
-	// find this controller
 	strcpy(gFindController, (LPSTR)pName);
-
-	// use subindex (0-default, 1-skips first occurance of name)
 	giChoseSameControllerByIndex = iSubIndex;
 
-	// call find routine
+	int index = 0;
+	if (sscanf(gFindController, "Xbox Controller %d", &index) == 1)
+	{
+		if (index >= 1 && index <= 4)
+		{
+			m_iCDI = index - 1;
+			return;
+		}
+	}
+
 	if(!DB_SelectNewControlDevice())
 	{
 		RunTimeError(RUNTIMEERROR_INPUTCONTROLLERNOTAVAIL);
@@ -1746,23 +1545,29 @@ DARKSDK void SetControlDevice( DWORD pName )
 
 DARKSDK void SetControlDeviceIndex ( int iIndex )
 {
-	// U73 - 210309 - new command to set which control device we are manipulating
 	if ( iIndex>=0 && iIndex<CONTROLDEVICEMAX )
 		m_iCDI = iIndex;
 }
 
-
 DARKSDK DWORD GetControlDevice ( DWORD pDestStr )
 {
-	// Free old string
 	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
 
 	LPSTR pReturnString=NULL;
-	if(m_lpDIControlDevice[m_iCDI].Name())
+	XINPUT_STATE state;
+	ZeroMemory(&state, sizeof(XINPUT_STATE));
+	if (XInputGetState(m_iCDI, &state) == ERROR_SUCCESS)
 	{
-		DWORD dwSize=strlen(m_lpDIControlDevice[m_iCDI].Name());
+		char name[256];
+		wsprintf(name, "Xbox Controller %d", m_iCDI + 1);
+		DWORD dwSize=strlen(name);
 		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
-		strcpy(pReturnString, m_lpDIControlDevice[m_iCDI].Name());
+		strcpy(pReturnString, name);
+	}
+	else
+	{
+		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, 1);
+		pReturnString[0] = '\0';
 	}
 	return (DWORD)pReturnString;
 }
