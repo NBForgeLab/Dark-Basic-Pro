@@ -50,6 +50,8 @@ CompilerContext::CompilerContext() {
     pIncludeTable = nullptr;
     pConstantsTable = nullptr;
     pDebugInfo = nullptr;
+    m_bOwnsInstructionTable = false;
+    m_bOwnsErrorReport = false;
 }
 
 CompilerContext::~CompilerContext() {
@@ -67,10 +69,26 @@ void CompilerContext::Initialize() {
     pCommandTable = new CDataTable("*");
     pVarTable = new CVarTable("$_ESP_");
     pStatementList = new CStatementList();
-    pInstructionTable = new CInstructionTable();
+    
+    if (g_pInstructionTable) {
+        pInstructionTable = g_pInstructionTable;
+        m_bOwnsInstructionTable = false;
+    } else {
+        pInstructionTable = new CInstructionTable();
+        m_bOwnsInstructionTable = true;
+    }
+
     pIncludeTable = new CIncludeTable();
     pConstantsTable = new CDataTable();
-    pErrorReport = new CError();
+
+    if (g_pErrorReport) {
+        pErrorReport = g_pErrorReport;
+        m_bOwnsErrorReport = false;
+    } else {
+        pErrorReport = new CError();
+        m_bOwnsErrorReport = true;
+    }
+
     pEXE = new CEXEBlock();
     pDebugInfo = &g_DebugInfo;
 
@@ -92,6 +110,15 @@ void CompilerContext::Initialize() {
     g_pConstantsTable = pConstantsTable;
 }
 
+void CompilerContext::ReplaceErrorReport(CError* pNewReport) {
+    if (m_bOwnsErrorReport) {
+        delete pErrorReport;
+    }
+    pErrorReport = pNewReport;
+    g_pErrorReport = pNewReport;
+    m_bOwnsErrorReport = true;
+}
+
 void CompilerContext::Cleanup() {
     delete pStatementList;    pStatementList = nullptr;
     delete pDBMWriter;        pDBMWriter = nullptr;
@@ -109,19 +136,32 @@ void CompilerContext::Cleanup() {
     if (pStringTable) { pStringTable->Free(); pStringTable = nullptr; }
     if (pStructTable) { pStructTable->Free(); pStructTable = nullptr; }
 
-    delete pInstructionTable; pInstructionTable = nullptr;
+    if (m_bOwnsInstructionTable) {
+        delete pInstructionTable;
+    }
+    pInstructionTable = nullptr;
+
     if (pLabelTable) { pLabelTable->Free(); pLabelTable = nullptr; }
     if (pVarTable) { pVarTable->Free(); pVarTable = nullptr; }
-    delete pErrorReport;      pErrorReport = nullptr;
+
+    if (m_bOwnsErrorReport) {
+        delete pErrorReport;
+    }
+    pErrorReport = nullptr;
+
     delete pEXE;              pEXE = nullptr;
 
     g_pEXE = nullptr;
-    g_pErrorReport = nullptr;
+    if (m_bOwnsErrorReport) {
+        g_pErrorReport = nullptr;
+    }
     g_pASMWriter = nullptr;
     g_pDBMWriter = nullptr;
     g_pStructTable = nullptr;
     g_pStatementList = nullptr;
-    g_pInstructionTable = nullptr;
+    if (m_bOwnsInstructionTable) {
+        g_pInstructionTable = nullptr;
+    }
     g_pLabelTable = nullptr;
     g_pDataTable = nullptr;
     g_pStringTable = nullptr;

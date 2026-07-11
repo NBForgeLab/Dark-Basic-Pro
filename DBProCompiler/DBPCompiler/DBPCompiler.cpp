@@ -1366,20 +1366,22 @@ bool CDBPCompiler::MakeProgram(void)
 	// If been in CLI (so editor does not report old errors)
 	if(bBeenInCLI==true)
 	{
-		// Delete error report
-		SAFE_DELETE(g_pErrorReport);
-		g_pErrorReport = new CError;
+		if (m_pContext) {
+			m_pContext->ReplaceErrorReport(new CError);
+		} else {
+			SAFE_DELETE(g_pErrorReport);
+			g_pErrorReport = new CError;
+		}
 	}
 
 	// Free MiniFileData Mem
 	SAFE_DELETE(pMiniData);
 
 	// Free The EXE when no more to run
-	g_pEXE->FreeUptoDisplay();
-	g_pEXE->Free();
-
-	// Delete CEXE Object Here
-	SAFE_DELETE(g_pEXE);
+	if (g_pEXE) {
+		g_pEXE->FreeUptoDisplay();
+		g_pEXE->Free();
+	}
 
 	// Free Objects from Statement List First and List itself
 	// Clean up environment context

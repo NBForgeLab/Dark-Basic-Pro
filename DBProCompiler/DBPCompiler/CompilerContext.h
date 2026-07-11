@@ -23,6 +23,7 @@ public:
 
     void Initialize();
     void Cleanup();
+    void ReplaceErrorReport(CError* pNewReport);
 
     CEXEBlock*			pEXE;
     CDBPCompiler*		pDBPCompiler;
@@ -41,4 +42,8 @@ public:
     CIncludeTable*		pIncludeTable;
     CDataTable*			pConstantsTable;
     CDebugInfo*         pDebugInfo;
+
+private:
+    bool                m_bOwnsInstructionTable;
+    bool                m_bOwnsErrorReport;
 };
