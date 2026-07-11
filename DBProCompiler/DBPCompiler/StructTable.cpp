@@ -37,7 +37,7 @@ CStructTable::CStructTable()
 {
 	m_dwTypeMode=0;
 	m_dwTypeValue=0;
-	m_pTypeName=NULL;
+	m_pTypeName=nullptr;
 	m_cTypeChar=0;
 	m_dwSize=0;
 
@@ -49,7 +49,6 @@ CStructTable::CStructTable()
 
 CStructTable::~CStructTable()
 {
-	SAFE_DELETE(m_pTypeName);
 	SAFE_DELETE(m_pDecChain);
 	SAFE_DELETE(m_pDecBlock);
 }
@@ -511,7 +510,7 @@ bool CStructTable::WriteDBM(void)
 		strDBMLine.SetText("FS@");
 	}
 
-	strDBMLine.AddText(m_pTypeName);
+	strDBMLine.AddText(m_pTypeName.get());
 	strDBMLine.AddText(" Overall Size:");
 	strDBMLine.AddNumericText(m_dwSize);
 

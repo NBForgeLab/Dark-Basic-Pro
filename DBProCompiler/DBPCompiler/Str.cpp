@@ -165,7 +165,7 @@ static void CheckLength(const char *p, db3::uint l)
 # define CheckLength(p,l) (void)0
 #endif
 
-CStr::CStr() : m_pStr(nullptr), m_dwSize(0)
+CStr::CStr() : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 {
 }
 
@@ -173,7 +173,7 @@ CStr::~CStr()
 {
 }
 
-CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0)
+CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 {
 	if(pText)
 	{
@@ -182,6 +182,7 @@ CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0)
 		if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
 		if(m_pStr) strcpy(m_pStr.get(), pText);
 		m_dwSize = length;
+		m_dwLen = length;
 	}
 	else
 	{
@@ -189,15 +190,17 @@ CStr::CStr(LPSTR pText) : m_pStr(nullptr), m_dwSize(0)
 		m_pStr.reset(new char[length+1]);
 		if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
 		m_dwSize = length;
+		m_dwLen = 0;
 	}
 }
 
-CStr::CStr(DWORD dwTextSize) : m_pStr(nullptr), m_dwSize(0)
+CStr::CStr(DWORD dwTextSize) : m_pStr(nullptr), m_dwSize(0), m_dwLen(0)
 {
 	int length=dwTextSize;
 	m_pStr.reset(new char[length+1]);
 	if(m_pStr) ZeroMemory(m_pStr.get(), length+1);
 	m_dwSize = length;
+	m_dwLen = 0;
 }
 
 void CStr::Enlarge(DWORD length)
@@ -207,6 +210,12 @@ void CStr::Enlarge(DWORD length)
 	if(pNewStr && m_pStr) strcpy(pNewStr, m_pStr.get());
 	m_dwSize=length;
 	m_pStr.reset(pNewStr);
+	UpdateLen();
+}
+
+void CStr::UpdateLen(void)
+{
+	m_dwLen = m_pStr ? strlen(m_pStr.get()) : 0;
 }
 
 // Redirect all manual raw pointer operations to unique_ptr's managed pointer
@@ -222,6 +231,7 @@ void CStr::SetText(LPSTR pText)
 		DWORD length=strlen(pText);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcpy(m_pStr, pText);
+		UpdateLen();
 	}
 #endif
 }
@@ -236,6 +246,7 @@ void CStr::SetText(CStr* pStrText)
 		DWORD length=pStrText->Length();
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcpy(m_pStr, pStrText->GetStr());
+		UpdateLen();
 	}
 #endif
 }
@@ -265,6 +276,7 @@ void CStr::AddText(LPSTR pText)
 		if(m_pStr) length+=strlen(m_pStr);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcat(m_pStr, pText);
+		UpdateLen();
 	}
 #endif
 }
@@ -289,6 +301,7 @@ void CStr::AddText(CStr* pStrText)
 		if(m_pStr) length+=strlen(m_pStr);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcat(m_pStr, pStrText->GetStr());
+		UpdateLen();
 	}
 #endif
 }
@@ -321,6 +334,7 @@ void CStr::InsertText(LPSTR pStr)
 			strcpy(m_pStr, pStr);
 			strcat(m_pStr, pTemp);
 			delete pTemp;
+			UpdateLen();
 		}
 	}
 #endif
@@ -342,6 +356,7 @@ void CStr::AddChar(char cChar)
 		if(length+1>m_dwSize) Enlarge(length+1);
 		m_pStr[length]=cChar;
 		m_pStr[length+1]=0;
+		UpdateLen();
 	}
 #endif
 }
@@ -363,6 +378,7 @@ void CStr::SetNumericText(DWORD dwNumText)
 		DWORD length=strlen(pText);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcpy(m_pStr, pText);
+		UpdateLen();
 	}
 	if(pText) delete pText;
 #endif
@@ -385,6 +401,7 @@ void CStr::SetUnsignedNumericText(DWORD dwNumText)
 		DWORD length=strlen(pText);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcpy(m_pStr, pText);
+		UpdateLen();
 	}
 	if(pText) delete pText;
 #endif
@@ -402,6 +419,7 @@ void CStr::SetDWORDNumericText(DWORD dwNumText)
 		DWORD length=strlen(pText);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcpy(m_pStr, pText);
+		UpdateLen();
 	}
 	if(pText) delete pText;
 #endif
@@ -425,6 +443,7 @@ void CStr::AddNumericText(DWORD dwNumText)
 		if(m_pStr) length+=strlen(m_pStr);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcat(m_pStr, pText);
+		UpdateLen();
 	}
 	if(pText) delete pText;
 #endif
@@ -449,6 +468,7 @@ void CStr::AddDoubleText(double dNumText)
 		if(m_pStr) length+=strlen(m_pStr);
 		if(length>m_dwSize) Enlarge(length);
 		if(m_pStr) strcat(m_pStr, pText);
+		UpdateLen();
 	}
 	if(pText) delete pText;
 #endif

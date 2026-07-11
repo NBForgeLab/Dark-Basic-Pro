@@ -28,7 +28,7 @@ map_type CLabelTable::g_Table(ALLOWED_DBLBL, map_type::ECase::Insensitive, map_t
 
 CLabelTable::CLabelTable()
 {
-	m_pName=NULL;
+	m_pName=nullptr;
 	m_dwCodeIndex=0;
 	m_dwDataIndex=0;
 	m_dwBytePos=0;
@@ -40,7 +40,7 @@ CLabelTable::CLabelTable()
 
 CLabelTable::CLabelTable(LPSTR pStr)
 {
-	m_pName=new CStr(pStr);
+	m_pName.reset(new CStr(pStr));
 	m_dwCodeIndex=0;
 	m_dwDataIndex=0;
 	m_dwBytePos=0;
@@ -59,7 +59,6 @@ CLabelTable::CLabelTable(LPSTR pStr)
 
 CLabelTable::~CLabelTable()
 {
-	SAFE_DELETE(m_pName);
 }
 
 void CLabelTable::Free(void)

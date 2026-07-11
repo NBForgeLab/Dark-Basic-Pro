@@ -33,13 +33,13 @@ class CLabelTable
 		CLabelTable*	FindLabel(LPSTR pLabelName);
 		bool			UpdateLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef);
 
-		void			SetName(CStr* pName) { m_pName=pName; }
+		void			SetName(CStr* pName) { m_pName.reset(pName); }
 		void			SetCodeIndex(DWORD dwIndex) { m_dwCodeIndex=dwIndex; }
 		void			SetDataIndex(DWORD dwIndex) { m_dwDataIndex=dwIndex; }
 		void			SetBytePosition(DWORD dwIndex) { m_dwBytePos=dwIndex; }
 		void			SetSRef(CStatement* pRef) { m_pSRef=pRef; }
 
-		CStr*			GetName(void) { return m_pName; }
+		CStr*			GetName(void) { return m_pName.get(); }
 		DWORD			GetCodeIndex(void) { return m_dwCodeIndex; }
 		DWORD			GetDataIndex(void) { return m_dwDataIndex; }
 		DWORD			GetBytePosition(void) { return m_dwBytePos; }
@@ -53,7 +53,7 @@ class CLabelTable
 	private:
 
 		// Data
-		CStr*					m_pName;
+		std::unique_ptr<CStr>	m_pName;
 		DWORD					m_dwCodeIndex;
 		DWORD					m_dwDataIndex;
 		DWORD					m_dwBytePos;

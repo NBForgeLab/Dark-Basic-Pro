@@ -50,15 +50,15 @@ CVarTable::CVarTable()
 {
 	m_dwLineNumber=0;
 
-	m_pVarScope=NULL;
-	m_pVarName=NULL;
-	m_pVarType=NULL;
+	m_pVarScope=nullptr;
+	m_pVarName=nullptr;
+	m_pVarType=nullptr;
 	m_dwVarTypeValue=0;
 	m_dwArrFlag=0;
 	m_dwFinalDBMOffset=0;
 
 	m_bOffsetAssigned=false;
-	m_pAdditionalDataString=NULL;
+	m_pAdditionalDataString=nullptr;
 
 	m_pNext=NULL;
 	m_pPrev=NULL;
@@ -68,15 +68,15 @@ CVarTable::CVarTable(LPSTR pStr)
 {
 	m_dwLineNumber=0;
 
-	m_pVarScope=new CStr("");
-	m_pVarName=new CStr(pStr);
-	m_pVarType=new CStr("dword");
+	m_pVarScope.reset(new CStr(""));
+	m_pVarName.reset(new CStr(pStr));
+	m_pVarType.reset(new CStr("dword"));
 	m_dwVarTypeValue=7;
 	m_dwArrFlag=0;
 	m_dwFinalDBMOffset=0;
 
 	m_bOffsetAssigned=false;
-	m_pAdditionalDataString=NULL;
+	m_pAdditionalDataString=nullptr;
 
 	m_pNext=NULL;
 	m_pPrev=NULL;
@@ -92,10 +92,6 @@ CVarTable::CVarTable(LPSTR pStr)
 
 CVarTable::~CVarTable()
 {
-	SAFE_DELETE(m_pAdditionalDataString);
-	SAFE_DELETE(m_pVarScope);
-	SAFE_DELETE(m_pVarName);
-	SAFE_DELETE(m_pVarType);
 }
 
 void CVarTable::Free(void)
@@ -847,13 +843,13 @@ bool CVarTable::WriteDBM(void)
 			// Write out text
 			CStr strDBMLine(256);
 			strDBMLine.SetText("@");
-			strDBMLine.AddText(m_pVarName);
+			strDBMLine.AddText(m_pVarName.get());
 			strDBMLine.AddText("=");
 			strDBMLine.AddNumericText(dwOffsetValue);
 
 			// Array variables are pointers not actual data mem
 			strDBMLine.AddText("  [STRUCT@");
-			strDBMLine.AddText(m_pVarType);
+			strDBMLine.AddText(m_pVarType.get());
 			strDBMLine.AddText("]");
 
 			// Output details

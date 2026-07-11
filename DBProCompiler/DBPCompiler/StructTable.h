@@ -32,7 +32,7 @@ class CStructTable
 
 		void			SetTypeMode(DWORD dwMode) { m_dwTypeMode=dwMode; }
 		void			SetTypeValue(DWORD dwValue) { m_dwTypeValue=dwValue; }
-		void			SetTypeName(CStr* pName) { m_pTypeName=pName; }
+		void			SetTypeName(CStr* pName) { m_pTypeName.reset(pName); }
 		void			SetTypeChar(unsigned char cChar) { m_cTypeChar=cChar; }
 		void			SetTypeSize(DWORD dwSize) { m_dwSize=dwSize; }
 		void			SetDecChain(CDeclaration* pDec) { m_pDecChain=pDec; }
@@ -41,7 +41,7 @@ class CStructTable
 
 		DWORD			GetTypeMode(void) { return m_dwTypeMode; }
 		DWORD			GetTypeValue(void) { return m_dwTypeValue; }
-		CStr*			GetTypeName(void) { return m_pTypeName; }
+		CStr*			GetTypeName(void) { return m_pTypeName.get(); }
 		unsigned char	GetTypeChar(void) { return m_cTypeChar; }
 		DWORD			GetTypeSize(void) { return m_dwSize; }
 		CStatement*		GetBlock(void) { return m_pDecBlock; }
@@ -65,7 +65,7 @@ class CStructTable
 		// Structure Type Data
 		DWORD			m_dwTypeMode;
 		DWORD			m_dwTypeValue;
-		CStr*			m_pTypeName;
+		std::unique_ptr<CStr> m_pTypeName;
 		unsigned char	m_cTypeChar;
 		DWORD			m_dwSize;
 		DWORD			m_dwParamInUserFunction;

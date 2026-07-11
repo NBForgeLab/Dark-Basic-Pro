@@ -31,3 +31,40 @@ TEST(CStrTest, BasicOperationsAndMutators) {
     s1.MakeUpper();
     EXPECT_STREQ(s1.GetStr(), "DARKBASIC PRO!");
 }
+
+TEST(CStrTest, ParsingAndTypeChecks) {
+    // Integer only value check
+    CStr sInt("12345");
+    EXPECT_TRUE(sInt.IsTextIntegerOnlyValue());
+    EXPECT_TRUE(sInt.IsTextNumericValue());
+
+    CStr sNegInt("-987");
+    EXPECT_TRUE(sNegInt.IsTextIntegerOnlyValue());
+    EXPECT_TRUE(sNegInt.IsTextNumericValue());
+
+    // Float numeric check
+    CStr sFloat("12.34");
+    EXPECT_FALSE(sFloat.IsTextIntegerOnlyValue());
+    EXPECT_TRUE(sFloat.IsTextNumericValue());
+
+    // Hex check
+    CStr sHex("0xAF12");
+    EXPECT_TRUE(sHex.IsTextHexValue());
+
+    // Non-numeric check
+    CStr sAlpha("12A34");
+    EXPECT_FALSE(sAlpha.IsTextIntegerOnlyValue());
+    EXPECT_FALSE(sAlpha.IsTextNumericValue());
+}
+
+TEST(CStrTest, TrimmingAndFormatting) {
+    // Speech marks
+    CStr sSpeech("\"Hello\"");
+    sSpeech.EatSpeechMarks();
+    EXPECT_STREQ(sSpeech.GetStr(), "Hello");
+
+    // Path extraction
+    CStr sPath("C:\\MyDir\\MySubDir\\MyFile.dba");
+    sPath.TrimToPathOnly();
+    EXPECT_STREQ(sPath.GetStr(), "C:\\MyDir\\MySubDir\\");
+}

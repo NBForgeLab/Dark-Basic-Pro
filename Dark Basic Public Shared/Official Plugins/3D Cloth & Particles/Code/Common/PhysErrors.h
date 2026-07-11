@@ -13,13 +13,7 @@
 #endif
 
 
-#define ON_FAIL_DLL_SECURITY_RETURN(retval) DWORD * pErrPtr = (DWORD*)physics->DBPro_globalPtr->g_pErrorHandlerRef;\
-DWORD * pESPPtr = pErrPtr + 1;\
-DWORD dwRecordedESP = *pESPPtr;\
-DWORD dwCurrentESP;\
-__asm mov dwCurrentESP, EBP;\
-int iDifference = abs ( dwCurrentESP - dwRecordedESP );\
-if ( iDifference > 8 ) return retval;
+#define ON_FAIL_DLL_SECURITY_RETURN(retval)
 
 
 

@@ -14,14 +14,7 @@ extern int g_iLightmapFileFormat;
 
 inline int FtoI( float f )
 {
-	int iValue;
-	
-	__asm {
-		fld f;
-		fistp iValue;
-	}
-
-	return iValue;
+	return static_cast<int>(f);
 }
 
 #endif

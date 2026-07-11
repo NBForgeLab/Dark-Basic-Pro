@@ -41,12 +41,12 @@ class CVarTable
 		char			GetCharOfType(DWORD dwTypeValue);
 		DWORD			GetTypeValueOfChar(unsigned char cTypeChar);
 
-		void			SetVarScope(CStr* pScope) { m_pVarScope=pScope; }
-		CStr*			GetVarScope(void) { return m_pVarScope; }
-		void			SetVarName(CStr* pName) { m_pVarName=pName; }
-		CStr*			GetVarName(void) { return m_pVarName; }
-		void			SetVarType(CStr* pType) { m_pVarType=pType; }
-		CStr*			GetVarType(void) { return m_pVarType; }
+		void			SetVarScope(CStr* pScope) { m_pVarScope.reset(pScope); }
+		CStr*			GetVarScope(void) { return m_pVarScope.get(); }
+		void			SetVarName(CStr* pName) { m_pVarName.reset(pName); }
+		CStr*			GetVarName(void) { return m_pVarName.get(); }
+		void			SetVarType(CStr* pType) { m_pVarType.reset(pType); }
+		CStr*			GetVarType(void) { return m_pVarType.get(); }
 		void			SetVarTypeValue(DWORD dwTypeValue) { m_dwVarTypeValue=dwTypeValue; }
 		DWORD			GetVarTypeValue(void) { return m_dwVarTypeValue; }
 		void			SetVarStruct(CStructTable* pStruct) { m_pVarStruct=pStruct; }
@@ -59,8 +59,8 @@ class CVarTable
 		void			SetSpecifiedAsGlobalFlag(bool bState) { m_bSpecifiedAsGLOBAL=bState; }
 		bool			GetSpecifiedAsGlobalFlag(void) { return m_bSpecifiedAsGLOBAL; }
 		
-		void			SetAdditionalDataString(CStr* pStr) { m_pAdditionalDataString=pStr; }
-		CStr*			GetAdditionalDataString(void) { return m_pAdditionalDataString; }
+		void			SetAdditionalDataString(CStr* pStr) { m_pAdditionalDataString.reset(pStr); }
+		CStr*			GetAdditionalDataString(void) { return m_pAdditionalDataString.get(); }
 
 		void			SetLineNumber(DWORD dwLine) { m_dwLineNumber=dwLine; }
 		DWORD			GetLineNumber(void) { return m_dwLineNumber; }
@@ -78,9 +78,9 @@ class CVarTable
 		DWORD			m_dwLineNumber;
 
 		// Variable Data
-		CStr*			m_pVarScope;
-		CStr*			m_pVarName;
-		CStr*			m_pVarType;
+		std::unique_ptr<CStr> m_pVarScope;
+		std::unique_ptr<CStr> m_pVarName;
+		std::unique_ptr<CStr> m_pVarType;
 		DWORD			m_dwVarTypeValue;
 		CStructTable*	m_pVarStruct;
 		DWORD			m_dwArrFlag;
@@ -89,7 +89,7 @@ class CVarTable
 		bool			m_bSpecifiedAsGLOBAL;
 
 		// Used to hold array dimension string (for parser use)
-		CStr*			m_pAdditionalDataString;
+		std::unique_ptr<CStr> m_pAdditionalDataString;
 
 		// Mini-CLI Program Support
 		bool			m_bOffsetAssigned;
