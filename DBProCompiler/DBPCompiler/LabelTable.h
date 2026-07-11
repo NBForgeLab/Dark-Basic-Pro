@@ -10,7 +10,8 @@
 #include "PerfMacros.h"
 
 #ifdef __AARON_LBLTBLPERF__
-# include <DB3Dict.h>
+# include <unordered_map>
+# include <string>
 #endif
 
 class CLabelTable  
@@ -67,7 +68,7 @@ class CLabelTable
 		db3::CLock				m_Lock;
 
 #ifdef __AARON_LBLTBLPERF__
-		static db3::TDictionary<CLabelTable> g_Table;
+		static std::unordered_map<std::string, CLabelTable*> g_Table;
 #endif
 };
 

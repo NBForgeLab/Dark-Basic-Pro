@@ -18,8 +18,18 @@
 
 # define ALLOWED_DBLBL ALLOWED_IDENT ALLOWED_MISCL
 
-typedef db3::TDictionary<CLabelTable> map_type;
-map_type CLabelTable::g_Table(ALLOWED_DBLBL, map_type::ECase::Insensitive, map_type::EOnDestruct::DeleteEntries);
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+
+std::unordered_map<std::string, CLabelTable*> CLabelTable::g_Table;
+
+static std::string to_lower(const std::string& s)
+{
+	std::string res = s;
+	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+	return res;
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////
@@ -49,11 +59,9 @@ CLabelTable::CLabelTable(LPSTR pStr)
 	m_pPrev=NULL;
 
 #ifdef __AARON_LBLTBLPERF__
-	auto entry = g_Table.Lookup(pStr);
-	assert_msg(entry != nullptr, "g_Table.Lookup() failed!");
-	assert_msg(entry->P == nullptr, "Label already exists");
-
-	entry->P = this;
+	std::string lowerStr = to_lower(pStr);
+	assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Label already exists");
+	g_Table[lowerStr] = this;
 #endif
 }
 
@@ -62,10 +70,11 @@ CLabelTable::~CLabelTable()
 #ifdef __AARON_LBLTBLPERF__
 	if (m_pName)
 	{
-		auto entry = g_Table.Find(m_pName->GetStr());
-		if (entry && entry->P == this)
+		std::string lowerStr = to_lower(m_pName->GetStr());
+		auto it = g_Table.find(lowerStr);
+		if (it != g_Table.end() && it->second == this)
 		{
-			entry->P = nullptr;
+			g_Table.erase(it);
 		}
 	}
 #endif
@@ -73,6 +82,9 @@ CLabelTable::~CLabelTable()
 
 void CLabelTable::Free(void)
 {
+#ifdef __AARON_LBLTBLPERF__
+	g_Table.clear();
+#endif
 	CLabelTable* pCurrent = this;
 	while(pCurrent)
 	{
@@ -179,11 +191,9 @@ bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex,
 	pNewData->SetSRef(pSRef);
 
 #ifdef __AARON_LBLTBLPERF__
-	auto entry = g_Table.Lookup(pStr->GetStr());
-	assert_msg(entry != nullptr, "g_Table.Lookup() failed!");
-	assert_msg(entry->P == nullptr, "Label already exists");
-
-	entry->P = pNewData;
+	std::string lowerName = to_lower(pStr->GetStr());
+	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Label already exists");
+	g_Table[lowerName] = pNewData;
 #endif
 
 	// Add to Table
@@ -199,12 +209,12 @@ bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex,
 CLabelTable* CLabelTable::FindLabel(LPSTR pLabelName)
 {
 #ifdef __AARON_LBLTBLPERF__
-	auto entry = g_Table.Find(pLabelName);
-
-	if (!entry)
+	std::string lowerLabelName = to_lower(pLabelName);
+	auto it = g_Table.find(lowerLabelName);
+	if (it == g_Table.end() || !it->second)
 		return nullptr;
 
-	return entry->P;
+	return it->second;
 #else
 	DWORD dwTime=timeGetTime();
 

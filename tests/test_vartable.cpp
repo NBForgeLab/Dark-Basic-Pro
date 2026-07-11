@@ -86,3 +86,12 @@ TEST_F(VarTableTest, DictionaryCaseInsensitiveLookupAndFree) {
     ASSERT_NE(pFound, nullptr);
     EXPECT_STREQ(pFound->GetVarName()->GetStr(), "MyIntegerVar");
 }
+
+TEST_F(VarTableTest, LabelTableDictionaryCaseInsensitiveLookupAndFree) {
+    bool bRes = g_pLabelTable->AddLabel("MyLabel", 100, 200, nullptr);
+    EXPECT_TRUE(bRes);
+    
+    CLabelTable* pFound = g_pLabelTable->FindLabel("mylabel");
+    ASSERT_NE(pFound, nullptr);
+    EXPECT_STREQ(pFound->GetName()->GetStr(), "MyLabel");
+}
