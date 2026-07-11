@@ -95,3 +95,12 @@ TEST_F(VarTableTest, LabelTableDictionaryCaseInsensitiveLookupAndFree) {
     ASSERT_NE(pFound, nullptr);
     EXPECT_STREQ(pFound->GetName()->GetStr(), "MyLabel");
 }
+
+TEST_F(VarTableTest, StructTableDictionaryCaseInsensitiveLookupAndFree) {
+    bool bRes = g_pStructTable->AddStruct(99, "MyCustomType", 'T', 12);
+    EXPECT_TRUE(bRes);
+    
+    CStructTable* pFound = g_pStructTable->DoesTypeEvenExist("mycustomtype");
+    ASSERT_NE(pFound, nullptr);
+    EXPECT_STREQ(pFound->GetTypeName()->GetStr(), "MyCustomType");
+}

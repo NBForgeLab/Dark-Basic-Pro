@@ -24,9 +24,18 @@ extern CStructTable* g_pStructTable;
 
 # define ALLOWED_DBVAR ALLOWED_IDENT ALLOWED_MISCL
 
-typedef db3::TDictionary<CStructTable> map_type;
-typedef db3::TDictionary<CStructTable>::SEntry entry_type;
-map_type CStructTable::g_Table(ALLOWED_DBVAR, map_type::Insensitive, map_type::DeleteEntries);
+#include <algorithm>
+#include <string>
+#include <unordered_map>
+
+std::unordered_map<std::string, CStructTable*> CStructTable::g_Table;
+
+static std::string to_lower(const std::string& s)
+{
+	std::string res = s;
+	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+	return res;
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////
@@ -54,10 +63,11 @@ CStructTable::~CStructTable()
 #ifdef __AARON_STRUCPERF__
 	if (m_pTypeName)
 	{
-		auto entry = g_Table.Find(m_pTypeName->GetStr());
-		if (entry && entry->P == this)
+		std::string lowerStr = to_lower(m_pTypeName->GetStr());
+		auto it = g_Table.find(lowerStr);
+		if (it != g_Table.end() && it->second == this)
 		{
-			entry->P = nullptr;
+			g_Table.erase(it);
 		}
 	}
 #endif
@@ -65,6 +75,9 @@ CStructTable::~CStructTable()
 
 void CStructTable::Free(void)
 {
+#ifdef __AARON_STRUCPERF__
+	g_Table.clear();
+#endif
 	CStructTable* pCurrent = this;
 	while(pCurrent)
 	{
@@ -123,12 +136,9 @@ bool CStructTable::SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 	SetTypeSize(dwSize);
 
 #ifdef __AARON_STRUCPERF__
-	entry_type *entry = g_Table.Lookup(pStructName);
-
-	assert_msg(!!entry, "g_Table.Lookup() failed!");
-	assert_msg(!entry->P, "Struct already exists");
-
-	entry->P = this;
+	std::string lowerName = to_lower(pStructName);
+	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
+	g_Table[lowerName] = this;
 #endif
 
 	return true;
@@ -150,12 +160,9 @@ bool CStructTable::AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 	pNewType->SetTypeBlock(NULL);
 
 #ifdef __AARON_STRUCPERF__
-	entry_type *entry = g_Table.Lookup(pStructName);
-
-	assert_msg(!!entry, "g_Table.Lookup() failed!");
-	assert_msg(!entry->P, "Struct already exists");
-
-	entry->P = pNewType;
+	std::string lowerName = to_lower(pStructName);
+	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
+	g_Table[lowerName] = pNewType;
 #endif
 
 	// Add Struct to list
@@ -212,12 +219,9 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 	pNewType->SetTypeBlock(pTypeBlock);
 
 #ifdef __AARON_STRUCPERF__
-	entry_type *entry = g_Table.Lookup(pStructName);
-
-	assert_msg(!!entry, "g_Table.Lookup() failed!");
-	assert_msg(!entry->P, "Struct already exists");
-
-	entry->P = pNewType;
+	std::string lowerName = to_lower(pStructName);
+	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
+	g_Table[lowerName] = pNewType;
 #endif
 
 	// U73 - 230309 - added param count for Diggory (new debugger)
@@ -363,11 +367,12 @@ bool CStructTable::CalculateSize(void)
 CStructTable* CStructTable::DoesTypeEvenExist(LPSTR pName)
 {
 #ifdef __AARON_STRUCPERF__
-	entry_type *entry = g_Table.Lookup(pName);
-	if (!entry)
+	std::string lowerName = to_lower(pName);
+	auto it = g_Table.find(lowerName);
+	if (it == g_Table.end() || !it->second)
 		return NULL;
 
-	return (CStructTable *)entry->P;
+	return it->second;
 #else
 	if(GetTypeName())
 		if(stricmp(pName, GetTypeName()->GetStr())==NULL)
@@ -397,13 +402,13 @@ CDeclaration* CStructTable::FindDecInType(LPSTR pTypename, LPSTR pFieldname)
 #ifdef __AARON_STRUCPERF__
 	CStructTable *struc;
 	CDeclaration *dec;
-	entry_type *entry;
 
-	entry = g_Table.Lookup(pTypename);
-	if (!entry || !entry->P)
+	std::string lowerTypeName = to_lower(pTypename);
+	auto it = g_Table.find(lowerTypeName);
+	if (it == g_Table.end() || !it->second)
 		return NULL;
 
-	struc = (CStructTable *)entry->P;
+	struc = it->second;
 	for(dec=struc->m_pDecChain; dec; dec=dec->GetNext()) {
 		if (stricmp(dec->GetName()->GetStr(), pFieldname)==0)
 			break;

@@ -9,7 +9,8 @@
 #include "PerfMacros.h"
 
 #ifdef __AARON_STRUCPERF__
-# include "DB3Dict.h"
+# include <unordered_map>
+# include <string>
 #endif
 
 class CStructTable  
@@ -80,7 +81,7 @@ class CStructTable
 		CStructTable*	m_pNext;
 
 #ifdef __AARON_STRUCPERF__
-		static db3::TDictionary<CStructTable> g_Table;
+		static std::unordered_map<std::string, CStructTable*> g_Table;
 #endif
 };
 
