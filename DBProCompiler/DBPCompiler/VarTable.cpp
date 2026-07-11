@@ -92,6 +92,16 @@ CVarTable::CVarTable(LPSTR pStr)
 
 CVarTable::~CVarTable()
 {
+#ifdef __AARON_VARTABLEPERF__
+	if (m_pVarName)
+	{
+		auto entry = g_Table.Find(m_pVarName->GetStr());
+		if (entry && entry->P == this)
+		{
+			entry->P = nullptr;
+		}
+	}
+#endif
 }
 
 void CVarTable::Free(void)

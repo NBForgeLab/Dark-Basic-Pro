@@ -13,6 +13,8 @@
 #include "ASMWriter.h"
 #include "DBMWriter.h"
 
+#include "CompilerContext.h"
+
 // Declare all compiler global pointers defined in dbp_compiler_lib
 extern ICodeGenerator*   g_pASMWriter;
 extern CDBMWriter*       g_pDBMWriter;
@@ -31,24 +33,13 @@ extern CError*           g_pErrorReport;
 
 class VarTableTest : public ::testing::Test {
 protected:
+    CompilerContext* m_pContext;
+
     void SetUp() override {
         DBPLogger::Initialize("test_vartable.log");
         
-        // Allocate all global compiler environments
-        g_pErrorReport      = new CError();
-        g_pVarTable         = new CVarTable();
-        g_pLabelTable       = new CLabelTable();
-        g_pInstructionTable = new CInstructionTable();
-        g_pStructTable      = new CStructTable();
-        g_pStringTable      = new CDataTable();
-        g_pDataTable        = new CDataTable();
-        g_pDLLTable         = new CDataTable();
-        g_pCommandTable     = new CDataTable();
-        g_pIncludeTable     = new CIncludeTable();
-        g_pConstantsTable   = new CDataTable();
-        g_pASMWriter        = new CASMWriter();
-        g_pDBMWriter        = new CDBMWriter();
-        g_pStatementList    = new CStatementList();
+        m_pContext = new CompilerContext();
+        m_pContext->Initialize();
 
         // Populate struct table with compiler defaults ("integer", "float", etc.)
         g_pStructTable->SetStructDefaults();
@@ -59,20 +50,11 @@ protected:
     }
 
     void TearDown() override {
-        delete g_pStatementList;    g_pStatementList = nullptr;
-        delete g_pDBMWriter;        g_pDBMWriter = nullptr;
-        delete g_pASMWriter;        g_pASMWriter = nullptr;
-        delete g_pConstantsTable;   g_pConstantsTable = nullptr;
-        delete g_pIncludeTable;     g_pIncludeTable = nullptr;
-        delete g_pCommandTable;     g_pCommandTable = nullptr;
-        delete g_pDLLTable;         g_pDLLTable = nullptr;
-        delete g_pDataTable;        g_pDataTable = nullptr;
-        delete g_pStringTable;      g_pStringTable = nullptr;
-        delete g_pStructTable;      g_pStructTable = nullptr;
-        delete g_pInstructionTable; g_pInstructionTable = nullptr;
-        delete g_pLabelTable;       g_pLabelTable = nullptr;
-        delete g_pVarTable;         g_pVarTable = nullptr;
-        delete g_pErrorReport;      g_pErrorReport = nullptr;
+        if (m_pContext) {
+            m_pContext->Cleanup();
+            delete m_pContext;
+            m_pContext = nullptr;
+        }
         
         spdlog::shutdown();
     }

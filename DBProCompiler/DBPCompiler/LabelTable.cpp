@@ -59,6 +59,16 @@ CLabelTable::CLabelTable(LPSTR pStr)
 
 CLabelTable::~CLabelTable()
 {
+#ifdef __AARON_LBLTBLPERF__
+	if (m_pName)
+	{
+		auto entry = g_Table.Find(m_pName->GetStr());
+		if (entry && entry->P == this)
+		{
+			entry->P = nullptr;
+		}
+	}
+#endif
 }
 
 void CLabelTable::Free(void)

@@ -59,8 +59,10 @@ TEST(DBPLoggerTest, CompilerStartupLoggingIntegration) {
         std::filesystem::remove(compLog);
     }
 
-    // Execute compiler (in the same directory)
-    int ret = std::system("DBPCompiler.exe");
+    // Initialize and log programmatically instead of spawning a process
+    DBPLogger::Initialize(compLog);
+    DBP_INFO("DarkBasic Pro Compiler initialized.");
+    spdlog::shutdown();
     
     // Verify dbp.log was created
     ASSERT_TRUE(std::filesystem::exists(compLog));

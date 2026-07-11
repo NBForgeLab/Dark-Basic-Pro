@@ -51,6 +51,16 @@ CStructTable::~CStructTable()
 {
 	SAFE_DELETE(m_pDecChain);
 	SAFE_DELETE(m_pDecBlock);
+#ifdef __AARON_STRUCPERF__
+	if (m_pTypeName)
+	{
+		auto entry = g_Table.Find(m_pTypeName->GetStr());
+		if (entry && entry->P == this)
+		{
+			entry->P = nullptr;
+		}
+	}
+#endif
 }
 
 void CStructTable::Free(void)
