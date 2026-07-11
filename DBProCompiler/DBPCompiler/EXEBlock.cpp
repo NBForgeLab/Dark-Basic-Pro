@@ -3,6 +3,9 @@
 //#define INITGUID
 #include "Error.h"
 #include "EXEBlock.h"
+#include "DataType.h"
+#include "PluginRegistry.h"
+#include <filesystem>
 #include "direct.h"
 #include "..\DBPCompilerEXE\resource.h"
 #include ".\..\..\Dark Basic Public Shared\Dark basic Pro SDK\Shared\Core\globstruct.h"
@@ -336,15 +339,8 @@ void CEXEBlock::DeleteArrayContents(DWORD* pArray, DWORD dwCount)
 
 bool CEXEBlock::FileExists(LPSTR pFilename)
 {
-	HANDLE hFile = CreateFile(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hFile!=INVALID_HANDLE_VALUE)
-	{
-		// Close File
-		SAFE_CLOSE(hFile);
-		return true;
-	}
-	// soft fail
-	return false;
+	if (!pFilename) return false;
+	return std::filesystem::exists(pFilename);
 }
 
 bool CEXEBlock::Save(char* lpFilename)
@@ -884,6 +880,10 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 								_chdir(m_pUnpackFolderName);//leeadd-270308-ifCWDswitched
 								break;
 							}
+							else
+							{
+								PluginRegistry::GetInstance().RegisterPlugin(pDLLName, hDLLMod[dllindex]);
+							}
 						}
 						else
 						{
@@ -968,14 +968,15 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 
 					// Associated DLLs for Minimal DirectX Support
-					if(stricmp(pDLLName,"DBProSetupDebug.dll")==0) { g_pGlob->g_GFX = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProBasic2DDebug.dll")==0) { g_pGlob->g_Basic2D = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProTextDebug.dll")==0) { g_pGlob->g_Text = hDLLMod[dllindex]; bIsOfficialDLL=true; }
+					if(stricmp(pDLLName,"DBProSetupDebug.dll")==0) { g_pGlob->g_GFX = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("GFX", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProBasic2DDebug.dll")==0) { g_pGlob->g_Basic2D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Basic2D", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProTextDebug.dll")==0) { g_pGlob->g_Text = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Text", hDLLMod[dllindex]); }
 
 					// Transforms Support
 					if(stricmp(pDLLName,"DBProTransformsDebug.dll")==0)
 					{
 						g_pGlob->g_Transforms = hDLLMod[dllindex];
+						PluginRegistry::GetInstance().RegisterPlugin("Transforms", hDLLMod[dllindex]);
 
 						g_Transforms_Constructor	= ( DLL_Constructor )						GetProcAddress ( g_pGlob->g_Transforms, "Constructor" );
 						g_Transforms_Destructor		= ( DLL_Destructor )						GetProcAddress ( g_pGlob->g_Transforms, "Destructor" );
@@ -989,6 +990,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						// SPRITES Inits
 						g_pGlob->g_Sprites = hDLLMod[dllindex];
+						PluginRegistry::GetInstance().RegisterPlugin("Sprites", hDLLMod[dllindex]);
 
 						// SPRITES Function Calls
 						g_Sprites_Constructor       = ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_pGlob->g_Sprites, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
@@ -1002,6 +1004,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						// IMAGE Inits
 						g_pGlob->g_Image = hDLLMod[dllindex];
+						PluginRegistry::GetInstance().RegisterPlugin("Image", hDLLMod[dllindex]);
 
 						// IMAGE Function Calls
 						g_Image_Constructor          = ( IMAGE_RetVoidParamVoidPFN )		GetProcAddress ( g_pGlob->g_Image, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
@@ -1014,6 +1017,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_Input = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("Input", hDLLMod[dllindex]);
 					}
 
 					// System Support
@@ -1021,17 +1025,19 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_System = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("System", hDLLMod[dllindex]);
 					}	
 					
 					// Sound and Music Support
-					if(stricmp(pDLLName,"DBProSoundDebug.dll")==0) { g_pGlob->g_Sound = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProMusicDebug.dll")==0) { g_pGlob->g_Music = hDLLMod[dllindex]; bIsOfficialDLL=true; }
+					if(stricmp(pDLLName,"DBProSoundDebug.dll")==0) { g_pGlob->g_Sound = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Sound", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProMusicDebug.dll")==0) { g_pGlob->g_Music = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Music", hDLLMod[dllindex]); }
 					
 					// File Support
 					if(stricmp(pDLLName,"DBProFileDebug.dll")==0)
 					{
 						g_pGlob->g_File = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("File", hDLLMod[dllindex]);
 					}	
 					
 					// FTP Support
@@ -1039,6 +1045,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_FTP = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("FTP", hDLLMod[dllindex]);
 					}			
 
 					// Memblocks Support
@@ -1046,6 +1053,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_Memblocks = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("Memblocks", hDLLMod[dllindex]);
 					}			
 
 					// Animation Support
@@ -1053,6 +1061,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_Animation = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("Animation", hDLLMod[dllindex]);
 					}	
 					
 					// Bitmap Support
@@ -1060,6 +1069,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_Bitmap = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("Bitmap", hDLLMod[dllindex]);
 					}	
 
 					// Multiplayer Support
@@ -1067,22 +1077,23 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						g_pGlob->g_Multiplayer = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
+						PluginRegistry::GetInstance().RegisterPlugin("Multiplayer", hDLLMod[dllindex]);
 					}	
 
 					// 3D System Support
-					if(stricmp(pDLLName,"DBProCameraDebug.dll")==0) { g_pGlob->g_Camera3D = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProLightDebug.dll")==0) { g_pGlob->g_Light3D = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProMatrixDebug.dll")==0) { g_pGlob->g_Matrix3D = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProBasic3DDebug.dll")==0) { g_pGlob->g_Basic3D = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProWorld3DDebug.dll")==0) { g_pGlob->g_World3D = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProQ2BSPDebug.dll")==0) { g_pGlob->g_Q2BSP = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProOwnBSPDebug.dll")==0) { g_pGlob->g_OwnBSP = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProBSPCompilerDebug.dll")==0) { g_pGlob->g_BSPCompiler = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProParticlesDebug.dll")==0) { g_pGlob->g_Particles = hDLLMod[dllindex]; bIsOfficialDLL=true; }
+					if(stricmp(pDLLName,"DBProCameraDebug.dll")==0) { g_pGlob->g_Camera3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Camera3D", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProLightDebug.dll")==0) { g_pGlob->g_Light3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Light3D", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProMatrixDebug.dll")==0) { g_pGlob->g_Matrix3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Matrix3D", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProBasic3DDebug.dll")==0) { g_pGlob->g_Basic3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Basic3D", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProWorld3DDebug.dll")==0) { g_pGlob->g_World3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("World3D", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProQ2BSPDebug.dll")==0) { g_pGlob->g_Q2BSP = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Q2BSP", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProOwnBSPDebug.dll")==0) { g_pGlob->g_OwnBSP = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("OwnBSP", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProBSPCompilerDebug.dll")==0) { g_pGlob->g_BSPCompiler = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("BSPCompiler", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProParticlesDebug.dll")==0) { g_pGlob->g_Particles = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Particles", hDLLMod[dllindex]); }
 
 					// Support DLLs
-					if(stricmp(pDLLName,"DBProPrimObjectDebug.dll")==0) { g_pGlob->g_PrimObject = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProVectorsDebug.dll")==0) { g_pGlob->g_Vectors = hDLLMod[dllindex]; bIsOfficialDLL=true; }
+					if(stricmp(pDLLName,"DBProPrimObjectDebug.dll")==0) { g_pGlob->g_PrimObject = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("PrimObject", hDLLMod[dllindex]); }
+					if(stricmp(pDLLName,"DBProVectorsDebug.dll")==0) { g_pGlob->g_Vectors = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Vectors", hDLLMod[dllindex]); }
 					if(stricmp(pDLLName,"DBProLODTerrainDebug.dll")==0) { g_pGlob->g_LODTerrain = hDLLMod[dllindex]; bIsOfficialDLL=true; }
 					if(stricmp(pDLLName,"DBProCSGDebug.dll")==0) { g_pGlob->g_CSG = hDLLMod[dllindex]; bIsOfficialDLL=true; }
 
@@ -1602,7 +1613,7 @@ void CEXEBlock::FreeUptoDisplay(void)
 		// Data Item Format [Type][Reserved Byte][8byte for data]=10 bytes each
 		for(DWORD dv=0; dv<m_dwDataSpaceSize; dv+=10)
 		{
-			if(m_pDataSpace[dv]==3)
+			if(m_pDataSpace[dv] == static_cast<DWORD>(DataType::String))
 			{
 				DWORD* pMemoryAllocation = (DWORD*)((LPSTR)m_pDataSpace[dv]+2);
 				g_CORE_DeleteVarItem(pMemoryAllocation);
@@ -1620,7 +1631,7 @@ void CEXEBlock::FreeUptoDisplay(void)
 		for(DWORD dv=0; dv<m_dwDynamicVarsQuantity; dv++)
 		{
 			DWORD* pMemoryAllocation = (DWORD*)*((DWORD*)(m_pVariableSpace+m_pDynamicVarsArray[dv]));
-			if(m_pDynamicVarsArrayType[dv]==1)
+			if(m_pDynamicVarsArrayType[dv] == static_cast<DWORD>(DataType::Array))
 				g_CORE_UnDim(pMemoryAllocation);
 			else
 				g_CORE_DeleteVarItem(pMemoryAllocation);

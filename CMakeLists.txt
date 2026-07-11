@@ -80,6 +80,7 @@ add_executable(dbp_tests
     tests/test_vartable.cpp
     tests/test_context.cpp
     tests/test_str.cpp
+    tests/test_structural.cpp
 )
 target_link_libraries(dbp_tests PRIVATE
     gtest

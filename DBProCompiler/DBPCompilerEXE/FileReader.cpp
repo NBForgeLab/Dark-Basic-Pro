@@ -6,6 +6,7 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #pragma warning(disable : 4996)
 #include "FileReader.h"
+#include <filesystem>
 #include "direct.h"
 
 // Externals
@@ -574,31 +575,14 @@ void CFileReader::RecreatePathFolders(LPSTR pPath)
 
 void CFileReader::GoodDeleteFile(LPSTR filename)
 {
+	if (!filename) return;
 	// Only deletes files created by this executable
-	if(DeleteFile(filename)==FALSE)
+	bool bSkip = false;
+	if ( stricmp ( filename, "blitzterrain.dll" )==NULL ) bSkip = true;
+	if ( bSkip==false )
 	{
-		// Skip DLLs' unknwon to be naugty
-		bool bSkip = false;
-		if ( stricmp ( filename, "blitzterrain.dll" )==NULL ) bSkip = true;
-		if ( bSkip==false )
-		{
-			// Might be filemapped still, so release filemap
-			WIN32_FIND_DATA filedata;
-			HANDLE handle = FindFirstFile ( filename, &filedata );
-			if(handle!=INVALID_HANDLE_VALUE)
-			{
-				try
-				{
-					CloseHandle(handle);
-				}
-				catch(...)
-				{
-					// ignore this exception and no not delete
-					return;
-				}
-			}
-			DeleteFile(filename);
-		}
+		std::error_code ec;
+		std::filesystem::remove(filename, ec);
 	}
 }
 
