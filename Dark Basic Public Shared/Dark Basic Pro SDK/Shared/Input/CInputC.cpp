@@ -14,10 +14,7 @@
 // GLOBALS ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-// shared data segment
-DBPRO_GLOBAL LPDIRECTINPUT8			m_lpDI				= NULL;			// direct input interface
-DBPRO_GLOBAL LPDIRECTINPUTDEVICE8	m_lpDIKeyboard      = NULL;			// keyboard interface
-DBPRO_GLOBAL LPDIRECTINPUTDEVICE8	m_lpDIMouse         = NULL;			// mouse interface
+// shared data segment (Unused DirectInput pointers removed)
 
 // U73 - 210309 - support for multiple controllers (upto 8)
 #define								CONTROLDEVICEMAX					8
@@ -207,16 +204,7 @@ DARKSDK void SetupMouse ( void )
 	SetupMouseEx ( DISCL_FOREGROUND );
 }
 
-DARKSDK HRESULT SetDIDwordProperty(LPDIRECTINPUTDEVICE8 pDev, REFGUID guidProperty, DWORD dwObject, DWORD dwHow, DWORD dwValue)
-{
-   DIPROPDWORD dipdw;
-   dipdw.diph.dwSize       = sizeof(dipdw);
-   dipdw.diph.dwHeaderSize = sizeof(dipdw.diph);
-   dipdw.diph.dwObj        = dwObject;
-   dipdw.diph.dwHow        = dwHow;
-   dipdw.dwData            = dwValue;
-   return pDev->SetProperty(guidProperty, &dipdw.diph);
-}
+// SetDIDwordProperty deleted as it is no longer used
 
 // Legacy DirectInput joystick enumeration callbacks removed
 
