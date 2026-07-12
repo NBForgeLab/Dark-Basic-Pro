@@ -967,6 +967,7 @@
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='ReleaseDEBUG|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="PeExportInspector.cpp" />
     <ClCompile Include="Parameter.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='DebugLM|Win32'">Disabled</Optimization>
@@ -1803,6 +1804,7 @@
     <ClInclude Include="ParseInstruction.h" />
     <ClInclude Include="ParseJump.h" />
     <ClInclude Include="ParseLoop.h" />
+    <ClInclude Include="PeExportInspector.h" />
     <ClInclude Include="ParserHeader.h" />
     <ClInclude Include="ParseType.h" />
     <ClInclude Include="ParseUserFunction.h" />
