@@ -37,6 +37,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 dbp_enable_parallel_msvc(spdlog)
+dbp_enable_sanitizers(spdlog)
 
 # مسارات مخرجات البناء الموحدة
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -118,6 +119,7 @@ if(BUILD_TESTING)
     foreach(gtest_target IN ITEMS gtest gtest_main gmock gmock_main)
         if(TARGET ${gtest_target})
             dbp_enable_parallel_msvc(${gtest_target})
+            dbp_enable_sanitizers(${gtest_target})
         endif()
     endforeach()
     add_subdirectory(tests)

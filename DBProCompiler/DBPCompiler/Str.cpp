@@ -231,7 +231,7 @@ void CStr::SetText(LPSTR pText)
 	{
 		DWORD length=strlen(pText);
 		if(length>m_dwSize) Enlarge(length);
-		if(m_pStr) strcpy(m_pStr, pText);
+		if(m_pStr) memmove(m_pStr, pText, length + 1);
 		UpdateLen();
 	}
 #endif
@@ -595,8 +595,11 @@ bool CStr::MakeUpper(void)
 #else
 	if(m_pStr)
 	{
-		// Make string into upper case
-		SetText(strupr(GetStr()));
+		for(char* p=m_pStr; *p!='\0'; ++p)
+		{
+			if(*p>='a' && *p<='z')
+				*p = *p - 'a' + 'A';
+		}
 		return true;
 	}
 

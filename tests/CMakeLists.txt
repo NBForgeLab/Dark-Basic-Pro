@@ -37,7 +37,17 @@ if(MSVC)
 endif()
 
 include(GoogleTest)
+
+set(dbp_test_properties TIMEOUT 60)
+if(DBP_ENABLE_ASAN AND MSVC)
+    get_filename_component(dbp_msvc_runtime_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    list(APPEND dbp_test_properties
+        ENVIRONMENT_MODIFICATION
+        "PATH=path_list_prepend:${dbp_msvc_runtime_directory}"
+    )
+endif()
+
 gtest_discover_tests(dbp_tests
     DISCOVERY_TIMEOUT 30
-    PROPERTIES TIMEOUT 60
+    PROPERTIES ${dbp_test_properties}
 )
