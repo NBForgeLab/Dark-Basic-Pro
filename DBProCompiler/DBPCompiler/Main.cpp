@@ -18,6 +18,7 @@
 #include "Str.h"
 #include "DBPCompiler.h"
 #include "DBPLogger.h"
+#include "CrashHandler.h"
 #include "TextConvert.h"
 
 #include <DB3Time.h>
@@ -510,6 +511,8 @@ void PrintHelp() {
 // Program Code
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	db3::SetupDiagnosticHandlers();
+
 	// Parse command line early using CommandLineToArgvW to configure logger & headless mode
 	bool bJsonMode = false;
 	int nEarlyArgs = 0;

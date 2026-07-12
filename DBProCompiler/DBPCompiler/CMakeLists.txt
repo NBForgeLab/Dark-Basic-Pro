@@ -10,7 +10,7 @@ add_compile_definitions(
 )
 
 if(MSVC)
-    add_compile_options(/EHsc /W3)
+    add_compile_options(/EHa /W3)
 endif()
 
 # Additional include directories
@@ -24,6 +24,7 @@ include_directories(
 set(LIB_SOURCES
     ASMWriter.cpp
     CompilerContext.cpp
+    CrashHandler.cpp
     DBMWriter.cpp
     DBPCompiler.cpp
     DataTable.cpp
@@ -77,7 +78,7 @@ endif()
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
 dbp_apply_legacy_cpp_options(dbp_compiler_lib)
 target_compile_definitions(dbp_compiler_lib PRIVATE UNICODE _UNICODE)
-target_link_libraries(dbp_compiler_lib PUBLIC winmm spdlog::spdlog)
+target_link_libraries(dbp_compiler_lib PUBLIC winmm dbghelp spdlog::spdlog)
 target_include_directories(dbp_compiler_lib PUBLIC . icons ../TGCOnline)
 
 # Compile main executable linking to the compiler library

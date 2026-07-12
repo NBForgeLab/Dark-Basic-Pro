@@ -11,7 +11,7 @@ add_compile_definitions(
 )
 
 if(MSVC)
-    add_compile_options(/EHsc /W3)
+    add_compile_options(/EHa /W3)
 endif()
 
 # Additional include directories
@@ -29,6 +29,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/EXEBlock.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/VFSHooks.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/MemoryPE.cpp
+    ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/CrashHandler.cpp
     dbproexe.rc
 )
 
@@ -43,5 +44,6 @@ target_link_libraries(DarkEXE PRIVATE
     dxguid
     odbc32
     odbccp32
+    dbghelp
     spdlog::spdlog
 )

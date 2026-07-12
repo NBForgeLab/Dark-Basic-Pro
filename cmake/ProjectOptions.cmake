@@ -39,7 +39,7 @@ function(dbp_apply_legacy_cpp_options target)
 
     if(MSVC)
         target_compile_options(${target} PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:/EHsc>
+            $<$<COMPILE_LANGUAGE:CXX>:/EHa>
             $<$<COMPILE_LANGUAGE:C,CXX>:/W3>
             $<$<COMPILE_LANGUAGE:CXX>:/Zc:forScope->
         )
@@ -57,7 +57,7 @@ function(dbp_apply_modern_cpp_options target)
 
     if(MSVC)
         target_compile_options(${target} PRIVATE
-            $<$<COMPILE_LANGUAGE:CXX>:/EHsc>
+            $<$<COMPILE_LANGUAGE:CXX>:/EHa>
             $<$<COMPILE_LANGUAGE:C,CXX>:/W4>
         )
     endif()

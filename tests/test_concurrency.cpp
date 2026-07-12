@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "DB3Task.h"
+#include "CrashHandler.h"
 #include <thread>
 #include <vector>
 #include <atomic>
@@ -103,6 +104,21 @@ TEST(ConcurrencyTest, SlowTaskDetection) {
     queue.Enqueue(slowFunc, (void*)nullptr, &signal);
 
     signal.Sync();
+}
+
+TEST(ConcurrencyTest, SEHExceptionTranslation) {
+    bool caught = false;
+    try {
+        // Raise a structured Access Violation exception (0xC0000005)
+        RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, NULL);
+    } catch (const CSEHException& ex) {
+        caught = true;
+        EXPECT_EQ(ex.GetCode(), EXCEPTION_ACCESS_VIOLATION);
+        std::string msg = ex.what();
+        EXPECT_NE(msg.find("Access Violation"), std::string::npos);
+    }
+
+    EXPECT_TRUE(caught);
 }
 
 } // namespace db3
