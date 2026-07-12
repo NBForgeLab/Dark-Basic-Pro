@@ -51,6 +51,7 @@ set(LIB_SOURCES
     ParseType.cpp
     ParseUserFunction.cpp
     ProjectManifest.cpp
+    SourceAssembler.cpp
     Statement.cpp
     StatementChain.cpp
     StatementList.cpp
