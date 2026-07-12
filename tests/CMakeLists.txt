@@ -18,6 +18,7 @@ add_executable(dbp_tests
     test_codegen_session.cpp
     test_runtime_bundle.cpp
     test_pe_export_inspector.cpp
+    test_core_runtime_api.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"

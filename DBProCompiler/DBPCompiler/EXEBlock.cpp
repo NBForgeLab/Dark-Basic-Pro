@@ -8,6 +8,7 @@
 #include "TextConvert.h"
 #include "VFSHooks.h"
 #include "MemoryPE.h"
+#include "CoreRuntimeApi.h"
 #include <filesystem>
 #include "direct.h"
 #include "..\DBPCompilerEXE\resource.h"
@@ -951,28 +952,39 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						hCoreDLL = hDLLMod[dllindex];
 
 						// CORE Pass Ptrs To Core (Error Handling, Data Statements)
-						g_CORE_PassCmdLinePtr			= ( GDI_RetVoidParamLPVOID )			GetProcAddress ( hCoreDLL, "?PassCmdLineHandlerPtr@@YAXPAX@Z" );
-						g_CORE_PassErrorPtr				= ( GDI_RetVoidParamLPVOID )			GetProcAddress ( hCoreDLL, "?PassErrorHandlerPtr@@YAXPAX@Z" );
-						g_CORE_PassEscapePtr			= ( GDI_RetVoidParamLPVOID )			GetProcAddress ( hCoreDLL, "?PassEscapePtr@@YAXPAX@Z" );
-						g_CORE_PassBreakOutPtr			= ( GDI_RetVoidParamLPVOID )			GetProcAddress ( hCoreDLL, "?PassBreakOutPtr@@YAXPAX@Z" );
-						g_CORE_PassStructurePatterns	= ( GDI_RetVoidParamLPVOIDDWORD )		GetProcAddress ( hCoreDLL, "?PassStructurePatterns@@YAXPAXK@Z" );
-						g_CORE_PassDataPtrs				= ( GDI_RetVoidParamLPSTR2 )			GetProcAddress ( hCoreDLL, "?PassDataStatementPtr@@YAXPAD0@Z" );
-
-						// CORE Display Function Calls
-						g_CORE_InitDisplay		= ( GDI_RetDWORDParamDWORD4HINSTLPSTRPFN )	GetProcAddress ( hCoreDLL, "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z" );
-						g_CORE_CloseDisplay		= ( GDI_RetDWORDParamVoidPFN )			GetProcAddress ( hCoreDLL, "?CloseDisplay@@YAKXZ" );
-						g_CORE_PassDLLs			= ( GDI_RetVoidParamVoidPFN )			GetProcAddress ( hCoreDLL, "?PassDLLs@@YAXXZ" );
-						g_CORE_ConstructDLLs	= ( GDI_RetVoidParamVoidPFN )			GetProcAddress ( hCoreDLL, "?ConstructDLLs@@YAXXZ" );
-						g_CORE_GetGlobPtr		= ( GDI_RetDWORDParamVoidPFN )			GetProcAddress ( hCoreDLL, "?GetGlobPtr@@YAKXZ" );
-
-						// CORE Memory Management Function Calls
-						g_CORE_CreateVarSpace	= ( GDI_RetDWORDParamDWORDPFN )			GetProcAddress ( hCoreDLL, "?CreateVariableSpace@@YAKK@Z" );
-						g_CORE_DeleteVarSpace	= ( GDI_RetVoidParamVoidPFN )			GetProcAddress ( hCoreDLL, "?DeleteVariableSpace@@YAXXZ" );
-						g_CORE_CreateDataSpace	= ( GDI_RetDWORDParamDWORDPFN )			GetProcAddress ( hCoreDLL, "?CreateDataSpace@@YAKK@Z" );
-						g_CORE_DeleteDataSpace	= ( GDI_RetVoidParamVoidPFN )			GetProcAddress ( hCoreDLL, "?DeleteDataSpace@@YAXXZ" );
-						g_CORE_DeleteVarItem	= ( GDI_RetVoidParamDWORDPTRPFN )		GetProcAddress ( hCoreDLL, "?DeleteSingleVariableAllocation@@YAXPAK@Z" );
-						g_CORE_UnDim			= ( GDI_RetVoidParamDWORDPTRPFN )		GetProcAddress ( hCoreDLL, "?UnDimDD@@YAKK@Z" );
-						g_CORE_SyncRefresh		= ( GDI_RetVoidParamVoidPFN )			GetProcAddress ( hCoreDLL, "?Sync@@YAXXZ" );
+						const auto coreApiResult = ResolveCoreRuntimeApi(
+							[hCoreDLL](const char* name) -> void* {
+								return reinterpret_cast<void*>(GetProcAddress(hCoreDLL, name));
+							},
+							DeriveProgramRuntimeRequirements(m_dwUsertypeStringPatternQuantity));
+						if(coreApiResult)
+						{
+							g_CORE_PassCmdLinePtr = coreApiResult.value().passCommandLine;
+							g_CORE_PassErrorPtr = coreApiResult.value().passError;
+							g_CORE_PassEscapePtr = coreApiResult.value().passEscape;
+							g_CORE_PassBreakOutPtr = coreApiResult.value().passBreakout;
+							g_CORE_PassStructurePatterns = coreApiResult.value().passStructurePatterns;
+							g_CORE_PassDataPtrs = coreApiResult.value().passDataStatements;
+							g_CORE_InitDisplay = coreApiResult.value().initializeDisplay;
+							g_CORE_CloseDisplay = coreApiResult.value().closeDisplay;
+							g_CORE_PassDLLs = coreApiResult.value().passDlls;
+							g_CORE_ConstructDLLs = coreApiResult.value().constructDlls;
+							g_CORE_GetGlobPtr = coreApiResult.value().getGlob;
+							g_CORE_CreateVarSpace = coreApiResult.value().createVariableSpace;
+							g_CORE_DeleteVarSpace = coreApiResult.value().deleteVariableSpace;
+							g_CORE_CreateDataSpace = coreApiResult.value().createDataSpace;
+							g_CORE_DeleteDataSpace = coreApiResult.value().deleteDataSpace;
+							g_CORE_DeleteVarItem = coreApiResult.value().deleteVariableItem;
+							g_CORE_UnDim = coreApiResult.value().unDim;
+							g_CORE_SyncRefresh = coreApiResult.value().sync;
+						}
+						else
+						{
+							if(*pReturnError==NULL) *pReturnError = new char[1024];
+							sprintf_s(*pReturnError, 1024, "%s", coreApiResult.error().message.c_str());
+							bResult=false;
+							break;
+						}
 						
 						// CORE SEcurity Functions
 						g_CORE_GetSecurityCode	= ( GDI_RetIntParamVoidPFN )			GetProcAddress ( hCoreDLL, "?GetSecurityCode@@YAHXZ" );
@@ -1154,7 +1166,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			g_CORE_PassEscapePtr((LPVOID)&g_dwEscapeValueMem);
 			g_CORE_PassBreakOutPtr((LPVOID)&g_dwBreakOutPosition);
 			// U71 - also pass in structure pattern qty+ptr
-			g_CORE_PassStructurePatterns((LPVOID)m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity);
+			if(m_dwUsertypeStringPatternQuantity>0)
+				g_CORE_PassStructurePatterns((LPVOID)m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity);
 			g_CORE_PassDLLs();
 
 			// 1ST : Get CORE CREATION Security Code

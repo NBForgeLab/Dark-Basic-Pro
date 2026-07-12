@@ -967,6 +967,7 @@
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='ReleaseDEBUG|Win32'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="CoreRuntimeApi.cpp" />
     <ClCompile Include="PeExportInspector.cpp" />
     <ClCompile Include="RuntimeBundleResolver.cpp" />
     <ClCompile Include="Parameter.cpp">
@@ -1805,6 +1806,7 @@
     <ClInclude Include="ParseInstruction.h" />
     <ClInclude Include="ParseJump.h" />
     <ClInclude Include="ParseLoop.h" />
+    <ClInclude Include="CoreRuntimeApi.h" />
     <ClInclude Include="PeExportInspector.h" />
     <ClInclude Include="RuntimeBundleResolver.h" />
     <ClInclude Include="RuntimeContract.h" />
