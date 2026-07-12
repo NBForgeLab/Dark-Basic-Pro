@@ -2,6 +2,10 @@
 
 #include <windows.h>
 #include "DB3.h"
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <iostream>
 
 #if _MSC_VER
 # include <intrin.h>
@@ -194,67 +198,20 @@ __forceinline T *atomic_get(T *volatile *x) {
 
 class CLock {
 protected:
-#if _WIN32
-	CRITICAL_SECTION m_cs;
-#else
-	pthread_mutex_t m_mutex;
-#endif
+	std::recursive_mutex m_mutex;
 
 public:
-
-#if _WIN32
-	inline CLock(): m_cs()
-#else
-	inline CLock()
-#endif
-	{
-#if _WIN32
-		InitializeCriticalSectionAndSpinCount(&m_cs, 4096);
-#else
-		static pthread_mutexattr_t attr;
-		static bool didInit = false;
-
-		if unlikely (!didInit) {
-			pthread_mutexattr_init(&attr);
-			pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-
-			didInit = true;
-		}
-
-		pthread_mutex_init(&m_mutex, &attr);
-#endif
-	}
-	inline ~CLock() {
-#if _WIN32
-		DeleteCriticalSection(&m_cs);
-#else
-		pthread_mutex_destroy(&m_mutex);
-#endif
-	}
+	inline CLock() {}
+	inline ~CLock() {}
 
 	inline void Lock() {
-#if _WIN32
-		EnterCriticalSection(&m_cs);
-#else
-		pthread_mutex_lock(&m_mutex);
-#endif
+		m_mutex.lock();
 	}
 	inline bool TryLock() {
-#if _WIN32
-		return (bool)(TryEnterCriticalSection(&m_cs) & true);
-#else
-		if (!pthread_mutex_trylock(&m_mutex))
-			return true;
-
-		return false;
-#endif
+		return m_mutex.try_lock();
 	}
 	inline void Unlock() {
-#if _WIN32
-		LeaveCriticalSection(&m_cs);
-#else
-		pthread_mutex_unlock(&m_mutex);
-#endif
+		m_mutex.unlock();
 	}
 };
 
@@ -273,86 +230,37 @@ public:
 
 class CEvent {
 protected:
-#if _WIN32
-	HANDLE m_ev;
-#else
-	pthread_mutex_t m_mutex;
-	pthread_cond_t m_cond;
-#endif
+	std::mutex m_mutex;
+	std::condition_variable m_cv;
+	bool m_signaled;
 
 public:
-#if _WIN32
-	inline CEvent(): m_ev(nullptr)
-#else
-	inline CEvent()
-#endif
-	{
-#if _WIN32
-		m_ev = CreateEvent(0, TRUE, FALSE, 0);
-#else
-		pthread_mutex_init(&m_mutex, 0);
-		pthread_cond_init(&m_cond, 0);
-#endif
-	}
-	inline ~CEvent() {
-#if _WIN32
-		if (!m_ev)
-			return;
-
-		CloseHandle(m_ev);
-		m_ev = nullptr;
-#else
-		pthread_cond_destroy(&m_cond);
-		pthread_mutex_destroy(&m_mutex);
-#endif
-	}
+	inline CEvent() : m_signaled(false) {}
+	inline ~CEvent() {}
 
 	inline void Signal() {
-#if _WIN32
-		SetEvent(m_ev);
-#else
-		pthread_cond_signal(&m_cond);
-#endif
+		{
+			std::lock_guard<std::mutex> lock(m_mutex);
+			m_signaled = true;
+		}
+		m_cv.notify_all();
 	}
 	inline void Reset() {
-#if _WIN32
-		ResetEvent(m_ev);
-#else
-		/* TODO */
-#endif
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_signaled = false;
 	}
 
 	inline void Sync() {
-#if _WIN32
-		WaitForSingleObject(m_ev, INFINITE);
-#else
-		pthread_mutex_lock(&m_mutex);
-		pthread_cond_wait(&m_cond, &m_mutex);
-		pthread_mutex_unlock(&m_mutex);
-#endif
+		std::unique_lock<std::mutex> lock(m_mutex);
+		m_cv.wait(lock, [this]() { return m_signaled; });
 	}
 	inline bool Wait(u32 milliseconds) {
-#if _WIN32
-		if (WaitForSingleObject(m_ev, milliseconds) != WAIT_OBJECT_0)
-			return false;
-
-		return true;
-#else
-		struct timespec ts = {
-			milliseconds/1000, (milliseconds%1000)*1000000
-		};
-		bool r = false;
-
-		pthread_mutex_lock(&m_mutex);
-		if (pthread_cond_timedwait(&m_cond, &m_mutex, &ts) == 0)
-			r = true;
-		pthread_mutex_unlock(&m_mutex);
-
-		return r;
-#endif
+		std::unique_lock<std::mutex> lock(m_mutex);
+		return m_cv.wait_for(lock, std::chrono::milliseconds(milliseconds), [this]() { return m_signaled; });
 	}
 	inline bool TryWait() {
-		return Wait(0);
+		std::lock_guard<std::mutex> lock(m_mutex);
+		return m_signaled;
 	}
 };
 
@@ -368,15 +276,13 @@ public:
 	}
 
 	inline void Raise() {
-		uint x;
-
-		if ((x = atomic_inc(&m_cur)) >= atomic_get(&m_exp) - 1)
+		atomic_inc(&m_cur);
+		if (atomic_get(&m_cur) >= atomic_get(&m_exp))
 			m_event.Signal();
 	}
 	inline void Lower() {
-		uint x;
-
-		if ((x = atomic_dec(&m_cur)) < atomic_get(&m_exp))
+		atomic_dec(&m_cur);
+		if (atomic_get(&m_cur) < atomic_get(&m_exp))
 			m_event.Reset();
 	}
 
@@ -441,15 +347,15 @@ protected:
 	template<class T> struct remove_const          { typedef T type; };
 	template<class T> struct remove_const<const T> { typedef T type; };
 
-	HANDLE m_semaphore;
+	std::condition_variable m_cv;
 	bool m_terminate;
 
-	CRITICAL_SECTION m_lock;
+	std::mutex m_lock;
 
 	SWork *m_liveWork;
 	SWork *m_deadWork;
 
-	HANDLE m_threads[32];
+	std::thread m_threads[32];
 	uint m_numThreads;
 
 	inline void AddWork(SWork *&queue, SWork *item)
@@ -498,67 +404,48 @@ protected:
 			AddWork(m_deadWork, new SWork);
 	}
 
-	static inline DWORD __stdcall ThreadFunc_f(void *p)
+	static inline void ThreadFunc_f(CWorkQueue* q)
 	{
-		CWorkQueue *q;
 		SWork *w;
-
-		q = reinterpret_cast<decltype(q)>(p);
-#if _DEBUG
-		if __unlikely(!q)
-			return 1;
-#endif
 
 		while(true)
 		{
-			if __unlikely(WaitForSingleObject(q->m_semaphore, INFINITE)!=WAIT_OBJECT_0)
-				break;
-			if __unlikely(q->m_terminate)
 			{
-				ReleaseSemaphore(q->m_semaphore, 1, nullptr);
-				break;
+				std::unique_lock<std::mutex> lock(q->m_lock);
+				q->m_cv.wait(lock, [q]() { return q->m_terminate || q->m_liveWork != nullptr; });
+
+				if (q->m_terminate && q->m_liveWork == nullptr)
+				{
+					break;
+				}
+
+				w = q->RemoveWork(q->m_liveWork);
 			}
 
-			EnterCriticalSection(&q->m_lock);
-			w = q->RemoveWork(q->m_liveWork);
-			LeaveCriticalSection(&q->m_lock);
+			if (w) {
+				w->Prev = nullptr;
+				w->Next = nullptr;
 
-#if _DEBUG
-			if __unlikely(!w)
-				return 2;
-#endif
+				if (w->Func) {
+					w->Func(w->Parm);
+				}
 
-			w->Prev = nullptr;
-			w->Next = nullptr;
+				if (w->Sync)
+					w->Sync->Raise();
 
-#if _DEBUG
-			if __unlikely(!w->Func)
-				return 3;
-#endif
-
-			w->Func(w->Parm);
-
-			if (w->Sync)
-				w->Sync->Raise();
-
-			EnterCriticalSection(&q->m_lock);
-			q->AddWork(q->m_deadWork, w);
-			LeaveCriticalSection(&q->m_lock);
+				{
+					std::lock_guard<std::mutex> lock(q->m_lock);
+					q->AddWork(q->m_deadWork, w);
+				}
+			}
 		}
-
-		return 0;
 	}
 
 public:
-#pragma warning(push)
-#pragma warning(disable:4351)
 	inline CWorkQueue()
-	: m_semaphore(), m_terminate(false), m_lock(), m_liveWork(nullptr), m_deadWork(nullptr), m_threads(),
-	  m_numThreads(0)
+	: m_terminate(false), m_liveWork(nullptr), m_deadWork(nullptr), m_numThreads(0)
 	{
-		InitializeCriticalSectionAndSpinCount(&m_lock, 4096);
 	}
-#pragma warning(pop)
 	inline ~CWorkQueue()
 	{
 		Fini();
@@ -573,10 +460,8 @@ public:
 
 		if (!numThreads)
 		{
-			SYSTEM_INFO si;
-
-			GetSystemInfo(&si);
-			numThreads  = static_cast<uint>(si.dwNumberOfProcessors);
+			numThreads = std::thread::hardware_concurrency();
+			if (numThreads == 0) numThreads = 4;
 			numThreads += numThreads/2; //optimal number of threads is about ~1.5 times the number of logical cores
 		}
 
@@ -585,21 +470,12 @@ public:
 		else if(numThreads < kMinimumThreads)
 			numThreads = kMinimumThreads;
 
-		m_semaphore = CreateSemaphore(nullptr, 0, kMaximumStreams, nullptr);
-		if __unlikely(!m_semaphore)
-			return false;
-
 		m_terminate = false;
-
 		m_numThreads = numThreads;
+
 		for(i=0; i<numThreads; i++)
 		{
-			m_threads[i] = CreateThread(nullptr, 0, &ThreadFunc_f, reinterpret_cast<void *>(this), 0, nullptr);
-			if __unlikely(!m_threads[i])
-			{
-				Fini();
-				return false;
-			}
+			m_threads[i] = std::thread(ThreadFunc_f, this);
 		}
 
 		ReserveDeadWork(kInitialReserve);
@@ -609,23 +485,21 @@ public:
 	{
 		uint i;
 
-		if (!m_semaphore)
-			return;
-
-		m_terminate = true;
-		ReleaseSemaphore(m_semaphore, 1, nullptr); //pretty much guaranteed...
-		ReleaseSemaphore(m_semaphore, m_numThreads, nullptr); //this should help speed the process up, but may fail
+		{
+			std::lock_guard<std::mutex> lock(m_lock);
+			m_terminate = true;
+		}
+		m_cv.notify_all();
 
 		for(i=0; i<m_numThreads; i++)
 		{
-			WaitForSingleObject(m_threads[i], 250);
-			CloseHandle(m_threads[i]);
+			if (m_threads[i].joinable()) {
+				m_threads[i].join();
+			}
 		}
+		m_numThreads = 0;
 
-		CloseHandle(m_semaphore);
-		m_semaphore = nullptr;
-
-		EnterCriticalSection(&m_lock); //other threads might be trying to do stuff...
+		std::lock_guard<std::mutex> lock(m_lock);
 		SWork *const *heads[] = { &m_liveWork, &m_deadWork };
 		uint headIdx;
 
@@ -641,9 +515,8 @@ public:
 				item = next!=*heads[headIdx] ? next : nullptr;
 			}
 		}
-		LeaveCriticalSection(&m_lock);
-
-		DeleteCriticalSection(&m_lock);
+		m_liveWork = nullptr;
+		m_deadWork = nullptr;
 	}
 
 	template<typename T>
@@ -652,44 +525,39 @@ public:
 		SWork *item;
 		bool r = false;
 
-		// don't insert anything while "not alive" or in the process of terminating
-		if __unlikely(!m_semaphore || m_terminate)
+		if (m_terminate)
 			return false;
 
-		EnterCriticalSection(&m_lock);
-		if __likely(m_deadWork) //this is more likely because of an initial reserve and corpse recycling
-			item = RemoveWork(m_deadWork);
-		else
-			item = new SWork;
-
-		if __likely(item != nullptr)
 		{
-			item->Func = reinterpret_cast<work_function_type>(func);
-			//item->Parm = reinterpret_cast<void *>(const_cast<remove_const<decltype(parm)>::type>(parm));
-			item->Parm = (void *)parm; //TODO: C casts are considered bad, but the above is ugly and doesn't work.
-			item->Sync = signal;
-			AddWork(m_liveWork, item);
+			std::lock_guard<std::mutex> lock(m_lock);
+			if (m_deadWork)
+				item = RemoveWork(m_deadWork);
+			else
+				item = new SWork;
 
-			r = true;
+			if (item != nullptr)
+			{
+				item->Func = reinterpret_cast<work_function_type>(func);
+				item->Parm = (void *)parm;
+				item->Sync = signal;
+				if (signal)
+					signal->IncreaseTarget();
+				AddWork(m_liveWork, item);
+
+				r = true;
+			}
 		}
-		LeaveCriticalSection(&m_lock);
 
 		if (!r)
 			return false;
 
-		if (signal)
-			signal->IncreaseTarget();
-
-		while(!ReleaseSemaphore(m_semaphore, 1, nullptr) && !m_terminate)
-			Sleep(10);
-
-		return !m_terminate;
+		m_cv.notify_one();
+		return true;
 	}
 	inline void Reserve(uint count)
 	{
-		EnterCriticalSection(&m_lock);
+		std::lock_guard<std::mutex> lock(m_lock);
 		ReserveDeadWork(count);
-		LeaveCriticalSection(&m_lock);
 	}
 
 	inline uint GetThreadCount() const
