@@ -22,12 +22,18 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Fetch and configure spdlog library
+# Dependency revisions are immutable commits corresponding to the upstream
+# v1.17.0 releases (Apache-2.0 for spdlog, BSD-3-Clause for GoogleTest).
 include(FetchContent)
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.12.0
+    GIT_TAG 79524ddd08a4ec981b7fea76afd08ee05f83755d
+    GIT_SHALLOW FALSE
+    GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable(spdlog)
 dbp_enable_parallel_msvc(spdlog)
@@ -99,11 +105,15 @@ add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 
 if(BUILD_TESTING)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_Declare(
         googletest
-        URL https://github.com/google/googletest/archive/release-1.11.0.zip
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723
+        GIT_SHALLOW FALSE
+        GIT_PROGRESS TRUE
     )
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
     foreach(gtest_target IN ITEMS gtest gtest_main gmock gmock_main)
         if(TARGET ${gtest_target})
