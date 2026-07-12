@@ -48,7 +48,7 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 				LPSTR pData=NULL;
 
 				// First Four Bytes are Size of Message
-				HANDLE hFileMap = OpenFileMapping(FILE_MAP_READ,FALSE,"DBPROCLITEXT");
+				HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,L"DBPROCLITEXT");
 				if(hFileMap)
 				{
 					LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,4);
@@ -59,7 +59,7 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 						CloseHandle(hFileMap);
 
 						// Open Message
-						hFileMap = OpenFileMapping(FILE_MAP_READ,FALSE,"DBPROCLITEXT");
+						hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,L"DBPROCLITEXT");
 						lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,dwUserMessageSize+4);
 						if(lpVoid)
 						{
@@ -505,7 +505,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #endif
 
 	// Vars
-	WNDCLASS wc;
+	WNDCLASSA wc;
 
 	// Register window
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -518,10 +518,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.hbrBackground = NULL;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = "DBProCompiler";
-    RegisterClass( &wc );
+    RegisterClassA( &wc );
 
 	// Create Hidden Window
-	HWND hCompilerWnd = CreateWindow(	"DBProCompiler",
+	HWND hCompilerWnd = CreateWindowA(	"DBProCompiler",
 										"DBProCompiler",
 										0,
 										0,

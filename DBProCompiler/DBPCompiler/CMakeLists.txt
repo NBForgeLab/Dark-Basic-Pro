@@ -29,6 +29,7 @@ set(LIB_SOURCES
     DataTable.cpp
     DebugInfo.cpp
     Declaration.cpp
+    CodeGenVisitor.cpp
     EXEBlock.cpp
     Encryptor.cpp
     Error.cpp
