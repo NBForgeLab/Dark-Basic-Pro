@@ -21,6 +21,10 @@
 #include "TextConvert.h"
 
 #include <DB3Time.h>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <filesystem>
 
 // Internal data
 HWND g_hTempWindow = NULL;
@@ -492,12 +496,32 @@ bool IsTickValidated(DWORD dwRandomValue)
 }
 */
 
+void PrintHelp() {
+    AttachConsole(ATTACH_PARENT_PROCESS);
+    std::cout << "\nDarkBasic Pro Compiler (Modernized CLI Version)\n";
+    std::cout << "Usage: DBPCompiler.exe [options] <project_file.dbpro>\n\n";
+    std::cout << "Options:\n";
+    std::cout << "  -h, --help      Show this help message and exit\n";
+    std::cout << "  --json          Output compiler status and diagnostics as streaming JSON lines\n";
+    std::cout << "\nExample:\n";
+    std::cout << "  DBPCompiler.exe --json \"D:\\Projects\\MyGame\\project.dbpro\"\n\n" << std::flush;
+}
+
 // Program Code
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	// Initialize logger
 	DBPLogger::Initialize("dbp.log");
 	DBP_INFO("DarkBasic Pro Compiler initialized.");
+
+    // Check early if --json is specified to run in headless/silent mode
+    std::string rawCmdLine(lpCmdLine);
+    if (rawCmdLine.find("--json") != std::string::npos) {
+        g_bJsonDiagnostics = true;
+        db3::g_bHeadlessMode = true;
+        AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+
 #if _DEBUG
 	db3::CProfile<> prof("WinMain:Debug");
 #else
@@ -562,42 +586,56 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		#else
 		 sprintf_s( line, "Full installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
 		#endif
-		MessageBoxW(NULL, TextConvert::UTF8ToUTF16(line).c_str(), L"Compiler Error", MB_OK);
+		if (g_bJsonDiagnostics) {
+			std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(line) << "\"}\n" << std::flush;
+		} else {
+			MessageBoxW(NULL, TextConvert::UTF8ToUTF16(line).c_str(), L"Compiler Error", MB_OK);
+		}
 		SAFE_DELETE(g_pErrorReport);
-		return 0;
+		return 1;
 	 }
 	#endif
 
 	g_pDBPCompiler = new CDBPCompiler(g_ActualCompilerFilename);
 	if(g_pDBPCompiler)
 	{
-		CStr strProjectFilename(lpCmdLine);
-		strProjectFilename.EatTrailingEdgeSpacesandTabs();
-		strProjectFilename.EatSpeechMarks();
+		std::vector<std::string> args = ParseCommandLine(lpCmdLine);
+		std::string projectPath = "";
+		for (size_t i = 0; i < args.size(); i++) {
+			if (args[i] == "--json") {
+				g_bJsonDiagnostics = true;
+				AttachConsole(ATTACH_PARENT_PROCESS);
+			} else if (args[i] == "--help" || args[i] == "-h") {
+				PrintHelp();
+				SAFE_DELETE(g_pDBPCompiler);
+				SAFE_DELETE(g_pErrorReport);
+				return 0;
+			} else {
+				projectPath = args[i];
+			}
+		}
+
+		if (projectPath.empty()) {
+			if (g_bJsonDiagnostics) {
+				std::cout << "{\"type\":\"error\",\"message\":\"No project file specified.\"}\n" << std::flush;
+			} else {
+				MessageBoxW(NULL, L"No project file specified.\nUsage: DBPCompiler.exe [options] <project_file.dbpro>", L"Compiler Error", MB_OK);
+			}
+			SAFE_DELETE(g_pDBPCompiler);
+			SAFE_DELETE(g_pErrorReport);
+			return 1;
+		}
+
+		if (g_bJsonDiagnostics) {
+			std::cout << "{\"type\":\"status\",\"stage\":\"debug\",\"message\":\"Parsed project path: " << EscapeJSON(projectPath) << "\"}\n" << std::flush;
+		}
+
+		CStr strProjectFilename(const_cast<char*>(projectPath.c_str()));
 		if(strProjectFilename.Length()>0)
 		{
 			// Load All Required Internal Files
 			if(g_pDBPCompiler->EstablishRequiredBaseFiles())
 			{
-				// Validate compiler via tickprot or demoscan
-				bool bValid=false;
-				char pError[_MAX_PATH];
-				strcpy_s(pError, g_pDBPCompiler->GetWordString(6));
-
-				/* ABANDONNED PROTECTION VIA REG AND ASSIST
-				#ifdef ACADEMICMODE
-					bValid=true;
-				#else
-					#ifdef DEMOPROTECTEDMODE
-						bValid=CheckIfTrialStillValid(pError);
-					#else
-						DWORD dwR=rand()%999;
-						bValid=IsTickValidated(dwR);
-					#endif
-				#endif
-				if(bValid==true)
-				*/
-
 				// switch to compiler folder to check certificates
 				char pStoreCurrentFolder [ _MAX_PATH ];
 				_getcwd ( pStoreCurrentFolder, _MAX_PATH );
@@ -621,10 +659,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					time( &long_time );         
 					newtime = localtime( &long_time );
 
-					// AGEIA
-					//if ( newtime->tm_year==(2006-1900) ) // Only 2006
-					//if ( newtime->tm_mon>=7 && newtime->tm_mon<=10 ) // Only within AUG(7)-NOV(10)
-
 					// if within trial range, okay, else shutdown!
 					bool bShutDown=true;
 					if ( newtime->tm_year>=(2006-1900) && newtime->tm_year<=(2007-1900) ) // Only 2006-2007
@@ -639,14 +673,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					// shut down will call a webpage if expired
 					if ( bShutDown==true )
 					{
-						// Go to HTTP
-						ShellExecute(	NULL,
-										"open",
-//										"http://darkphysics.thegamecreators.com/",
-										"http://nvidia.thegamecreators.com/",
-										"",
-										"",
-										SW_SHOWDEFAULT);
+						if (!g_bJsonDiagnostics) {
+							// Go to HTTP
+							ShellExecute(	NULL,
+											"open",
+											"http://nvidia.thegamecreators.com/",
+											"",
+											"",
+											SW_SHOWDEFAULT);
+						}
 					}
 				}
 				#else
@@ -676,12 +711,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 					// Read in Project File
 					{
+						ReportStatus("project_load", "Loading project file...");
 						db3::CProfile<> prof("CDBPCompiler::LoadProjectFile");
 						g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
 					}
 
 					// Load in all data from fields
 					{
+						ReportStatus("project_fields", "Loading project configuration fields...");
 						db3::CProfile<> prof("CDBPCompiler::GetAllProjectFields");
 						g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
 					}
@@ -694,6 +731,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 					// Create EXE from DBA Filename
 					{
+						ReportStatus("compile_start", "Compiling project source files...");
 						db3::CProfile<> prof("CDBPCompiler::PerformCompileOnProject");
 						g_pDBPCompiler->PerformCompileOnProject();
 					}
@@ -703,39 +741,66 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						db3::CProfile<> prof("CDBPCompiler::FreeProjectFile");
 						g_pDBPCompiler->FreeProjectFile();
 					}
+
+					if (g_pErrorReport && g_pErrorReport->IsError()) {
+						if (g_bJsonDiagnostics) {
+							std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(g_pErrorReport->GetParserErrorString()) << "\"}\n" << std::flush;
+						}
+						ReportStatus("failed", "Compilation failed.");
+					} else {
+						ReportStatus("success", "Compilation finished successfully.");
+					}
 				}
 				else
 				{
-					// Protection detected invalid certificate
-					// Launch TGCONLINE to explain why...
-					STARTUPINFO si;
-					PROCESS_INFORMATION pi;
-					ZeroMemory(&si, sizeof(STARTUPINFO));
-					si.cb=sizeof(STARTUPINFO);
-					ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-					wchar_t wFullLine[_MAX_PATH] = L"TGCOnline.exe";
-					if(CreateProcessW(	NULL, wFullLine,
-										NULL, NULL, false,
-										NORMAL_PRIORITY_CLASS,
-										NULL, NULL,	&si, &pi))
-					{
-						// Wait until fully loaded
-						WaitForInputIdle(pi.hProcess, 5000);
+					if (g_bJsonDiagnostics) {
+						std::cout << "{\"type\":\"error\",\"message\":\"Invalid compiler key or certificate.\"}\n" << std::flush;
+					} else {
+						// Protection detected invalid certificate
+						// Launch TGCONLINE to explain why...
+						STARTUPINFO si;
+						PROCESS_INFORMATION pi;
+						ZeroMemory(&si, sizeof(STARTUPINFO));
+						si.cb=sizeof(STARTUPINFO);
+						ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
+						wchar_t wFullLine[_MAX_PATH] = L"TGCOnline.exe";
+						if(CreateProcessW(	NULL, wFullLine,
+											NULL, NULL, false,
+											NORMAL_PRIORITY_CLASS,
+											NULL, NULL,	&si, &pi))
+						{
+							// Wait until fully loaded
+							WaitForInputIdle(pi.hProcess, 5000);
 
-						// And wait for it to finish
-						DWORD uExitCode=0;
-						GetExitCodeProcess(pi.hProcess, &uExitCode);
-						while(uExitCode==STILL_ACTIVE) GetExitCodeProcess(pi.hProcess, &uExitCode);
+							// And wait for it to finish
+							DWORD uExitCode=0;
+							GetExitCodeProcess(pi.hProcess, &uExitCode);
+							while(uExitCode==STILL_ACTIVE) GetExitCodeProcess(pi.hProcess, &uExitCode);
+						}
 					}
 
 					// restore previous directory before proceeding
 					_chdir ( pStoreCurrentFolder );
 				}
 			}
+			else
+			{
+				if (g_bJsonDiagnostics) {
+					std::cout << "{\"type\":\"error\",\"message\":\"Failed to establish required base files.\"}\n" << std::flush;
+				} else {
+					MessageBoxW(NULL, L"Failed to establish required base files.", L"Compiler Error", MB_OK);
+				}
+			}
 		}
 
 		// Delete DBPCompiler Object
 		SAFE_DELETE(g_pDBPCompiler);
+	}
+
+	// Determine exit code
+	int exitCode = 0;
+	if (g_pErrorReport && g_pErrorReport->IsError()) {
+		exitCode = 1;
 	}
 
 	// Delete Error Object
@@ -749,5 +814,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	// Exit
-	return 0;
+	return exitCode;
 }

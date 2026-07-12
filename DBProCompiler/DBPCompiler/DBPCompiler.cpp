@@ -4,6 +4,7 @@
 
 // Includes
 #include <stdio.h>
+#include <iostream>
 #include "direct.h"
 #include "macros.h"
 #include "ASMWriter.h"
@@ -157,9 +158,11 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 	g_pErrorReport->LoadErrorDatabase(GetInternalFile(PATH_ERRORSFILE));
 
 	// Load DBA into memory
+	ReportStatus("load_dba", "Loading main DBA file into memory...");
 	if(LoadDBA(pDBAFilename))
 	{
 		// Expand FileData to unfold any #Includes
+		ReportStatus("unfold_includes", "Expanding nested #include files...");
 		if(UnfoldFileDataIncludes())
 		{
 			// leemove - 250604 - u54 - set default and load command database
@@ -168,6 +171,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 			g_pInstructionTable->LoadInstructionDatabase();
 
 			// Expand FileData to unfold any #Constants
+			ReportStatus("unfold_constants", "Replacing #constant keywords...");
 			if(UnfoldFileDataConstants())
 			{
 				// Remove Breakpoints and Construct BreakPoint List
@@ -179,6 +183,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 				else
 				{
 					// Begin List to collect tokenised program
+					ReportStatus("make_program", "Parsing statements and generating instructions...");
 					if(MakeProgram()==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to Parse Program (MakeDBM->MakeProgram)'");
@@ -233,16 +238,19 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 				strcpy((LPSTR)lpVoid, lpString);
 
 			// Find Editor to send to
-			HWND hWnd = FindWindowW(L"TDBPROEDITOR",NULL);
-			if(hWnd)
+			if (!g_bJsonDiagnostics)
 			{
-				// Found editor, transmit
-				SendMessage(hWnd, WM_USER+0, 0, 0);
-			}
-			else
-			{
-				// No Editor, use Own Window (causes crashes lots)
-				MessageBoxW(NULL, TextConvert::UTF8ToUTF16(lpString).c_str(), L"COMPILER ERROR", MB_OK);
+				HWND hWnd = FindWindowW(L"TDBPROEDITOR",NULL);
+				if(hWnd)
+				{
+					// Found editor, transmit
+					SendMessage(hWnd, WM_USER+0, 0, 0);
+				}
+				else
+				{
+					// No Editor, use Own Window (causes crashes lots)
+					MessageBoxW(NULL, TextConvert::UTF8ToUTF16(lpString).c_str(), L"COMPILER ERROR", MB_OK);
+				}
 			}
 
 			// Release virtual file
@@ -264,6 +272,10 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 {
 	db3::CProfile<> prof("CDBPCompiler::LoadDBA");
+
+	if (g_bJsonDiagnostics) {
+		std::cout << "{\"type\":\"status\",\"stage\":\"debug\",\"message\":\"LoadDBA target path: " << EscapeJSON(pDBAFilename) << "\"}\n" << std::flush;
+	}
 
 	// Release any previous usage
 	SAFE_FREE(m_pFileData);

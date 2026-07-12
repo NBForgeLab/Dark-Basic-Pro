@@ -5,6 +5,9 @@
 #if !defined(AFX_ERROR_H__F0A3CDF6_50BC_4230_92B8_2FA62212053E__INCLUDED_)
 #define AFX_ERROR_H__F0A3CDF6_50BC_4230_92B8_2FA62212053E__INCLUDED_
 
+#include <string>
+#include <vector>
+
 // Common Includes
 #ifndef DARKEXE
 # include "Str.h"
@@ -93,5 +96,10 @@ class CError
 	private:
 		db3::CLock	m_Lock;
 };
+
+extern bool g_bJsonDiagnostics;
+std::string EscapeJSON(const std::string& str);
+std::vector<std::string> ParseCommandLine(const std::string& cmdLine);
+void ReportStatus(const std::string& stage, const std::string& message);
 
 #endif // !defined(AFX_ERROR_H__F0A3CDF6_50BC_4230_92B8_2FA62212053E__INCLUDED_)

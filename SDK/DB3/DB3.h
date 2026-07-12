@@ -114,12 +114,15 @@ inline CScopeGuard<_Functor> MakeScopeGuard(const _Functor &func)
 	::db3::crash(__FILE__,__LINE__,__FUNCTION__,"About to crash!")
 #define DB3_CRASH_MSG(msg)\
 	::db3::crash(__FILE__,__LINE__,__FUNCTION__,msg)
+
+inline bool g_bHeadlessMode = false;
+
 inline void crash(const char *file, unsigned int line, const char *func, const char *msg)
 {
 #if defined(_DEBUG)||defined(DEBUG)||defined(__debug__)
 	static bool stopAsking = false;
 
-	if (stopAsking)
+	if (g_bHeadlessMode || stopAsking)
 		return;
 
 	char buf[512];
@@ -166,6 +169,11 @@ inline void HandleAssert(const char *file, uint line, const char *func, const ch
 
 	fprintf(stderr, "ERROR %s\n", buf);
 	fflush(stderr);
+
+	if (g_bHeadlessMode)
+	{
+		ExitProcess(1);
+	}
 
 	char boxbuf[2048+256];
 

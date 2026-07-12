@@ -579,7 +579,17 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
     std::string formattedReportColored = DiagnosticEngine::Format(loc, errMsg, hint, true);
 
     // Output to stderr and logger
-    std::cerr << formattedReportColored;
+    if (g_bJsonDiagnostics) {
+        std::cout << "{\"type\":\"error\",\"file\":\"" << EscapeJSON(filePath)
+                  << "\",\"line\":" << dwLine
+                  << ",\"column\":" << loc.column
+                  << ",\"length\":" << loc.length
+                  << ",\"message\":\"" << EscapeJSON(errMsg)
+                  << "\",\"hint\":\"" << EscapeJSON(hint)
+                  << "\"}\n" << std::flush;
+    } else {
+        std::cerr << formattedReportColored;
+    }
     DBP_ERROR("\n{}", formattedReportClean);
 
     // Set internal compiler parser error
@@ -668,4 +678,58 @@ void CError::ProgressReport(LPSTR lpString, DWORD dwValue)
 			CloseHandle(hFileMap);
 //		}
 	}
+}
+
+bool g_bJsonDiagnostics = false;
+
+std::string EscapeJSON(const std::string& str) {
+    std::string res;
+    for (char c : str) {
+        if (c == '\\') {
+            res += "\\\\";
+        } else if (c == '"') {
+            res += "\\\"";
+        } else if (c == '\n') {
+            res += "\\n";
+        } else if (c == '\t') {
+            res += "\\t";
+        } else if (c == '\r') {
+            res += "\\r";
+        } else {
+            res += c;
+        }
+    }
+    return res;
+}
+
+std::vector<std::string> ParseCommandLine(const std::string& cmdLine) {
+    std::vector<std::string> args;
+    std::string current;
+    bool inQuotes = false;
+    for (size_t i = 0; i < cmdLine.size(); i++) {
+        char c = cmdLine[i];
+        if (c == '\"') {
+            inQuotes = !inQuotes;
+        } else if (c == ' ' && !inQuotes) {
+            if (!current.empty()) {
+                args.push_back(current);
+                current.clear();
+            }
+        } else {
+            current.push_back(c);
+        }
+    }
+    if (!current.empty()) {
+        args.push_back(current);
+    }
+    return args;
+}
+
+void ReportStatus(const std::string& stage, const std::string& message) {
+    if (g_bJsonDiagnostics) {
+        std::cout << "{\"type\":\"status\",\"stage\":\"" << stage 
+                  << "\",\"message\":\"" << EscapeJSON(message) << "\"}\n" << std::flush;
+    } else {
+        std::cout << "[" << stage << "] " << message << "\n" << std::flush;
+    }
 }
