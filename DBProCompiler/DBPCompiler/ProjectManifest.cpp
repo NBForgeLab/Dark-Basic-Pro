@@ -67,6 +67,7 @@ ProjectResult<ProjectManifest> ProjectManifestReader::Read(
     }
 
     std::optional<std::filesystem::path> mainSource;
+    bool mainSeen = false;
     std::optional<std::filesystem::path> finalSource;
     std::optional<std::filesystem::path> executable;
     std::map<unsigned long, std::filesystem::path> includes;
@@ -89,6 +90,14 @@ ProjectResult<ProjectManifest> ProjectManifestReader::Read(
         const auto key = FoldKey(originalKey);
         const auto value = Trim(trimmedLine.substr(equals + 1));
         if (key == "main") {
+            if (mainSeen) {
+                return ProjectResult<ProjectManifest>::Failure(Error(
+                    ProjectErrorCode::DuplicateMain,
+                    projectPath,
+                    "Main source is declared more than once.",
+                    originalKey));
+            }
+            mainSeen = true;
             if (!value.empty()) {
                 mainSource = std::filesystem::path(value);
             }

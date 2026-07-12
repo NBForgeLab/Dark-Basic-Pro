@@ -102,8 +102,9 @@ git commit -m "feat: parse DBPro project manifests"
 
 - [ ] **Step 1: Write failing tests**
 
-Test exact order, CRLF insertion only when needed, missing/unreadable files,
-checked maximum size, byte preservation, and source-map offsets.
+Test exact order, Synergy-compatible CR/LF/CRLF normalization, missing or
+unreadable files, checked maximum size, ANSI byte preservation, and source-map
+offsets.
 
 ```cpp
 const auto result = SourceAssembler::Assemble(manifest, {.maxBytes = 1024});
@@ -131,7 +132,8 @@ struct AssembledSource {
 ```
 
 Preflight sizes, reject overflow before addition, reserve once, read binary,
-preserve bytes, and insert `\r\n` only when the prior file lacks LF.
+preserve non-line-ending bytes, normalize all line endings to `\r\n`, and
+terminate each non-empty source file exactly as Synergy's line writer did.
 
 - [ ] **Step 4: Run GREEN and refactor**
 
@@ -391,4 +393,3 @@ git diff --check HEAD~7..HEAD
 ```
 
 Confirm pre-existing user modifications were not staged or rewritten.
-

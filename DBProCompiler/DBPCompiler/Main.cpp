@@ -22,6 +22,8 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <algorithm>
+#include <cctype>
 
 // Internal data
 HWND g_hTempWindow = NULL;
@@ -500,6 +502,8 @@ void PrintHelp() {
     std::cout << "Options:\n";
     std::cout << "  -h, --help      Show this help message and exit\n";
     std::cout << "  --json          Output compiler status and diagnostics as streaming JSON lines\n";
+    std::cout << "  --emit-final-source   Atomically publish the project's final source artifact\n";
+    std::cout << "  --legacy-final-source Compile an existing final source artifact without assembly\n";
     std::cout << "\nExample:\n";
     std::cout << "  DBPCompiler.exe --json \"D:\\Projects\\MyGame\\project.dbpro\"\n\n" << std::flush;
 }
@@ -527,7 +531,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	// Initialize logger
-	DBPLogger::Initialize("dbp.log", bJsonMode);
+	DBPLogger::Initialize("dbp.log", bJsonMode, spdlog::level::info);
 	DBP_INFO("DarkBasic Pro Compiler initialized.");
 
 #if _DEBUG
@@ -612,6 +616,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		int nArgs = 0;
 		LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 		std::string projectPath = "";
+		bool emitFinalSource = false;
+		bool legacyFinalSource = false;
+		std::string argumentError;
 		if (szArglist != NULL) {
 			for (int i = 1; i < nArgs; i++) {
 				std::wstring argW(szArglist[i]);
@@ -625,11 +632,38 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					SAFE_DELETE(g_pDBPCompiler);
 					SAFE_DELETE(g_pErrorReport);
 					return 0;
+				} else if (argStr == "--emit-final-source") {
+					emitFinalSource = true;
+				} else if (argStr == "--legacy-final-source") {
+					legacyFinalSource = true;
+				} else if (!argStr.empty() && argStr[0] == '-') {
+					argumentError = "Unknown compiler option: " + argStr;
+				} else if (!projectPath.empty()) {
+					argumentError = "Only one input file may be specified.";
 				} else {
 					projectPath = argStr;
 				}
 			}
 			LocalFree(szArglist);
+		}
+		if (emitFinalSource && legacyFinalSource)
+			argumentError = "--emit-final-source conflicts with --legacy-final-source.";
+		if (legacyFinalSource) {
+			std::string extension = std::filesystem::path(projectPath).extension().string();
+			std::transform(extension.begin(), extension.end(), extension.begin(),
+				[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
+			if (extension != ".dbpro")
+				argumentError = "--legacy-final-source requires a DBPro project input.";
+		}
+		if (!argumentError.empty()) {
+			if (g_bJsonDiagnostics)
+				std::cout << "{\"type\":\"error\",\"stage\":\"arguments\",\"message\":\""
+					<< EscapeJSON(argumentError) << "\"}\n" << std::flush;
+			else
+				MessageBoxW(NULL, TextConvert::UTF8ToUTF16(argumentError).c_str(), L"Compiler Error", MB_OK);
+			SAFE_DELETE(g_pDBPCompiler);
+			SAFE_DELETE(g_pErrorReport);
+			return 1;
 		}
 
 		if (projectPath.empty()) {
@@ -659,7 +693,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				// Read in Project File
 				if (bCompileStepsSuccess)
 				{
-					ReportStatus("project_load", "Loading project file...");
+					ReportStatus("project_manifest", "Loading project file...");
 					db3::CProfile<> prof("CDBPCompiler::LoadProjectFile");
 					bCompileStepsSuccess = g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
 				}
@@ -672,11 +706,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					bCompileStepsSuccess = g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
 				}
 
-				if (bCompileStepsSuccess && g_pDBPCompiler->ProjectExists())
+				if (bCompileStepsSuccess && !legacyFinalSource)
 				{
 					ReportStatus("source_assembly", "Assembling project source files...");
 					bCompileStepsSuccess = g_pDBPCompiler->PrepareCompilationInput(
-						strProjectFilename.GetStr());
+						strProjectFilename.GetStr(), emitFinalSource);
 				}
 
 				// Prepare Compiler With Debug Info

@@ -47,17 +47,17 @@ bool CDBMWriter::OutputDBM(const char *pDBMStr, size_t length)
 	if (!m_pDBMData)
 		return true;
 
-	// Calculate length of data to add
+	// Calculate content and complete line sizes separately.
 	if (!length)
 		length = strlen(pDBMStr);
-	length += 2;
+	const size_t required = length + 2;
 
 	// First ensure memory is not exceeded
-	CheckAndExpandDBMMemory(length);
+	CheckAndExpandDBMMemory(static_cast<DWORD>(required));
 
 	// Proceed to add to memory
 	LPSTR pPointer = GetDBMDataPointer();
-	if(pPointer+length >= m_pDBMData+m_dwDBMDataSize)
+	if(pPointer+required > m_pDBMData+m_dwDBMDataSize)
 	{
 		// Failed
 		g_pErrorReport->AddErrorString("Failed to 'OutputDBM'");
@@ -315,6 +315,8 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 		// Free DBM memory
 		g_pStatementList->SetWriteStarted(false);
 		if(g_pDBPCompiler->GetProduceDBMFile()) SAFE_FREE(m_pDBMData);
+		if (!codeGeneration.Finish())
+			return false;
 	}
 
 	// Progress Reporting Tool Reset For Percentage Step Through

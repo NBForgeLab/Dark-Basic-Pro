@@ -54,7 +54,7 @@ std::string AsString(const std::vector<std::byte>& bytes) {
 
 } // namespace
 
-TEST(SourceAssemblerTest, PreservesOrderAndAddsOnlyMissingLineBoundary) {
+TEST(SourceAssemblerTest, PreservesOrderAndNormalizesWindowsLineEndings) {
     SourceFixture fixture;
     const auto main = fixture.Write("Main.dba", "alpha");
     const auto include1 = fixture.Write("One.dba", "beta\r\n");
@@ -67,11 +67,25 @@ TEST(SourceAssemblerTest, PreservesOrderAndAddsOnlyMissingLineBoundary) {
     const auto result = SourceAssembler::Assemble(manifest, options);
 
     ASSERT_TRUE(result.has_value()) << result.error().message;
-    EXPECT_EQ(AsString(result.value().bytes), "alpha\r\nbeta\r\ngamma\n");
+    EXPECT_EQ(AsString(result.value().bytes), "alpha\r\nbeta\r\ngamma\r\n");
     ASSERT_EQ(result.value().sourceMap.size(), 3u);
     EXPECT_EQ(result.value().sourceMap[0].combinedLineStart, 1u);
     EXPECT_EQ(result.value().sourceMap[1].combinedLineStart, 2u);
     EXPECT_EQ(result.value().sourceMap[2].combinedLineStart, 3u);
+}
+
+TEST(SourceAssemblerTest, NormalizesMixedLineEndingsLikeSynergyEditor) {
+    SourceFixture fixture;
+    const auto main = fixture.Write(
+        "Main.dba", "first\nsecond\rthird\r\nfourth");
+    const auto manifest = fixture.Manifest({{"main", main}});
+
+    const auto result = SourceAssembler::Assemble(manifest, {});
+
+    ASSERT_TRUE(result.has_value()) << result.error().message;
+    EXPECT_EQ(
+        AsString(result.value().bytes),
+        "first\r\nsecond\r\nthird\r\nfourth\r\n");
 }
 
 TEST(SourceAssemblerTest, RejectsMissingSourceWithManifestContext) {
@@ -86,6 +100,7 @@ TEST(SourceAssemblerTest, RejectsMissingSourceWithManifestContext) {
 
     ASSERT_FALSE(result.has_value());
     EXPECT_EQ(result.error().code, SourceAssemblyErrorCode::SourceNotFound);
+    EXPECT_NE(result.error().message.find("DBP1003"), std::string::npos);
     EXPECT_EQ(result.error().manifestKey, "main");
 }
 

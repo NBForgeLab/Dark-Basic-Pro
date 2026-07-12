@@ -28,6 +28,20 @@ class CDBMWriter
 		void			SetDBMDataPointer(LPSTR pData) { m_pDBMDataPointer=pData; }
 		LPSTR			GetDBMDataPointer(void) { return m_pDBMDataPointer; }
 
+#ifdef DBP_TESTS_COMPILATION
+		void InitializeBufferForTests(DWORD size)
+		{
+			SAFE_FREE(m_pDBMData);
+			m_dwDBMDataSize = size;
+			m_pDBMData = (LPSTR)GlobalAlloc(GMEM_FIXED, size);
+			m_pDBMDataPointer = m_pDBMData;
+		}
+		DWORD GetUsedBufferSizeForTests(void) const
+		{
+			return (DWORD)(m_pDBMDataPointer - m_pDBMData);
+		}
+#endif
+
 	private:
 
 		LPSTR			m_pDBMData;

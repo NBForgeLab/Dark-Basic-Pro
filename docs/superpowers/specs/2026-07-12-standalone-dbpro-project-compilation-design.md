@@ -104,7 +104,9 @@ Responsibilities:
 
 - read `main` and every include exactly once in manifest order;
 - enforce configurable resource limits before allocating the combined buffer;
-- preserve source bytes rather than silently transcoding legacy ANSI files;
+- preserve legacy ANSI byte values while normalizing CR, LF, and CRLF line
+  endings to CRLF, matching Synergy's line-oriented temporary-source writer
+  and the legacy parser's CR-based scanning contract;
 - add one line boundary only when adjacent files otherwise have no newline;
 - record a source map from combined byte/line positions to original files and
   lines;
@@ -241,7 +243,8 @@ Implementation follows strict red-green-refactor TDD.
 - preserve numeric include order beyond nine entries;
 - reject missing main, gaps, duplicate indices, and malformed keys;
 - resolve relative, absolute, spaced, and Unicode Windows paths;
-- assemble bytes deterministically and insert only required boundaries;
+- assemble bytes deterministically, normalize every source line to CRLF, and
+  terminate each non-empty source file with a line boundary;
 - enforce resource limits and propagate read errors;
 - map assembled locations back to original sources;
 - atomically publish optional final-source artifacts;
@@ -259,7 +262,8 @@ Implementation follows strict red-green-refactor TDD.
 
 - compile a minimal multi-file `.dbpro` without an editor;
 - compile a direct `.dba` input;
-- compare assembled bytes against a known legacy editor fixture;
+- compare assembled bytes, including mixed-line-ending normalization, against
+  the legacy editor contract;
 - compile FPS Creator `FPSC-Screens.dbpro`;
 - compile FPS Creator `FPSC-MapEditor (english).dbpro`;
 - compile FPS Creator `FPSC-Game (english).dbpro`;

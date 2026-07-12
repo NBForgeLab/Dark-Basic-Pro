@@ -2,6 +2,38 @@
 
 #include <utility>
 
+namespace {
+
+SourceAssemblyErrorCode MapProjectError(ProjectErrorCode code) {
+    switch (code) {
+        case ProjectErrorCode::FileNotFound:
+            return SourceAssemblyErrorCode::ProjectFileNotFound;
+        case ProjectErrorCode::FileUnreadable:
+            return SourceAssemblyErrorCode::ProjectFileUnreadable;
+        case ProjectErrorCode::MissingMain:
+            return SourceAssemblyErrorCode::ProjectMissingMain;
+        case ProjectErrorCode::MalformedIncludeKey:
+            return SourceAssemblyErrorCode::ProjectMalformedInclude;
+        case ProjectErrorCode::DuplicateMain:
+            return SourceAssemblyErrorCode::ProjectDuplicateMain;
+        case ProjectErrorCode::DuplicateIncludeIndex:
+            return SourceAssemblyErrorCode::ProjectDuplicateInclude;
+        case ProjectErrorCode::NonContiguousIncludes:
+            return SourceAssemblyErrorCode::ProjectNonContiguousIncludes;
+    }
+    return SourceAssemblyErrorCode::ProjectFileUnreadable;
+}
+
+const char* ProjectDiagnosticCode(ProjectErrorCode code) {
+    switch (code) {
+        case ProjectErrorCode::MissingMain: return "DBP1001";
+        case ProjectErrorCode::NonContiguousIncludes: return "DBP1002";
+        default: return "DBP1000";
+    }
+}
+
+} // namespace
+
 CompilationInput::CompilationInput(
     std::vector<std::byte> bytes,
     std::filesystem::path baseDirectory,
@@ -15,11 +47,13 @@ SourceAssemblyResult<CompilationInput> CompilationInput::FromProjectFile(
     SourceAssemblyOptions options) {
     const auto manifestResult = ProjectManifestReader::Read(path);
     if (!manifestResult) {
+        const auto& projectError = manifestResult.error();
         return SourceAssemblyResult<CompilationInput>::Failure({
-            SourceAssemblyErrorCode::SourceUnreadable,
-            manifestResult.error().message,
-            manifestResult.error().projectPath,
-            manifestResult.error().manifestKey});
+            MapProjectError(projectError.code),
+            std::string(ProjectDiagnosticCode(projectError.code)) + ": " +
+                projectError.message,
+            projectError.projectPath,
+            projectError.manifestKey});
     }
     return FromProject(manifestResult.value(), options);
 }

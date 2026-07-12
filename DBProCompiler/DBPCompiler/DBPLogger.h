@@ -8,7 +8,10 @@
 
 class DBPLogger {
 public:
-    static void Initialize(const std::string& logFilePath, bool bJsonMode = false) {
+    static void Initialize(
+        const std::string& logFilePath,
+        bool bJsonMode = false,
+        spdlog::level::level_enum level = spdlog::level::trace) {
         try {
             std::vector<spdlog::sink_ptr> sinks;
             if (bJsonMode) {
@@ -25,7 +28,7 @@ public:
             auto logger = std::make_shared<spdlog::logger>("dbp_compiler", sinks.begin(), sinks.end());
             
             spdlog::set_default_logger(logger);
-            spdlog::set_level(spdlog::level::trace);
+            spdlog::set_level(level);
             spdlog::flush_on(spdlog::level::err);
         }
         catch (const spdlog::spdlog_ex& ex) {

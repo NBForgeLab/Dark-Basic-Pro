@@ -10,6 +10,7 @@ enum class ProjectErrorCode {
     FileNotFound,
     FileUnreadable,
     MissingMain,
+    DuplicateMain,
     MalformedIncludeKey,
     DuplicateIncludeIndex,
     NonContiguousIncludes

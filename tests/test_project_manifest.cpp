@@ -129,3 +129,13 @@ TEST(ProjectManifestReaderTest, RejectsEmptyMain) {
     ASSERT_FALSE(result.has_value());
     EXPECT_EQ(result.error().code, ProjectErrorCode::MissingMain);
 }
+
+TEST(ProjectManifestReaderTest, RejectsDuplicateMainRegardlessOfKeyCase) {
+    TemporaryProject project("main=First.dba\r\nMAIN=Second.dba\r\n");
+
+    const auto result = ProjectManifestReader::Read(project.path());
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error().code, ProjectErrorCode::DuplicateMain);
+    EXPECT_EQ(result.error().manifestKey, "MAIN");
+}

@@ -112,3 +112,84 @@ TEST(CompilationInputTest, LoadsPreparedProjectIntoLegacyCompilerBuffer) {
         std::string(compiler.GetFilePtr(), compiler.GetFileData()),
         "alpha\r\nbeta");
 }
+
+TEST(CompilationInputTest, BreakpointScanDoesNotReadBeforeSourceBuffer) {
+    CompilationInputFixture fixture;
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+    compiler.m_FileDataSize = 3;
+    compiler.m_pFileData = static_cast<LPSTR>(
+        GlobalAlloc(GMEM_FIXED, compiler.m_FileDataSize));
+    ASSERT_NE(compiler.m_pFileData, nullptr);
+    memcpy(compiler.m_pFileData, "abc", compiler.m_FileDataSize);
+
+    EXPECT_TRUE(compiler.RemoveAndRecordBreakpoints());
+    EXPECT_EQ(compiler.GetBreakPointMax(), 0u);
+}
+
+TEST(CompilationInputTest, EmptyMediaRootResolvesToProjectDirectory) {
+    CompilationInputFixture fixture;
+    const auto project = fixture.Write(
+        "Project.dbpro", "main=Main.dba\r\nmedia root path=\r\n");
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+    std::string projectPath = project.string();
+
+    ASSERT_TRUE(compiler.LoadProjectFile(&projectPath[0]));
+    LPSTR mediaRoot = compiler.GetProjectMediaRoot();
+    ASSERT_NE(mediaRoot, nullptr);
+    EXPECT_TRUE(std::filesystem::equivalent(mediaRoot, fixture.directory()));
+    delete[] mediaRoot;
+}
+
+TEST(CompilationInputTest, CompilerPreparesDirectDbaAsOwnedInput) {
+    CompilationInputFixture fixture;
+    const auto source = fixture.Write("Direct.dba", "print 42\n");
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+
+    ASSERT_TRUE(compiler.PrepareCompilationInput(source.string().c_str()));
+    ASSERT_TRUE(compiler.LoadPreparedSource());
+    EXPECT_EQ(
+        std::string(compiler.GetFilePtr(), compiler.GetFileData()),
+        "print 42");
+}
+
+TEST(CompilationInputTest, PreservesManifestErrorCategoryAndDiagnosticCode) {
+    CompilationInputFixture fixture;
+    const auto project = fixture.Write("Project.dbpro", "include1=Part.dba\r\n");
+
+    const auto result = CompilationInput::FromProjectFile(project, {});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error().code, SourceAssemblyErrorCode::ProjectMissingMain);
+    EXPECT_NE(result.error().message.find("DBP1001"), std::string::npos);
+    EXPECT_EQ(result.error().sourcePath, project);
+}
+
+TEST(CompilationInputTest, RelativeProjectKeepsExecutableInProjectDirectory) {
+    CompilationInputFixture fixture;
+    const auto project = fixture.Write(
+        "Project.dbpro",
+        "main=Main.dba\r\nfinal source=_Temp.dbsource\r\n"
+        "executable=bin\\Game.exe\r\n");
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+    const auto originalDirectory = std::filesystem::current_path();
+    std::filesystem::current_path(fixture.directory());
+    std::string mutableRelative = "Project.dbpro";
+    const bool loaded = compiler.LoadProjectFile(&mutableRelative[0]);
+    const bool projectExists = compiler.ProjectExists();
+    std::filesystem::current_path(originalDirectory);
+
+    ASSERT_TRUE(loaded);
+    ASSERT_TRUE(projectExists);
+    EXPECT_TRUE(std::filesystem::equivalent(
+        compiler.m_pRelativePathToProjectFile->GetStr(), fixture.directory()));
+    LPSTR executable = compiler.GetProjectFile("executable");
+    ASSERT_NE(executable, nullptr);
+    EXPECT_EQ(
+        std::filesystem::path(executable).lexically_normal(),
+        (fixture.directory() / "bin" / "Game.exe").lexically_normal());
+    delete[] executable;
+}

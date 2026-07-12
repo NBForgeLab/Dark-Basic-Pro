@@ -27,6 +27,8 @@
 #include "TextConvert.h"
 
 #include <DB3Time.h>
+#include <algorithm>
+#include <cctype>
 
 // Internal Global Data Pointers
 CEXEBlock*			g_pEXE				= NULL;
@@ -270,16 +272,34 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 	return bResult;
 }
 
-bool CDBPCompiler::PrepareCompilationInput(const char* pProjectFilename)
+bool CDBPCompiler::PrepareCompilationInput(const char* pInputFilename, bool emitFinalSource)
 {
 	m_compilationInput.reset();
-	if (pProjectFilename == NULL || pProjectFilename[0] == 0)
+	if (pInputFilename == NULL || pInputFilename[0] == 0)
 		return false;
 
-	auto inputResult = CompilationInput::FromProjectFile(
-		std::filesystem::path(pProjectFilename), {});
+	const std::filesystem::path inputPath(pInputFilename);
+	std::string extension = inputPath.extension().string();
+	std::transform(extension.begin(), extension.end(), extension.begin(),
+		[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
+
+	SourceAssemblyResult<CompilationInput> inputResult =
+		extension == ".dbpro"
+			? CompilationInput::FromProjectFile(inputPath, SourceAssemblyOptions{})
+			: CompilationInput::FromSourceFile(inputPath);
 	if (!inputResult)
 	{
+		if (g_bJsonDiagnostics)
+		{
+			const auto& error = inputResult.error();
+			std::cout << "{\"type\":\"diagnostic\",\"code\":\""
+				<< SourceAssemblyDiagnosticCode(error.code)
+				<< "\",\"severity\":\"error\",\"stage\":\"source_assembly\","
+				<< "\"project\":\"" << EscapeJSON(pInputFilename)
+				<< "\",\"source\":\"" << EscapeJSON(error.sourcePath.string())
+				<< "\",\"line\":0,\"message\":\""
+				<< EscapeJSON(error.message) << "\"}\n" << std::flush;
+		}
 		if (g_pErrorReport)
 			g_pErrorReport->AddErrorString(
 				const_cast<char*>(inputResult.error().message.c_str()));
@@ -288,6 +308,37 @@ bool CDBPCompiler::PrepareCompilationInput(const char* pProjectFilename)
 
 	m_compilationInput = std::make_unique<CompilationInput>(
 		std::move(inputResult.value()));
+
+	if (emitFinalSource)
+	{
+		if (extension != ".dbpro")
+		{
+			if (g_pErrorReport)
+				g_pErrorReport->AddErrorString(
+					"--emit-final-source requires a DBPro project input.");
+			m_compilationInput.reset();
+			return false;
+		}
+		const auto manifestResult = ProjectManifestReader::Read(inputPath);
+		if (!manifestResult || !manifestResult.value().finalSourcePath.has_value())
+		{
+			if (g_pErrorReport)
+				g_pErrorReport->AddErrorString(
+					"--emit-final-source requires a non-empty 'final source' field.");
+			m_compilationInput.reset();
+			return false;
+		}
+		const auto writeResult = FinalSourceArtifactWriter::WriteAtomically(
+			*manifestResult.value().finalSourcePath, m_compilationInput->bytes());
+		if (!writeResult)
+		{
+			if (g_pErrorReport)
+				g_pErrorReport->AddErrorString(
+					const_cast<char*>(writeResult.error().message.c_str()));
+			m_compilationInput.reset();
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -521,7 +572,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 			g_pIncludeTable->Add(pIncludeEntry);
 
 			// Construct full include absolute path
-			LPSTR pMediaRoot=GetProjectField("media root path");
+			LPSTR pMediaRoot=GetProjectMediaRoot();
 			CStr* pAbsoluteIncludeFile = new CStr(pMediaRoot);
 			pAbsoluteIncludeFile->AddText(pIncludeFilename);
 			SAFE_DELETE(pMediaRoot);
@@ -1490,18 +1541,23 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 	if(stricmp(pStrExt, ".dbpro")==NULL) bFilenameIsProjectFile=true;
 	//SAFE_DELETE(pStrExt);
 
-	// Extract relative path
-	m_pRelativePathToProjectFile = new CStr();
-	m_pRelativePathToProjectFile->SetText(pFilename);
-	m_pRelativePathToProjectFile->TrimToPathOnly();
+	// Resolve the project directory once; downstream outputs and media must not
+	// depend on the process current working directory.
+	std::error_code projectPathError;
+	std::filesystem::path projectDirectory = std::filesystem::absolute(
+		std::filesystem::path(pFilename), projectPathError).parent_path();
+	if(projectPathError)
+		projectDirectory = std::filesystem::path(pFilename).parent_path();
+	std::string projectDirectoryText = projectDirectory.lexically_normal().string();
+	if(!projectDirectoryText.empty() &&
+		projectDirectoryText.back() != '\\' && projectDirectoryText.back() != '/')
+		projectDirectoryText.push_back(std::filesystem::path::preferred_separator);
 
-	// Construct absolute path to project (for media root)
-	char pCurrentDir[_MAX_PATH];
-	getcwd(pCurrentDir, _MAX_PATH);
+	m_pRelativePathToProjectFile = new CStr();
+	m_pRelativePathToProjectFile->SetText(&projectDirectoryText[0]);
+
 	m_pAbsolutePathToProjectFile = new CStr();
-	m_pAbsolutePathToProjectFile->SetText(pCurrentDir);
-	m_pAbsolutePathToProjectFile->AddText("\\");
-	m_pAbsolutePathToProjectFile->AddText(m_pRelativePathToProjectFile->GetStr());
+	m_pAbsolutePathToProjectFile->SetText(&projectDirectoryText[0]);
 
 	// Read in project file if it is one
 	if(bFilenameIsProjectFile==true)
@@ -1791,6 +1847,30 @@ LPSTR CDBPCompiler::GetProjectFile(LPSTR pFieldName)
 
 	// Return new string
 	return pFullFile;
+}
+
+LPSTR CDBPCompiler::GetProjectMediaRoot(void)
+{
+	LPSTR pConfiguredRoot = GetProjectField("media root path");
+	std::filesystem::path root;
+	if(pConfiguredRoot && pConfiguredRoot[0] != 0)
+	{
+		root = std::filesystem::path(pConfiguredRoot);
+		if(root.is_relative())
+			root = std::filesystem::path(m_pRelativePathToProjectFile->GetStr()) / root;
+	}
+	else
+	{
+		root = std::filesystem::path(m_pRelativePathToProjectFile->GetStr());
+	}
+	SAFE_DELETE(pConfiguredRoot);
+
+	std::string text = root.lexically_normal().string();
+	if(!text.empty() && text.back() != '\\' && text.back() != '/')
+		text.push_back(std::filesystem::path::preferred_separator);
+	LPSTR pResult = new char[text.size() + 1];
+	strcpy(pResult, text.c_str());
+	return pResult;
 }
 
 LPSTR CDBPCompiler::GetProjectField(LPSTR pFieldName)
@@ -2270,7 +2350,7 @@ bool CDBPCompiler::RemoveAndRecordBreakpoints(void)
 				}
 			}
 		}
-		if(*(pPtr-1)==13 && *pPtr==10) dwLine++;
+		if(pPtr>m_pFileData && *(pPtr-1)==13 && *pPtr==10) dwLine++;
 		pPtr++;
 	}
 

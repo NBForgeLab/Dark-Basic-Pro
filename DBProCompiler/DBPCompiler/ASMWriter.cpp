@@ -434,6 +434,13 @@ bool CASMWriter::CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPS
 
 bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPSTR lpOpData, LPSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize)
 {
+	if(m_pProgramStart==NULL || m_pMachineBlock==NULL)
+	{
+		if(g_pErrorReport)
+			g_pErrorReport->AddErrorString(
+				"DBP2001: code emission attempted before backend initialization.");
+		return false;
+	}
 	DBP_TRACE("Generated instruction: preOp={}, op1={}, op2={}", iPreOpCode, iOpCode1, iOpCode2);
 
 	// Check and expand if MCB too small
@@ -864,10 +871,11 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 // leefix - 210504 - seemed this could mess up EXE current directory 
 // leefix - 240604 - restored as running debug mode removes CWD info!
 				// Media Root Folder is project folder so switch to it
-				LPSTR pMediaRoot=g_pDBPCompiler->GetProjectField("media root path");
+				LPSTR pMediaRoot=g_pDBPCompiler->GetProjectMediaRoot();
 				if(pMediaRoot)
 					if(strcmp(pMediaRoot,"")!=NULL)
 						chdir(pMediaRoot);
+				SAFE_DELETE(pMediaRoot);
 			}
 
 			// Transfer Compiler Info to Debugger
@@ -1007,7 +1015,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 		strcat(pLicensedPluginsRoot, "plugins-licensed\\");
 
 		// Media Root Folder
-		LPSTR pMediaRoot=g_pDBPCompiler->GetProjectField("media root path");
+		LPSTR pMediaRoot=g_pDBPCompiler->GetProjectMediaRoot();
 		if(pMediaRoot==NULL)
 		{
 			// No Media Root Folder so use current directory)

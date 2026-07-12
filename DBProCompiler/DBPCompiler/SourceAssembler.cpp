@@ -12,7 +12,11 @@ SourceAssemblyError MakeError(
     SourceAssemblyErrorCode code,
     const ProjectSourceEntry& source,
     std::string message) {
-    return {code, std::move(message), source.resolvedPath, source.manifestKey};
+    return {
+        code,
+        std::string(SourceAssemblyDiagnosticCode(code)) + ": " + message,
+        source.resolvedPath,
+        source.manifestKey};
 }
 
 SourceAssemblyResult<std::vector<std::byte>> ReadSource(
@@ -73,7 +77,49 @@ std::uint64_t CountNewlines(const std::vector<std::byte>& bytes) {
     return count;
 }
 
+std::vector<std::byte> NormalizeForLegacyParser(
+    const std::vector<std::byte>& sourceBytes) {
+    std::vector<std::byte> normalized;
+    normalized.reserve(sourceBytes.size() + 2);
+
+    for (std::size_t index = 0; index < sourceBytes.size(); ++index) {
+        const auto value = sourceBytes[index];
+        if (value == std::byte{'\r'}) {
+            if (index + 1 < sourceBytes.size() &&
+                sourceBytes[index + 1] == std::byte{'\n'}) {
+                ++index;
+            }
+            normalized.push_back(std::byte{'\r'});
+            normalized.push_back(std::byte{'\n'});
+        } else if (value == std::byte{'\n'}) {
+            normalized.push_back(std::byte{'\r'});
+            normalized.push_back(std::byte{'\n'});
+        } else {
+            normalized.push_back(value);
+        }
+    }
+
+    // Synergy's line-oriented writer terminated the last non-empty source line.
+    if (!normalized.empty() && normalized.back() != std::byte{'\n'}) {
+        normalized.push_back(std::byte{'\r'});
+        normalized.push_back(std::byte{'\n'});
+    }
+    return normalized;
+}
+
 } // namespace
+
+const char* SourceAssemblyDiagnosticCode(SourceAssemblyErrorCode code) noexcept {
+    switch (code) {
+        case SourceAssemblyErrorCode::ProjectMissingMain: return "DBP1001";
+        case SourceAssemblyErrorCode::ProjectNonContiguousIncludes: return "DBP1002";
+        case SourceAssemblyErrorCode::SourceNotFound: return "DBP1003";
+        case SourceAssemblyErrorCode::SourceUnreadable: return "DBP1004";
+        case SourceAssemblyErrorCode::SourceTooLarge: return "DBP1005";
+        case SourceAssemblyErrorCode::ArtifactWriteFailed: return "DBP1006";
+        default: return "DBP1000";
+    }
+}
 
 SourceAssemblyResult<AssembledSource> SourceAssembler::Assemble(
     const ProjectManifest& manifest,
@@ -90,7 +136,7 @@ SourceAssemblyResult<AssembledSource> SourceAssembler::Assemble(
             return SourceAssemblyResult<AssembledSource>::Failure(sourceResult.error());
         }
 
-        auto sourceBytes = std::move(sourceResult.value());
+        auto sourceBytes = NormalizeForLegacyParser(sourceResult.value());
         const bool needsBoundary = !assembled.bytes.empty() &&
             assembled.bytes.back() != std::byte{'\n'};
         const std::uint64_t required = sourceBytes.size() + (needsBoundary ? 2ull : 0ull);

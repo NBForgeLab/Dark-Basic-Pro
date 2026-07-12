@@ -11,11 +11,20 @@
 #include <vector>
 
 enum class SourceAssemblyErrorCode {
+    ProjectFileNotFound,
+    ProjectFileUnreadable,
+    ProjectMissingMain,
+    ProjectMalformedInclude,
+    ProjectDuplicateMain,
+    ProjectDuplicateInclude,
+    ProjectNonContiguousIncludes,
     SourceNotFound,
     SourceUnreadable,
     SourceTooLarge,
     ArtifactWriteFailed
 };
+
+const char* SourceAssemblyDiagnosticCode(SourceAssemblyErrorCode code) noexcept;
 
 struct SourceAssemblyError {
     SourceAssemblyErrorCode code;

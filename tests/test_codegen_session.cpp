@@ -2,6 +2,7 @@
 
 #include "ASMWriter.h"
 #include "CodeGenerationSession.h"
+#include "DBMWriter.h"
 
 TEST(CodeGenerationSessionTest, RejectsEmissionBeforeInitialization) {
     CASMWriter writer;
@@ -22,4 +23,31 @@ TEST(CodeGenerationSessionTest, BeginsBackendExactlyOnce) {
     const auto secondBegin = session.Begin();
     ASSERT_FALSE(secondBegin.has_value());
     EXPECT_EQ(secondBegin.error().code, CodeGenerationErrorCode::InvalidTransition);
+}
+
+TEST(CodeGenerationSessionTest, FinishesOnlyAfterInitialization) {
+    CASMWriter writer;
+    CodeGenerationSession session(writer);
+
+    EXPECT_FALSE(session.Finish().has_value());
+    ASSERT_TRUE(session.Begin().has_value());
+    EXPECT_TRUE(session.Finish().has_value());
+    EXPECT_EQ(session.state(), CodeGenerationState::Finished);
+}
+
+TEST(DBMWriterTest, AppendsOnlyContentAndCrLf) {
+    CDBMWriter writer;
+    writer.InitializeBufferForTests(32);
+    CStr line("abc");
+
+    ASSERT_TRUE(writer.OutputDBM(&line));
+    EXPECT_EQ(writer.GetUsedBufferSizeForTests(), 5u);
+}
+
+TEST(CodeGenerationSessionTest, BackendRejectsMachineCodeBeforeInitialization) {
+    CASMWriter writer;
+
+    EXPECT_FALSE(writer.CreateASMMiddle(-1, 0x90, -1, nullptr));
+    ASSERT_TRUE(writer.CreateASMHeader());
+    EXPECT_TRUE(writer.CreateASMMiddle(-1, 0x90, -1, nullptr));
 }

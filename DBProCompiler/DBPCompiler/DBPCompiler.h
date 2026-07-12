@@ -41,7 +41,7 @@ class CDBPCompiler
 
 	public:
 		bool			PerformCompileOnProject(void);
-		bool			PrepareCompilationInput(const char* pProjectFilename);
+		bool			PrepareCompilationInput(const char* pInputFilename, bool emitFinalSource = false);
 		bool			LoadPreparedSource(void);
 		bool			LoadDBA(LPSTR pDBAFilename);
 		bool			LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize);
@@ -59,6 +59,7 @@ class CDBPCompiler
 		bool			LoadProjectFile(LPSTR pFilename);
 		bool			GetAllProjectFields(LPSTR pFilename);
 		LPSTR			GetProjectFile(LPSTR pFieldName);
+		LPSTR			GetProjectMediaRoot(void);
 		LPSTR			GetProjectField(LPSTR pFieldName);
 		bool			GetProjectState(LPSTR pFieldName, bool bDefault);
 		bool			GetProjectState(LPSTR pFieldName);
