@@ -1,0 +1,77 @@
+name: Windows x86 foundation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - test-4
+      - "codex/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-2022
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify changed-file whitespace
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ github.event_name }}' -eq 'pull_request') {
+            git diff --check "origin/${{ github.base_ref }}...HEAD"
+          } else {
+            git diff --check HEAD^ HEAD
+          }
+
+      - name: Acquire pinned Microsoft D3DX compatibility package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageUri = 'https://www.nuget.org/api/v2/package/Microsoft.DXSDK.D3DX/9.29.952.8'
+          $expectedSha256 = 'EAD0906AE8A26C18A7525DA7490127A2110F7C58F18293738283E30E97C6EA4B'
+          $archive = Join-Path $PWD 'out/deps/Microsoft.DXSDK.D3DX.zip'
+          $destination = Join-Path $PWD 'out/deps/dxsdk'
+          New-Item -ItemType Directory -Path (Split-Path $archive) -Force | Out-Null
+          Invoke-WebRequest -Uri $packageUri -OutFile $archive
+          $actualSha256 = (Get-FileHash -Algorithm SHA256 $archive).Hash
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "D3DX package SHA-256 mismatch: $actualSha256"
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cmake --preset windows-x86-debug --fresh `
+            -DDBP_DXSDK_ROOT="$PWD/out/deps/dxsdk"
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cmake --build --preset windows-x86-debug
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ctest --preset windows-x86-debug
+
+      - name: Upload test diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86-test-diagnostics
+          path: |
+            out/build/windows-x86-debug/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
