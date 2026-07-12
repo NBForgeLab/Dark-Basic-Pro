@@ -27,3 +27,10 @@ CMakeUserPresets.json
 *.exp
 *.tlog
 *.log
+
+# Visual C++ browser and incremental build databases
+*.sbr
+*.bsc
+*.idb
+*.ipdb
+*.iobj
