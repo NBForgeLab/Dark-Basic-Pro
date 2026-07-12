@@ -50,6 +50,7 @@ set(LIB_SOURCES
     ParseLoop.cpp
     ParseType.cpp
     ParseUserFunction.cpp
+    ProjectManifest.cpp
     Statement.cpp
     StatementChain.cpp
     StatementList.cpp
