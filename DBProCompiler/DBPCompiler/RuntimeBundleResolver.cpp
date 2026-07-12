@@ -2,6 +2,7 @@
 
 #include "PeExportInspector.h"
 
+#include <algorithm>
 #include <array>
 #include <system_error>
 
@@ -26,10 +27,27 @@ bool HasExport(const PeImageInfo& image, const char* name) {
 
 RuntimeCapabilities DeriveCapabilities(const PeImageInfo& image) {
     RuntimeCapabilities capabilities;
+    const std::array<const char*, 12> lifecycleExports{
+        "?PassDLLs@@YAXXZ",
+        "?ConstructDLLs@@YAXXZ",
+        "?GetGlobPtr@@YAKXZ",
+        "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z",
+        "?CloseDisplay@@YAKXZ",
+        "?CreateVariableSpace@@YAKK@Z",
+        "?DeleteVariableSpace@@YAXXZ",
+        "?CreateDataSpace@@YAKK@Z",
+        "?DeleteDataSpace@@YAXXZ",
+        "?DeleteSingleVariableAllocation@@YAXPAK@Z",
+        "?UnDimDD@@YAKK@Z",
+        "?Sync@@YAXXZ"};
+    const bool hasLifecycle = std::all_of(
+        lifecycleExports.begin(), lifecycleExports.end(),
+        [&image](const char* name) { return HasExport(image, name); });
     if (HasExport(image, kPassCommandLine) &&
         HasExport(image, kPassError) &&
         HasExport(image, kPassEscape) &&
-        HasExport(image, kPassBreakout)) {
+        HasExport(image, kPassBreakout) &&
+        hasLifecycle) {
         capabilities.insert(RuntimeCapability::CoreBootstrapV1);
     }
     if (HasExport(image, kPassData)) {

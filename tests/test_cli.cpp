@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "Error.h"
+#include "CompilerArguments.h"
 #include <vector>
 #include <string>
 
@@ -42,4 +43,39 @@ TEST(CLITest, StatusLoggingJSON) {
     
     EXPECT_EQ(output, "{\"type\":\"status\",\"stage\":\"test_stage\",\"message\":\"Loading game fields...\"}\n");
     g_bJsonDiagnostics = false;
+}
+
+TEST(CompilerArgumentsTest, AcceptsOneRuntimeRoot) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--runtime-root", "D:/runtime", "Game.dbpro"});
+
+    ASSERT_TRUE(result.has_value()) << result.error();
+    ASSERT_TRUE(result.value().runtimeRoot.has_value());
+    EXPECT_EQ(*result.value().runtimeRoot, std::filesystem::path("D:/runtime"));
+    EXPECT_EQ(result.value().inputPath, std::filesystem::path("Game.dbpro"));
+}
+
+TEST(CompilerArgumentsTest, RejectsMissingRuntimeRootValue) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--runtime-root"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--runtime-root requires a directory path.");
+}
+
+TEST(CompilerArgumentsTest, RejectsOptionAsRuntimeRootValue) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--runtime-root", "--json", "Game.dbpro"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--runtime-root requires a directory path.");
+}
+
+TEST(CompilerArgumentsTest, RejectsDuplicateRuntimeRoot) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--runtime-root", "A", "--runtime-root", "B",
+        "Game.dbpro"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--runtime-root may only be specified once.");
 }

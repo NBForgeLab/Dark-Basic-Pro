@@ -15,6 +15,7 @@
 #include "DBPCompiler.h"
 #include "DBPLogger.h"
 #include "CrashHandler.h"
+#include "CompilerArguments.h"
 #include "TextConvert.h"
 
 #include <DB3Time.h>
@@ -504,6 +505,7 @@ void PrintHelp() {
     std::cout << "  --json          Output compiler status and diagnostics as streaming JSON lines\n";
     std::cout << "  --emit-final-source   Atomically publish the project's final source artifact\n";
     std::cout << "  --legacy-final-source Compile an existing final source artifact without assembly\n";
+    std::cout << "  --runtime-root <path> Select and validate a DBPro runtime bundle\n";
     std::cout << "\nExample:\n";
     std::cout << "  DBPCompiler.exe --json \"D:\\Projects\\MyGame\\project.dbpro\"\n\n" << std::flush;
 }
@@ -615,46 +617,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		int nArgs = 0;
 		LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
-		std::string projectPath = "";
-		bool emitFinalSource = false;
-		bool legacyFinalSource = false;
-		std::string argumentError;
+		std::vector<std::string> arguments;
 		if (szArglist != NULL) {
-			for (int i = 1; i < nArgs; i++) {
-				std::wstring argW(szArglist[i]);
-				std::string argStr = TextConvert::UTF16ToUTF8(argW);
-				if (argStr == "--json") {
-					g_bJsonDiagnostics = true;
-					db3::g_bHeadlessMode = true;
-				} else if (argStr == "--help" || argStr == "-h") {
-					PrintHelp();
-					LocalFree(szArglist);
-					SAFE_DELETE(g_pDBPCompiler);
-					SAFE_DELETE(g_pErrorReport);
-					return 0;
-				} else if (argStr == "--emit-final-source") {
-					emitFinalSource = true;
-				} else if (argStr == "--legacy-final-source") {
-					legacyFinalSource = true;
-				} else if (!argStr.empty() && argStr[0] == '-') {
-					argumentError = "Unknown compiler option: " + argStr;
-				} else if (!projectPath.empty()) {
-					argumentError = "Only one input file may be specified.";
-				} else {
-					projectPath = argStr;
-				}
+			for (int i = 0; i < nArgs; i++) {
+				arguments.push_back(TextConvert::UTF16ToUTF8(szArglist[i]));
 			}
 			LocalFree(szArglist);
 		}
-		if (emitFinalSource && legacyFinalSource)
-			argumentError = "--emit-final-source conflicts with --legacy-final-source.";
-		if (legacyFinalSource) {
-			std::string extension = std::filesystem::path(projectPath).extension().string();
-			std::transform(extension.begin(), extension.end(), extension.begin(),
-				[](unsigned char value) { return static_cast<char>(std::tolower(value)); });
-			if (extension != ".dbpro")
-				argumentError = "--legacy-final-source requires a DBPro project input.";
-		}
+		const auto parsedArguments = ParseCompilerArguments(arguments);
+		const std::string argumentError = parsedArguments
+			? std::string()
+			: parsedArguments.error();
 		if (!argumentError.empty()) {
 			if (g_bJsonDiagnostics)
 				std::cout << "{\"type\":\"error\",\"stage\":\"arguments\",\"message\":\""
@@ -665,6 +638,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			SAFE_DELETE(g_pErrorReport);
 			return 1;
 		}
+		if (parsedArguments.value().help) {
+			PrintHelp();
+			SAFE_DELETE(g_pDBPCompiler);
+			SAFE_DELETE(g_pErrorReport);
+			return 0;
+		}
+		g_bJsonDiagnostics = parsedArguments.value().json;
+		db3::g_bHeadlessMode = parsedArguments.value().json;
+		const std::string projectPath = parsedArguments.value().inputPath.string();
+		const bool emitFinalSource = parsedArguments.value().emitFinalSource;
+		const bool legacyFinalSource = parsedArguments.value().legacyFinalSource;
+		g_pDBPCompiler->SetRuntimeRootOverride(parsedArguments.value().runtimeRoot);
 
 		if (projectPath.empty()) {
 			if (g_bJsonDiagnostics) {

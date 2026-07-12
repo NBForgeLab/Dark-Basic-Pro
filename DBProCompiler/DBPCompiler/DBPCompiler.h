@@ -7,6 +7,7 @@
 
 // Common Includes
 #include "windows.h"
+#include "RuntimeBundleResolver.h"
 #include <memory>
 
 // PATH Defines
@@ -100,6 +101,9 @@ class CDBPCompiler
 		bool			GetInternalMediaState(void) { return m_bInternalMediaState; }
 		bool			GetEncryptionState(void) { return m_bEncryptionState; }
 		bool			GetSpeedOverStabilityFlag(void) { return m_bSpeedOverStabilityState; }
+		void SetRuntimeRootOverride(std::optional<std::filesystem::path> runtimeRoot);
+		bool ValidateRuntimeBundle(DWORD structurePatternCount);
+		const ResolvedRuntimeBundle* GetResolvedRuntimeBundle(void) const;
 
 	public:
 		bool			RemoveAndRecordBreakpoints(void);
@@ -181,6 +185,8 @@ class CDBPCompiler
 
 		CompilerContext* m_pContext;
 		std::unique_ptr<CompilationInput> m_compilationInput;
+		std::optional<std::filesystem::path> m_runtimeRootOverride;
+		std::optional<ResolvedRuntimeBundle> m_resolvedRuntimeBundle;
 };
 
 #endif // !defined(AFX_DBPCOMPILER_H__59BB1DE5_04A2_4BBC_9790_52F5C94E07F9__INCLUDED_)

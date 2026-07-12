@@ -23,6 +23,7 @@ include_directories(
 set(LIB_SOURCES
     ASMWriter.cpp
     CompilerContext.cpp
+    CompilerArguments.cpp
     CompilationInput.cpp
     CoreRuntimeApi.cpp
     CodeGenerationSession.cpp

@@ -9,6 +9,7 @@
 #include "macros.h"
 #include "ASMWriter.h"
 #include "DBPCompiler.h"
+#include "RuntimeContract.h"
 #include "CompilerContext.h"
 #include "CompilationInput.h"
 #include "InstructionTable.h"
@@ -2395,4 +2396,39 @@ bool CDBPCompiler::FinishBreakPointList(void)
 	m_dwBreakpointMax = m_dwBreakpointIndex;
 	m_dwBreakpointIndex = 0;
 	return true;
+}
+void CDBPCompiler::SetRuntimeRootOverride(
+	std::optional<std::filesystem::path> runtimeRoot)
+{
+	m_runtimeRootOverride = std::move(runtimeRoot);
+	m_resolvedRuntimeBundle.reset();
+}
+
+bool CDBPCompiler::ValidateRuntimeBundle(DWORD structurePatternCount)
+{
+	const RuntimeSelection selection{
+		m_runtimeRootOverride,
+		std::filesystem::path(m_pCompilerPathOnly->GetStr())};
+	const auto result = RuntimeBundleResolver::Resolve(
+		selection,
+		DeriveProgramRuntimeRequirements(structurePatternCount));
+	if(!result)
+	{
+		const char* code = "DBP3002";
+		if(result.error().code == RuntimeErrorCode::IncompatibleArchitecture) code = "DBP3003";
+		if(result.error().code == RuntimeErrorCode::MissingCapability) code = "DBP3004";
+		std::string message = std::string(code) + ": " + result.error().message;
+		if(!result.error().componentPath.empty())
+			message += " Component: " + result.error().componentPath.string();
+		g_pErrorReport->AddErrorString(message.data());
+		m_resolvedRuntimeBundle.reset();
+		return false;
+	}
+	m_resolvedRuntimeBundle = result.value();
+	return true;
+}
+
+const ResolvedRuntimeBundle* CDBPCompiler::GetResolvedRuntimeBundle(void) const
+{
+	return m_resolvedRuntimeBundle ? &*m_resolvedRuntimeBundle : nullptr;
 }

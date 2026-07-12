@@ -805,6 +805,12 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 		}
 	}
 
+	if(g_pDBPCompiler->ValidateRuntimeBundle(
+		g_pEXE->m_dwUsertypeStringPatternQuantity)==false)
+	{
+		return false;
+	}
+
 	// New Var and Data Space Sizes
 	g_pEXE->m_dwVariableSpaceSize = g_pStatementList->GetVarOffsetCounter();
 	g_pEXE->m_dwDataSpaceSize = g_pStatementList->GetDataIndexCounter()*10;
@@ -1001,18 +1007,24 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 		// Plugins Root Folder (same as project folder)
 		char pEffectsRoot[_MAX_PATH];
 		char pPluginsRoot[_MAX_PATH];
-		strcpy(pEffectsRoot, g_pDBPCompiler->m_pCompilerPathOnly->GetStr());
-		strcat(pEffectsRoot, "effects\\");
-		strcpy(pPluginsRoot, g_pDBPCompiler->m_pCompilerPathOnly->GetStr());
-		strcat(pPluginsRoot, "plugins\\");
+		const auto* runtimeBundle = g_pDBPCompiler->GetResolvedRuntimeBundle();
+		if(runtimeBundle==NULL)
+		{
+			g_pErrorReport->AddErrorString("DBP3002: Runtime bundle was not resolved before packaging.");
+			return false;
+		}
+		auto effectsRoot = runtimeBundle->effectsDirectory.string() + "\\";
+		auto pluginsRoot = runtimeBundle->pluginsDirectory.string() + "\\";
+		strcpy_s(pEffectsRoot, effectsRoot.c_str());
+		strcpy_s(pPluginsRoot, pluginsRoot.c_str());
 
 		// Extra Plugins Folders
 		char pUserPluginsRoot[_MAX_PATH];
 		char pLicensedPluginsRoot[_MAX_PATH];
-		strcpy(pUserPluginsRoot, g_pDBPCompiler->m_pCompilerPathOnly->GetStr());
-		strcat(pUserPluginsRoot, "plugins-user\\");
-		strcpy(pLicensedPluginsRoot, g_pDBPCompiler->m_pCompilerPathOnly->GetStr());
-		strcat(pLicensedPluginsRoot, "plugins-licensed\\");
+		auto userPluginsRoot = runtimeBundle->userPluginsDirectory.string() + "\\";
+		auto licensedPluginsRoot = runtimeBundle->licensedPluginsDirectory.string() + "\\";
+		strcpy_s(pUserPluginsRoot, userPluginsRoot.c_str());
+		strcpy_s(pLicensedPluginsRoot, licensedPluginsRoot.c_str());
 
 		// Media Root Folder
 		LPSTR pMediaRoot=g_pDBPCompiler->GetProjectMediaRoot();

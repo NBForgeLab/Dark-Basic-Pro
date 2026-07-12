@@ -14,13 +14,25 @@
 
 namespace {
 
-void WriteCoreFixture(const std::filesystem::path& path, const bool modern) {
+void WriteCoreFixture(const std::filesystem::path& path,
+                      const bool modern,
+                      const bool completeLifecycle = true) {
     std::vector<std::string> exports{
         "?PassCmdLineHandlerPtr@@YAXPAX@Z",
         "?PassErrorHandlerPtr@@YAXPAX@Z",
         "?PassEscapePtr@@YAXPAX@Z",
         "?PassBreakOutPtr@@YAXPAX@Z",
         "?PassDataStatementPtr@@YAXPAD0@Z"};
+    if (completeLifecycle) {
+        const std::vector<std::string> lifecycle{
+            "?PassDLLs@@YAXXZ", "?ConstructDLLs@@YAXXZ", "?GetGlobPtr@@YAKXZ",
+            "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z", "?CloseDisplay@@YAKXZ",
+            "?CreateVariableSpace@@YAKK@Z", "?DeleteVariableSpace@@YAXXZ",
+            "?CreateDataSpace@@YAKK@Z", "?DeleteDataSpace@@YAXXZ",
+            "?DeleteSingleVariableAllocation@@YAXPAK@Z", "?UnDimDD@@YAKK@Z",
+            "?Sync@@YAXXZ"};
+        exports.insert(exports.end(), lifecycle.begin(), lifecycle.end());
+    }
     if (modern) {
         exports.push_back("?PassStructurePatterns@@YAXPAXK@Z");
     }
@@ -70,12 +82,14 @@ void WriteCoreFixture(const std::filesystem::path& path, const bool modern) {
 
 class TemporaryRuntimeBundle {
 public:
-    explicit TemporaryRuntimeBundle(const bool modern) {
+    explicit TemporaryRuntimeBundle(
+        const bool modern, const bool completeLifecycle = true) {
         const auto suffix = std::to_string(
             std::chrono::steady_clock::now().time_since_epoch().count());
         root_ = std::filesystem::temp_directory_path() /
             ("dbpro_runtime_bundle_" + suffix);
-        WriteCoreFixture(root_ / "plugins" / "DBProCore.dll", modern);
+        WriteCoreFixture(root_ / "plugins" / "DBProCore.dll", modern,
+                         completeLifecycle);
     }
 
     ~TemporaryRuntimeBundle() {
@@ -175,4 +189,16 @@ TEST(RuntimeBundleResolverTest, RejectsNonX86Core) {
 
     ASSERT_FALSE(result.has_value());
     EXPECT_EQ(result.error().code, RuntimeErrorCode::IncompatibleArchitecture);
+}
+
+TEST(RuntimeBundleResolverTest, RejectsIncompleteCoreLifecycleContract) {
+    TemporaryRuntimeBundle bundle(false, false);
+
+    const auto result = RuntimeBundleResolver::Resolve(
+        RuntimeSelection{bundle.root(), "C:/unused/compiler/bin"},
+        DeriveProgramRuntimeRequirements(0));
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error().code, RuntimeErrorCode::MissingCapability);
+    EXPECT_EQ(result.error().capability, RuntimeCapability::CoreBootstrapV1);
 }
