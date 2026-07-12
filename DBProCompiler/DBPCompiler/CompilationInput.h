@@ -8,6 +8,9 @@
 
 class CompilationInput {
 public:
+    static SourceAssemblyResult<CompilationInput> FromProjectFile(
+        const std::filesystem::path& path,
+        SourceAssemblyOptions options);
     static SourceAssemblyResult<CompilationInput> FromSourceFile(
         const std::filesystem::path& path);
     static SourceAssemblyResult<CompilationInput> FromProject(

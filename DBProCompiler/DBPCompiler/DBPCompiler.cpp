@@ -10,6 +10,7 @@
 #include "ASMWriter.h"
 #include "DBPCompiler.h"
 #include "CompilerContext.h"
+#include "CompilationInput.h"
 #include "InstructionTable.h"
 #include "StatementList.h"
 #include "StructTable.h"
@@ -159,7 +160,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 
 	// Load DBA into memory
 	ReportStatus("load_dba", "Loading main DBA file into memory...");
-	if(LoadDBA(pDBAFilename))
+	if(m_compilationInput ? LoadPreparedSource() : LoadDBA(pDBAFilename))
 	{
 		// Expand FileData to unfold any #Includes
 		ReportStatus("unfold_includes", "Expanding nested #include files...");
@@ -267,6 +268,60 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 
 	// Complete
 	return bResult;
+}
+
+bool CDBPCompiler::PrepareCompilationInput(const char* pProjectFilename)
+{
+	m_compilationInput.reset();
+	if (pProjectFilename == NULL || pProjectFilename[0] == 0)
+		return false;
+
+	auto inputResult = CompilationInput::FromProjectFile(
+		std::filesystem::path(pProjectFilename), {});
+	if (!inputResult)
+	{
+		if (g_pErrorReport)
+			g_pErrorReport->AddErrorString(
+				const_cast<char*>(inputResult.error().message.c_str()));
+		return false;
+	}
+
+	m_compilationInput = std::make_unique<CompilationInput>(
+		std::move(inputResult.value()));
+	return true;
+}
+
+bool CDBPCompiler::LoadPreparedSource(void)
+{
+	if (!m_compilationInput)
+		return false;
+
+	const auto& sourceBytes = m_compilationInput->bytes();
+	if (sourceBytes.size() > MAXDWORD)
+		return false;
+
+	SAFE_FREE(m_pFileData);
+	m_pFileData = (LPSTR)GlobalAlloc(
+		GMEM_FIXED | GMEM_ZEROINIT, sourceBytes.size() + 1);
+	if (!m_pFileData)
+		return false;
+	if (!sourceBytes.empty())
+		memcpy(m_pFileData, sourceBytes.data(), sourceBytes.size());
+	m_FileDataSize = static_cast<DWORD>(sourceBytes.size());
+
+	CStr trimmed(m_pFileData);
+	trimmed.EatTrailingEdgeSpacesandTabs();
+	const DWORD trimmedSize = static_cast<DWORD>(strlen(trimmed.GetStr()));
+	ZeroMemory(m_pFileData, sourceBytes.size() + 1);
+	memcpy(m_pFileData, trimmed.GetStr(), trimmedSize);
+	m_FileDataSize = trimmedSize;
+
+	SAFE_DELETE(m_pOriginalFileData);
+	m_dwOriginalFileDataSize = m_FileDataSize;
+	m_pOriginalFileData = new char[m_dwOriginalFileDataSize + 256];
+	memset(m_pOriginalFileData, 0, m_dwOriginalFileDataSize + 256);
+	memcpy(m_pOriginalFileData, m_pFileData, m_FileDataSize);
+	return true;
 }
 
 bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)

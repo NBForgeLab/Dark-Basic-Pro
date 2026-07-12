@@ -7,6 +7,7 @@
 
 // Common Includes
 #include "windows.h"
+#include <memory>
 
 // PATH Defines
 #define PATH_MAX 20
@@ -29,6 +30,7 @@
 #define MAX_EXCLUSIONS		256
 
 class CompilerContext;
+class CompilationInput;
 
 // Define Class
 class CDBPCompiler  
@@ -39,6 +41,8 @@ class CDBPCompiler
 
 	public:
 		bool			PerformCompileOnProject(void);
+		bool			PrepareCompilationInput(const char* pProjectFilename);
+		bool			LoadPreparedSource(void);
 		bool			LoadDBA(LPSTR pDBAFilename);
 		bool			LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize);
 		bool			LoadRawFromMMF(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize);
@@ -175,6 +179,7 @@ class CDBPCompiler
 		LPSTR			g_pExcludeFiles [ MAX_EXCLUSIONS ];
 
 		CompilerContext* m_pContext;
+		std::unique_ptr<CompilationInput> m_compilationInput;
 };
 
 #endif // !defined(AFX_DBPCOMPILER_H__59BB1DE5_04A2_4BBC_9790_52F5C94E07F9__INCLUDED_)

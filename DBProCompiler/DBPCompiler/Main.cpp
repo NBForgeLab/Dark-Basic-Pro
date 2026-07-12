@@ -672,6 +672,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					bCompileStepsSuccess = g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
 				}
 
+				if (bCompileStepsSuccess && g_pDBPCompiler->ProjectExists())
+				{
+					ReportStatus("source_assembly", "Assembling project source files...");
+					bCompileStepsSuccess = g_pDBPCompiler->PrepareCompilationInput(
+						strProjectFilename.GetStr());
+				}
+
 				// Prepare Compiler With Debug Info
 				if (bCompileStepsSuccess)
 				{

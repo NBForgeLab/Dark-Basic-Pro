@@ -10,6 +10,20 @@ CompilationInput::CompilationInput(
       baseDirectory_(std::move(baseDirectory)),
       sourceMap_(std::move(sourceMap)) {}
 
+SourceAssemblyResult<CompilationInput> CompilationInput::FromProjectFile(
+    const std::filesystem::path& path,
+    SourceAssemblyOptions options) {
+    const auto manifestResult = ProjectManifestReader::Read(path);
+    if (!manifestResult) {
+        return SourceAssemblyResult<CompilationInput>::Failure({
+            SourceAssemblyErrorCode::SourceUnreadable,
+            manifestResult.error().message,
+            manifestResult.error().projectPath,
+            manifestResult.error().manifestKey});
+    }
+    return FromProject(manifestResult.value(), options);
+}
+
 SourceAssemblyResult<CompilationInput> CompilationInput::FromSourceFile(
     const std::filesystem::path& requestedPath) {
     std::error_code error;

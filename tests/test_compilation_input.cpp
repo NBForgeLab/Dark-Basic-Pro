@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "CompilationInput.h"
+#include "Str.h"
+#include "DBPCompiler.h"
 
 #include <chrono>
 #include <filesystem>
@@ -74,4 +76,39 @@ TEST(CompilationInputTest, OwnsAssembledProjectBytes) {
     EXPECT_EQ(InputText(result.value()), "alpha\r\nbeta\r\n");
     EXPECT_EQ(result.value().baseDirectory(), fixture.directory());
     ASSERT_EQ(result.value().sourceMap().size(), 2u);
+}
+
+TEST(CompilationInputTest, PreparesProjectFileWithoutExistingFinalSource) {
+    CompilationInputFixture fixture;
+    fixture.Write("Main.dba", "alpha");
+    fixture.Write("Include.dba", "beta\r\n");
+    const auto project = fixture.Write(
+        "Project.dbpro",
+        "main=Main.dba\r\n"
+        "include1=Include.dba\r\n"
+        "final source=_Temp.dbsource\r\n");
+
+    const auto result = CompilationInput::FromProjectFile(project, {});
+
+    ASSERT_TRUE(result.has_value()) << result.error().message;
+    EXPECT_EQ(InputText(result.value()), "alpha\r\nbeta\r\n");
+    EXPECT_FALSE(std::filesystem::exists(fixture.directory() / "_Temp.dbsource"));
+}
+
+TEST(CompilationInputTest, LoadsPreparedProjectIntoLegacyCompilerBuffer) {
+    CompilationInputFixture fixture;
+    fixture.Write("Main.dba", "alpha");
+    fixture.Write("Include.dba", "beta\r\n");
+    const auto project = fixture.Write(
+        "Project.dbpro",
+        "main=Main.dba\r\ninclude1=Include.dba\r\nfinal source=missing.dbsource\r\n");
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+
+    ASSERT_TRUE(compiler.PrepareCompilationInput(project.string().c_str()));
+    ASSERT_TRUE(compiler.LoadPreparedSource());
+    ASSERT_NE(compiler.GetFilePtr(), nullptr);
+    EXPECT_EQ(
+        std::string(compiler.GetFilePtr(), compiler.GetFileData()),
+        "alpha\r\nbeta");
 }
