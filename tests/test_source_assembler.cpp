@@ -102,3 +102,21 @@ TEST(SourceAssemblerTest, RejectsCombinedSourceLargerThanConfiguredLimit) {
     ASSERT_FALSE(result.has_value());
     EXPECT_EQ(result.error().code, SourceAssemblyErrorCode::SourceTooLarge);
 }
+
+TEST(SourceAssemblerTest, PublishesFinalSourceAtomically) {
+    SourceFixture fixture;
+    const auto destination = fixture.Write("_Temp.dbsource", "old");
+    const std::string newText = "new source\r\n";
+    const std::vector<std::byte> bytes(
+        reinterpret_cast<const std::byte*>(newText.data()),
+        reinterpret_cast<const std::byte*>(newText.data() + newText.size()));
+
+    const auto result = FinalSourceArtifactWriter::WriteAtomically(destination, bytes);
+
+    ASSERT_TRUE(result.has_value()) << result.error().message;
+    std::ifstream stream(destination, std::ios::binary);
+    const std::string actual(
+        (std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    EXPECT_EQ(actual, newText);
+    EXPECT_FALSE(std::filesystem::exists(destination.string() + ".tmp"));
+}

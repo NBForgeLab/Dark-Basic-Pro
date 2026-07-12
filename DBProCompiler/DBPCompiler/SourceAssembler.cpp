@@ -2,6 +2,9 @@
 
 #include <fstream>
 #include <limits>
+#include <system_error>
+
+#include <Windows.h>
 
 namespace {
 
@@ -30,7 +33,7 @@ SourceAssemblyResult<std::vector<std::byte>> ReadSource(
             source,
             "Source file size could not be read."));
     }
-    if (size > maxBytes || size > std::numeric_limits<std::size_t>::max()) {
+    if (size > maxBytes || size > (std::numeric_limits<std::size_t>::max)()) {
         return SourceAssemblyResult<std::vector<std::byte>>::Failure(MakeError(
             SourceAssemblyErrorCode::SourceTooLarge,
             source,
@@ -115,4 +118,58 @@ SourceAssemblyResult<AssembledSource> SourceAssembler::Assemble(
     }
 
     return SourceAssemblyResult<AssembledSource>::Success(std::move(assembled));
+}
+
+SourceAssemblyResult<bool> FinalSourceArtifactWriter::WriteAtomically(
+    const std::filesystem::path& destination,
+    const std::vector<std::byte>& bytes) {
+    static volatile LONG sequence = 0;
+    const auto unique = std::to_wstring(GetCurrentProcessId()) + L"." +
+        std::to_wstring(InterlockedIncrement(&sequence));
+    auto temporary = destination;
+    temporary += L".tmp." + unique;
+
+    struct TemporaryCleanup {
+        std::filesystem::path path;
+        ~TemporaryCleanup() {
+            std::error_code ignored;
+            std::filesystem::remove(path, ignored);
+        }
+    } cleanup{temporary};
+
+    std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+    if (!stream) {
+        return SourceAssemblyResult<bool>::Failure({
+            SourceAssemblyErrorCode::ArtifactWriteFailed,
+            "Temporary final-source artifact could not be opened.",
+            temporary,
+            "final source"});
+    }
+    if (!bytes.empty()) {
+        stream.write(
+            reinterpret_cast<const char*>(bytes.data()),
+            static_cast<std::streamsize>(bytes.size()));
+    }
+    stream.flush();
+    if (!stream) {
+        return SourceAssemblyResult<bool>::Failure({
+            SourceAssemblyErrorCode::ArtifactWriteFailed,
+            "Temporary final-source artifact could not be written.",
+            temporary,
+            "final source"});
+    }
+    stream.close();
+
+    if (!MoveFileExW(
+            temporary.c_str(),
+            destination.c_str(),
+            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        return SourceAssemblyResult<bool>::Failure({
+            SourceAssemblyErrorCode::ArtifactWriteFailed,
+            "Final-source artifact could not replace its destination.",
+            destination,
+            "final source"});
+    }
+    cleanup.path.clear();
+    return SourceAssemblyResult<bool>::Success(true);
 }

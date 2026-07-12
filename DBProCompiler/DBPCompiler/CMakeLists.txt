@@ -23,6 +23,7 @@ include_directories(
 set(LIB_SOURCES
     ASMWriter.cpp
     CompilerContext.cpp
+    CompilationInput.cpp
     CrashHandler.cpp
     DBMWriter.cpp
     DBPCompiler.cpp

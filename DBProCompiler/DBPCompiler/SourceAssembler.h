@@ -71,3 +71,10 @@ public:
         const ProjectManifest& manifest,
         SourceAssemblyOptions options);
 };
+
+class FinalSourceArtifactWriter {
+public:
+    static SourceAssemblyResult<bool> WriteAtomically(
+        const std::filesystem::path& destination,
+        const std::vector<std::byte>& bytes);
+};
