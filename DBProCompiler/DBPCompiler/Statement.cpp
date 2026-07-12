@@ -32,12 +32,6 @@
 #include "ParseUserFunction.h"
 #include "DBPCompiler.h"
 
-// AST Integration
-#include "ASTNodes.h"
-#include "CodeGenVisitor.h"
-#include <string>
-#include <memory>
-
 // External References
 extern CError *g_pErrorReport;
 extern CVarTable *g_pVarTable;
@@ -3119,80 +3113,11 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	return true;
 }
 
-static bool IsAllDigits(const std::string& str) {
-    if (str.empty()) return false;
-    for (char c : str) {
-        if (!isdigit(c)) return false;
-    }
-    return true;
-}
-
-static std::string TrimString(const std::string& str) {
-    size_t first = str.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos) return "";
-    size_t last = str.find_last_not_of(" \t\r\n");
-    return str.substr(first, (last - first + 1));
-}
-
 bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 {
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
 	LPSTR pAlternateFullString = ProduceFullSegment(&pPointer);
-	std::string fullSegment(pAlternateFullString ? pAlternateFullString : "");
-	SAFE_DELETE(pAlternateFullString);
-
-	size_t eqPos = fullSegment.find('=');
-	if (eqPos != std::string::npos)
-	{
-		std::string lhs = TrimString(fullSegment.substr(0, eqPos));
-		std::string rhs = TrimString(fullSegment.substr(eqPos + 1));
-
-		// Check if LHS is a simple variable name (only alphanumeric / underscores)
-		bool lhsIsSimple = !lhs.empty() && (isalpha((unsigned char)lhs[0]) || lhs[0] == '_');
-		for (size_t i = 1; i < lhs.length() && lhsIsSimple; ++i) {
-			if (!isalnum((unsigned char)lhs[i]) && lhs[i] != '_') lhsIsSimple = false;
-		}
-
-		if (lhsIsSimple) {
-			std::unique_ptr<ASTNode> exprNode;
-			if (rhs.length() >= 2 && rhs.front() == '"' && rhs.back() == '"') {
-				// String literal
-				std::string strVal = rhs.substr(1, rhs.length() - 2);
-				exprNode = std::make_unique<ASTLiteralNode>(strVal, 3);
-			} else if (IsAllDigits(rhs)) {
-				// Integer literal
-				exprNode = std::make_unique<ASTLiteralNode>(rhs, 1);
-			} else {
-				// Check if RHS is a simple variable name that exists
-				bool rhsIsSimple = !rhs.empty() && (isalpha((unsigned char)rhs[0]) || rhs[0] == '_');
-				for (size_t i = 1; i < rhs.length() && rhsIsSimple; ++i) {
-					if (!isalnum((unsigned char)rhs[i]) && rhs[i] != '_') rhsIsSimple = false;
-				}
-				if (rhsIsSimple && g_pVarTable->FindVariableExist(const_cast<LPSTR>(rhs.c_str()), 0)) {
-					exprNode = std::make_unique<ASTVariableNode>(rhs);
-				}
-			}
-
-			if (exprNode) {
-				// Successfully parsed AST! Compile using CodeGenVisitor
-				auto assignment = std::make_unique<ASTAssignmentNode>(lhs, std::move(exprNode));
-				auto program = std::make_unique<ASTProgramNode>();
-				program->m_statements.push_back(std::move(assignment));
-
-				CodeGenVisitor visitor(g_pASMWriter, StatementLineNumber);
-				program->Accept(&visitor);
-
-				// Advance the parser pointer to past this segment
-				g_pStatementList->SetFileDataPointer(pPointer);
-				return true;
-			}
-		}
-	}
-
-	// Fallback to legacy parser for complex expressions
 	// Re-order assignment to look like instruction
-	pPointer = g_pStatementList->GetFileDataPointer();
-	pAlternateFullString = ProduceFullSegment(&pPointer);
 	CStr* pAltString = new CStr(pAlternateFullString);
 	DWORD dwPos = pAltString->FindFirstChar('=');
 	SAFE_DELETE(pAlternateFullString);

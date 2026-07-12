@@ -24,6 +24,7 @@ set(LIB_SOURCES
     ASMWriter.cpp
     CompilerContext.cpp
     CompilationInput.cpp
+    CodeGenerationSession.cpp
     CrashHandler.cpp
     DBMWriter.cpp
     DBPCompiler.cpp

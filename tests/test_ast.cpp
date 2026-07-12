@@ -8,12 +8,14 @@
 #include "StatementList.h"
 #include "ASMWriter.h"
 #include "StructTable.h"
+#include "InstructionTable.h"
 #include "DBPLogger.h"
 
 extern ICodeGenerator* g_pASMWriter;
 extern CVarTable* g_pVarTable;
 extern CStructTable* g_pStructTable;
 extern CStatementList* g_pStatementList;
+extern CInstructionTable* g_pInstructionTable;
 
 // Define a simple test visitor to count traversed node types
 class NodeCounterVisitor : public ASTVisitor {
@@ -112,4 +114,22 @@ TEST_F(ASTCodeGenTest, GenerateAssignmentCode) {
     
     // Accept shouldn't crash and should execute cleanly
     EXPECT_NO_THROW(program->Accept(&visitor));
+}
+
+TEST(ASTParsingRegressionTest, SimpleAssignmentDoesNotEmitBeforeBackendInitialization) {
+    DBPLogger::Initialize("test_ast_parse.log");
+    CompilerContext context;
+    context.Initialize();
+    g_pStructTable->SetStructDefaults();
+    g_pInstructionTable->SetInternalInstructionDatabase();
+    char program[] =
+        "global gloadreportstate\r\n"
+        "gloadreportstate=0\r\n";
+
+    const bool parsed = g_pStatementList->MakeStatements(
+        program, static_cast<DWORD>(sizeof(program) - 1));
+
+    EXPECT_TRUE(parsed);
+    context.Cleanup();
+    spdlog::shutdown();
 }

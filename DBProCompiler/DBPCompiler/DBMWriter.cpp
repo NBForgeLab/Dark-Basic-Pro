@@ -2,6 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
+#include "CodeGenerationSession.h"
 #include "StructTable.h"
 #include "LabelTable.h"
 #include "DataTable.h"
@@ -138,8 +139,11 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 	// Only parse if new code to parse
 	if(GetNewCodeFlag()==true)
 	{
-		// Create ASM Header
-		g_pASMWriter->CreateASMHeader();
+		CodeGenerationSession codeGeneration(*g_pASMWriter);
+		if (!codeGeneration.Begin())
+			return false;
+		if (!codeGeneration.RequireInitialized("statement emission"))
+			return false;
 
 		// Create DBM Buffer (default 1MB)?
 		if(g_pDBPCompiler->GetProduceDBMFile())
