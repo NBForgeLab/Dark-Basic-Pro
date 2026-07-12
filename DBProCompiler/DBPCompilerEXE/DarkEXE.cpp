@@ -10,6 +10,7 @@
 #include "direct.h"
 #include "../DBPCompiler/TextConvert.h"
 #include "../DBPCompiler/VFSHooks.h"
+#include "../DBPCompiler/CrashHandler.h"
 #include "time.h"
 
 // Defines and Externs
@@ -692,6 +693,8 @@ bool FileExists(LPSTR pFilename)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	db3::SetupDiagnosticHandlers();
+
 	// Initialize Virtual File System hooks
 	VFSHooks::Initialize();
 
