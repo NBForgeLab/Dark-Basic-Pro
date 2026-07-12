@@ -90,6 +90,7 @@ add_executable(dbp_tests
     tests/test_raw_input.cpp
     tests/test_ast.cpp
     tests/test_diagnostics.cpp
+    tests/test_vfs.cpp
     "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"

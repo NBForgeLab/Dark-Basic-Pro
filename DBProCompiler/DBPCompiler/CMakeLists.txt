@@ -31,6 +31,8 @@ set(LIB_SOURCES
     Declaration.cpp
     CodeGenVisitor.cpp
     DiagnosticEngine.cpp
+    VFSHooks.cpp
+    MemoryPE.cpp
     EXEBlock.cpp
     Encryptor.cpp
     Error.cpp

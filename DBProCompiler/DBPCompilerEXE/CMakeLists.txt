@@ -27,6 +27,8 @@ set(SOURCES
     FileReader.cpp
     getdxver.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/EXEBlock.cpp
+    ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/VFSHooks.cpp
+    ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/MemoryPE.cpp
     dbproexe.rc
 )
 

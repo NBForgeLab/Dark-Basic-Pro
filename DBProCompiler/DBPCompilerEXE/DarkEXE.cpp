@@ -9,6 +9,7 @@
 #include "windows.h"
 #include "direct.h"
 #include "../DBPCompiler/TextConvert.h"
+#include "../DBPCompiler/VFSHooks.h"
 #include "time.h"
 
 // Defines and Externs
@@ -691,6 +692,9 @@ bool FileExists(LPSTR pFilename)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	// Initialize Virtual File System hooks
+	VFSHooks::Initialize();
+
 	// Memory Manager Initial Snapshot
 	strcpy ( g_MM_FunctionName, "WinMain" );
 	#ifdef  __USE_MEMORY_MANAGER__
@@ -910,6 +914,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	// Delete temporary unpack directory
 	rmdir(gUnpackDirectory);
+
+	// Shutdown Virtual File System hooks and free resources
+	VFSHooks::Shutdown();
 
 	return 0;
 }

@@ -8,6 +8,7 @@
 #include "FileReader.h"
 #include <filesystem>
 #include "../DBPCompiler/TextConvert.h"
+#include "../DBPCompiler/VFSHooks.h"
 #include "direct.h"
 
 // Externals
@@ -212,7 +213,7 @@ bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 		else
 		{
 			// Executable PCK unpacked files can go different places
-			CreateFileFromData(filename, pPtr, DataSize);
+			VFSRegistry::Register(filename, pPtr, DataSize);
 			pPtr+=DataSize;
 		}
 
