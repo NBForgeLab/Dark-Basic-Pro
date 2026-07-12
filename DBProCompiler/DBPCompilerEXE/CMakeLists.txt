@@ -34,6 +34,7 @@ set(SOURCES
 
 # Compile as a Win32 GUI Application
 add_executable(DarkEXE WIN32 ${SOURCES})
+dbp_apply_legacy_cpp_options(DarkEXE)
 
 # Target libraries
 target_link_libraries(DarkEXE PRIVATE
