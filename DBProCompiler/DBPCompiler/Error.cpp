@@ -9,6 +9,9 @@
 #include "DBPCompiler.h"
 #include "IncludeTable.h"
 #include "TextConvert.h"
+#include "DiagnosticEngine.h"
+#include "DBPLogger.h"
+#include <iostream>
 
 // External Class Pointer
 extern CDBPCompiler* g_pDBPCompiler;
@@ -413,6 +416,7 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 	LPSTR pA=NULL;
 	LPSTR pB=NULL;
 	LPSTR pC=NULL;
+	CIncludeTable* pMustBeWithin = NULL;
 
 	// make temp string (and reword if required)
 	pA = CreateAndReword ( pIA );
@@ -439,7 +443,7 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 	else
 	{
 		// Find which include error is in
-		CIncludeTable* pMustBeWithin = g_pIncludeTable->GetNext();
+		pMustBeWithin = g_pIncludeTable->GetNext();
 		CIncludeTable* pCurrent = pMustBeWithin->GetNext();
 		while(pCurrent)
 		{
@@ -518,23 +522,74 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 		n++;
 	}
 
-	// Set parser error with latest construction technique
-	if(m_pParserErrorString==NULL)
-	{
-		m_pParserErrorString = new CStr(1);
-		LPSTR pUseNumeric = g_pDBPCompiler->GetWord(10);
-		if ( strcmp ( pUseNumeric, "")!=NULL )
-		{
-			m_pParserErrorString->SetText(pUseNumeric);
-			m_pParserErrorString->AddNumericText(dwErrCode);
-			m_pParserErrorString->AddText(": ");
-		}
-		m_pParserErrorString->AddText(pWorkStr->GetStr());
-		m_bParserErrorExist=true;
-	}
+	// Set parser error with latest construction technique using DiagnosticEngine
+    std::string filePath = "";
+    if (g_pDBPCompiler && g_pDBPCompiler->m_pFinalDBASource) {
+        filePath = g_pDBPCompiler->m_pFinalDBASource;
+    }
+    if (bRemoveAtLine && pMustBeWithin) {
+        filePath = pMustBeWithin->GetFilename()->GetStr();
+    }
 
-	// Dump Contents of Line to Error Window
-	PrepareVerboseErrorHeader(dwLine, pWorkStr->GetStr());
+    SourceLocation loc;
+    loc.filePath = filePath;
+    loc.line = dwLine;
+
+    // Resolve column from character index in m_pFileData
+    if (g_pDBPCompiler && g_pDBPCompiler->m_pFileData) {
+        std::string fileContent(g_pDBPCompiler->m_pFileData, g_pDBPCompiler->m_FileDataSize);
+        std::string lineContent;
+        size_t column = 1;
+        DiagnosticEngine::GetLineContext(fileContent, dwCharPosAt, lineContent, column);
+        loc.column = column;
+    } else {
+        loc.column = 1;
+    }
+
+    // Determine token length by scanning forward
+    loc.length = 1;
+    if (g_pDBPCompiler && g_pDBPCompiler->m_pFileData && dwCharPosAt < g_pDBPCompiler->m_FileDataSize) {
+        LPSTR pData = g_pDBPCompiler->m_pFileData;
+        DWORD dwSize = g_pDBPCompiler->m_FileDataSize;
+        DWORD pos = dwCharPosAt;
+        if (isalnum((unsigned char)pData[pos]) || pData[pos] == '_' || pData[pos] == '$') {
+            while (pos < dwSize && (isalnum((unsigned char)pData[pos]) || pData[pos] == '_' || pData[pos] == '$')) {
+                pos++;
+            }
+            loc.length = pos - dwCharPosAt;
+        }
+    }
+    if (loc.length == 0) loc.length = 1;
+
+    // Determine Help hint
+    std::string errMsg = pWorkStr ? pWorkStr->GetStr() : "";
+    std::string hint = "";
+    if (errMsg.find("Syntax Error") != std::string::npos || errMsg.find("syntax error") != std::string::npos) {
+        hint = "Check for matching brackets, parentheses, or correct operator usage.";
+    } else if (errMsg.find("Type Mismatch") != std::string::npos || errMsg.find("type mismatch") != std::string::npos) {
+        hint = "Ensure that the value assigned matches the declared type of the variable.";
+    } else if (errMsg.find("does not exist") != std::string::npos || errMsg.find("not found") != std::string::npos) {
+        hint = "Verify spelling or declare the variable/function before using it.";
+    } else {
+        hint = "Verify syntax structure or refer to the DarkBasic Pro language reference.";
+    }
+
+    // Generate formatted reports
+    std::string formattedReportClean = DiagnosticEngine::Format(loc, errMsg, hint, false);
+    std::string formattedReportColored = DiagnosticEngine::Format(loc, errMsg, hint, true);
+
+    // Output to stderr and logger
+    std::cerr << formattedReportColored;
+    DBP_ERROR("\n{}", formattedReportClean);
+
+    // Set internal compiler parser error
+    if (m_pParserErrorString == NULL) {
+        m_pParserErrorString = new CStr(const_cast<LPSTR>(formattedReportClean.c_str()));
+        m_bParserErrorExist = true;
+    }
+
+    // Append to accumulated error report for PATH_TEMPERRORFILE
+    AddErrorString(const_cast<LPSTR>(formattedReportClean.c_str()));
 
 	// Free usages
 	SAFE_DELETE(pLine);

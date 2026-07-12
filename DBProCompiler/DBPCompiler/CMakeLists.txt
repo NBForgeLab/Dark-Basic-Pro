@@ -30,6 +30,7 @@ set(LIB_SOURCES
     DebugInfo.cpp
     Declaration.cpp
     CodeGenVisitor.cpp
+    DiagnosticEngine.cpp
     EXEBlock.cpp
     Encryptor.cpp
     Error.cpp
