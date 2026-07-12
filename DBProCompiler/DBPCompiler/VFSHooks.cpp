@@ -1,5 +1,6 @@
 #include "VFSHooks.h"
 #include "MemoryPE.h"
+#include "TextConvert.h"
 #include <unordered_map>
 #include <algorithm>
 #include <iostream>
@@ -13,7 +14,7 @@ struct VFSStream {
 // Global Registry State
 static std::unordered_map<std::string, VFSFile> g_vfsMap;
 static std::unordered_map<HANDLE, VFSStream*> g_activeStreams;
-static DWORD g_nextHandleId = 0x80000000;
+static uintptr_t g_nextHandleId = 0x7F000000;
 static bool g_hookActive = false;
 
 static std::string to_lower(const std::string& str) {
@@ -31,7 +32,7 @@ static std::string get_filename_only(const std::string& path) {
 }
 
 static bool IsVFSHandle(HANDLE hFile) {
-    return ((DWORD)hFile & 0x80000000) != 0;
+    return g_activeStreams.find(hFile) != g_activeStreams.end();
 }
 
 void VFSRegistry::Register(const std::string& filename, const char* ptr, size_t size) {
@@ -52,94 +53,77 @@ void VFSRegistry::Clear() {
     g_vfsMap.clear();
 }
 
-// Inline Detour Structure
-struct HookState {
-    void* targetAddr = nullptr;
-    BYTE originalBytes[5];
-    BYTE hookBytes[5];
-    bool active = false;
-    
-    void Hook(void* target, void* hook) {
-        targetAddr = target;
-        memcpy(originalBytes, target, 5);
-        
-        hookBytes[0] = 0xE9; // Relative JMP
-        DWORD relativeOffset = (DWORD)hook - (DWORD)target - 5;
-        memcpy(&hookBytes[1], &relativeOffset, 4);
-        
-        Apply();
-    }
-    
-    void Apply() {
-        if (active || !targetAddr) return;
-        DWORD oldProtect;
-        VirtualProtect(targetAddr, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
-        memcpy(targetAddr, hookBytes, 5);
-        VirtualProtect(targetAddr, 5, oldProtect, &oldProtect);
-        active = true;
-    }
-    
-    void Remove() {
-        if (!active || !targetAddr) return;
-        DWORD oldProtect;
-        VirtualProtect(targetAddr, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
-        memcpy(targetAddr, originalBytes, 5);
-        VirtualProtect(targetAddr, 5, oldProtect, &oldProtect);
-        active = false;
-    }
-};
-
-static HookState hook_CreateFileW;
-static HookState hook_CreateFileA;
-static HookState hook_ReadFile;
-static HookState hook_GetFileSize;
-static HookState hook_SetFilePointer;
-static HookState hook_SetFilePointerEx;
-static HookState hook_CloseHandle;
-static HookState hook_GetProcAddress;
-
-// Detour API Hook Functions
+// Detour API Hook Functions (Resolved via IAT, no detouring overrides needed)
 HANDLE WINAPI Hook_CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
                                LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, 
                                DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+    if (!lpFileName) return INVALID_HANDLE_VALUE;
+
+    // VFS is read-only; fall back to disk if write or creation is requested
+    if ((dwDesiredAccess & (GENERIC_WRITE | FILE_WRITE_DATA | FILE_APPEND_DATA)) != 0 || 
+        dwCreationDisposition != OPEN_EXISTING) {
+        return CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
+                           dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+    }
+
     std::wstring ws(lpFileName);
-    std::string s(ws.begin(), ws.end());
-    std::string name = get_filename_only(s);
-    
+    std::string s = TextConvert::UTF16ToUTF8(ws);
+    std::replace(s.begin(), s.end(), '\\', '/');
+    std::string name = to_lower(s);
+    std::string baseName = to_lower(get_filename_only(s));
+
+    std::string matchedName = "";
     if (VFSRegistry::Exists(name)) {
-        const VFSFile* f = VFSRegistry::Get(name);
+        matchedName = name;
+    } else if (VFSRegistry::Exists(baseName)) {
+        matchedName = baseName;
+    }
+
+    if (!matchedName.empty()) {
+        const VFSFile* f = VFSRegistry::Get(matchedName);
         VFSStream* stream = new VFSStream{f->dataPtr, f->size, 0};
-        HANDLE hVFS = (HANDLE)g_nextHandleId++;
+        HANDLE hVFS = (HANDLE)(uintptr_t)g_nextHandleId++;
         g_activeStreams[hVFS] = stream;
         return hVFS;
     }
     
-    hook_CreateFileW.Remove();
-    HANDLE res = CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
-                             dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-    hook_CreateFileW.Apply();
-    return res;
+    return CreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
+                       dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
 HANDLE WINAPI Hook_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
                                LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, 
                                DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+    if (!lpFileName) return INVALID_HANDLE_VALUE;
+
+    if ((dwDesiredAccess & (GENERIC_WRITE | FILE_WRITE_DATA | FILE_APPEND_DATA)) != 0 || 
+        dwCreationDisposition != OPEN_EXISTING) {
+        return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
+                           dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+    }
+
     std::string s(lpFileName);
-    std::string name = get_filename_only(s);
-    
+    std::replace(s.begin(), s.end(), '\\', '/');
+    std::string name = to_lower(s);
+    std::string baseName = to_lower(get_filename_only(s));
+
+    std::string matchedName = "";
     if (VFSRegistry::Exists(name)) {
-        const VFSFile* f = VFSRegistry::Get(name);
+        matchedName = name;
+    } else if (VFSRegistry::Exists(baseName)) {
+        matchedName = baseName;
+    }
+
+    if (!matchedName.empty()) {
+        const VFSFile* f = VFSRegistry::Get(matchedName);
         VFSStream* stream = new VFSStream{f->dataPtr, f->size, 0};
-        HANDLE hVFS = (HANDLE)g_nextHandleId++;
+        HANDLE hVFS = (HANDLE)(uintptr_t)g_nextHandleId++;
         g_activeStreams[hVFS] = stream;
         return hVFS;
     }
     
-    hook_CreateFileA.Remove();
-    HANDLE res = CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
-                             dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-    hook_CreateFileA.Apply();
-    return res;
+    return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
+                       dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
 BOOL WINAPI Hook_ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, 
@@ -148,25 +132,19 @@ BOOL WINAPI Hook_ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToR
         auto it = g_activeStreams.find(hFile);
         if (it != g_activeStreams.end()) {
             VFSStream* stream = it->second;
-            if (stream->offset >= stream->size) {
-                if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
-                return TRUE;
+            DWORD readSize = nNumberOfBytesToRead;
+            if (stream->offset + readSize > stream->size) {
+                readSize = (DWORD)(stream->size - stream->offset);
             }
-            size_t toRead = nNumberOfBytesToRead;
-            if (stream->offset + toRead > stream->size) {
-                toRead = stream->size - stream->offset;
+            memcpy(lpBuffer, stream->dataPtr + stream->offset, readSize);
+            stream->offset += readSize;
+            if (lpNumberOfBytesRead) {
+                *lpNumberOfBytesRead = readSize;
             }
-            memcpy(lpBuffer, stream->dataPtr + stream->offset, toRead);
-            stream->offset += toRead;
-            if (lpNumberOfBytesRead) *lpNumberOfBytesRead = toRead;
             return TRUE;
         }
     }
-    
-    hook_ReadFile.Remove();
-    BOOL res = ReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
-    hook_ReadFile.Apply();
-    return res;
+    return ReadFile(hFile, lpBuffer, nNumberOfBytesToRead, lpNumberOfBytesRead, lpOverlapped);
 }
 
 DWORD WINAPI Hook_GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh) {
@@ -174,15 +152,13 @@ DWORD WINAPI Hook_GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh) {
         auto it = g_activeStreams.find(hFile);
         if (it != g_activeStreams.end()) {
             VFSStream* stream = it->second;
-            if (lpFileSizeHigh) *lpFileSizeHigh = 0;
+            if (lpFileSizeHigh) {
+                *lpFileSizeHigh = (DWORD)(stream->size >> 32);
+            }
             return (DWORD)stream->size;
         }
     }
-    
-    hook_GetFileSize.Remove();
-    DWORD res = GetFileSize(hFile, lpFileSizeHigh);
-    hook_GetFileSize.Apply();
-    return res;
+    return GetFileSize(hFile, lpFileSizeHigh);
 }
 
 DWORD WINAPI Hook_SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod) {
@@ -201,7 +177,7 @@ DWORD WINAPI Hook_SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDis
                 case FILE_END: newOffset = (LONGLONG)stream->size + distance; break;
             }
             if (newOffset < 0) newOffset = 0;
-            if (newOffset > (LONGLONG)stream->size) newOffset = stream->size;
+            if (newOffset > (LONGLONG)stream->size) newOffset = (LONGLONG)stream->size;
             stream->offset = (size_t)newOffset;
             if (lpDistanceToMoveHigh) {
                 *lpDistanceToMoveHigh = (LONG)(newOffset >> 32);
@@ -209,11 +185,7 @@ DWORD WINAPI Hook_SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDis
             return (DWORD)newOffset;
         }
     }
-    
-    hook_SetFilePointer.Remove();
-    DWORD res = SetFilePointer(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
-    hook_SetFilePointer.Apply();
-    return res;
+    return SetFilePointer(hFile, lDistanceToMove, lpDistanceToMoveHigh, dwMoveMethod);
 }
 
 BOOL WINAPI Hook_SetFilePointerEx(HANDLE hFile, LARGE_INTEGER liDistanceToMove, PLARGE_INTEGER lpNewFilePointer, DWORD dwMoveMethod) {
@@ -229,7 +201,7 @@ BOOL WINAPI Hook_SetFilePointerEx(HANDLE hFile, LARGE_INTEGER liDistanceToMove, 
                 case FILE_END: newOffset = (LONGLONG)stream->size + distance; break;
             }
             if (newOffset < 0) newOffset = 0;
-            if (newOffset > (LONGLONG)stream->size) newOffset = stream->size;
+            if (newOffset > (LONGLONG)stream->size) newOffset = (LONGLONG)stream->size;
             stream->offset = (size_t)newOffset;
             if (lpNewFilePointer) {
                 lpNewFilePointer->QuadPart = newOffset;
@@ -237,11 +209,7 @@ BOOL WINAPI Hook_SetFilePointerEx(HANDLE hFile, LARGE_INTEGER liDistanceToMove, 
             return TRUE;
         }
     }
-    
-    hook_SetFilePointerEx.Remove();
-    BOOL res = SetFilePointerEx(hFile, liDistanceToMove, lpNewFilePointer, dwMoveMethod);
-    hook_SetFilePointerEx.Apply();
-    return res;
+    return SetFilePointerEx(hFile, liDistanceToMove, lpNewFilePointer, dwMoveMethod);
 }
 
 BOOL WINAPI Hook_CloseHandle(HANDLE hObject) {
@@ -253,76 +221,70 @@ BOOL WINAPI Hook_CloseHandle(HANDLE hObject) {
             return TRUE;
         }
     }
-    
-    hook_CloseHandle.Remove();
-    BOOL res = CloseHandle(hObject);
-    hook_CloseHandle.Apply();
-    return res;
+    return CloseHandle(hObject);
 }
 
 FARPROC WINAPI Hook_GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
     if (MemoryPE::IsMemoryModule(hModule)) {
         return MemoryPE::GetProcAddress(hModule, lpProcName);
     }
-    hook_GetProcAddress.Remove();
-    FARPROC res = GetProcAddress(hModule, lpProcName);
-    hook_GetProcAddress.Apply();
-    return res;
+    return GetProcAddress(hModule, lpProcName);
 }
 
-// Global Hook Management
+HMODULE WINAPI Hook_LoadLibraryA(LPCSTR lpLibFileName) {
+    if (!lpLibFileName) return nullptr;
+    std::string s(lpLibFileName);
+    std::replace(s.begin(), s.end(), '\\', '/');
+    std::string name = to_lower(s);
+    std::string baseName = to_lower(get_filename_only(s));
+    
+    std::string matchedName = "";
+    if (VFSRegistry::Exists(name)) {
+        matchedName = name;
+    } else if (VFSRegistry::Exists(baseName)) {
+        matchedName = baseName;
+    }
+    
+    if (!matchedName.empty()) {
+        HMODULE hMod = MemoryPE::LoadFromVFS(matchedName);
+        if (hMod) return hMod;
+    }
+    return LoadLibraryA(lpLibFileName);
+}
+
+HMODULE WINAPI Hook_LoadLibraryW(LPCWSTR lpLibFileName) {
+    if (!lpLibFileName) return nullptr;
+    std::wstring ws(lpLibFileName);
+    std::string s = TextConvert::UTF16ToUTF8(ws);
+    std::replace(s.begin(), s.end(), '\\', '/');
+    std::string name = to_lower(s);
+    std::string baseName = to_lower(get_filename_only(s));
+    
+    std::string matchedName = "";
+    if (VFSRegistry::Exists(name)) {
+        matchedName = name;
+    } else if (VFSRegistry::Exists(baseName)) {
+        matchedName = baseName;
+    }
+    
+    if (!matchedName.empty()) {
+        HMODULE hMod = MemoryPE::LoadFromVFS(matchedName);
+        if (hMod) return hMod;
+    }
+    return LoadLibraryW(lpLibFileName);
+}
+
+// Global Hook Management (Empty initialization as we now use IAT redirection)
 bool VFSHooks::Initialize() {
-    if (g_hookActive) return true;
-    
-    HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
-    if (!hKernel32) return false;
-    
-    void* pCreateFileW = (void*)GetProcAddress(hKernel32, "CreateFileW");
-    void* pCreateFileA = (void*)GetProcAddress(hKernel32, "CreateFileA");
-    void* pReadFile = (void*)GetProcAddress(hKernel32, "ReadFile");
-    void* pGetFileSize = (void*)GetProcAddress(hKernel32, "GetFileSize");
-    void* pSetFilePointer = (void*)GetProcAddress(hKernel32, "SetFilePointer");
-    void* pSetFilePointerEx = (void*)GetProcAddress(hKernel32, "SetFilePointerEx");
-    void* pCloseHandle = (void*)GetProcAddress(hKernel32, "CloseHandle");
-    void* pGetProcAddress = (void*)GetProcAddress(hKernel32, "GetProcAddress");
-    
-    if (!pCreateFileW || !pCreateFileA || !pReadFile || !pGetFileSize || !pSetFilePointer || !pCloseHandle || !pGetProcAddress) {
-        return false;
-    }
-    
-    hook_CreateFileW.Hook(pCreateFileW, (void*)Hook_CreateFileW);
-    hook_CreateFileA.Hook(pCreateFileA, (void*)Hook_CreateFileA);
-    hook_ReadFile.Hook(pReadFile, (void*)Hook_ReadFile);
-    hook_GetFileSize.Hook(pGetFileSize, (void*)Hook_GetFileSize);
-    hook_SetFilePointer.Hook(pSetFilePointer, (void*)Hook_SetFilePointer);
-    if (pSetFilePointerEx) {
-        hook_SetFilePointerEx.Hook(pSetFilePointerEx, (void*)Hook_SetFilePointerEx);
-    }
-    hook_CloseHandle.Hook(pCloseHandle, (void*)Hook_CloseHandle);
-    hook_GetProcAddress.Hook(pGetProcAddress, (void*)Hook_GetProcAddress);
-    
     g_hookActive = true;
     return true;
 }
 
 void VFSHooks::Shutdown() {
-    if (!g_hookActive) return;
-    
-    hook_CreateFileW.Remove();
-    hook_CreateFileA.Remove();
-    hook_ReadFile.Remove();
-    hook_GetFileSize.Remove();
-    hook_SetFilePointer.Remove();
-    hook_SetFilePointerEx.Remove();
-    hook_CloseHandle.Remove();
-    hook_GetProcAddress.Remove();
-    
-    // Clear active streams
     for (auto it : g_activeStreams) {
         delete it.second;
     }
     g_activeStreams.clear();
-    
     g_hookActive = false;
 }
 

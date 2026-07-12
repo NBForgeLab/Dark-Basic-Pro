@@ -8,12 +8,20 @@
 
 class DBPLogger {
 public:
-    static void Initialize(const std::string& logFilePath) {
+    static void Initialize(const std::string& logFilePath, bool bJsonMode = false) {
         try {
-            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            std::vector<spdlog::sink_ptr> sinks;
+            if (bJsonMode) {
+                // In JSON mode, route all logger outputs to stderr to keep stdout clean for JSON messages
+                auto console_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+                sinks.push_back(console_sink);
+            } else {
+                auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+                sinks.push_back(console_sink);
+            }
             auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath, true);
+            sinks.push_back(file_sink);
 
-            std::vector<spdlog::sink_ptr> sinks { console_sink, file_sink };
             auto logger = std::make_shared<spdlog::logger>("dbp_compiler", sinks.begin(), sinks.end());
             
             spdlog::set_default_logger(logger);

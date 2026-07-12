@@ -27,13 +27,21 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)data;
     if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE) return nullptr;
     
-    if (size < dosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS)) return nullptr;
+    if (dosHeader->e_lfanew < 0 || (size_t)dosHeader->e_lfanew > size - sizeof(IMAGE_NT_HEADERS)) return nullptr;
     IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)(data + dosHeader->e_lfanew);
     if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) return nullptr;
     
-    // Allocate memory for image
+    if (ntHeaders->OptionalHeader.SizeOfHeaders > size) return nullptr;
+    if (ntHeaders->OptionalHeader.SizeOfHeaders < sizeof(IMAGE_DOS_HEADER) + sizeof(IMAGE_NT_HEADERS)) return nullptr;
+    if (ntHeaders->FileHeader.NumberOfSections > 96) return nullptr;
+
+    size_t sectionTableOffset = dosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS);
+    size_t sectionTableSize = ntHeaders->FileHeader.NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+    if (sectionTableOffset + sectionTableSize > ntHeaders->OptionalHeader.SizeOfHeaders) return nullptr;
+
+    // Allocate memory for image (initially PAGE_READWRITE for mapping and patching)
     BYTE* baseAddress = (BYTE*)VirtualAlloc(nullptr, ntHeaders->OptionalHeader.SizeOfImage, 
-                                            MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+                                            MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!baseAddress) return nullptr;
     
     // Copy headers
@@ -46,6 +54,15 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(destNtHeaders);
     for (int i = 0; i < destNtHeaders->FileHeader.NumberOfSections; i++, section++) {
         if (section->SizeOfRawData == 0) continue;
+        if (section->PointerToRawData > size || section->SizeOfRawData > size - section->PointerToRawData) {
+            VirtualFree(baseAddress, 0, MEM_RELEASE);
+            return nullptr;
+        }
+        if (section->VirtualAddress > destNtHeaders->OptionalHeader.SizeOfImage || 
+            section->SizeOfRawData > destNtHeaders->OptionalHeader.SizeOfImage - section->VirtualAddress) {
+            VirtualFree(baseAddress, 0, MEM_RELEASE);
+            return nullptr;
+        }
         BYTE* destSection = baseAddress + section->VirtualAddress;
         memcpy(destSection, data + section->PointerToRawData, section->SizeOfRawData);
     }
@@ -53,22 +70,42 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     // Apply base relocations
     IMAGE_DATA_DIRECTORY* relocDir = &destNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
     if (relocDir->Size > 0) {
+        if (relocDir->VirtualAddress > destNtHeaders->OptionalHeader.SizeOfImage || 
+            relocDir->Size > destNtHeaders->OptionalHeader.SizeOfImage - relocDir->VirtualAddress) {
+            VirtualFree(baseAddress, 0, MEM_RELEASE);
+            return nullptr;
+        }
         DWORD_PTR delta = (DWORD_PTR)(baseAddress - destNtHeaders->OptionalHeader.ImageBase);
         if (delta != 0) {
             IMAGE_BASE_RELOCATION* reloc = (IMAGE_BASE_RELOCATION*)(baseAddress + relocDir->VirtualAddress);
-            while (reloc->VirtualAddress != 0) {
-                DWORD size = reloc->SizeOfBlock;
+            size_t parsedBytes = 0;
+            while (reloc->VirtualAddress != 0 && parsedBytes < relocDir->Size) {
+                DWORD sizeOfBlock = reloc->SizeOfBlock;
+                if (sizeOfBlock == 0 || sizeOfBlock < sizeof(IMAGE_BASE_RELOCATION)) {
+                    VirtualFree(baseAddress, 0, MEM_RELEASE);
+                    return nullptr;
+                }
+                if (parsedBytes + sizeOfBlock > relocDir->Size) {
+                    VirtualFree(baseAddress, 0, MEM_RELEASE);
+                    return nullptr;
+                }
                 WORD* relInfo = (WORD*)((BYTE*)reloc + sizeof(IMAGE_BASE_RELOCATION));
-                DWORD count = (size - sizeof(IMAGE_BASE_RELOCATION)) / 2;
+                DWORD count = (sizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / 2;
                 for (DWORD i = 0; i < count; i++) {
                     WORD type = relInfo[i] >> 12;
                     WORD offset = relInfo[i] & 0x0FFF;
                     if (type == IMAGE_REL_BASED_HIGHLOW) {
-                        DWORD* patchAddr = (DWORD*)(baseAddress + reloc->VirtualAddress + offset);
+                        DWORD rva = reloc->VirtualAddress + offset;
+                        if (rva + 4 > destNtHeaders->OptionalHeader.SizeOfImage) {
+                            VirtualFree(baseAddress, 0, MEM_RELEASE);
+                            return nullptr;
+                        }
+                        DWORD* patchAddr = (DWORD*)(baseAddress + rva);
                         *patchAddr += (DWORD)delta;
                     }
                 }
-                reloc = (IMAGE_BASE_RELOCATION*)((BYTE*)reloc + size);
+                parsedBytes += sizeOfBlock;
+                reloc = (IMAGE_BASE_RELOCATION*)((BYTE*)reloc + sizeOfBlock);
             }
         }
     }
@@ -76,9 +113,27 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     // Resolve imports
     IMAGE_DATA_DIRECTORY* importDir = &destNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
     if (importDir->Size > 0) {
+        if (importDir->VirtualAddress > destNtHeaders->OptionalHeader.SizeOfImage || 
+            importDir->Size > destNtHeaders->OptionalHeader.SizeOfImage - importDir->VirtualAddress) {
+            VirtualFree(baseAddress, 0, MEM_RELEASE);
+            return nullptr;
+        }
         IMAGE_IMPORT_DESCRIPTOR* importDesc = (IMAGE_IMPORT_DESCRIPTOR*)(baseAddress + importDir->VirtualAddress);
-        while (importDesc->Name != 0) {
+        size_t parsedDescBytes = 0;
+        HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+        while (parsedDescBytes + sizeof(IMAGE_IMPORT_DESCRIPTOR) <= importDir->Size && importDesc->Name != 0) {
+            if (importDesc->Name > destNtHeaders->OptionalHeader.SizeOfImage) {
+                VirtualFree(baseAddress, 0, MEM_RELEASE);
+                return nullptr;
+            }
             const char* dllName = (const char*)(baseAddress + importDesc->Name);
+            size_t maxDllNameLen = destNtHeaders->OptionalHeader.SizeOfImage - importDesc->Name;
+            size_t dllNameLen = 0;
+            while (dllNameLen < maxDllNameLen && dllName[dllNameLen] != '\0') dllNameLen++;
+            if (dllNameLen == maxDllNameLen) {
+                VirtualFree(baseAddress, 0, MEM_RELEASE);
+                return nullptr;
+            }
             
             // Check VFS first
             HMODULE hImport = LoadFromVFS(dllName);
@@ -91,9 +146,20 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
                 return nullptr;
             }
             
+            bool isKernel32 = (hImport == hKernel32);
+            
+            if (importDesc->FirstThunk > destNtHeaders->OptionalHeader.SizeOfImage) {
+                VirtualFree(baseAddress, 0, MEM_RELEASE);
+                return nullptr;
+            }
             IMAGE_THUNK_DATA* thunk = (IMAGE_THUNK_DATA*)(baseAddress + importDesc->FirstThunk);
             IMAGE_THUNK_DATA* origThunk = importDesc->OriginalFirstThunk ? 
                 (IMAGE_THUNK_DATA*)(baseAddress + importDesc->OriginalFirstThunk) : thunk;
+            
+            if ((BYTE*)origThunk < baseAddress || (BYTE*)origThunk > baseAddress + destNtHeaders->OptionalHeader.SizeOfImage) {
+                VirtualFree(baseAddress, 0, MEM_RELEASE);
+                return nullptr;
+            }
                 
             while (origThunk->u1.AddressOfData != 0) {
                 FARPROC proc = nullptr;
@@ -101,8 +167,30 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
                     LPCSTR ordinal = (LPCSTR)IMAGE_ORDINAL(origThunk->u1.Ordinal);
                     proc = IsMemoryModule(hImport) ? GetProcAddress(hImport, ordinal) : ::GetProcAddress(hImport, ordinal);
                 } else {
+                    if (origThunk->u1.AddressOfData > destNtHeaders->OptionalHeader.SizeOfImage) {
+                        VirtualFree(baseAddress, 0, MEM_RELEASE);
+                        return nullptr;
+                    }
                     IMAGE_IMPORT_BY_NAME* importName = (IMAGE_IMPORT_BY_NAME*)(baseAddress + origThunk->u1.AddressOfData);
-                    proc = IsMemoryModule(hImport) ? GetProcAddress(hImport, importName->Name) : ::GetProcAddress(hImport, importName->Name);
+                    const char* funcName = (const char*)importName->Name;
+                    
+                    // IAT Redirection / Hook Interception for memory loaded modules
+                    if (isKernel32) {
+                        if (strcmp(funcName, "CreateFileW") == 0) proc = (FARPROC)Hook_CreateFileW;
+                        else if (strcmp(funcName, "CreateFileA") == 0) proc = (FARPROC)Hook_CreateFileA;
+                        else if (strcmp(funcName, "ReadFile") == 0) proc = (FARPROC)Hook_ReadFile;
+                        else if (strcmp(funcName, "GetFileSize") == 0) proc = (FARPROC)Hook_GetFileSize;
+                        else if (strcmp(funcName, "SetFilePointer") == 0) proc = (FARPROC)Hook_SetFilePointer;
+                        else if (strcmp(funcName, "SetFilePointerEx") == 0) proc = (FARPROC)Hook_SetFilePointerEx;
+                        else if (strcmp(funcName, "CloseHandle") == 0) proc = (FARPROC)Hook_CloseHandle;
+                        else if (strcmp(funcName, "GetProcAddress") == 0) proc = (FARPROC)Hook_GetProcAddress;
+                        else if (strcmp(funcName, "LoadLibraryA") == 0) proc = (FARPROC)Hook_LoadLibraryA;
+                        else if (strcmp(funcName, "LoadLibraryW") == 0) proc = (FARPROC)Hook_LoadLibraryW;
+                    }
+                    
+                    if (!proc) {
+                        proc = IsMemoryModule(hImport) ? GetProcAddress(hImport, funcName) : ::GetProcAddress(hImport, funcName);
+                    }
                 }
                 
                 if (!proc) {
@@ -115,6 +203,35 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
                 origThunk++;
             }
             importDesc++;
+            parsedDescBytes += sizeof(IMAGE_IMPORT_DESCRIPTOR);
+        }
+    }
+    
+    // Apply dynamic section permissions (W^X & DEP Protection)
+    {
+        DWORD oldProtect;
+        // Protect headers first (Read-only)
+        VirtualProtect(baseAddress, destNtHeaders->OptionalHeader.SizeOfHeaders, PAGE_READONLY, &oldProtect);
+        
+        // Protect each section based on characteristics
+        IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(destNtHeaders);
+        for (int i = 0; i < destNtHeaders->FileHeader.NumberOfSections; i++, sec++) {
+            if (sec->SizeOfRawData == 0) continue;
+            DWORD protect = PAGE_NOACCESS;
+            bool isExecutable = (sec->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
+            bool isReadable = (sec->Characteristics & IMAGE_SCN_MEM_READ) != 0;
+            bool isWritable = (sec->Characteristics & IMAGE_SCN_MEM_WRITE) != 0;
+            
+            if (isExecutable) {
+                if (isWritable) protect = PAGE_EXECUTE_READWRITE;
+                else if (isReadable) protect = PAGE_EXECUTE_READ;
+                else protect = PAGE_EXECUTE;
+            } else {
+                if (isWritable) protect = PAGE_READWRITE;
+                else if (isReadable) protect = PAGE_READONLY;
+                else protect = PAGE_NOACCESS;
+            }
+            VirtualProtect(baseAddress + sec->VirtualAddress, sec->SizeOfRawData, protect, &oldProtect);
         }
     }
     

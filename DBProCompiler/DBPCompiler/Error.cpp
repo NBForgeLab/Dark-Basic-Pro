@@ -685,16 +685,21 @@ bool g_bJsonDiagnostics = false;
 std::string EscapeJSON(const std::string& str) {
     std::string res;
     for (char c : str) {
-        if (c == '\\') {
+        unsigned char uc = (unsigned char)c;
+        if (uc == '\\') {
             res += "\\\\";
-        } else if (c == '"') {
+        } else if (uc == '"') {
             res += "\\\"";
-        } else if (c == '\n') {
+        } else if (uc == '\n') {
             res += "\\n";
-        } else if (c == '\t') {
+        } else if (uc == '\t') {
             res += "\\t";
-        } else if (c == '\r') {
+        } else if (uc == '\r') {
             res += "\\r";
+        } else if (uc < 0x20) {
+            char buf[8];
+            sprintf_s(buf, "\\u%04x", uc);
+            res += buf;
         } else {
             res += c;
         }
@@ -727,7 +732,7 @@ std::vector<std::string> ParseCommandLine(const std::string& cmdLine) {
 
 void ReportStatus(const std::string& stage, const std::string& message) {
     if (g_bJsonDiagnostics) {
-        std::cout << "{\"type\":\"status\",\"stage\":\"" << stage 
+        std::cout << "{\"type\":\"status\",\"stage\":\"" << EscapeJSON(stage) 
                   << "\",\"message\":\"" << EscapeJSON(message) << "\"}\n" << std::flush;
     } else {
         std::cout << "[" << stage << "] " << message << "\n" << std::flush;

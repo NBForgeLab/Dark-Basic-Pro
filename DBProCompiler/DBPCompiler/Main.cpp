@@ -510,17 +510,26 @@ void PrintHelp() {
 // Program Code
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	// Initialize logger
-	DBPLogger::Initialize("dbp.log");
-	DBP_INFO("DarkBasic Pro Compiler initialized.");
+	// Parse command line early using CommandLineToArgvW to configure logger & headless mode
+	bool bJsonMode = false;
+	int nEarlyArgs = 0;
+	LPWSTR* szEarlyArglist = CommandLineToArgvW(GetCommandLineW(), &nEarlyArgs);
+	if (szEarlyArglist != NULL) {
+		for (int i = 1; i < nEarlyArgs; i++) {
+			std::wstring argW(szEarlyArglist[i]);
+			if (argW == L"--json") {
+				bJsonMode = true;
+				g_bJsonDiagnostics = true;
+				db3::g_bHeadlessMode = true;
+				AttachConsole(ATTACH_PARENT_PROCESS);
+			}
+		}
+		LocalFree(szEarlyArglist);
+	}
 
-    // Check early if --json is specified to run in headless/silent mode
-    std::string rawCmdLine(lpCmdLine);
-    if (rawCmdLine.find("--json") != std::string::npos) {
-        g_bJsonDiagnostics = true;
-        db3::g_bHeadlessMode = true;
-        AttachConsole(ATTACH_PARENT_PROCESS);
-    }
+	// Initialize logger
+	DBPLogger::Initialize("dbp.log", bJsonMode);
+	DBP_INFO("DarkBasic Pro Compiler initialized.");
 
 #if _DEBUG
 	db3::CProfile<> prof("WinMain:Debug");
@@ -596,23 +605,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	 }
 	#endif
 
+	bool bOverallSuccess = false;
+
 	g_pDBPCompiler = new CDBPCompiler(g_ActualCompilerFilename);
 	if(g_pDBPCompiler)
 	{
-		std::vector<std::string> args = ParseCommandLine(lpCmdLine);
+		int nArgs = 0;
+		LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 		std::string projectPath = "";
-		for (size_t i = 0; i < args.size(); i++) {
-			if (args[i] == "--json") {
-				g_bJsonDiagnostics = true;
-				AttachConsole(ATTACH_PARENT_PROCESS);
-			} else if (args[i] == "--help" || args[i] == "-h") {
-				PrintHelp();
-				SAFE_DELETE(g_pDBPCompiler);
-				SAFE_DELETE(g_pErrorReport);
-				return 0;
-			} else {
-				projectPath = args[i];
+		if (szArglist != NULL) {
+			for (int i = 1; i < nArgs; i++) {
+				std::wstring argW(szArglist[i]);
+				std::string argStr = TextConvert::UTF16ToUTF8(argW);
+				if (argStr == "--json") {
+					g_bJsonDiagnostics = true;
+					db3::g_bHeadlessMode = true;
+				} else if (argStr == "--help" || argStr == "-h") {
+					PrintHelp();
+					LocalFree(szArglist);
+					SAFE_DELETE(g_pDBPCompiler);
+					SAFE_DELETE(g_pErrorReport);
+					return 0;
+				} else {
+					projectPath = argStr;
+				}
 			}
+			LocalFree(szArglist);
 		}
 
 		if (projectPath.empty()) {
@@ -709,31 +727,37 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					// restore previous directory before proceeding
 					_chdir ( pStoreCurrentFolder );
 
+					bool bCompileStepsSuccess = true;
+
 					// Read in Project File
+					if (bCompileStepsSuccess)
 					{
 						ReportStatus("project_load", "Loading project file...");
 						db3::CProfile<> prof("CDBPCompiler::LoadProjectFile");
-						g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
+						bCompileStepsSuccess = g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
 					}
 
 					// Load in all data from fields
+					if (bCompileStepsSuccess)
 					{
 						ReportStatus("project_fields", "Loading project configuration fields...");
 						db3::CProfile<> prof("CDBPCompiler::GetAllProjectFields");
-						g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
+						bCompileStepsSuccess = g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
 					}
 
 					// Prepare Compiler With Debug Info
+					if (bCompileStepsSuccess)
 					{
 						db3::CProfile<> prof("CDBPCompiler::SetDebugMode");
 						g_DebugInfo.SetDebugMode(g_pDBPCompiler->GetDebugMode(), hInstance);
 					}
 
 					// Create EXE from DBA Filename
+					if (bCompileStepsSuccess)
 					{
 						ReportStatus("compile_start", "Compiling project source files...");
 						db3::CProfile<> prof("CDBPCompiler::PerformCompileOnProject");
-						g_pDBPCompiler->PerformCompileOnProject();
+						bCompileStepsSuccess = g_pDBPCompiler->PerformCompileOnProject();
 					}
 
 					// Free usages
@@ -742,13 +766,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 						g_pDBPCompiler->FreeProjectFile();
 					}
 
-					if (g_pErrorReport && g_pErrorReport->IsError()) {
-						if (g_bJsonDiagnostics) {
+					if (bCompileStepsSuccess && !(g_pErrorReport && g_pErrorReport->IsError())) {
+						ReportStatus("success", "Compilation finished successfully.");
+						bOverallSuccess = true;
+					} else {
+						if (g_bJsonDiagnostics && g_pErrorReport) {
 							std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(g_pErrorReport->GetParserErrorString()) << "\"}\n" << std::flush;
 						}
 						ReportStatus("failed", "Compilation failed.");
-					} else {
-						ReportStatus("success", "Compilation finished successfully.");
 					}
 				}
 				else
@@ -798,10 +823,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	// Determine exit code
-	int exitCode = 0;
-	if (g_pErrorReport && g_pErrorReport->IsError()) {
-		exitCode = 1;
-	}
+	int exitCode = bOverallSuccess ? 0 : 1;
 
 	// Delete Error Object
 	SAFE_DELETE(g_pErrorReport);

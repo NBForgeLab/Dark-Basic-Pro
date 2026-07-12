@@ -37,12 +37,15 @@ void CodeGenVisitor::Visit(ASTAssignmentNode* node) {
 
     // 3. Find variable information in symbol table
     CVarTable* pVar = g_pVarTable->FindVariable(NULL, const_cast<LPSTR>(node->m_varName.c_str()), 0);
-    DWORD dwType = 1; // Default to integer
-    DWORD dwOffset = 0;
-    if (pVar) {
-        dwType = pVar->GetVarTypeValue();
-        dwOffset = pVar->GetOffsetValue();
+    if (!pVar) {
+        extern CError* g_pErrorReport;
+        if (g_pErrorReport) {
+            g_pErrorReport->SetError(m_lineNumber, 100000 + 18, const_cast<LPSTR>(node->m_varName.c_str()));
+        }
+        return;
     }
+    DWORD dwType = pVar->GetVarTypeValue();
+    DWORD dwOffset = pVar->GetOffsetValue();
 
     // 4. Determine variable access mode and write EAX to variable
     CStr varName(const_cast<LPSTR>(node->m_varName.c_str()));

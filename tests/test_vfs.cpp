@@ -30,24 +30,24 @@ TEST(VFSHooksTest, InterceptFileOperations) {
     ASSERT_TRUE(VFSHooks::Initialize());
     EXPECT_TRUE(VFSHooks::IsHookActive());
 
-    // Attempt to open virtual file using standard Windows API
-    HANDLE hFile = CreateFileA("virtual_file.txt", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    // Attempt to open virtual file using VFS Hook directly
+    HANDLE hFile = Hook_CreateFileA("virtual_file.txt", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     ASSERT_NE(hFile, INVALID_HANDLE_VALUE);
 
     // Verify size
-    DWORD size = GetFileSize(hFile, NULL);
+    DWORD size = Hook_GetFileSize(hFile, NULL);
     EXPECT_EQ(size, testData.size());
 
     // Verify reading
     char buffer[100] = {0};
     DWORD bytesRead = 0;
-    BOOL readRes = ReadFile(hFile, buffer, testData.size(), &bytesRead, NULL);
+    BOOL readRes = Hook_ReadFile(hFile, buffer, testData.size(), &bytesRead, NULL);
     EXPECT_TRUE(readRes);
     EXPECT_EQ(bytesRead, testData.size());
     EXPECT_STREQ(buffer, testData.c_str());
 
     // Close handle
-    CloseHandle(hFile);
+    Hook_CloseHandle(hFile);
 
     // Shutdown hooks
     VFSHooks::Shutdown();
@@ -64,18 +64,18 @@ TEST(VFSHooksTest, FallbackToRealFile) {
     // Initialize hooks
     ASSERT_TRUE(VFSHooks::Initialize());
 
-    // Attempt to open the real file (not registered in VFS)
-    HANDLE hFile = CreateFileA(realFilename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    // Attempt to open the real file (not registered in VFS) via VFS Hook
+    HANDLE hFile = Hook_CreateFileA(realFilename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     ASSERT_NE(hFile, INVALID_HANDLE_VALUE);
 
     char buffer[100] = {0};
     DWORD bytesRead = 0;
-    BOOL readRes = ReadFile(hFile, buffer, 22, &bytesRead, NULL);
+    BOOL readRes = Hook_ReadFile(hFile, buffer, 22, &bytesRead, NULL);
     EXPECT_TRUE(readRes);
     EXPECT_EQ(bytesRead, 22);
     EXPECT_STREQ(buffer, "Real file data on disk");
 
-    CloseHandle(hFile);
+    Hook_CloseHandle(hFile);
     VFSHooks::Shutdown();
     std::remove(realFilename.c_str());
 }
@@ -101,9 +101,10 @@ TEST(MemoryPETest, LoadModuleAndResolveExports) {
     ASSERT_NE(hModule, nullptr);
     EXPECT_TRUE(MemoryPE::IsMemoryModule(hModule));
 
-    FARPROC pFunc = ::GetProcAddress(hModule, "Constructor");
+    // Must resolve exports via memory module resolver Hook_GetProcAddress or MemoryPE::GetProcAddress
+    FARPROC pFunc = Hook_GetProcAddress(hModule, "Constructor");
     if (!pFunc) {
-        pFunc = ::GetProcAddress(hModule, "MD5");
+        pFunc = Hook_GetProcAddress(hModule, "MD5");
     }
     EXPECT_NE(pFunc, nullptr);
 
