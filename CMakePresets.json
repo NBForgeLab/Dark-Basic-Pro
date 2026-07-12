@@ -1,0 +1,86 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-x86-base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "windows-x86-debug",
+      "inherits": "windows-x86-base",
+      "displayName": "Windows x86 Debug",
+      "description": "Compatibility baseline with compiler and CTest coverage"
+    },
+    {
+      "name": "windows-x86-asan",
+      "inherits": "windows-x86-base",
+      "displayName": "Windows x86 AddressSanitizer",
+      "description": "Compatibility baseline instrumented with MSVC AddressSanitizer",
+      "cacheVariables": {
+        "DBP_ENABLE_ASAN": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-x86-debug",
+      "configurePreset": "windows-x86-debug",
+      "configuration": "Debug",
+      "jobs": 8,
+      "targets": [
+        "DBPCompiler",
+        "DarkEXE",
+        "dbp_tests"
+      ]
+    },
+    {
+      "name": "windows-x86-asan",
+      "configurePreset": "windows-x86-asan",
+      "configuration": "Debug",
+      "jobs": 8,
+      "targets": [
+        "DBPCompiler",
+        "DarkEXE",
+        "dbp_tests"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-x86-debug",
+      "configurePreset": "windows-x86-debug",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-x86-asan",
+      "configurePreset": "windows-x86-asan",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      },
+      "environment": {
+        "ASAN_OPTIONS": "halt_on_error=1:detect_leaks=0"
+      }
+    }
+  ]
+}

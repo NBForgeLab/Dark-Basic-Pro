@@ -32,6 +32,15 @@ TEST(CStrTest, BasicOperationsAndMutators) {
     EXPECT_STREQ(s1.GetStr(), "DARKBASIC PRO!");
 }
 
+TEST(CStrTest, SetTextSupportsItsOwnBufferAsSource) {
+    CStr value("value");
+
+    value.SetText(value.GetStr());
+
+    EXPECT_STREQ(value.GetStr(), "value");
+    EXPECT_EQ(value.Length(), 5);
+}
+
 TEST(CStrTest, ParsingAndTypeChecks) {
     // Integer only value check
     CStr sInt("12345");

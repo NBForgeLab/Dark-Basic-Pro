@@ -75,11 +75,13 @@ endif()
 
 # Create static library to allow linking with tests
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
+dbp_apply_legacy_cpp_options(dbp_compiler_lib)
 target_compile_definitions(dbp_compiler_lib PRIVATE UNICODE _UNICODE)
 target_link_libraries(dbp_compiler_lib PUBLIC winmm spdlog::spdlog)
 target_include_directories(dbp_compiler_lib PUBLIC . icons ../TGCOnline)
 
 # Compile main executable linking to the compiler library
 add_executable(DBPCompiler WIN32 Main.cpp DBPCompiler.rc)
+dbp_apply_legacy_cpp_options(DBPCompiler)
 target_compile_definitions(DBPCompiler PRIVATE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)

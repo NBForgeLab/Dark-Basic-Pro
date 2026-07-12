@@ -1,6 +1,8 @@
 # CMake build directories
 /build/
+/out/
 /.cmake/
+CMakeUserPresets.json
 /.worktrees/
 
 # CMake output binaries
@@ -25,3 +27,10 @@
 *.exp
 *.tlog
 *.log
+
+# Visual C++ browser and incremental build databases
+*.sbr
+*.bsc
+*.idb
+*.ipdb
+*.iobj

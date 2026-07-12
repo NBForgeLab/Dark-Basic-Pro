@@ -5,6 +5,9 @@ set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Force Win32 Platform" FORCE)
 
 project(DarkBasicPro LANGUAGES C CXX ASM_MASM)
 
+include(CTest)
+include(cmake/ProjectOptions.cmake)
+
 # Enable SAFESEH for MASM on Win32
 if(MSVC)
     set(CMAKE_ASM_MASM_FLAGS "${CMAKE_ASM_MASM_FLAGS} /safeseh")
@@ -19,37 +22,69 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(MSVC)
-    add_compile_options(/EHsc /W3 /Zc:forScope-)
-endif()
-
-# Fetch and configure spdlog library
+# Dependency revisions are immutable commits corresponding to the upstream
+# v1.17.0 releases (Apache-2.0 for spdlog, BSD-3-Clause for GoogleTest).
 include(FetchContent)
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.12.0
+    GIT_TAG 79524ddd08a4ec981b7fea76afd08ee05f83755d
+    GIT_SHALLOW FALSE
+    GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable(spdlog)
+dbp_enable_parallel_msvc(spdlog)
+dbp_enable_sanitizers(spdlog)
 
 # مسارات مخرجات البناء الموحدة
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
-# التحقق من وجود مسار DirectX SDK (August 2007)
-if(DEFINED ENV{DXSDK_DIR})
-    set(DXSDK_INCLUDE_DIR "$ENV{DXSDK_DIR}/Include")
-    set(DXSDK_LIBRARY_DIR "$ENV{DXSDK_DIR}/Lib/x86")
-    message(STATUS "Found DirectX SDK (August 2007) via environment: $ENV{DXSDK_DIR}")
-elseif(EXISTS "${PROJECT_SOURCE_DIR}/../FPS-Creator-Classic/FPS Creator Editor/dxsdk")
-    set(DXSDK_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/../FPS-Creator-Classic/FPS Creator Editor/dxsdk/build/native/include")
-    set(DXSDK_LIBRARY_DIR "${PROJECT_SOURCE_DIR}/../FPS-Creator-Classic/FPS Creator Editor/dxsdk/build/native/release/lib/x86")
-    message(STATUS "Found DirectX SDK (August 2007) via sibling FPS-Creator-Classic dxsdk package.")
+# Resolve the legacy DirectX SDK without assuming this checkout is the primary
+# Git worktree. An explicit cache value always wins.
+set(DBP_DXSDK_ROOT "" CACHE PATH "DirectX SDK root or Microsoft.DXSDK.D3DX package root")
+
+if(NOT DBP_DXSDK_ROOT AND DEFINED ENV{DXSDK_DIR})
+    file(TO_CMAKE_PATH "$ENV{DXSDK_DIR}" DBP_DXSDK_ROOT)
+    message(STATUS "Using DirectX SDK from DXSDK_DIR: ${DBP_DXSDK_ROOT}")
+endif()
+
+if(NOT DBP_DXSDK_ROOT)
+    execute_process(
+        COMMAND git rev-parse --path-format=absolute --git-common-dir
+        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+        OUTPUT_VARIABLE DBP_GIT_COMMON_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(DBP_GIT_COMMON_DIR)
+        get_filename_component(DBP_REPOSITORY_ROOT "${DBP_GIT_COMMON_DIR}" DIRECTORY)
+        get_filename_component(DBP_REPOSITORY_PARENT "${DBP_REPOSITORY_ROOT}" DIRECTORY)
+        set(DBP_FPSC_DXSDK_CANDIDATE
+            "${DBP_REPOSITORY_PARENT}/FPS-Creator-Classic/FPS Creator Editor/dxsdk")
+        if(EXISTS "${DBP_FPSC_DXSDK_CANDIDATE}")
+            set(DBP_DXSDK_ROOT "${DBP_FPSC_DXSDK_CANDIDATE}")
+            message(STATUS "Using DirectX SDK package from sibling FPS Creator Classic checkout")
+        endif()
+    endif()
+endif()
+
+if(EXISTS "${DBP_DXSDK_ROOT}/Include")
+    set(DXSDK_INCLUDE_DIR "${DBP_DXSDK_ROOT}/Include")
+    set(DXSDK_LIBRARY_DIR "${DBP_DXSDK_ROOT}/Lib/x86")
+elseif(EXISTS "${DBP_DXSDK_ROOT}/build/native/include")
+    set(DXSDK_INCLUDE_DIR "${DBP_DXSDK_ROOT}/build/native/include")
+    set(DXSDK_LIBRARY_DIR "${DBP_DXSDK_ROOT}/build/native/release/lib/x86")
 else()
     set(DXSDK_INCLUDE_DIR "")
     set(DXSDK_LIBRARY_DIR "")
-    message(WARNING "DirectX SDK not found. Windows SDK defaults will be used.")
+    message(WARNING
+        "Legacy DirectX SDK not found. Set DBP_DXSDK_ROOT or DXSDK_DIR; "
+        "targets that include D3DX headers may not build.")
 endif()
 
 # مسارات التضمين العامة (Global Includes)
@@ -70,41 +105,22 @@ link_directories(
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 
-# Fetch Google Test
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/release-1.11.0.zip
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-# Target for testing (Google Test suite)
-add_executable(dbp_tests
-    tests/test_main.cpp
-    tests/test_logger.cpp
-    tests/test_vartable.cpp
-    tests/test_context.cpp
-    tests/test_str.cpp
-    tests/test_structural.cpp
-    tests/test_unicode.cpp
-    tests/test_raw_input.cpp
-    tests/test_ast.cpp
-    tests/test_diagnostics.cpp
-    tests/test_vfs.cpp
-    tests/test_cli.cpp
-    "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
-    "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
-    "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
-)
-target_link_libraries(dbp_tests PRIVATE
-    gtest
-    dbp_compiler_lib
-    spdlog::spdlog
-    xinput
-)
-target_link_options(dbp_tests PRIVATE /SAFESEH:NO)
-target_compile_definitions(dbp_tests PRIVATE DBP_TESTS_COMPILATION)
-target_include_directories(dbp_tests PRIVATE 
-    DBProCompiler/DBPCompiler
-    "Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
-)
+if(BUILD_TESTING)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723
+        GIT_SHALLOW FALSE
+        GIT_PROGRESS TRUE
+    )
+    FetchContent_MakeAvailable(googletest)
+    foreach(gtest_target IN ITEMS gtest gtest_main gmock gmock_main)
+        if(TARGET ${gtest_target})
+            dbp_enable_parallel_msvc(${gtest_target})
+            dbp_enable_sanitizers(${gtest_target})
+        endif()
+    endforeach()
+    add_subdirectory(tests)
+endif()
