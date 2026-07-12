@@ -6,6 +6,10 @@
 #include <condition_variable>
 #include <thread>
 #include <iostream>
+#include <vector>
+#include <deque>
+#include <memory>
+#include <chrono>
 
 #if _MSC_VER
 # include <intrin.h>
@@ -264,6 +268,22 @@ public:
 	}
 };
 
+class CCancellationToken {
+protected:
+	std::atomic<bool> m_cancelled;
+
+public:
+	inline CCancellationToken() : m_cancelled(false) {}
+	inline ~CCancellationToken() {}
+
+	inline void Cancel() {
+		m_cancelled.store(true);
+	}
+	inline bool IsCancelled() const {
+		return m_cancelled.load();
+	}
+};
+
 class CSignal {
 protected:
 	uint m_cur, m_exp;
@@ -340,7 +360,7 @@ public:
 		void *Parm;
 
 		CSignal *Sync;
-		SWork *Prev, *Next;
+		CCancellationToken *CancelToken;
 	};
 
 protected:
@@ -352,82 +372,58 @@ protected:
 
 	std::mutex m_lock;
 
-	SWork *m_liveWork;
-	SWork *m_deadWork;
+	std::deque<std::unique_ptr<SWork>> m_liveWork;
+	std::deque<std::unique_ptr<SWork>> m_deadWork;
 
-	std::thread m_threads[32];
+	std::vector<std::thread> m_threads;
 	uint m_numThreads;
 
-	inline void AddWork(SWork *&queue, SWork *item)
-	{
-		if (queue!=nullptr)
-		{
-			item->Next = queue;
-			item->Prev = queue->Prev;
-			queue->Prev->Next = item;
-			queue->Prev = item;
-		}
-		else
-		{
-			queue = item;
-			queue->Prev = item;
-			queue->Next = item;
-		}
-	}
-	inline SWork *RemoveWork(SWork *&queue)
-	{
-		SWork *item;
-
-		if (queue==nullptr)
-			return nullptr;
-
-		item = queue;
-
-		if (queue==queue->Next)
-		{
-			queue = nullptr;
-		}
-		else
-		{
-			queue->Next->Prev = queue->Prev;
-			queue->Prev->Next = queue->Next;
-			queue = queue->Next;
-		}
-
-		return item;
-	}
 	inline void ReserveDeadWork(uint count)
 	{
-		uint i;
-
-		for(i=0; i<count; i++)
-			AddWork(m_deadWork, new SWork);
+		for(uint i=0; i<count; i++) {
+			m_deadWork.push_back(std::make_unique<SWork>());
+		}
 	}
 
 	static inline void ThreadFunc_f(CWorkQueue* q)
 	{
-		SWork *w;
+		std::unique_ptr<SWork> w;
 
 		while(true)
 		{
 			{
 				std::unique_lock<std::mutex> lock(q->m_lock);
-				q->m_cv.wait(lock, [q]() { return q->m_terminate || q->m_liveWork != nullptr; });
+				q->m_cv.wait(lock, [q]() { return q->m_terminate || !q->m_liveWork.empty(); });
 
-				if (q->m_terminate && q->m_liveWork == nullptr)
+				if (q->m_terminate && q->m_liveWork.empty())
 				{
 					break;
 				}
 
-				w = q->RemoveWork(q->m_liveWork);
+				if (!q->m_liveWork.empty()) {
+					w = std::move(q->m_liveWork.front());
+					q->m_liveWork.pop_front();
+				} else {
+					w = nullptr;
+				}
 			}
 
 			if (w) {
-				w->Prev = nullptr;
-				w->Next = nullptr;
+				bool runTask = true;
+				if (w->CancelToken && w->CancelToken->IsCancelled()) {
+					runTask = false;
+				}
 
-				if (w->Func) {
+				if (runTask && w->Func) {
+					auto start = std::chrono::high_resolution_clock::now();
 					w->Func(w->Parm);
+					auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::high_resolution_clock::now() - start
+					).count();
+
+					if (elapsed > 200) {
+						std::cerr << "[WARNING] Slow task detected! Execution took " << elapsed << "ms" << std::endl;
+					}
 				}
 
 				if (w->Sync)
@@ -435,7 +431,7 @@ protected:
 
 				{
 					std::lock_guard<std::mutex> lock(q->m_lock);
-					q->AddWork(q->m_deadWork, w);
+					q->m_deadWork.push_back(std::move(w));
 				}
 			}
 		}
@@ -443,7 +439,7 @@ protected:
 
 public:
 	inline CWorkQueue()
-	: m_terminate(false), m_liveWork(nullptr), m_deadWork(nullptr), m_numThreads(0)
+	: m_terminate(false), m_numThreads(0)
 	{
 	}
 	inline ~CWorkQueue()
@@ -453,16 +449,13 @@ public:
 
 	inline bool Init(uint numThreads=0)
 	{
-		uint i;
-
-		m_liveWork = nullptr;
-		m_deadWork = nullptr;
+		m_terminate = false;
 
 		if (!numThreads)
 		{
 			numThreads = std::thread::hardware_concurrency();
 			if (numThreads == 0) numThreads = 4;
-			numThreads += numThreads/2; //optimal number of threads is about ~1.5 times the number of logical cores
+			numThreads += numThreads/2;
 		}
 
 		if (numThreads > 32)
@@ -470,12 +463,12 @@ public:
 		else if(numThreads < kMinimumThreads)
 			numThreads = kMinimumThreads;
 
-		m_terminate = false;
 		m_numThreads = numThreads;
 
-		for(i=0; i<numThreads; i++)
+		m_threads.clear();
+		for(uint i=0; i<numThreads; i++)
 		{
-			m_threads[i] = std::thread(ThreadFunc_f, this);
+			m_threads.emplace_back(ThreadFunc_f, this);
 		}
 
 		ReserveDeadWork(kInitialReserve);
@@ -483,46 +476,30 @@ public:
 	}
 	inline void Fini()
 	{
-		uint i;
-
 		{
 			std::lock_guard<std::mutex> lock(m_lock);
 			m_terminate = true;
 		}
 		m_cv.notify_all();
 
-		for(i=0; i<m_numThreads; i++)
+		for(auto& t : m_threads)
 		{
-			if (m_threads[i].joinable()) {
-				m_threads[i].join();
+			if (t.joinable()) {
+				t.join();
 			}
 		}
+		m_threads.clear();
 		m_numThreads = 0;
 
 		std::lock_guard<std::mutex> lock(m_lock);
-		SWork *const *heads[] = { &m_liveWork, &m_deadWork };
-		uint headIdx;
-
-		for(headIdx=0; headIdx<sizeof(heads)/sizeof(heads[0]); headIdx++)
-		{
-			SWork *item, *next;
-
-			item = *heads[headIdx];
-			while(item != nullptr)
-			{
-				next = item->Next;
-				delete item;
-				item = next!=*heads[headIdx] ? next : nullptr;
-			}
-		}
-		m_liveWork = nullptr;
-		m_deadWork = nullptr;
+		m_liveWork.clear();
+		m_deadWork.clear();
 	}
 
 	template<typename T>
-	inline bool Enqueue(void(*func)(T *), T *parm=nullptr, CSignal *signal=nullptr)
+	inline bool Enqueue(void(*func)(T *), T *parm=nullptr, CSignal *signal=nullptr, CCancellationToken *cancelToken=nullptr)
 	{
-		SWork *item;
+		std::unique_ptr<SWork> item;
 		bool r = false;
 
 		if (m_terminate)
@@ -530,20 +507,24 @@ public:
 
 		{
 			std::lock_guard<std::mutex> lock(m_lock);
-			if (m_deadWork)
-				item = RemoveWork(m_deadWork);
-			else
-				item = new SWork;
+			if (!m_deadWork.empty()) {
+				item = std::move(m_deadWork.front());
+				m_deadWork.pop_front();
+			} else {
+				item = std::make_unique<SWork>();
+			}
 
 			if (item != nullptr)
 			{
 				item->Func = reinterpret_cast<work_function_type>(func);
 				item->Parm = (void *)parm;
 				item->Sync = signal;
+				item->CancelToken = cancelToken;
+
 				if (signal)
 					signal->IncreaseTarget();
-				AddWork(m_liveWork, item);
 
+				m_liveWork.push_back(std::move(item));
 				r = true;
 			}
 		}

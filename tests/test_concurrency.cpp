@@ -68,4 +68,41 @@ TEST(ConcurrencyTest, CWorkQueueExecution) {
     EXPECT_EQ(g_workCounter.load(), 20);
 }
 
+TEST(ConcurrencyTest, TaskCancellation) {
+    CWorkQueue queue;
+    ASSERT_TRUE(queue.Init(2));
+
+    CCancellationToken token;
+    token.Cancel(); // Cancel before executing
+
+    std::atomic<bool> ran = false;
+    void (*func)(void*) = [](void* parm) {
+        auto pRan = static_cast<std::atomic<bool>*>(parm);
+        pRan->store(true);
+    };
+
+    CSignal signal;
+    signal.Reset(0);
+    // Queue should support an optional cancellation token parameter
+    queue.Enqueue(func, (void*)&ran, &signal, &token);
+
+    signal.Sync();
+    EXPECT_FALSE(ran.load());
+}
+
+TEST(ConcurrencyTest, SlowTaskDetection) {
+    CWorkQueue queue;
+    ASSERT_TRUE(queue.Init(2));
+
+    void (*slowFunc)(void*) = [](void* /*parm*/) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Takes > 200ms
+    };
+
+    CSignal signal;
+    signal.Reset(0);
+    queue.Enqueue(slowFunc, (void*)nullptr, &signal);
+
+    signal.Sync();
+}
+
 } // namespace db3
