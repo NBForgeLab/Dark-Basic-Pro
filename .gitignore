@@ -1,6 +1,7 @@
 # CMake build directories
 /build/
 /.cmake/
+/.worktrees/
 
 # CMake output binaries
 /bin/
