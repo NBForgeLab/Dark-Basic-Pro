@@ -2,8 +2,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-// Take protection code from TGC Online folder
-#include "..\\TGCOnline\\CertificateKey.h"
 
 // Includes
 #include "macros.h"
@@ -490,9 +488,6 @@ void CInstructionTable::ScanPluginsForCommands(void)
 	_getcwd(path, _MAX_PATH);
 	g_pDBPCompiler->SetInternalFile(PATH_CURRENTFOLDER, path);
 
-	// leefix - 011004 - set certificate, ready for verification of any licensed DLLs
-	_chdir(g_pDBPCompiler->GetInternalFile(PATH_ROOTPATH));
-	ReadLocalHWKey();
 
 	// Switch to PLUGINS Folder
 	_chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
@@ -1504,63 +1499,8 @@ LPSTR CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwData
 
 bool CInstructionTable::VerifyCertificateForPlugin ( LPSTR pDLLName, LPSTR pProductCode )
 {
-	// find product
-	int iProductIndex = FindIndexOfPluginByDLLName ( pDLLName );
-
-	// trial, 60day and full certificates
-	int iTrial = 0;
-	int i60Day = 1;
-	int iFull = 2;
-
-	// if not a recognised product, fail verify
-	if ( iProductIndex==-1 )
-	{
-		char buf[1024];
-
-		sprintf_s(buf, sizeof(buf), "Licensed Plugin \"%s\" is not recognised by compiler! "
-			"Visit www.thegamecreators.com for an update.", pDLLName);
-		MessageBoxW ( NULL, TextConvert::UTF8ToUTF16(buf).c_str(), L"Plugin Error", MB_OK );
-		return false;
-	}
-
-	// switch to compiler folder to check certificates
-	bool bResult = false;
-	char pStoreCurrentFolder [ _MAX_PATH ];
-	getcwd ( pStoreCurrentFolder, _MAX_PATH );
-	_chdir ( g_pDBPCompiler->GetInternalFile(PATH_ROOTPATH) );
-
-	// ensure product code matches internal product code
-	DWORD iThisProductCode = atoi ( pProductCode+17 );
-	int iTrialStatus = 0;
-	if ( g_pProductCodes [ iProductIndex ] == iThisProductCode )
-	{
-		// use Certificate Key System
-		iTrialStatus = AmIActive ( iProductIndex+iTrial, NULL );
-		if ( iTrialStatus==1
-		||	 AmIActive ( iProductIndex+i60Day, NULL )==1
-		||	 AmIActive ( iProductIndex+iFull,  NULL )==1 )
-		{
-			// plugin is valid
-			bResult = true;
-		}
-	}
-
-	// report failure to validate
-	/* keep silent for now!
-	if ( bResult==false )
-	{
-		if ( iTrialStatus==2 )
-			MessageBox ( NULL, "Licensed plugin trial has expired!", "Plugin Error", MB_OK );
-		else
-			MessageBox ( NULL, "Licensed plugin requires a valid certificate!", "Plugin Error", MB_OK );
-	}
-	*/
-
-	// restore current directory
-	_chdir ( pStoreCurrentFolder );
-
-	// plugin is invalid
-	return bResult;
+	// Certificate system removed - open-source project, all plugins allowed
+	return true;
 }
 //#define __AARON_DEBUG__ 1
 #define __AARON_COMMANDS__ 1

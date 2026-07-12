@@ -6,7 +6,6 @@ add_compile_definitions(
     WIN32
     _WINDOWS
     NOGETDXVERSIONCODE
-    ALWAYSCOMPILEMODE
 )
 
 if(MSVC)
@@ -60,7 +59,6 @@ set(LIB_SOURCES
     VarTable.cpp
     icons/DIB.C
     icons/ICONS.C
-    ../TGCOnline/CertificateKey.cpp
 )
 
 # Force MSVC to compile .C files as C instead of C++ and compile without UNICODE
@@ -70,7 +68,7 @@ if(MSVC)
         icons/ICONS.C
         PROPERTIES 
         COMPILE_FLAGS "/TC"
-        COMPILE_DEFINITIONS "WIN32;_WINDOWS;NOGETDXVERSIONCODE;ALWAYSCOMPILEMODE"
+        COMPILE_DEFINITIONS "WIN32;_WINDOWS;NOGETDXVERSIONCODE"
     )
 endif()
 

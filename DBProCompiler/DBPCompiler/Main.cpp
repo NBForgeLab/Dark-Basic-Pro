@@ -2,10 +2,6 @@
 // Main Compiler
 //
 
-// Protection System
-#define _CRT_SECURE_NO_DEPRECATE
-#include "..\\TGCOnline\\CertificateKey.h"
-
 // Common Includes
 #include "macros.h"
 #include "Windows.h"
@@ -657,158 +653,54 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			// Load All Required Internal Files
 			if(g_pDBPCompiler->EstablishRequiredBaseFiles())
 			{
-				// switch to compiler folder to check certificates
-				char pStoreCurrentFolder [ _MAX_PATH ];
-				_getcwd ( pStoreCurrentFolder, _MAX_PATH );
-				_chdir ( g_pDBPCompiler->GetInternalFile(PATH_ROOTPATH) );
+				// Certificate system removed - open-source project, always valid
+				bool bCompileStepsSuccess = true;
 
-				// trial, 60day and full certificates
-				int iTrial = 0;
-				int i60Day = 1;
-				int iFull = 2;
-
-				// trial period or certificate
-				bool bCompilerSessionValid = false;
-				#ifdef TRIALPERIOD
+				// Read in Project File
+				if (bCompileStepsSuccess)
 				{
-					// AGEIA TRIAL : August 2006 to November 2006
-					// NVIDIA TRIAL : October 2006 to March 2007
-
-					// Use Trial Period (forced trial period, i.e. Ageia)
-					struct tm *newtime;
-					time_t long_time;
-					time( &long_time );         
-					newtime = localtime( &long_time );
-
-					// if within trial range, okay, else shutdown!
-					bool bShutDown=true;
-					if ( newtime->tm_year>=(2006-1900) && newtime->tm_year<=(2007-1900) ) // Only 2006-2007
-						if ( ( newtime->tm_year==(2006-1900) && newtime->tm_mon>=9 )      // Only after OCT06(9)
-						||   ( newtime->tm_year==(2007-1900) && newtime->tm_mon<=2 ) )    // Only before MAR07(2)
-						{					
-							// the only valid period for the compiler to function
-							bCompilerSessionValid = true;
-							bShutDown=false;
-						}
-
-					// shut down will call a webpage if expired
-					if ( bShutDown==true )
-					{
-						if (!g_bJsonDiagnostics) {
-							// Go to HTTP
-							ShellExecute(	NULL,
-											"open",
-											"http://nvidia.thegamecreators.com/",
-											"",
-											"",
-											SW_SHOWDEFAULT);
-						}
-					}
+					ReportStatus("project_load", "Loading project file...");
+					db3::CProfile<> prof("CDBPCompiler::LoadProjectFile");
+					bCompileStepsSuccess = g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
 				}
-				#else
+
+				// Load in all data from fields
+				if (bCompileStepsSuccess)
 				{
-					// If special FPSC-OPENSOURCE version, allow compiler
-					#ifdef ALWAYSCOMPILEMODE
-						// Use always-allow compiler mode
-						bCompilerSessionValid = true;
-					#else
-						// Use Certificate Key System
-						ReadLocalHWKey();
-						if ( AmIActive ( iTrial, NULL )==1
-						||   AmIActive ( i60Day, NULL )==1
-						||   AmIActive ( iFull,  NULL )==1 )
-						{
-							bCompilerSessionValid = true;
-						}
-					#endif
+					ReportStatus("project_fields", "Loading project configuration fields...");
+					db3::CProfile<> prof("CDBPCompiler::GetAllProjectFields");
+					bCompileStepsSuccess = g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
 				}
-				#endif
 
-				// Valid or nay
-				if ( bCompilerSessionValid )
+				// Prepare Compiler With Debug Info
+				if (bCompileStepsSuccess)
 				{
-					// restore previous directory before proceeding
-					_chdir ( pStoreCurrentFolder );
-
-					bool bCompileStepsSuccess = true;
-
-					// Read in Project File
-					if (bCompileStepsSuccess)
-					{
-						ReportStatus("project_load", "Loading project file...");
-						db3::CProfile<> prof("CDBPCompiler::LoadProjectFile");
-						bCompileStepsSuccess = g_pDBPCompiler->LoadProjectFile(strProjectFilename.GetStr());
-					}
-
-					// Load in all data from fields
-					if (bCompileStepsSuccess)
-					{
-						ReportStatus("project_fields", "Loading project configuration fields...");
-						db3::CProfile<> prof("CDBPCompiler::GetAllProjectFields");
-						bCompileStepsSuccess = g_pDBPCompiler->GetAllProjectFields(strProjectFilename.GetStr());
-					}
-
-					// Prepare Compiler With Debug Info
-					if (bCompileStepsSuccess)
-					{
-						db3::CProfile<> prof("CDBPCompiler::SetDebugMode");
-						g_DebugInfo.SetDebugMode(g_pDBPCompiler->GetDebugMode(), hInstance);
-					}
-
-					// Create EXE from DBA Filename
-					if (bCompileStepsSuccess)
-					{
-						ReportStatus("compile_start", "Compiling project source files...");
-						db3::CProfile<> prof("CDBPCompiler::PerformCompileOnProject");
-						bCompileStepsSuccess = g_pDBPCompiler->PerformCompileOnProject();
-					}
-
-					// Free usages
-					{
-						db3::CProfile<> prof("CDBPCompiler::FreeProjectFile");
-						g_pDBPCompiler->FreeProjectFile();
-					}
-
-					if (bCompileStepsSuccess && !(g_pErrorReport && g_pErrorReport->IsError())) {
-						ReportStatus("success", "Compilation finished successfully.");
-						bOverallSuccess = true;
-					} else {
-						if (g_bJsonDiagnostics && g_pErrorReport) {
-							std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(g_pErrorReport->GetParserErrorString()) << "\"}\n" << std::flush;
-						}
-						ReportStatus("failed", "Compilation failed.");
-					}
+					db3::CProfile<> prof("CDBPCompiler::SetDebugMode");
+					g_DebugInfo.SetDebugMode(g_pDBPCompiler->GetDebugMode(), hInstance);
 				}
-				else
+
+				// Create EXE from DBA Filename
+				if (bCompileStepsSuccess)
 				{
-					if (g_bJsonDiagnostics) {
-						std::cout << "{\"type\":\"error\",\"message\":\"Invalid compiler key or certificate.\"}\n" << std::flush;
-					} else {
-						// Protection detected invalid certificate
-						// Launch TGCONLINE to explain why...
-						STARTUPINFO si;
-						PROCESS_INFORMATION pi;
-						ZeroMemory(&si, sizeof(STARTUPINFO));
-						si.cb=sizeof(STARTUPINFO);
-						ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-						wchar_t wFullLine[_MAX_PATH] = L"TGCOnline.exe";
-						if(CreateProcessW(	NULL, wFullLine,
-											NULL, NULL, false,
-											NORMAL_PRIORITY_CLASS,
-											NULL, NULL,	&si, &pi))
-						{
-							// Wait until fully loaded
-							WaitForInputIdle(pi.hProcess, 5000);
+					ReportStatus("compile_start", "Compiling project source files...");
+					db3::CProfile<> prof("CDBPCompiler::PerformCompileOnProject");
+					bCompileStepsSuccess = g_pDBPCompiler->PerformCompileOnProject();
+				}
 
-							// And wait for it to finish
-							DWORD uExitCode=0;
-							GetExitCodeProcess(pi.hProcess, &uExitCode);
-							while(uExitCode==STILL_ACTIVE) GetExitCodeProcess(pi.hProcess, &uExitCode);
-						}
+				// Free usages
+				{
+					db3::CProfile<> prof("CDBPCompiler::FreeProjectFile");
+					g_pDBPCompiler->FreeProjectFile();
+				}
+
+				if (bCompileStepsSuccess && !(g_pErrorReport && g_pErrorReport->IsError())) {
+					ReportStatus("success", "Compilation finished successfully.");
+					bOverallSuccess = true;
+				} else {
+					if (g_bJsonDiagnostics && g_pErrorReport) {
+						std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(g_pErrorReport->GetParserErrorString()) << "\"}\n" << std::flush;
 					}
-
-					// restore previous directory before proceeding
-					_chdir ( pStoreCurrentFolder );
+					ReportStatus("failed", "Compilation failed.");
 				}
 			}
 			else
