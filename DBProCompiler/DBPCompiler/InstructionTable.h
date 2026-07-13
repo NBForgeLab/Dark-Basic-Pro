@@ -288,7 +288,7 @@ class CInstructionTable
 		CInstructionTable();
 		virtual ~CInstructionTable();
 
-		void		ScanPluginsForCommands(void);
+		bool		ScanPluginsForCommands(void);
 		bool		LoadInstructionDatabase(void);
 		bool		DefineHardCodedCommand(void);
 		bool		SetInternalInstructionDatabase(void);

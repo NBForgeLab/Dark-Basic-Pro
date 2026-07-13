@@ -481,7 +481,7 @@ void CInstructionTable::ScanEnd(void)
 	Free();
 }
 
-void CInstructionTable::ScanPluginsForCommands(void)
+bool CInstructionTable::ScanPluginsForCommands(void)
 {
 	// Store current folder
 	char path[_MAX_PATH];
@@ -552,8 +552,19 @@ void CInstructionTable::ScanPluginsForCommands(void)
 	//sig.Sync();
 	*/
 
-	// For each DLL found, attempt to add it as a commandDLL
-	LoadCommandsFromDLL("core","dbprocore.dll");
+	// Read core commands from the selected core runtime. This is the same image
+	// that packaging embeds, so decorated command names cannot drift.
+	const auto* runtimeBundle = g_pDBPCompiler->GetResolvedRuntimeBundle();
+	if(runtimeBundle == nullptr ||
+		_chdir(runtimeBundle->pluginsDirectory.string().c_str()) != 0 ||
+		!LoadCommandsFromDLL("core","dbprocore.dll"))
+	{
+		_chdir(g_pDBPCompiler->GetInternalFile(PATH_CURRENTFOLDER));
+		return false;
+	}
+	_chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
+
+	// The remaining DLLs belong to the host product's command surface.
 	LoadCommandsFromDLL("display","DBProSetupDebug.dll");
 	LoadCommandsFromDLL("text","DBProTextDebug.dll");
 	LoadCommandsFromDLL("image","DBProImageDebug.dll");
@@ -594,15 +605,13 @@ void CInstructionTable::ScanPluginsForCommands(void)
 
 	// Switch back to current folder
 	_chdir(g_pDBPCompiler->GetInternalFile(PATH_CURRENTFOLDER));
+	return true;
 }
 
 bool CInstructionTable::LoadInstructionDatabase(void)
 {
 	// Scan Available DLLs for Command Names (this will be a plugin traversal)
-	ScanPluginsForCommands();
-
-	// Complete
-	return true;
+	return ScanPluginsForCommands();
 }
 
 bool CInstructionTable::AddCommand(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax)

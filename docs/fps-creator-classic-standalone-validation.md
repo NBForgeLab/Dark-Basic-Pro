@@ -29,8 +29,31 @@ the source buffer, and the DBM writer copied two bytes beyond each input line.
 Example:
 
 ```powershell
-DBPCompiler.exe --json "D:\path\to\FPSC-MapEditor (english).dbpro"
+DBPCompiler.exe --json `
+  --runtime-root "D:\path\to\modern\Compiler" `
+  "D:\path\to\FPSC-MapEditor (english).dbpro"
 ```
+
+## Runtime compatibility
+
+FPSC carries a product-specific DBPro command surface. Replacing its complete
+`plugins` tree with a newer generic DBPro tree is not compatible: commands such
+as `SET STATIC PORTALS` moved between plugin products over time. Conversely,
+compiling against the old core and packaging a new core creates invalid command
+references (for example the old decorated `?AbsFF@@YAKM@Z` versus the modern
+stable `AbsFF` export).
+
+The compiler therefore applies the selected runtime as a component overlay:
+
+- command metadata for `DBProCore.dll`, the packaged `DBProCore.dll`, and core
+  effects come from `--runtime-root`;
+- all other official, user, and licensed command DLLs remain sourced from the
+  compiler host installation (the FPSC distribution in this validation).
+
+The runtime is resolved and its baseline ABI is validated before instruction
+discovery. Programs that emit structure metadata receive the stricter
+`CoreStructurePatternsV1` validation before packaging. This preserves FPSC's
+language surface without allowing a mixed Core command table/runtime binary.
 
 `FPSCREATOR.dbpro` should not be repaired by guessing an include list. It needs
 to be assigned a concrete product target (game, map editor, or screens) and then

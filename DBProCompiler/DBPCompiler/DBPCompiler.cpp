@@ -2035,6 +2035,14 @@ LPSTR CDBPCompiler::GetWord ( int iID )
 
 bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 {
+	// Resolve the runtime before command discovery so the instruction table and
+	// the executable packager consume one coherent DLL bundle.
+	if(!ValidateRuntimeBundle(0))
+		return false;
+	const auto* runtimeBundle = GetResolvedRuntimeBundle();
+	if(runtimeBundle == nullptr)
+		return false;
+
 	// Temp Strings
 	static char missing[8192];
 	char path[_MAX_PATH];
@@ -2169,7 +2177,8 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	SetInternalFile(PATH_DEBUGGERFILE, path);
 	CHECK_MISSING_FILE();
 	
-	// Get Path to PLUGINS Folder
+	// The host installation defines the product command surface. The selected
+	// runtime overlays the ABI-sensitive core component only.
 	strcpy(path, GetInternalFile(PATH_ROOTPATH));
 	strcat(path, "plugins\\");
 	SetInternalFile(PATH_PLUGINSFOLDER, path);

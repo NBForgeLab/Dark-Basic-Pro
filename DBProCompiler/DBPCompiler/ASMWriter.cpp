@@ -1014,17 +1014,17 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			return false;
 		}
 		auto effectsRoot = runtimeBundle->effectsDirectory.string() + "\\";
-		auto pluginsRoot = runtimeBundle->pluginsDirectory.string() + "\\";
 		strcpy_s(pEffectsRoot, effectsRoot.c_str());
-		strcpy_s(pPluginsRoot, pluginsRoot.c_str());
+		strcpy_s(pPluginsRoot,
+			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
 
 		// Extra Plugins Folders
 		char pUserPluginsRoot[_MAX_PATH];
 		char pLicensedPluginsRoot[_MAX_PATH];
-		auto userPluginsRoot = runtimeBundle->userPluginsDirectory.string() + "\\";
-		auto licensedPluginsRoot = runtimeBundle->licensedPluginsDirectory.string() + "\\";
-		strcpy_s(pUserPluginsRoot, userPluginsRoot.c_str());
-		strcpy_s(pLicensedPluginsRoot, licensedPluginsRoot.c_str());
+		strcpy_s(pUserPluginsRoot,
+			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER));
+		strcpy_s(pLicensedPluginsRoot,
+			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
 
 		// Media Root Folder
 		LPSTR pMediaRoot=g_pDBPCompiler->GetProjectMediaRoot();
@@ -1057,15 +1057,28 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 
 				// Add Actual File to Table
 				char pAbsPathToDLL[_MAX_PATH];
-				strcpy(pAbsPathToDLL, pPluginsRoot);
-				strcat(pAbsPathToDLL, pDLLName);
+				if(stricmp(pDLLName, "dbprocore.dll")==NULL)
+					strcpy_s(pAbsPathToDLL, runtimeBundle->corePath.string().c_str());
+				else
+				{
+					strcpy(pAbsPathToDLL, pPluginsRoot);
+					strcat(pAbsPathToDLL, pDLLName);
+				}
 
-				// Primarily the plugin, else the user plugin folder
+				const bool isCore = stricmp(pDLLName, "dbprocore.dll")==NULL;
+				if(isCore && !g_pDBPCompiler->FileExists(pAbsPathToDLL))
+				{
+					g_pErrorReport->AddErrorString(
+						"DBP3002: The validated runtime DBProCore.dll is no longer available.");
+					return false;
+				}
+
+				// Core is fail-closed. Other product plugins retain legacy fallback.
 				if(g_pDBPCompiler->FileExists(pAbsPathToDLL))
 				{
 					CFBuilder.AddFile(pAbsPathToDLL, pDLLName);
 				}
-				else
+				else if(!isCore)
 				{
 					// Get DLL from user folder (if exists - some DLLs can be removed without fault, ie Conv3DS)
 					strcpy(pAbsPathToDLL, pUserPluginsRoot);

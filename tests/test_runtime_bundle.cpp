@@ -2,6 +2,8 @@
 
 #include "RuntimeContract.h"
 #include "RuntimeBundleResolver.h"
+#include "Str.h"
+#include "DBPCompiler.h"
 
 #include <Windows.h>
 
@@ -90,6 +92,9 @@ public:
             ("dbpro_runtime_bundle_" + suffix);
         WriteCoreFixture(root_ / "plugins" / "DBProCore.dll", modern,
                          completeLifecycle);
+        std::filesystem::create_directories(root_ / "plugins-user");
+        std::filesystem::create_directories(root_ / "plugins-licensed");
+        std::filesystem::create_directories(root_ / "effects");
     }
 
     ~TemporaryRuntimeBundle() {
@@ -104,6 +109,47 @@ private:
 };
 
 } // namespace
+
+TEST(RuntimeBundleIntegrationTest, CompilerKeepsHostCommandsWithSelectedCoreRuntime) {
+    TemporaryRuntimeBundle bundle(true);
+    const auto suffix = std::to_string(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+    const auto installRoot = std::filesystem::temp_directory_path() /
+        ("dbpro_compiler_install_" + suffix);
+    const auto compilerDirectory = installRoot / "Compiler";
+    std::filesystem::create_directories(compilerDirectory / "LANG" / "ENGLISH");
+    std::filesystem::create_directories(compilerDirectory / "plugins");
+    std::filesystem::create_directories(compilerDirectory / "plugins-user");
+    std::filesystem::create_directories(compilerDirectory / "plugins-licensed");
+    std::filesystem::create_directories(installRoot / "temp");
+    std::ofstream(compilerDirectory / "SETUP.INI")
+        << "[SETTINGS]\nTEXTLANGUAGE=ENGLISH\n";
+    std::ofstream(compilerDirectory / "LANG" / "ENGLISH" / "ERRORS.TXT");
+    std::ofstream(compilerDirectory / "DBPDebugger.exe");
+    std::ofstream(compilerDirectory / "plugins" / "compress.dll");
+
+    auto compilerPath = (compilerDirectory / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(compilerPath.data());
+    compiler.SetRuntimeRootOverride(bundle.root());
+
+    ASSERT_TRUE(compiler.EstablishRequiredBaseFiles());
+    EXPECT_EQ(
+        std::filesystem::weakly_canonical(
+            compiler.GetInternalFile(PATH_PLUGINSFOLDER)),
+        std::filesystem::weakly_canonical(compilerDirectory / "plugins"));
+    EXPECT_EQ(
+        std::filesystem::weakly_canonical(
+            compiler.GetInternalFile(PATH_PLUGINSUSERFOLDER)),
+        std::filesystem::weakly_canonical(compilerDirectory / "plugins-user"));
+    EXPECT_EQ(
+        std::filesystem::weakly_canonical(
+            compiler.GetInternalFile(PATH_PLUGINSLICENSEDFOLDER)),
+        std::filesystem::weakly_canonical(
+            compilerDirectory / "plugins-licensed"));
+
+    std::error_code error;
+    std::filesystem::remove_all(installRoot, error);
+}
 
 TEST(RuntimeContractTest, ReportsOnlyMissingRequiredCapabilities) {
     const RuntimeCapabilities available{
