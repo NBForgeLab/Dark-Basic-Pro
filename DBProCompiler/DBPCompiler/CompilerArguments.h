@@ -14,6 +14,7 @@ struct CompilerArguments {
     bool emitFinalSource = false;
     bool legacyFinalSource = false;
     std::optional<std::filesystem::path> runtimeRoot;
+    std::optional<std::filesystem::path> outputPath;
     std::filesystem::path inputPath;
 };
 
@@ -41,3 +42,5 @@ private:
 
 CompilerArgumentsResult ParseCompilerArguments(
     const std::vector<std::string>& arguments);
+CompilerArgumentsResult ParseWideCompilerArguments(
+    const std::vector<std::wstring>& arguments);

@@ -506,6 +506,7 @@ void PrintHelp() {
     std::cout << "  --emit-final-source   Atomically publish the project's final source artifact\n";
     std::cout << "  --legacy-final-source Compile an existing final source artifact without assembly\n";
     std::cout << "  --runtime-root <path> Select and validate a DBPro runtime bundle\n";
+    std::cout << "  --output <path>       Write the generated executable to an isolated path\n";
     std::cout << "\nExample:\n";
     std::cout << "  DBPCompiler.exe --json \"D:\\Projects\\MyGame\\project.dbpro\"\n\n" << std::flush;
 }
@@ -617,14 +618,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		int nArgs = 0;
 		LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
-		std::vector<std::string> arguments;
+		std::vector<std::wstring> arguments;
 		if (szArglist != NULL) {
 			for (int i = 0; i < nArgs; i++) {
-				arguments.push_back(TextConvert::UTF16ToUTF8(szArglist[i]));
+				arguments.emplace_back(szArglist[i]);
 			}
 			LocalFree(szArglist);
 		}
-		const auto parsedArguments = ParseCompilerArguments(arguments);
+		const auto parsedArguments = ParseWideCompilerArguments(arguments);
 		const std::string argumentError = parsedArguments
 			? std::string()
 			: parsedArguments.error();
@@ -650,6 +651,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		const bool emitFinalSource = parsedArguments.value().emitFinalSource;
 		const bool legacyFinalSource = parsedArguments.value().legacyFinalSource;
 		g_pDBPCompiler->SetRuntimeRootOverride(parsedArguments.value().runtimeRoot);
+		g_pDBPCompiler->SetExecutableOutputOverride(parsedArguments.value().outputPath);
 
 		if (projectPath.empty()) {
 			if (g_bJsonDiagnostics) {
@@ -696,6 +698,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					ReportStatus("source_assembly", "Assembling project source files...");
 					bCompileStepsSuccess = g_pDBPCompiler->PrepareCompilationInput(
 						strProjectFilename.GetStr(), emitFinalSource);
+				}
+
+				if (bCompileStepsSuccess)
+				{
+					ReportStatus("output_directory", "Preparing executable output directory...");
+					bCompileStepsSuccess = g_pDBPCompiler->PrepareExecutableOutputDirectory();
+					if(!bCompileStepsSuccess)
+						g_pErrorReport->AddErrorString("Failed to prepare executable output directory.");
 				}
 
 				// Prepare Compiler With Debug Info

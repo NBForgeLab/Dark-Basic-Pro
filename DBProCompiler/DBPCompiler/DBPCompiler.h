@@ -68,7 +68,7 @@ class CDBPCompiler
 		DWORD			GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem);
 		bool			FreeProjectFile(void);
 
-		LPSTR			GetProgramName(void) { return m_pEXEFilename; }
+		LPSTR			GetProgramName(void);
 
 	public:
 		DWORD			GetFileData(void) { return m_FileDataSize; }
@@ -101,6 +101,8 @@ class CDBPCompiler
 		bool			GetInternalMediaState(void) { return m_bInternalMediaState; }
 		bool			GetEncryptionState(void) { return m_bEncryptionState; }
 		bool			GetSpeedOverStabilityFlag(void) { return m_bSpeedOverStabilityState; }
+		void SetExecutableOutputOverride(std::optional<std::filesystem::path> outputPath);
+		bool PrepareExecutableOutputDirectory(void) const;
 		void SetRuntimeRootOverride(std::optional<std::filesystem::path> runtimeRoot);
 		bool ValidateRuntimeBundle(DWORD structurePatternCount);
 		const ResolvedRuntimeBundle* GetResolvedRuntimeBundle(void) const;
@@ -185,6 +187,8 @@ class CDBPCompiler
 
 		CompilerContext* m_pContext;
 		std::unique_ptr<CompilationInput> m_compilationInput;
+		std::optional<std::filesystem::path> m_executableOutputOverride;
+		std::string m_executableOutputOverrideText;
 		std::optional<std::filesystem::path> m_runtimeRootOverride;
 		std::optional<ResolvedRuntimeBundle> m_resolvedRuntimeBundle;
 };

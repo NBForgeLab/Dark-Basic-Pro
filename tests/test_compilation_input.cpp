@@ -193,3 +193,41 @@ TEST(CompilationInputTest, RelativeProjectKeepsExecutableInProjectDirectory) {
         (fixture.directory() / "bin" / "Game.exe").lexically_normal());
     delete[] executable;
 }
+
+TEST(CompilationInputTest, ExecutableOutputOverrideDoesNotChangeProjectBaseDirectory) {
+    CompilationInputFixture fixture;
+    fixture.Write("Main.dba", "end\n");
+    const auto project = fixture.Write(
+        "Project.dbpro",
+        "main=Main.dba\r\nfinal source=_Temp.dbsource\r\n"
+        "executable=bin\\ManifestGame.exe\r\n");
+    const auto output = fixture.directory() / "isolated out" / "Override.exe";
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+    std::string mutableProject = project.string();
+
+    ASSERT_TRUE(compiler.LoadProjectFile(&mutableProject[0]));
+    compiler.SetExecutableOutputOverride(output);
+    ASSERT_TRUE(compiler.GetAllProjectFields(&mutableProject[0]));
+
+    EXPECT_EQ(
+        std::filesystem::path(compiler.GetProgramName()).lexically_normal(),
+        output.lexically_normal());
+    EXPECT_TRUE(std::filesystem::equivalent(
+        compiler.m_pRelativePathToProjectFile->GetStr(), fixture.directory()));
+    EXPECT_FALSE(std::filesystem::exists(fixture.directory() / "bin"));
+    EXPECT_FALSE(std::filesystem::exists(output.parent_path()));
+}
+
+TEST(CompilationInputTest, PreparesOnlyExecutableOutputParentDirectory) {
+    CompilationInputFixture fixture;
+    const auto output = fixture.directory() / "isolated out" / "nested" / "Game.exe";
+    std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(&compilerPath[0]);
+    compiler.SetExecutableOutputOverride(output);
+
+    ASSERT_TRUE(compiler.PrepareExecutableOutputDirectory());
+
+    EXPECT_TRUE(std::filesystem::is_directory(output.parent_path()));
+    EXPECT_FALSE(std::filesystem::exists(output));
+}

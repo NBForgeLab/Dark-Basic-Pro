@@ -133,8 +133,8 @@ CDBPCompiler::~CDBPCompiler()
 	SAFE_DELETE(m_pOriginalFileData);
 	SAFE_FREE(m_pFileData);
 	SAFE_FREE(m_pProjectFileData);
-	SAFE_FREE(m_pFinalDBASource);
-	SAFE_FREE(m_pEXEFilename);
+	SAFE_DELETE_ARRAY(m_pFinalDBASource);
+	SAFE_DELETE_ARRAY(m_pEXEFilename);
 
 	// Release strings
 	for(DWORD n=0; n<PATH_MAX; n++)
@@ -1445,7 +1445,7 @@ bool CDBPCompiler::MakeProgram(void)
 			{
 				// Produce EXE or DEBUGRUN from Statements
 				db3::CProfile<> prof4("CDBPCompiler::MakeProgram() -> g_pDBMWriter->WriteProgramAsEXEOrDEBUG()");
-				if(g_pDBMWriter->WriteProgramAsEXEOrDEBUG(m_pEXEFilename, bParsingMainProgram))
+				if(g_pDBMWriter->WriteProgramAsEXEOrDEBUG(GetProgramName(), bParsingMainProgram))
 				{
 					bResult=true;
 				}
@@ -1603,8 +1603,8 @@ bool CDBPCompiler::FreeProjectFile(void)
 	SAFE_DELETE(m_pRelativePathToProjectFile);
 
 	// Delete POroject Setting Strings
-	SAFE_DELETE(m_pFinalDBASource);
-	SAFE_DELETE(m_pEXEFilename);
+	SAFE_DELETE_ARRAY(m_pFinalDBASource);
+	SAFE_DELETE_ARRAY(m_pEXEFilename);
 
 	// Free Project Settings File Data
 	SAFE_FREE(m_pProjectFileData);
@@ -1627,7 +1627,7 @@ LPSTR CDBPCompiler::ReplaceTokens(LPSTR pFilename)
 	}
 	if(pNewStr->Length()>0)
 	{
-		delete pFilename;
+		delete[] pFilename;
 		pFilename = new char[pNewStr->Length()+1];
 		strcpy(pFilename, pNewStr->GetStr());
 		pFilename[pNewStr->Length()]=0;
@@ -1662,7 +1662,7 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 			dwPos = pExeOnly->FindFirstChar('/');
 			if(dwPos>0) pExeOnly->SetChar(dwPos, 0);
 			pExeOnly->Reverse();
-			SAFE_DELETE(m_pEXEFilename);
+			SAFE_DELETE_ARRAY(m_pEXEFilename);
 			m_pEXEFilename = new char[pExeOnly->Length()+1];
 			strcpy(m_pEXEFilename, pExeOnly->GetStr());
 			SAFE_DELETE(pExeOnly);
@@ -2406,6 +2406,38 @@ bool CDBPCompiler::FinishBreakPointList(void)
 	m_dwBreakpointIndex = 0;
 	return true;
 }
+void CDBPCompiler::SetExecutableOutputOverride(
+	std::optional<std::filesystem::path> outputPath)
+{
+	if(outputPath && !outputPath->is_absolute())
+		outputPath = std::filesystem::absolute(*outputPath);
+	if(outputPath)
+		outputPath = outputPath->lexically_normal();
+	m_executableOutputOverride = std::move(outputPath);
+	m_executableOutputOverrideText = m_executableOutputOverride
+		? m_executableOutputOverride->string()
+		: std::string();
+}
+
+LPSTR CDBPCompiler::GetProgramName(void)
+{
+	return m_executableOutputOverride
+		? const_cast<LPSTR>(m_executableOutputOverrideText.c_str())
+		: m_pEXEFilename;
+}
+
+bool CDBPCompiler::PrepareExecutableOutputDirectory(void) const
+{
+	if(!m_executableOutputOverride)
+		return true;
+	const auto parent = m_executableOutputOverride->parent_path();
+	if(parent.empty())
+		return true;
+	std::error_code error;
+	std::filesystem::create_directories(parent, error);
+	return !error && std::filesystem::is_directory(parent, error) && !error;
+}
+
 void CDBPCompiler::SetRuntimeRootOverride(
 	std::optional<std::filesystem::path> runtimeRoot)
 {

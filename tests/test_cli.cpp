@@ -79,3 +79,68 @@ TEST(CompilerArgumentsTest, RejectsDuplicateRuntimeRoot) {
     ASSERT_FALSE(result.has_value());
     EXPECT_EQ(result.error(), "--runtime-root may only be specified once.");
 }
+
+TEST(CompilerArgumentsTest, AcceptsOneExecutableOutputPath) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--output", "D:/isolated out/Game.exe",
+        "Game.dbpro"});
+
+    ASSERT_TRUE(result.has_value()) << result.error();
+    ASSERT_TRUE(result.value().outputPath.has_value());
+    EXPECT_EQ(
+        *result.value().outputPath,
+        std::filesystem::path("D:/isolated out/Game.exe"));
+    EXPECT_EQ(result.value().inputPath, std::filesystem::path("Game.dbpro"));
+}
+
+TEST(CompilerArgumentsTest, RejectsMissingExecutableOutputValue) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--output"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--output requires an executable file path.");
+}
+
+TEST(CompilerArgumentsTest, RejectsOptionAsExecutableOutputValue) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--output", "--json", "Game.dbpro"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--output requires an executable file path.");
+}
+
+TEST(CompilerArgumentsTest, RejectsDuplicateExecutableOutput) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--output", "A.exe", "--output", "B.exe",
+        "Game.dbpro"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--output may only be specified once.");
+}
+
+TEST(CompilerArgumentsTest, RejectsExecutableOutputForDirectSource) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--output", "Game.exe", "Main.dba"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--output requires a DBPro project input.");
+}
+
+TEST(CompilerArgumentsTest, RejectsDirectoryOnlyExecutableOutput) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--output", "D:/isolated out/", "Game.dbpro"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error(), "--output requires an .exe file path.");
+}
+
+TEST(CompilerArgumentsTest, PreservesUnicodeExecutableOutputPath) {
+    const auto result = ParseWideCompilerArguments(std::vector<std::wstring>{
+        L"DBPCompiler.exe", L"--output", L"D:\\نتائج\\لعبة.exe",
+        L"Game.dbpro"});
+
+    ASSERT_TRUE(result.has_value()) << result.error();
+    EXPECT_EQ(
+        *result.value().outputPath,
+        std::filesystem::path(L"D:\\نتائج\\لعبة.exe"));
+}
