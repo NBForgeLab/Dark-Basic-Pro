@@ -3,12 +3,12 @@
 //
 
 // Constants
-float4 lhtDir < string UIDirectional = "Light Direction"; >; 
+float4 lhtDir < string UIDirectional = "Light Direction"; >;
 float4 lhtPos < string UIPosition = "Light Position"; >;
-vector vCPS : CameraPosition;  
+vector vCPS : CameraPosition;
 matrix mTot : WorldViewProjection;
 matrix mWldInv : WorldIT;
-matrix mWld :  World; 
+matrix mWld :  World;
 
 // Model and Texture Names
 string XFile = "default.x";
@@ -20,27 +20,27 @@ struct VS_INPUT
     float4  Pos     : POSITION;
     float3  Normal  : NORMAL;
     float3  Tex0    : TEXCOORD0;
-    float3  Tangent : TANGENT;    
+    float3  Tangent : TANGENT;
 };
 
 struct VS_OUTPUT
 {
     float4  Pos           : POSITION;
     float3  tLight        : COLOR;
-    float3  tNormal       : TEXCOORD0;   
-    float3  depRead       : TEXCOORD1;    
-    float3  tH            : TEXCOORD2; 
-    float3  Tex0          : TEXCOORD3;    
+    float3  tNormal       : TEXCOORD0;
+    float3  depRead       : TEXCOORD1;
+    float3  tH            : TEXCOORD2;
+    float3  Tex0          : TEXCOORD3;
 };
 
 VS_OUTPUT VShade(VS_INPUT i, uniform int ShadeMethod)
 {
     VS_OUTPUT   o;
     float3      wNormal, wTangent, wBinorm, tLight;
-    
-    //tranform position    
-    o.Pos = mul( i.Pos, mTot); 
-           
+
+    //tranform position
+    o.Pos = mul( i.Pos, mTot);
+
     //transform normal
     //and tangent
     wNormal = mul( i.Normal, mWld );
@@ -54,44 +54,44 @@ VS_OUTPUT VShade(VS_INPUT i, uniform int ShadeMethod)
     wBinorm = cross( wTangent, wNormal );
 
     // The first method is diffuse dot3 bumpmap
-    // transform the light vector into Tangent Space   
+    // transform the light vector into Tangent Space
     float3x3 tangentMatrix = {wTangent, wBinorm, wNormal};
     tangentMatrix = transpose( tangentMatrix);
     tLight = mul(-lhtDir, tangentMatrix);
-   
-    // all other methods are specular dot3 bump 
-    // and therefore use the half angle instead of the light       
-    // compute the half angle vector    
+
+    // all other methods are specular dot3 bump
+    // and therefore use the half angle instead of the light
+    // compute the half angle vector
     float3 wPos, H, tH;
-        
-    wPos = mul( i.Pos, mWld); 
-       
+
+    wPos = mul( i.Pos, mWld);
+
     H = vCPS - wPos;
     H = normalize(H);
-      
+
     H = H -lhtDir.xyz;
     H = normalize(H);
 
     //transform the half angle vector into tangent space
     tH = mul(H, tangentMatrix);
     o.tH = tH;
-    o.depRead = tH;    
+    o.depRead = tH;
 
     if (ShadeMethod==1)
        tLight = tH;
 
     //mutiply by a half to bias, then add half
     o.tLight = 0.5f + tLight * 0.5f;
-   
-    // Copy UVs
-    o.Tex0 = i.Tex0;                  
-    o.tNormal = i.Tex0;                  
-    
-    return o;
-}    
 
-uniform sampler   sampler0 = 
-sampler_state 
+    // Copy UVs
+    o.Tex0 = i.Tex0;
+    o.tNormal = i.Tex0;
+
+    return o;
+}
+
+uniform sampler   sampler0 =
+sampler_state
 {
     texture = <tBase>;
     MinFilter = Linear;
@@ -102,8 +102,8 @@ sampler_state
     AddressW = Wrap;
 };
 
-uniform sampler   sampler1 = 
-sampler_state 
+uniform sampler   sampler1 =
+sampler_state
 {
     texture = <tBump>;
     MinFilter = Linear;
@@ -117,42 +117,42 @@ sampler_state
 struct PS_INPUT
 {
     float3  tLight        : COLOR;
-    float3  tNormal       : TEXCOORD0;    
-    float3  depRead       : TEXCOORD1;    
-    float3  tH            : TEXCOORD2;    
-    float3  Tex0          : TEXCOORD3;    
+    float3  tNormal       : TEXCOORD0;
+    float3  depRead       : TEXCOORD1;
+    float3  tH            : TEXCOORD2;
+    float3  Tex0          : TEXCOORD3;
 };
 
 struct PS_OUTPUT
 {
     float4  Col        : COLOR;
 };
-              
+
 PS_OUTPUT PShade(PS_INPUT i, uniform int ShadeMethod)
 {
     PS_OUTPUT o;
     float4    cosang, t0, t1;
     float3    tLight;
-    
-    // Sample diffuse texture and Normal map    
+
+    // Sample diffuse texture and Normal map
     t0 = tex2D( sampler0, i.Tex0);
     // _bx2 = 2 * source - 1
     t1 = 2 * tex2D( sampler1, i.tNormal) - 1;
     tLight = 2 * i.tLight - 1;
-       
+
     // DP Lighting in tangent space (where normal map is based)
-    cosang = dot( t1, tLight );    
-    if (ShadeMethod==1) 
+    cosang = dot( t1, tLight );
+    if (ShadeMethod==1)
     {
           cosang = cosang * cosang;
           cosang = cosang * cosang;
           cosang = cosang * cosang;
-          cosang = cosang * cosang;                              
-    }        
+          cosang = cosang * cosang;
+    }
 
-    // Modulate with diffuse texture    
+    // Modulate with diffuse texture
     o.Col = t0 * cosang;
-   
+
     return o;
 }
 
@@ -161,34 +161,34 @@ PS_OUTPUT PShade2(PS_INPUT i)
     PS_OUTPUT o;
     float4    cosang, tDiffuse, tNormal, col;
     float3    tLight;
-    
-    // Sample diffuse texture and Normal map    
-    tDiffuse = tex2D( sampler0, i.Tex0 );    
+
+    // Sample diffuse texture and Normal map
+    tDiffuse = tex2D( sampler0, i.Tex0 );
 
     // sample tLight
     // _bx2 = 2 * source - 1
     tNormal = 2 * tex2D( sampler1, i.tNormal) - 1;
     tLight = 2 * i.tLight - 1;
-      
-    // DP Lighting in tangent space (where normal map is based)
-    col = dot( tNormal, tLight ) * tDiffuse;    
-    
-    cosang = dot( tNormal,i.tH );    
-    cosang = pow( cosang, 32);    
 
-    // Modulate with diffuse texture    
+    // DP Lighting in tangent space (where normal map is based)
+    col = dot( tNormal, tLight ) * tDiffuse;
+
+    cosang = dot( tNormal,i.tH );
+    cosang = pow( cosang, 32);
+
+    // Modulate with diffuse texture
     col = col  + cosang;
 
     o.Col = col;
-   
+
     return o;
 }
 
 technique tec0
-{ 
+{
     pass p0
     {
-        VertexShaderConstant[0] = <mTot>; 
+        VertexShaderConstant[0] = <mTot>;
         VertexShaderConstant[4] = <mWldInv>;
         VertexShaderConstant[8] = <lhtPos>;
         VertexShaderConstant[9] = <vCPS>;
@@ -217,7 +217,7 @@ technique tec0
         MagFilter[1] = Linear;
         MipFilter[1] = Linear;
 
-        VertexShader = 
+        VertexShader =
         asm
         {
     vs.1.1
@@ -235,7 +235,7 @@ technique tec0
     mov  oT0, v2
     mov  oT1, v2
 
-    ; find light position in object space 
+    ; find light position in object space
     mov r1, c8
     m4x4 r0, r1, c4
 
@@ -255,7 +255,7 @@ technique tec0
     mov oT2, r1  ; light vector into tex coord2 (to index normalizer cubemap)
     mov r5, r1   ; cache light vector in r5 for later use
 
-    ; find eye position in object space 
+    ; find eye position in object space
     mov r1, c9
     m4x4 r0, r1, c4
 
@@ -284,7 +284,7 @@ technique tec0
         };
 
 
-        PixelShader = 
+        PixelShader =
         asm
         {
        ps.2.0
@@ -319,7 +319,7 @@ technique tec0
 
        ; N.L * diffuse_light_color
        mul r2, r2, c2
-   
+
        ; (N.H)
        dp3_sat r1, r1, r3
 
@@ -331,16 +331,16 @@ technique tec0
 
        ; [(N.L) * base] + (N.H)^k
        mad_sat r0, r0, r0, r1
-   
+
        mov oC0, r0
         };
     }
 }
 
 technique tec1
-{ 
+{
     pass p0
-    {      
+    {
         VertexShader = compile vs_1_1 VShade(0);
         PixelShader = compile ps_1_1 PShade(0);
     }

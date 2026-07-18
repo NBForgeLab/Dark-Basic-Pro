@@ -14,7 +14,7 @@ float    g_mShadowRange : MESHRADIUS;
 float4x4 boneMatrix[60] : BoneMatrixPalette;
 
 // Shader Code
-void VertShadowVolume( 
+void VertShadowVolume(
 		       float3 vPos : POSITION,
                        float3 vNormal : NORMAL,
 		       float4 Blendweight : TEXCOORD1,
@@ -30,7 +30,7 @@ void VertShadowVolume(
      float3x4 model = float3x4(boneMatrix[index][0], boneMatrix[index][1], boneMatrix[index][2]);
      float3 vec3 = mul(model, float4(vPos, 1));
      vec3 = vec3 + boneMatrix[index][3].xyz;
-     float3x3 rotate = float3x3(model[0].xyz, model[1].xyz, model[2].xyz); 
+     float3x3 rotate = float3x3(model[0].xyz, model[1].xyz, model[2].xyz);
      float3 norm3 = mul(rotate, vNormal);
      netPosition += vec3.xyz * Blendweight[i];
      netNormal += norm3.xyz * Blendweight[i];

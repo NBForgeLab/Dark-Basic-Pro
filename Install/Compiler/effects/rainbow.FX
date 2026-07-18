@@ -12,7 +12,7 @@ string XFile = "sphere.x";
 texture tRainbow < string name = "rainbow.tga"; >;
 
 technique tec0
-{ 
+{
     pass p0
     {
         VertexShaderConstant[0] = <mTot>;
@@ -24,7 +24,7 @@ technique tec0
 
         Texture[0]   = <tRainbow>;
         Texture[1]   = <tRainbow>;
-        
+
         AddressU[0] = Wrap;
         AddressV[0] = Wrap;
         AddressU[1] = Wrap;
@@ -37,18 +37,18 @@ technique tec0
         MagFilter[1] = Linear;
         MipFilter[1] = Linear;
 
-        ColorOp[0]   = Modulate2X; 
+        ColorOp[0]   = Modulate2X;
         ColorArg1[0] = Texture;
         ColorArg2[0] = Texture | AlphaReplicate;
-        ColorOp[1]   = AddSigned; 
+        ColorOp[1]   = AddSigned;
         ColorArg1[1] = Texture | AlphaReplicate;
         ColorArg2[1] = Current;
 
-        VertexShader = 
+        VertexShader =
         asm
         {
             vs.1.0
-           
+
             dcl_position      v0        // Position
             dcl_normal        v3        // Normal
 

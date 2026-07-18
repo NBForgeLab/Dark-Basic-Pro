@@ -24,7 +24,7 @@ technique Toon
 		VertexShaderConstant[12] = <eyePos>;
 		VertexShaderConstant[13] = <lhtDir>;
 
-		VertexShader = 
+		VertexShader =
 		asm
 		{
 
