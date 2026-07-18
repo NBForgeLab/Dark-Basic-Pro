@@ -44,7 +44,12 @@ TEST(DBMWriterTest, AppendsOnlyContentAndCrLf) {
     EXPECT_EQ(writer.GetUsedBufferSizeForTests(), 5u);
 }
 
+#include "Error.h"
+
+extern CError* g_pErrorReport;
+
 TEST(CodeGenerationSessionTest, BackendRejectsMachineCodeBeforeInitialization) {
+    g_pErrorReport = nullptr;
     CASMWriter writer;
 
     EXPECT_FALSE(writer.CreateASMMiddle(-1, 0x90, -1, nullptr));

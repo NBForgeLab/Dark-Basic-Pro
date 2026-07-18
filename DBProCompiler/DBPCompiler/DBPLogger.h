@@ -37,7 +37,7 @@ public:
     }
 };
 
-#define DBP_TRACE(...)    spdlog::trace(__VA_ARGS__)
-#define DBP_INFO(...)     spdlog::info(__VA_ARGS__)
-#define DBP_WARN(...)     spdlog::warn(__VA_ARGS__)
-#define DBP_ERROR(...)    spdlog::error(__VA_ARGS__)
+#define DBP_TRACE(...) { auto l = spdlog::default_logger(); if (l) l->trace(__VA_ARGS__); }
+#define DBP_INFO(...)  { auto l = spdlog::default_logger(); if (l) l->info(__VA_ARGS__); }
+#define DBP_WARN(...)  { auto l = spdlog::default_logger(); if (l) l->warn(__VA_ARGS__); }
+#define DBP_ERROR(...) { auto l = spdlog::default_logger(); if (l) l->error(__VA_ARGS__); }
