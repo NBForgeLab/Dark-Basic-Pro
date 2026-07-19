@@ -79,3 +79,17 @@ void CodeGenVisitor::Visit(ASTVariableNode* node) {
     m_codeGen->WriteASMXtoEAX(dwAccessMode, &varName, NULL, dwType, dwOffset);
     m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, dwType, dwOffset);
 }
+
+void CodeGenVisitor::Visit(ASTBinaryOpNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTBinaryOpNode");
+    if (node->m_left) node->m_left->Accept(this);
+    if (node->m_right) node->m_right->Accept(this);
+    m_codeGen->WriteASMLine(ASM_POPEBX, "");
+    m_codeGen->WriteASMLine(ASM_POPEAX, "");
+    if (node->m_op == BinaryOpType::Add) {
+        m_codeGen->WriteASMLine(ASM_ADDEAXEBX4, "");
+    } else if (node->m_op == BinaryOpType::Subtract) {
+        m_codeGen->WriteASMLine(ASM_SUBEAXEBX4, "");
+    }
+    m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, 1, 0);
+}

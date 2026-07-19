@@ -61,3 +61,24 @@ public:
         visitor->Visit(this);
     }
 };
+
+enum class BinaryOpType {
+    Add,
+    Subtract,
+    Multiply,
+    Divide
+};
+
+class ASTBinaryOpNode : public ASTNode {
+public:
+    BinaryOpType m_op;
+    std::unique_ptr<ASTNode> m_left;
+    std::unique_ptr<ASTNode> m_right;
+
+    ASTBinaryOpNode(BinaryOpType op, std::unique_ptr<ASTNode> left, std::unique_ptr<ASTNode> right)
+        : m_op(op), m_left(std::move(left)), m_right(std::move(right)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};

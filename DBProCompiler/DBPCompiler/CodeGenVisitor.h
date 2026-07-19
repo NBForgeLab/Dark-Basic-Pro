@@ -12,6 +12,7 @@ public:
     void Visit(ASTAssignmentNode* node) override;
     void Visit(ASTLiteralNode* node) override;
     void Visit(ASTVariableNode* node) override;
+    void Visit(ASTBinaryOpNode* node) override;
 
 private:
     ICodeGenerator* m_codeGen;

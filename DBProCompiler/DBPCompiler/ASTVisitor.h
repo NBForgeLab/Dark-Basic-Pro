@@ -5,6 +5,7 @@ class ASTBlockNode;
 class ASTAssignmentNode;
 class ASTLiteralNode;
 class ASTVariableNode;
+class ASTBinaryOpNode;
 
 class ASTVisitor {
 public:
@@ -14,4 +15,5 @@ public:
     virtual void Visit(ASTAssignmentNode* node) = 0;
     virtual void Visit(ASTLiteralNode* node) = 0;
     virtual void Visit(ASTVariableNode* node) = 0;
+    virtual void Visit(ASTBinaryOpNode* node) = 0;
 };

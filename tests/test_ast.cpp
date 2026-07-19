@@ -50,6 +50,10 @@ public:
     void Visit(ASTVariableNode* node) override {
         variableCount++;
     }
+    void Visit(ASTBinaryOpNode* node) override {
+        if (node->m_left) node->m_left->Accept(this);
+        if (node->m_right) node->m_right->Accept(this);
+    }
 };
 
 TEST(ASTTest, ConstructionAndTraversal) {
@@ -69,6 +73,16 @@ TEST(ASTTest, ConstructionAndTraversal) {
     EXPECT_EQ(visitor.literalCount, 1);
     EXPECT_EQ(visitor.blockCount, 0);
     EXPECT_EQ(visitor.variableCount, 0);
+}
+
+TEST(ASTTest, BinaryOpConstruction) {
+    auto left = std::make_unique<ASTLiteralNode>("10", 1);
+    auto right = std::make_unique<ASTLiteralNode>("20", 1);
+    auto binaryOp = std::make_unique<ASTBinaryOpNode>(BinaryOpType::Add, std::move(left), std::move(right));
+    
+    NodeCounterVisitor visitor;
+    binaryOp->Accept(&visitor);
+    EXPECT_EQ(visitor.literalCount, 2);
 }
 
 class ASTCodeGenTest : public ::testing::Test {
