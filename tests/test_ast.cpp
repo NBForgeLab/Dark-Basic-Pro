@@ -4,6 +4,7 @@
 #include "ASTNodes.h"
 #include "CodeGenVisitor.h"
 #include "SemanticVisitor.h"
+#include "IRLoweringVisitor.h"
 #include "CompilerContext.h"
 #include "VarTable.h"
 #include "StatementList.h"
@@ -161,4 +162,21 @@ TEST_F(ASTCodeGenTest, SemanticTypeCheck) {
     SemanticVisitor visitor;
     assignment->Accept(&visitor);
     EXPECT_FALSE(visitor.HasErrors());
+}
+
+TEST(ASTTest, IRLowering) {
+    auto left = std::make_unique<ASTLiteralNode>("10", 1);
+    auto right = std::make_unique<ASTLiteralNode>("20", 1);
+    auto binaryOp = std::make_unique<ASTBinaryOpNode>(BinaryOpType::Add, std::move(left), std::move(right));
+    auto assignment = std::make_unique<ASTAssignmentNode>("x", std::move(binaryOp));
+
+    IRLoweringVisitor lowering;
+    assignment->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+    
+    ASSERT_EQ(ir.instructions.size(), 4u);
+    EXPECT_EQ(ir.instructions[0].opCode, IROpCode::LoadConst);
+    EXPECT_EQ(ir.instructions[1].opCode, IROpCode::LoadConst);
+    EXPECT_EQ(ir.instructions[2].opCode, IROpCode::BinaryOp);
+    EXPECT_EQ(ir.instructions[3].opCode, IROpCode::StoreVar);
 }
