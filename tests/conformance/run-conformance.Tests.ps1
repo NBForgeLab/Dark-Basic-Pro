@@ -24,10 +24,15 @@ Describe "DarkBASIC Language Conformance Tests" {
 
     $testFiles = Get-ChildItem -Path $PSScriptRoot -Filter "*.dba" -Recurse
     foreach ($file in $testFiles) {
+        $lines = Get-Content -LiteralPath $file.FullName
+        $hasExpectations = $lines | Where-Object { $_ -match '^\s*REM\s+EXPECT:' }
+        if (-not $hasExpectations) {
+            continue
+        }
+
         $relativeName = Resolve-Path $file.FullName -Relative
 
         It "Processes test case: $relativeName" {
-            $lines = Get-Content -LiteralPath $file.FullName
             $expected = Parse-TestDirectives -FileContent $lines
 
             # Isolated staging
@@ -37,8 +42,17 @@ Describe "DarkBASIC Language Conformance Tests" {
             $workspace = Join-Path $tempDir $workspaceName
             $null = New-Item -ItemType Directory -Path $workspace -Force
             try {
+                # Copy all files from the test directory to support includes and auxiliary assets
+                Copy-Item -Path (Join-Path $file.DirectoryName "*") -Destination $workspace -Recurse -Force
+
+                # Normalize line endings of all staged .dba files to CRLF for the legacy compiler
+                Get-ChildItem -Path $workspace -Filter "*.dba" -Recurse | ForEach-Object {
+                    $rawContent = Get-Content -LiteralPath $_.FullName -Raw
+                    $normalized = $rawContent -replace "\r?\n", "`r`n"
+                    $normalized | Set-Content -LiteralPath $_.FullName -Encoding ASCII
+                }
+
                 $stagedSource = Join-Path $workspace $file.Name
-                Copy-Item -LiteralPath $file.FullName -Destination $stagedSource -Force
                 $outputExe = Join-Path $workspace "app.exe"
 
                 # Generate temporary .dbpro project manifest

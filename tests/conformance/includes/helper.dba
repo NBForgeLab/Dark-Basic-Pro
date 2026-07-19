@@ -1,0 +1,4 @@
+function helper_add(x, y)
+    local result
+    result = x + y
+endfunction result

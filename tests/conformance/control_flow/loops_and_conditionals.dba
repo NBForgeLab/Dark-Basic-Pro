@@ -1,0 +1,24 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "SumFor: 30"
+REM EXPECT: RUNTIME_OUTPUT "SumWhile: 10"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+sumFor = 0
+for i = 0 to 10 step 2
+    sumFor = sumFor + i
+next i
+
+sumWhile = 0
+j = 1
+while j <= 4
+    sumWhile = sumWhile + j
+    j = j + 1
+endwhile
+
+if file exist("output.txt") then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, "SumFor: " + str$(sumFor)
+write string 1, "SumWhile: " + str$(sumWhile)
+close file 1
+end

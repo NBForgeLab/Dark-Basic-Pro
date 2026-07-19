@@ -1,0 +1,18 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "Int: 42"
+REM EXPECT: RUNTIME_OUTPUT "Float: 3.14"
+REM EXPECT: RUNTIME_OUTPUT "Str: Hello World"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+myIntVar = 42
+myFloatVar# = 3.14
+myStrVar$ = "Hello World"
+
+if file exist("output.txt") then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, "Int: " + str$(myIntVar)
+write string 1, "Float: " + str$(myFloatVar#)
+write string 1, "Str: " + myStrVar$
+close file 1
+end

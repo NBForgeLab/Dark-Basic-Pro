@@ -1,0 +1,26 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "Math1: 14"
+REM EXPECT: RUNTIME_OUTPUT "Math2: 20"
+REM EXPECT: RUNTIME_OUTPUT "Logic: 1"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+a = 2
+b = 3
+c = 4
+d = a + b * c
+e = (a + b) * c
+
+if d = 14 and e = 20
+    isOk = 1
+else
+    isOk = 0
+endif
+
+if file exist("output.txt") then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, "Math1: " + str$(d)
+write string 1, "Math2: " + str$(e)
+write string 1, "Logic: " + str$(isOk)
+close file 1
+end

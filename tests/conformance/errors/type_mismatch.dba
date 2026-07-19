@@ -1,0 +1,6 @@
+REM EXPECT: COMPILE_FAIL
+REM EXPECT: COMPILER_ERROR "Cannot perform 'integer' cast"
+
+a = 5
+a = "Hello"
+end

@@ -1,0 +1,19 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "Arr1: 100"
+REM EXPECT: RUNTIME_OUTPUT "Arr2: 500"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+dim grid(10, 10)
+grid(3, 4) = 100
+grid(9, 9) = 500
+
+val1 = grid(3, 4)
+val2 = grid(9, 9)
+
+if file exist("output.txt") then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, "Arr1: " + str$(val1)
+write string 1, "Arr2: " + str$(val2)
+close file 1
+end
