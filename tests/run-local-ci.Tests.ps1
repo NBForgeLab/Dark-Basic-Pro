@@ -15,7 +15,6 @@ Describe "Unified Local CI/CD Orchestrator Contract" {
             } catch {
                 # Parameter validation should fail
             }
-            # If parameter validation failed, PowerShell will have thrown or set an error
         }
     }
 
@@ -30,6 +29,15 @@ Describe "Unified Local CI/CD Orchestrator Contract" {
             $global:LASTEXITCODE = 0
             & $script:CIPath -DryRun -MockFailPhase "Conformance"
             $global:LASTEXITCODE | Should Be 1
+        }
+    }
+
+    Context "Real Execution (Fast Local Pipeline)" {
+        It "Successfully compiles compiler and runs C++ unit tests" {
+            $global:LASTEXITCODE = 0
+            # Run local CI skipping the integration components
+            & $script:CIPath -Configuration Release -SkipGolden -SkipFPSTests
+            $global:LASTEXITCODE | Should Be 0
         }
     }
 }
