@@ -1,5 +1,5 @@
 REM EXPECT: COMPILE_FAIL
-REM EXPECT: COMPILER_ERROR "Syntax error"
+REM EXPECT: COMPILER_ERROR "Both operands are required"
 
 if a == 5
    print "Missing Then"
