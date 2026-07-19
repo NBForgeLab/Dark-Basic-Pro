@@ -1,0 +1,6 @@
+REM EXPECT: COMPILE_FAIL
+REM EXPECT: COMPILER_ERROR "Syntax error"
+
+if a == 5
+   print "Missing Then"
+endif
