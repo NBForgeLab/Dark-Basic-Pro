@@ -53,8 +53,8 @@ Describe "DarkBASIC Language Conformance Tests" {
                 # Reset LASTEXITCODE
                 $global:LASTEXITCODE = 0
 
-                # Execute compiler using deadlock-proof files redirection
-                $compilerArgs = @("--runtime-root", $script:RuntimeRoot, "--output", $outputExe, $dbproFile)
+                # Execute compiler using deadlock-proof files redirection and --json to suppress GUI dialogs
+                $compilerArgs = @("--json", "--runtime-root", $script:RuntimeRoot, "--output", $outputExe, $dbproFile)
                 
                 $stdoutFile = [IO.Path]::GetTempFileName()
                 $stderrFile = [IO.Path]::GetTempFileName()
