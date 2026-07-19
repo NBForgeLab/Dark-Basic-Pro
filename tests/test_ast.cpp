@@ -3,6 +3,7 @@
 #include "ASTVisitor.h"
 #include "ASTNodes.h"
 #include "CodeGenVisitor.h"
+#include "SemanticVisitor.h"
 #include "CompilerContext.h"
 #include "VarTable.h"
 #include "StatementList.h"
@@ -146,4 +147,18 @@ TEST(ASTParsingRegressionTest, SimpleAssignmentDoesNotEmitBeforeBackendInitializ
     EXPECT_TRUE(parsed);
     context.Cleanup();
     spdlog::shutdown();
+}
+
+TEST_F(ASTCodeGenTest, SemanticTypeCheck) {
+    g_pStatementList->SetVariableAddParse(true);
+    DWORD dwAction = 0;
+    g_pVarTable->AddVariable("myIntVar", "integer", 0, 1, true, &dwAction, false);
+
+    // Assign literal integer: myIntVar = 42
+    auto literal = std::make_unique<ASTLiteralNode>("42", 1);
+    auto assignment = std::make_unique<ASTAssignmentNode>("myIntVar", std::move(literal));
+
+    SemanticVisitor visitor;
+    assignment->Accept(&visitor);
+    EXPECT_FALSE(visitor.HasErrors());
 }

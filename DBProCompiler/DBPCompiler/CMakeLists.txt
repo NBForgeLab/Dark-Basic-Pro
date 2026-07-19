@@ -34,6 +34,7 @@ set(LIB_SOURCES
     DebugInfo.cpp
     Declaration.cpp
     CodeGenVisitor.cpp
+    SemanticVisitor.cpp
     DiagnosticEngine.cpp
     VFSHooks.cpp
     MemoryPE.cpp

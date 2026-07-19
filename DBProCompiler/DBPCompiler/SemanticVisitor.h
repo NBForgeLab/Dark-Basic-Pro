@@ -1,0 +1,23 @@
+#pragma once
+#include "ASTVisitor.h"
+#include <windows.h>
+
+class SemanticVisitor : public ASTVisitor {
+public:
+    SemanticVisitor() = default;
+    ~SemanticVisitor() override = default;
+
+    void Visit(ASTProgramNode* node) override;
+    void Visit(ASTBlockNode* node) override;
+    void Visit(ASTAssignmentNode* node) override;
+    void Visit(ASTLiteralNode* node) override;
+    void Visit(ASTVariableNode* node) override;
+    void Visit(ASTBinaryOpNode* node) override;
+
+    DWORD GetInferredType() const { return m_inferredType; }
+    bool HasErrors() const { return m_hasErrors; }
+
+private:
+    DWORD m_inferredType = 0; // 1 = int, 2 = float, 3 = string
+    bool m_hasErrors = false;
+};
