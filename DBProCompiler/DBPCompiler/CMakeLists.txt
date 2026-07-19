@@ -36,6 +36,7 @@ set(LIB_SOURCES
     CodeGenVisitor.cpp
     SemanticVisitor.cpp
     IRLoweringVisitor.cpp
+    TargetCodegen.cpp
     DiagnosticEngine.cpp
     VFSHooks.cpp
     MemoryPE.cpp

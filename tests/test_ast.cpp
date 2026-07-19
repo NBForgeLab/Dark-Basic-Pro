@@ -5,6 +5,7 @@
 #include "CodeGenVisitor.h"
 #include "SemanticVisitor.h"
 #include "IRLoweringVisitor.h"
+#include "TargetCodegen.h"
 #include "CompilerContext.h"
 #include "VarTable.h"
 #include "StatementList.h"
@@ -179,4 +180,23 @@ TEST(ASTTest, IRLowering) {
     EXPECT_EQ(ir.instructions[1].opCode, IROpCode::LoadConst);
     EXPECT_EQ(ir.instructions[2].opCode, IROpCode::BinaryOp);
     EXPECT_EQ(ir.instructions[3].opCode, IROpCode::StoreVar);
+}
+
+TEST_F(ASTCodeGenTest, PipelineCodegen) {
+    g_pStatementList->SetVariableAddParse(true);
+    DWORD dwAction = 0;
+    g_pVarTable->AddVariable("testTargetVar", "integer", 0, 1, true, &dwAction, false);
+
+    // myIntVar = 42
+    auto literal = std::make_unique<ASTLiteralNode>("42", 1);
+    auto assignment = std::make_unique<ASTAssignmentNode>("testTargetVar", std::move(literal));
+
+    // Lower
+    IRLoweringVisitor lowering;
+    assignment->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+
+    // Compile
+    TargetCodegen codegen(g_pASMWriter, 1);
+    EXPECT_TRUE(codegen.Generate(ir));
 }
