@@ -39,6 +39,7 @@ set(LIB_SOURCES
     TargetCodegen.cpp
     ASTPrinter.cpp
     ASTExpressionParser.cpp
+    ASTPipelineParser.cpp
     DiagnosticEngine.cpp
     VFSHooks.cpp
     MemoryPE.cpp

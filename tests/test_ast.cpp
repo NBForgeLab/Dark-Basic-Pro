@@ -3,6 +3,7 @@
 #include "ASTVisitor.h"
 #include "ASTNodes.h"
 #include "ASTPrinter.h"
+#include "ASTPipelineParser.h"
 #include "CodeGenVisitor.h"
 #include "SemanticVisitor.h"
 #include "IRLoweringVisitor.h"
@@ -477,5 +478,31 @@ TEST(ASTFunctionTest, FunctionDeclAndCallLowering) {
 
     std::string printedDecl = printer.Print(declNode.get());
     EXPECT_NE(printedDecl.find("FunctionDecl: my_add"), std::string::npos);
+}
+
+TEST(ASTPipelineParserTest, ParseAssignmentsAndLocations) {
+    std::string source = "x = 100\ny = x + 50 * 2\n";
+    auto progNode = ASTPipelineParser::ParseProgram(source);
+    ASSERT_NE(progNode, nullptr);
+    EXPECT_EQ(progNode->m_statements.size(), 2);
+
+    auto assign1 = dynamic_cast<ASTAssignmentNode*>(progNode->m_statements[0].get());
+    ASSERT_NE(assign1, nullptr);
+    EXPECT_EQ(assign1->m_varName, "x");
+    EXPECT_EQ(assign1->GetLocation().line, 1);
+
+    auto assign2 = dynamic_cast<ASTAssignmentNode*>(progNode->m_statements[1].get());
+    ASSERT_NE(assign2, nullptr);
+    EXPECT_EQ(assign2->m_varName, "y");
+    EXPECT_EQ(assign2->GetLocation().line, 2);
+
+    SemanticVisitor semantic;
+    progNode->Accept(&semantic);
+    EXPECT_FALSE(semantic.HasErrors());
+
+    IRLoweringVisitor lowering;
+    progNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+    EXPECT_GT(ir.instructions.size(), 0);
 }
 

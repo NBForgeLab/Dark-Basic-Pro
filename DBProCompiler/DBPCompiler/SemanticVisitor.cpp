@@ -26,22 +26,22 @@ void SemanticVisitor::Visit(ASTAssignmentNode* node) {
         pScope = g_pUserFunctionWithin->GetName()->GetStr();
     }
 
-    CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
-    if (!pVar) {
-        pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
-    }
-
-    if (!pVar) {
-        m_hasErrors = true;
-        if (g_pErrorReport) {
-            DWORD lineNum = node->GetLocation().line;
-            if (lineNum == 0) lineNum = 1;
-            g_pErrorReport->SetError(lineNum, 100000 + 6, const_cast<LPSTR>(node->m_varName.c_str()));
-        }
-        return;
-    }
+    DWORD varType = 1;
     if (node->m_expression) {
         node->m_expression->Accept(this);
+        if (m_inferredType != 0) varType = m_inferredType;
+    }
+    m_declaredVars[node->m_varName] = varType;
+
+    if (g_pVarTable) {
+        CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+        if (!pVar) {
+            pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+        }
+        if (!pVar) {
+            DWORD dwAction = 0;
+            g_pVarTable->AddVariable(const_cast<LPSTR>(node->m_varName.c_str()), const_cast<LPSTR>("integer"), 0, 0, true, &dwAction, false);
+        }
     }
 }
 
@@ -50,22 +50,30 @@ void SemanticVisitor::Visit(ASTLiteralNode* node) {
 }
 
 void SemanticVisitor::Visit(ASTVariableNode* node) {
-    LPSTR pScope = NULL;
-    if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
-        pScope = g_pUserFunctionWithin->GetName()->GetStr();
+    auto it = m_declaredVars.find(node->m_varName);
+    if (it != m_declaredVars.end()) {
+        m_inferredType = it->second;
+        return;
     }
 
-    CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
-    if (!pVar) {
-        pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    if (g_pVarTable) {
+        LPSTR pScope = NULL;
+        if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
+            pScope = g_pUserFunctionWithin->GetName()->GetStr();
+        }
+
+        CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+        if (!pVar) {
+            pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+        }
+
+        if (pVar) {
+            m_inferredType = pVar->GetVarTypeValue();
+            return;
+        }
     }
 
-    if (pVar) {
-        m_inferredType = pVar->GetVarTypeValue();
-    } else {
-        m_hasErrors = true;
-        m_inferredType = 0;
-    }
+    m_inferredType = 1;
 }
 
 void SemanticVisitor::Visit(ASTBinaryOpNode* node) {

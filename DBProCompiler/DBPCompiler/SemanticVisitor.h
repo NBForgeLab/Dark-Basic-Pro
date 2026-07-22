@@ -1,6 +1,8 @@
 #pragma once
 #include "ASTVisitor.h"
 #include <windows.h>
+#include <map>
+#include <string>
 
 class SemanticVisitor : public ASTVisitor {
 public:
@@ -25,4 +27,5 @@ public:
 private:
     DWORD m_inferredType = 0; // 1 = int, 2 = float, 3 = string
     bool m_hasErrors = false;
+    std::map<std::string, DWORD> m_declaredVars;
 };
