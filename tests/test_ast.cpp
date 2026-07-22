@@ -2,6 +2,7 @@
 #include "ASTNode.h"
 #include "ASTVisitor.h"
 #include "ASTNodes.h"
+#include "ASTPrinter.h"
 #include "CodeGenVisitor.h"
 #include "SemanticVisitor.h"
 #include "IRLoweringVisitor.h"
@@ -56,6 +57,30 @@ public:
     void Visit(ASTBinaryOpNode* node) override {
         if (node->m_left) node->m_left->Accept(this);
         if (node->m_right) node->m_right->Accept(this);
+    }
+    void Visit(ASTIfNode* node) override {
+        if (node->m_condition) node->m_condition->Accept(this);
+        if (node->m_thenBranch) node->m_thenBranch->Accept(this);
+        if (node->m_elseBranch) node->m_elseBranch->Accept(this);
+    }
+    void Visit(ASTWhileNode* node) override {
+        if (node->m_condition) node->m_condition->Accept(this);
+        if (node->m_body) node->m_body->Accept(this);
+    }
+    void Visit(ASTForNode* node) override {
+        if (node->m_startExpr) node->m_startExpr->Accept(this);
+        if (node->m_endExpr) node->m_endExpr->Accept(this);
+        if (node->m_stepExpr) node->m_stepExpr->Accept(this);
+        if (node->m_body) node->m_body->Accept(this);
+    }
+    void Visit(ASTFunctionCallNode* node) override {
+        for (auto& arg : node->m_arguments) {
+            if (arg) arg->Accept(this);
+        }
+    }
+    void Visit(ASTFunctionDeclNode* node) override {
+        if (node->m_body) node->m_body->Accept(this);
+        if (node->m_returnExpr) node->m_returnExpr->Accept(this);
     }
 };
 
@@ -304,5 +329,153 @@ TEST(ASTExpressionParserTest, ParseComparisons) {
     auto binOp = dynamic_cast<ASTBinaryOpNode*>(node.get());
     ASSERT_NE(binOp, nullptr);
     EXPECT_EQ(binOp->m_op, BinaryOpType::LessThan);
+}
+
+TEST(ASTControlFlowTest, IfElseNodeConstructionAndTraversal) {
+    auto cond = std::make_unique<ASTBinaryOpNode>(
+        BinaryOpType::LessThan,
+        std::make_unique<ASTVariableNode>("x"),
+        std::make_unique<ASTLiteralNode>("10", 1)
+    );
+
+    auto thenBlock = std::make_unique<ASTBlockNode>();
+    thenBlock->m_statements.push_back(
+        std::make_unique<ASTAssignmentNode>("y", std::make_unique<ASTLiteralNode>("1", 1))
+    );
+
+    auto elseBlock = std::make_unique<ASTBlockNode>();
+    elseBlock->m_statements.push_back(
+        std::make_unique<ASTAssignmentNode>("y", std::make_unique<ASTLiteralNode>("2", 1))
+    );
+
+    auto ifNode = std::make_unique<ASTIfNode>(std::move(cond), std::move(thenBlock), std::move(elseBlock));
+
+    ASTPrinter printer;
+    std::string printed = printer.Print(ifNode.get());
+    EXPECT_NE(printed.find("If:"), std::string::npos);
+    EXPECT_NE(printed.find("Then:"), std::string::npos);
+    EXPECT_NE(printed.find("Else:"), std::string::npos);
+
+    IRLoweringVisitor lowering;
+    ifNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+
+    bool hasJumpIfFalse = false;
+    bool hasJump = false;
+    bool hasLabel = false;
+
+    for (const auto& inst : ir.instructions) {
+        if (inst.opCode == IROpCode::JumpIfFalse) hasJumpIfFalse = true;
+        if (inst.opCode == IROpCode::Jump) hasJump = true;
+        if (inst.opCode == IROpCode::Label) hasLabel = true;
+    }
+
+    EXPECT_TRUE(hasJumpIfFalse);
+    EXPECT_TRUE(hasJump);
+    EXPECT_TRUE(hasLabel);
+}
+
+TEST(ASTLoopTest, WhileLoopIRLowering) {
+    auto cond = std::make_unique<ASTBinaryOpNode>(
+        BinaryOpType::LessThan,
+        std::make_unique<ASTVariableNode>("i"),
+        std::make_unique<ASTLiteralNode>("10", 1)
+    );
+
+    auto body = std::make_unique<ASTBlockNode>();
+    body->m_statements.push_back(
+        std::make_unique<ASTAssignmentNode>("sum", std::make_unique<ASTLiteralNode>("1", 1))
+    );
+
+    auto whileNode = std::make_unique<ASTWhileNode>(std::move(cond), std::move(body));
+
+    ASTPrinter printer;
+    std::string printed = printer.Print(whileNode.get());
+    EXPECT_NE(printed.find("While:"), std::string::npos);
+
+    IRLoweringVisitor lowering;
+    whileNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+
+    int labelCount = 0;
+    bool hasJumpIfFalse = false;
+    bool hasJump = false;
+
+    for (const auto& inst : ir.instructions) {
+        if (inst.opCode == IROpCode::Label) labelCount++;
+        if (inst.opCode == IROpCode::JumpIfFalse) hasJumpIfFalse = true;
+        if (inst.opCode == IROpCode::Jump) hasJump = true;
+    }
+
+    EXPECT_GE(labelCount, 2);
+    EXPECT_TRUE(hasJumpIfFalse);
+    EXPECT_TRUE(hasJump);
+}
+
+TEST(ASTLoopTest, ForLoopIRLowering) {
+    auto body = std::make_unique<ASTBlockNode>();
+    body->m_statements.push_back(
+        std::make_unique<ASTAssignmentNode>("acc", std::make_unique<ASTLiteralNode>("5", 1))
+    );
+
+    auto forNode = std::make_unique<ASTForNode>(
+        "i",
+        std::make_unique<ASTLiteralNode>("1", 1),
+        std::make_unique<ASTLiteralNode>("10", 1),
+        std::make_unique<ASTLiteralNode>("1", 1),
+        std::move(body)
+    );
+
+    ASTPrinter printer;
+    std::string printed = printer.Print(forNode.get());
+    EXPECT_NE(printed.find("For: i"), std::string::npos);
+
+    IRLoweringVisitor lowering;
+    forNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+
+    bool hasStoreVar = false;
+    bool hasJumpIfFalse = false;
+
+    for (const auto& inst : ir.instructions) {
+        if (inst.opCode == IROpCode::StoreVar && inst.operandStr == "i") hasStoreVar = true;
+        if (inst.opCode == IROpCode::JumpIfFalse) hasJumpIfFalse = true;
+    }
+
+    EXPECT_TRUE(hasStoreVar);
+    EXPECT_TRUE(hasJumpIfFalse);
+}
+
+TEST(ASTFunctionTest, FunctionDeclAndCallLowering) {
+    std::vector<std::unique_ptr<ASTNode>> args;
+    args.push_back(std::make_unique<ASTLiteralNode>("5", 1));
+    args.push_back(std::make_unique<ASTLiteralNode>("10", 1));
+    auto callNode = std::make_unique<ASTFunctionCallNode>("my_add", std::move(args));
+
+    ASTPrinter printer;
+    std::string printedCall = printer.Print(callNode.get());
+    EXPECT_NE(printedCall.find("FunctionCall: my_add"), std::string::npos);
+
+    IRLoweringVisitor lowering;
+    callNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+
+    bool hasCall = false;
+    for (const auto& inst : ir.instructions) {
+        if (inst.opCode == IROpCode::Call && inst.operandStr == "my_add") hasCall = true;
+    }
+    EXPECT_TRUE(hasCall);
+
+    std::vector<std::string> params = {"x", "y"};
+    auto body = std::make_unique<ASTBlockNode>();
+    auto retExpr = std::make_unique<ASTBinaryOpNode>(
+        BinaryOpType::Add,
+        std::make_unique<ASTVariableNode>("x"),
+        std::make_unique<ASTVariableNode>("y")
+    );
+    auto declNode = std::make_unique<ASTFunctionDeclNode>("my_add", params, std::move(body), std::move(retExpr));
+
+    std::string printedDecl = printer.Print(declNode.get());
+    EXPECT_NE(printedDecl.find("FunctionDecl: my_add"), std::string::npos);
 }
 

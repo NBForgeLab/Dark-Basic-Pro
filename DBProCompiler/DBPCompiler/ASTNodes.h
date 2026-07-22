@@ -90,6 +90,95 @@ public:
     }
 };
 
+class ASTIfNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> m_condition;
+    std::unique_ptr<ASTBlockNode> m_thenBranch;
+    std::unique_ptr<ASTBlockNode> m_elseBranch;
+
+    ASTIfNode(std::unique_ptr<ASTNode> condition,
+              std::unique_ptr<ASTBlockNode> thenBranch,
+              std::unique_ptr<ASTBlockNode> elseBranch = nullptr)
+        : m_condition(std::move(condition)),
+          m_thenBranch(std::move(thenBranch)),
+          m_elseBranch(std::move(elseBranch)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+class ASTWhileNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> m_condition;
+    std::unique_ptr<ASTBlockNode> m_body;
+
+    ASTWhileNode(std::unique_ptr<ASTNode> condition, std::unique_ptr<ASTBlockNode> body)
+        : m_condition(std::move(condition)), m_body(std::move(body)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+class ASTForNode : public ASTNode {
+public:
+    std::string m_varName;
+    std::unique_ptr<ASTNode> m_startExpr;
+    std::unique_ptr<ASTNode> m_endExpr;
+    std::unique_ptr<ASTNode> m_stepExpr;
+    std::unique_ptr<ASTBlockNode> m_body;
+
+    ASTForNode(const std::string& varName,
+               std::unique_ptr<ASTNode> startExpr,
+               std::unique_ptr<ASTNode> endExpr,
+               std::unique_ptr<ASTNode> stepExpr,
+               std::unique_ptr<ASTBlockNode> body)
+        : m_varName(varName),
+          m_startExpr(std::move(startExpr)),
+          m_endExpr(std::move(endExpr)),
+          m_stepExpr(std::move(stepExpr)),
+          m_body(std::move(body)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+class ASTFunctionCallNode : public ASTNode {
+public:
+    std::string m_funcName;
+    std::vector<std::unique_ptr<ASTNode>> m_arguments;
+
+    ASTFunctionCallNode(const std::string& funcName, std::vector<std::unique_ptr<ASTNode>> arguments)
+        : m_funcName(funcName), m_arguments(std::move(arguments)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+class ASTFunctionDeclNode : public ASTNode {
+public:
+    std::string m_funcName;
+    std::vector<std::string> m_parameters;
+    std::unique_ptr<ASTBlockNode> m_body;
+    std::unique_ptr<ASTNode> m_returnExpr;
+
+    ASTFunctionDeclNode(const std::string& funcName,
+                        std::vector<std::string> parameters,
+                        std::unique_ptr<ASTBlockNode> body,
+                        std::unique_ptr<ASTNode> returnExpr = nullptr)
+        : m_funcName(funcName),
+          m_parameters(std::move(parameters)),
+          m_body(std::move(body)),
+          m_returnExpr(std::move(returnExpr)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
 class CASTAssignment {
 public:
     std::string m_varName;

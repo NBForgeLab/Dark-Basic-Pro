@@ -114,6 +114,28 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 m_codeGen->WriteASMEAXtoX(dwAccessMode, &varName, NULL, dwType, dwOffset);
                 break;
             }
+            case IROpCode::JumpIfFalse: {
+                m_codeGen->WriteASMLine(ASM_POPEAX, "");
+                m_codeGen->WriteASMLine(ASM_CMPEAX4, "0");
+                CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
+                m_codeGen->WriteASMLine(ASM_JE, labelName.GetStr());
+                break;
+            }
+            case IROpCode::Jump: {
+                CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
+                m_codeGen->WriteASMLine(ASM_JMP, labelName.GetStr());
+                break;
+            }
+            case IROpCode::Label: {
+                CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
+                m_codeGen->WriteASMLine(0, labelName.GetStr());
+                break;
+            }
+            case IROpCode::Call: {
+                CStr funcLabel(const_cast<LPSTR>(inst.operandStr.c_str()));
+                m_codeGen->WriteASMLine(ASM_CALLABS, funcLabel.GetStr());
+                break;
+            }
         }
     }
     return true;

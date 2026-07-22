@@ -79,8 +79,49 @@ void SemanticVisitor::Visit(ASTBinaryOpNode* node) {
         node->m_right->Accept(this);
         rightType = m_inferredType;
     }
-    if (leftType != rightType) {
+    if (leftType != rightType && leftType != 0 && rightType != 0) {
         m_hasErrors = true;
     }
-    m_inferredType = leftType;
+    if (node->m_op == BinaryOpType::Equal || node->m_op == BinaryOpType::LessThan ||
+        node->m_op == BinaryOpType::GreaterThan || node->m_op == BinaryOpType::LessEqual ||
+        node->m_op == BinaryOpType::GreaterEqual || node->m_op == BinaryOpType::NotEqual) {
+        m_inferredType = 1; // Relational comparison result is boolean/integer
+    } else {
+        m_inferredType = leftType;
+    }
+}
+
+void SemanticVisitor::Visit(ASTIfNode* node) {
+    if (node->m_condition) {
+        node->m_condition->Accept(this);
+    }
+    if (node->m_thenBranch) {
+        node->m_thenBranch->Accept(this);
+    }
+    if (node->m_elseBranch) {
+        node->m_elseBranch->Accept(this);
+    }
+}
+
+void SemanticVisitor::Visit(ASTWhileNode* node) {
+    if (node->m_condition) node->m_condition->Accept(this);
+    if (node->m_body) node->m_body->Accept(this);
+}
+
+void SemanticVisitor::Visit(ASTForNode* node) {
+    if (node->m_startExpr) node->m_startExpr->Accept(this);
+    if (node->m_endExpr) node->m_endExpr->Accept(this);
+    if (node->m_stepExpr) node->m_stepExpr->Accept(this);
+    if (node->m_body) node->m_body->Accept(this);
+}
+
+void SemanticVisitor::Visit(ASTFunctionCallNode* node) {
+    for (auto& arg : node->m_arguments) {
+        if (arg) arg->Accept(this);
+    }
+}
+
+void SemanticVisitor::Visit(ASTFunctionDeclNode* node) {
+    if (node->m_body) node->m_body->Accept(this);
+    if (node->m_returnExpr) node->m_returnExpr->Accept(this);
 }

@@ -6,6 +6,11 @@ class ASTAssignmentNode;
 class ASTLiteralNode;
 class ASTVariableNode;
 class ASTBinaryOpNode;
+class ASTIfNode;
+class ASTWhileNode;
+class ASTForNode;
+class ASTFunctionCallNode;
+class ASTFunctionDeclNode;
 
 class ASTVisitor {
 public:
@@ -16,4 +21,9 @@ public:
     virtual void Visit(ASTLiteralNode* node) = 0;
     virtual void Visit(ASTVariableNode* node) = 0;
     virtual void Visit(ASTBinaryOpNode* node) = 0;
+    virtual void Visit(ASTIfNode* node) = 0;
+    virtual void Visit(ASTWhileNode* node) = 0;
+    virtual void Visit(ASTForNode* node) = 0;
+    virtual void Visit(ASTFunctionCallNode* node) = 0;
+    virtual void Visit(ASTFunctionDeclNode* node) = 0;
 };

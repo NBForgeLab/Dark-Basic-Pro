@@ -8,7 +8,11 @@ enum class IROpCode {
     LoadConst,
     LoadVar,
     BinaryOp,
-    StoreVar
+    StoreVar,
+    Label,
+    JumpIfFalse,
+    Jump,
+    Call
 };
 
 struct IRInstruction {
@@ -56,6 +60,18 @@ inline std::string PrintIR(const IRProgram& ir) {
             }
             case IROpCode::StoreVar:
                 ss << "StoreVar: " << inst.operandStr;
+                break;
+            case IROpCode::Label:
+                ss << "Label: " << inst.operandStr;
+                break;
+            case IROpCode::JumpIfFalse:
+                ss << "JumpIfFalse: " << inst.operandStr;
+                break;
+            case IROpCode::Jump:
+                ss << "Jump: " << inst.operandStr;
+                break;
+            case IROpCode::Call:
+                ss << "Call: " << inst.operandStr;
                 break;
         }
         ss << "\n";

@@ -17,6 +17,11 @@ public:
     void Visit(ASTLiteralNode* node) override;
     void Visit(ASTVariableNode* node) override;
     void Visit(ASTBinaryOpNode* node) override;
+    void Visit(ASTIfNode* node) override;
+    void Visit(ASTWhileNode* node) override;
+    void Visit(ASTForNode* node) override;
+    void Visit(ASTFunctionCallNode* node) override;
+    void Visit(ASTFunctionDeclNode* node) override;
 
 private:
     std::stringstream m_ss;

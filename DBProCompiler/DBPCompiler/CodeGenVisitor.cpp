@@ -93,3 +93,37 @@ void CodeGenVisitor::Visit(ASTBinaryOpNode* node) {
     }
     m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, 1, 0);
 }
+
+void CodeGenVisitor::Visit(ASTIfNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTIfNode");
+    if (node->m_condition) node->m_condition->Accept(this);
+    if (node->m_thenBranch) node->m_thenBranch->Accept(this);
+    if (node->m_elseBranch) node->m_elseBranch->Accept(this);
+}
+
+void CodeGenVisitor::Visit(ASTWhileNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTWhileNode");
+    if (node->m_condition) node->m_condition->Accept(this);
+    if (node->m_body) node->m_body->Accept(this);
+}
+
+void CodeGenVisitor::Visit(ASTForNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTForNode");
+    if (node->m_startExpr) node->m_startExpr->Accept(this);
+    if (node->m_endExpr) node->m_endExpr->Accept(this);
+    if (node->m_stepExpr) node->m_stepExpr->Accept(this);
+    if (node->m_body) node->m_body->Accept(this);
+}
+
+void CodeGenVisitor::Visit(ASTFunctionCallNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTFunctionCallNode: {}", node->m_funcName);
+    for (auto& arg : node->m_arguments) {
+        if (arg) arg->Accept(this);
+    }
+}
+
+void CodeGenVisitor::Visit(ASTFunctionDeclNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTFunctionDeclNode: {}", node->m_funcName);
+    if (node->m_body) node->m_body->Accept(this);
+    if (node->m_returnExpr) node->m_returnExpr->Accept(this);
+}
