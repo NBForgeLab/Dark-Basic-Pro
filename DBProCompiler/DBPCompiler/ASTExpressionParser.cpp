@@ -2,6 +2,8 @@
 #include "ASTNodes.h"
 #include <algorithm>
 #include <cctype>
+#include <sstream>
+#include <vector>
 
 static std::string Trim(const std::string& s) {
     size_t start = s.find_first_not_of(" \t\r\n");
@@ -75,6 +77,41 @@ static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
     }
     if (IsSimpleIdentifier(trimmed)) {
         return std::make_unique<ASTVariableNode>(trimmed);
+    }
+
+    // Struct property dot access: varName.fieldName
+    size_t dotPos = trimmed.find('.');
+    if (dotPos != std::string::npos && dotPos > 0 && dotPos < trimmed.size() - 1) {
+        std::string varName = Trim(trimmed.substr(0, dotPos));
+        std::string fieldName = Trim(trimmed.substr(dotPos + 1));
+        if (IsSimpleIdentifier(varName) && IsSimpleIdentifier(fieldName)) {
+            return std::make_unique<ASTStructAccessNode>(varName, fieldName);
+        }
+    }
+
+    // Array element access: arrayName(idx1, idx2)
+    size_t openParen = trimmed.find('(');
+    if (openParen != std::string::npos && trimmed.back() == ')') {
+        std::string arrName = Trim(trimmed.substr(0, openParen));
+        if (IsSimpleIdentifier(arrName)) {
+            std::string argsStr = trimmed.substr(openParen + 1, trimmed.size() - openParen - 2);
+            std::vector<std::unique_ptr<ASTNode>> indices;
+            std::stringstream ss(argsStr);
+            std::string item;
+            bool valid = true;
+            while (std::getline(ss, item, ',')) {
+                auto idxNode = ParseSubExpr(item);
+                if (idxNode) {
+                    indices.push_back(std::move(idxNode));
+                } else {
+                    valid = false;
+                    break;
+                }
+            }
+            if (valid && !indices.empty()) {
+                return std::make_unique<ASTArrayAccessNode>(arrName, std::move(indices));
+            }
+        }
     }
 
     return nullptr;

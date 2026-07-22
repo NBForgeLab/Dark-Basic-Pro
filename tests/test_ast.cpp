@@ -538,3 +538,21 @@ TEST(ASTArrayAndStructTest, ArrayAndStructNodeConstruction) {
     EXPECT_NE(printedAccess.find("StructAccess: player1.health"), std::string::npos);
 }
 
+TEST(ASTExpressionParserTest, ParseStructPropertyAccess) {
+    auto node = ASTExpressionParser::Parse("player.health");
+    ASSERT_NE(node, nullptr);
+    auto structAccess = dynamic_cast<ASTStructAccessNode*>(node.get());
+    ASSERT_NE(structAccess, nullptr);
+    EXPECT_EQ(structAccess->m_varName, "player");
+    EXPECT_EQ(structAccess->m_fieldName, "health");
+}
+
+TEST(ASTExpressionParserTest, ParseArrayElementAccess) {
+    auto node = ASTExpressionParser::Parse("grid(x, 10)");
+    ASSERT_NE(node, nullptr);
+    auto arrAccess = dynamic_cast<ASTArrayAccessNode*>(node.get());
+    ASSERT_NE(arrAccess, nullptr);
+    EXPECT_EQ(arrAccess->m_arrayName, "grid");
+    EXPECT_EQ(arrAccess->m_indices.size(), 2);
+}
+
