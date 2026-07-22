@@ -3,10 +3,10 @@ Import-Module (Join-Path $PSScriptRoot "DirectiveParser.psm1") -Force
 Describe "DarkBASIC Language Conformance Tests" {
     # Find built compiler
     $compilerCandidates = @(
-        (Join-Path $PSScriptRoot "..\..\bin\Release\DBPCompiler.exe"),
-        (Join-Path $PSScriptRoot "..\..\bin\Debug\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\build\bin\Release\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\build\bin\Debug\DBPCompiler.exe"),
+        (Join-Path $PSScriptRoot "..\..\bin\Release\DBPCompiler.exe"),
+        (Join-Path $PSScriptRoot "..\..\bin\Debug\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\bin\Release\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\bin\Debug\DBPCompiler.exe")
     )

@@ -2,9 +2,11 @@
 #include "ASTNodes.h"
 #include "VarTable.h"
 #include "Error.h"
+#include "ParseUserFunction.h"
 
 extern CVarTable* g_pVarTable;
 extern CError* g_pErrorReport;
+extern CParseUserFunction* g_pUserFunctionWithin;
 
 void SemanticVisitor::Visit(ASTProgramNode* node) {
     for (auto& stmt : node->m_statements) {
@@ -19,23 +21,27 @@ void SemanticVisitor::Visit(ASTBlockNode* node) {
 }
 
 void SemanticVisitor::Visit(ASTAssignmentNode* node) {
-    CVarTable* pVar = g_pVarTable->FindVariable(NULL, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    LPSTR pScope = NULL;
+    if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
+        pScope = g_pUserFunctionWithin->GetName()->GetStr();
+    }
+
+    CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    if (!pVar) {
+        pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    }
+
     if (!pVar) {
         m_hasErrors = true;
         if (g_pErrorReport) {
-            g_pErrorReport->SetError(1, 100000 + 18, const_cast<LPSTR>(node->m_varName.c_str()));
+            DWORD lineNum = node->GetLocation().line;
+            if (lineNum == 0) lineNum = 1;
+            g_pErrorReport->SetError(lineNum, 100000 + 6, const_cast<LPSTR>(node->m_varName.c_str()));
         }
         return;
     }
-    DWORD varType = pVar->GetVarTypeValue();
     if (node->m_expression) {
         node->m_expression->Accept(this);
-        if (m_inferredType != varType && m_inferredType != 0) {
-            m_hasErrors = true;
-            if (g_pErrorReport) {
-                g_pErrorReport->SetError(1, 100000 + 19, const_cast<LPSTR>("Type mismatch in assignment"));
-            }
-        }
     }
 }
 
@@ -44,7 +50,16 @@ void SemanticVisitor::Visit(ASTLiteralNode* node) {
 }
 
 void SemanticVisitor::Visit(ASTVariableNode* node) {
-    CVarTable* pVar = g_pVarTable->FindVariable(NULL, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    LPSTR pScope = NULL;
+    if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
+        pScope = g_pUserFunctionWithin->GetName()->GetStr();
+    }
+
+    CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    if (!pVar) {
+        pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+    }
+
     if (pVar) {
         m_inferredType = pVar->GetVarTypeValue();
     } else {

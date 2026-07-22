@@ -37,6 +37,8 @@ set(LIB_SOURCES
     SemanticVisitor.cpp
     IRLoweringVisitor.cpp
     TargetCodegen.cpp
+    ASTPrinter.cpp
+    ASTExpressionParser.cpp
     DiagnosticEngine.cpp
     VFSHooks.cpp
     MemoryPE.cpp

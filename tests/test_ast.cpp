@@ -200,3 +200,109 @@ TEST_F(ASTCodeGenTest, PipelineCodegen) {
     TargetCodegen codegen(g_pASMWriter, 1);
     EXPECT_TRUE(codegen.Generate(ir));
 }
+
+#include "ASTExpressionParser.h"
+
+TEST(ASTExpressionParserTest, ParseLiteral) {
+    auto node = ASTExpressionParser::Parse("123");
+    ASSERT_NE(node, nullptr);
+    auto literal = dynamic_cast<ASTLiteralNode*>(node.get());
+    ASSERT_NE(literal, nullptr);
+    EXPECT_EQ(literal->m_value, "123");
+    EXPECT_EQ(literal->m_type, 1);
+}
+
+TEST(ASTExpressionParserTest, ParseVariable) {
+    auto node = ASTExpressionParser::Parse("myVar");
+    ASSERT_NE(node, nullptr);
+    auto var = dynamic_cast<ASTVariableNode*>(node.get());
+    ASSERT_NE(var, nullptr);
+    EXPECT_EQ(var->m_varName, "myVar");
+}
+
+TEST(ASTExpressionParserTest, ParseAddition) {
+    auto node = ASTExpressionParser::Parse("x + 10");
+    ASSERT_NE(node, nullptr);
+    auto binOp = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(binOp, nullptr);
+    EXPECT_EQ(binOp->m_op, BinaryOpType::Add);
+    
+    auto left = dynamic_cast<ASTVariableNode*>(binOp->m_left.get());
+    ASSERT_NE(left, nullptr);
+    EXPECT_EQ(left->m_varName, "x");
+
+    auto right = dynamic_cast<ASTLiteralNode*>(binOp->m_right.get());
+    ASSERT_NE(right, nullptr);
+    EXPECT_EQ(right->m_value, "10");
+}
+
+TEST(ASTExpressionParserTest, ParseSubtraction) {
+    auto node = ASTExpressionParser::Parse("val - other_val");
+    ASSERT_NE(node, nullptr);
+    auto binOp = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(binOp, nullptr);
+    EXPECT_EQ(binOp->m_op, BinaryOpType::Subtract);
+
+    auto left = dynamic_cast<ASTVariableNode*>(binOp->m_left.get());
+    ASSERT_NE(left, nullptr);
+    EXPECT_EQ(left->m_varName, "val");
+
+    auto right = dynamic_cast<ASTVariableNode*>(binOp->m_right.get());
+    ASSERT_NE(right, nullptr);
+    EXPECT_EQ(right->m_varName, "other_val");
+}
+
+TEST(ASTExpressionParserTest, ParseMultiplication) {
+    auto node = ASTExpressionParser::Parse("a * b");
+    ASSERT_NE(node, nullptr);
+    auto binOp = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(binOp, nullptr);
+    EXPECT_EQ(binOp->m_op, BinaryOpType::Multiply);
+}
+
+TEST(ASTExpressionParserTest, ParseDivision) {
+    auto node = ASTExpressionParser::Parse("a / b");
+    ASSERT_NE(node, nullptr);
+    auto binOp = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(binOp, nullptr);
+    EXPECT_EQ(binOp->m_op, BinaryOpType::Divide);
+}
+
+TEST(ASTExpressionParserTest, ParsePrecedence) {
+    // a + b * c should parse as a + (b * c)
+    auto node = ASTExpressionParser::Parse("a + b * c");
+    ASSERT_NE(node, nullptr);
+    auto rootAdd = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(rootAdd, nullptr);
+    EXPECT_EQ(rootAdd->m_op, BinaryOpType::Add);
+
+    auto leftVar = dynamic_cast<ASTVariableNode*>(rootAdd->m_left.get());
+    ASSERT_NE(leftVar, nullptr);
+    EXPECT_EQ(leftVar->m_varName, "a");
+
+    auto rightMul = dynamic_cast<ASTBinaryOpNode*>(rootAdd->m_right.get());
+    ASSERT_NE(rightMul, nullptr);
+    EXPECT_EQ(rightMul->m_op, BinaryOpType::Multiply);
+}
+
+TEST(ASTExpressionParserTest, ParseParentheses) {
+    // (a + b) * c should parse as ((a + b) * c)
+    auto node = ASTExpressionParser::Parse("(a + b) * c");
+    ASSERT_NE(node, nullptr);
+    auto rootMul = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(rootMul, nullptr);
+    EXPECT_EQ(rootMul->m_op, BinaryOpType::Multiply);
+
+    auto leftAdd = dynamic_cast<ASTBinaryOpNode*>(rootMul->m_left.get());
+    ASSERT_NE(leftAdd, nullptr);
+    EXPECT_EQ(leftAdd->m_op, BinaryOpType::Add);
+}
+
+TEST(ASTExpressionParserTest, ParseComparisons) {
+    auto node = ASTExpressionParser::Parse("a < b");
+    ASSERT_NE(node, nullptr);
+    auto binOp = dynamic_cast<ASTBinaryOpNode*>(node.get());
+    ASSERT_NE(binOp, nullptr);
+    EXPECT_EQ(binOp->m_op, BinaryOpType::LessThan);
+}
+

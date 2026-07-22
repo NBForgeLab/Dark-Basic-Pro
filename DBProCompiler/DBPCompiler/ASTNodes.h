@@ -66,7 +66,14 @@ enum class BinaryOpType {
     Add,
     Subtract,
     Multiply,
-    Divide
+    Divide,
+    Modulo,
+    Equal,
+    LessThan,
+    GreaterThan,
+    LessEqual,
+    GreaterEqual,
+    NotEqual
 };
 
 class ASTBinaryOpNode : public ASTNode {
@@ -81,4 +88,16 @@ public:
     void Accept(ASTVisitor* visitor) override {
         visitor->Visit(this);
     }
+};
+
+class CASTAssignment {
+public:
+    std::string m_varName;
+    std::string m_valStr;
+    DWORD m_lineNumber;
+
+    CASTAssignment(const std::string& varName, const std::string& valStr, DWORD lineNumber)
+        : m_varName(varName), m_valStr(valStr), m_lineNumber(lineNumber) {}
+
+    bool WriteDBM();
 };
