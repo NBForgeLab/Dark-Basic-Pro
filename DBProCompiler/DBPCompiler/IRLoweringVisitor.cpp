@@ -217,3 +217,29 @@ void IRLoweringVisitor::Visit(ASTFunctionDeclNode* node) {
         node->m_returnExpr->Accept(this);
     }
 }
+
+void IRLoweringVisitor::Visit(ASTArrayDimNode* node) {
+    for (auto& dim : node->m_dimensions) {
+        if (dim) dim->Accept(this);
+    }
+}
+
+void IRLoweringVisitor::Visit(ASTArrayAccessNode* node) {
+    for (auto& idx : node->m_indices) {
+        if (idx) idx->Accept(this);
+    }
+    IRInstruction inst;
+    inst.opCode = IROpCode::LoadVar;
+    inst.operandStr = node->m_arrayName;
+    m_program.instructions.push_back(inst);
+}
+
+void IRLoweringVisitor::Visit(ASTStructDeclNode* node) {
+}
+
+void IRLoweringVisitor::Visit(ASTStructAccessNode* node) {
+    IRInstruction inst;
+    inst.opCode = IROpCode::LoadVar;
+    inst.operandStr = node->m_varName + "." + node->m_fieldName;
+    m_program.instructions.push_back(inst);
+}

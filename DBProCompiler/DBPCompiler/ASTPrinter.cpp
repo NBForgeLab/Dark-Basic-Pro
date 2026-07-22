@@ -181,3 +181,39 @@ void ASTPrinter::Visit(ASTFunctionDeclNode* node) {
     }
     m_indent--;
 }
+
+void ASTPrinter::Visit(ASTArrayDimNode* node) {
+    PrintIndent();
+    m_ss << "ArrayDim: " << node->m_arrayName << "\n";
+    m_indent++;
+    for (auto& dim : node->m_dimensions) {
+        if (dim) dim->Accept(this);
+    }
+    m_indent--;
+}
+
+void ASTPrinter::Visit(ASTArrayAccessNode* node) {
+    PrintIndent();
+    m_ss << "ArrayAccess: " << node->m_arrayName << "\n";
+    m_indent++;
+    for (auto& idx : node->m_indices) {
+        if (idx) idx->Accept(this);
+    }
+    m_indent--;
+}
+
+void ASTPrinter::Visit(ASTStructDeclNode* node) {
+    PrintIndent();
+    m_ss << "StructDecl: " << node->m_structName << "\n";
+    m_indent++;
+    for (auto& f : node->m_fields) {
+        PrintIndent();
+        m_ss << "Field: " << f.name << " (Type " << f.type << ")\n";
+    }
+    m_indent--;
+}
+
+void ASTPrinter::Visit(ASTStructAccessNode* node) {
+    PrintIndent();
+    m_ss << "StructAccess: " << node->m_varName << "." << node->m_fieldName << "\n";
+}

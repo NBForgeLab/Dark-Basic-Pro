@@ -179,6 +179,64 @@ public:
     }
 };
 
+class ASTArrayDimNode : public ASTNode {
+public:
+    std::string m_arrayName;
+    std::vector<std::unique_ptr<ASTNode>> m_dimensions;
+    DWORD m_elemType = 1;
+
+    ASTArrayDimNode(const std::string& arrayName, std::vector<std::unique_ptr<ASTNode>> dimensions, DWORD elemType = 1)
+        : m_arrayName(arrayName), m_dimensions(std::move(dimensions)), m_elemType(elemType) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+class ASTArrayAccessNode : public ASTNode {
+public:
+    std::string m_arrayName;
+    std::vector<std::unique_ptr<ASTNode>> m_indices;
+
+    ASTArrayAccessNode(const std::string& arrayName, std::vector<std::unique_ptr<ASTNode>> indices)
+        : m_arrayName(arrayName), m_indices(std::move(indices)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+struct ASTStructField {
+    std::string name;
+    DWORD type = 1;
+};
+
+class ASTStructDeclNode : public ASTNode {
+public:
+    std::string m_structName;
+    std::vector<ASTStructField> m_fields;
+
+    ASTStructDeclNode(const std::string& structName, std::vector<ASTStructField> fields)
+        : m_structName(structName), m_fields(std::move(fields)) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
+class ASTStructAccessNode : public ASTNode {
+public:
+    std::string m_varName;
+    std::string m_fieldName;
+
+    ASTStructAccessNode(const std::string& varName, const std::string& fieldName)
+        : m_varName(varName), m_fieldName(fieldName) {}
+
+    void Accept(ASTVisitor* visitor) override {
+        visitor->Visit(this);
+    }
+};
+
 class CASTAssignment {
 public:
     std::string m_varName;

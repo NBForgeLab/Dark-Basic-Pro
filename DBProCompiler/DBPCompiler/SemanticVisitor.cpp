@@ -133,3 +133,23 @@ void SemanticVisitor::Visit(ASTFunctionDeclNode* node) {
     if (node->m_body) node->m_body->Accept(this);
     if (node->m_returnExpr) node->m_returnExpr->Accept(this);
 }
+
+void SemanticVisitor::Visit(ASTArrayDimNode* node) {
+    for (auto& dim : node->m_dimensions) {
+        if (dim) dim->Accept(this);
+    }
+}
+
+void SemanticVisitor::Visit(ASTArrayAccessNode* node) {
+    for (auto& idx : node->m_indices) {
+        if (idx) idx->Accept(this);
+    }
+    m_inferredType = 1;
+}
+
+void SemanticVisitor::Visit(ASTStructDeclNode* node) {
+}
+
+void SemanticVisitor::Visit(ASTStructAccessNode* node) {
+    m_inferredType = 1;
+}

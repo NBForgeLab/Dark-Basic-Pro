@@ -11,6 +11,10 @@ class ASTWhileNode;
 class ASTForNode;
 class ASTFunctionCallNode;
 class ASTFunctionDeclNode;
+class ASTArrayDimNode;
+class ASTArrayAccessNode;
+class ASTStructDeclNode;
+class ASTStructAccessNode;
 
 class ASTVisitor {
 public:
@@ -26,4 +30,8 @@ public:
     virtual void Visit(ASTForNode* node) = 0;
     virtual void Visit(ASTFunctionCallNode* node) = 0;
     virtual void Visit(ASTFunctionDeclNode* node) = 0;
+    virtual void Visit(ASTArrayDimNode* node) = 0;
+    virtual void Visit(ASTArrayAccessNode* node) = 0;
+    virtual void Visit(ASTStructDeclNode* node) = 0;
+    virtual void Visit(ASTStructAccessNode* node) = 0;
 };

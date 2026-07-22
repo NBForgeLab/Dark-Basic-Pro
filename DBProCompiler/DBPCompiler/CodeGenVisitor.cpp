@@ -127,3 +127,25 @@ void CodeGenVisitor::Visit(ASTFunctionDeclNode* node) {
     if (node->m_body) node->m_body->Accept(this);
     if (node->m_returnExpr) node->m_returnExpr->Accept(this);
 }
+
+void CodeGenVisitor::Visit(ASTArrayDimNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTArrayDimNode: {}", node->m_arrayName);
+    for (auto& dim : node->m_dimensions) {
+        if (dim) dim->Accept(this);
+    }
+}
+
+void CodeGenVisitor::Visit(ASTArrayAccessNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTArrayAccessNode: {}", node->m_arrayName);
+    for (auto& idx : node->m_indices) {
+        if (idx) idx->Accept(this);
+    }
+}
+
+void CodeGenVisitor::Visit(ASTStructDeclNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTStructDeclNode: {}", node->m_structName);
+}
+
+void CodeGenVisitor::Visit(ASTStructAccessNode* node) {
+    DBP_TRACE("ASTCodeGen: Visiting ASTStructAccessNode: {}.{}", node->m_varName, node->m_fieldName);
+}

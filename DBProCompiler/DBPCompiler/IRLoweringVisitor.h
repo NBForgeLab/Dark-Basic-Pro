@@ -18,6 +18,10 @@ public:
     void Visit(ASTForNode* node) override;
     void Visit(ASTFunctionCallNode* node) override;
     void Visit(ASTFunctionDeclNode* node) override;
+    void Visit(ASTArrayDimNode* node) override;
+    void Visit(ASTArrayAccessNode* node) override;
+    void Visit(ASTStructDeclNode* node) override;
+    void Visit(ASTStructAccessNode* node) override;
 
     IRProgram GetProgram() const { return m_program; }
 

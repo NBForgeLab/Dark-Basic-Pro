@@ -83,6 +83,18 @@ public:
         if (node->m_body) node->m_body->Accept(this);
         if (node->m_returnExpr) node->m_returnExpr->Accept(this);
     }
+    void Visit(ASTArrayDimNode* node) override {
+        for (auto& dim : node->m_dimensions) {
+            if (dim) dim->Accept(this);
+        }
+    }
+    void Visit(ASTArrayAccessNode* node) override {
+        for (auto& idx : node->m_indices) {
+            if (idx) idx->Accept(this);
+        }
+    }
+    void Visit(ASTStructDeclNode* node) override {}
+    void Visit(ASTStructAccessNode* node) override {}
 };
 
 TEST(ASTTest, ConstructionAndTraversal) {
@@ -504,5 +516,25 @@ TEST(ASTPipelineParserTest, ParseAssignmentsAndLocations) {
     progNode->Accept(&lowering);
     IRProgram ir = lowering.GetProgram();
     EXPECT_GT(ir.instructions.size(), 0);
+}
+
+TEST(ASTArrayAndStructTest, ArrayAndStructNodeConstruction) {
+    std::vector<std::unique_ptr<ASTNode>> dims;
+    dims.push_back(std::make_unique<ASTLiteralNode>("10", 1));
+    dims.push_back(std::make_unique<ASTLiteralNode>("20", 1));
+    auto dimNode = std::make_unique<ASTArrayDimNode>("grid", std::move(dims), 1);
+
+    ASTPrinter printer;
+    std::string printedDim = printer.Print(dimNode.get());
+    EXPECT_NE(printedDim.find("ArrayDim: grid"), std::string::npos);
+
+    std::vector<ASTStructField> fields = {{"x", 1}, {"y", 1}, {"name", 3}};
+    auto structDecl = std::make_unique<ASTStructDeclNode>("PlayerType", fields);
+    std::string printedStruct = printer.Print(structDecl.get());
+    EXPECT_NE(printedStruct.find("StructDecl: PlayerType"), std::string::npos);
+
+    auto structAccess = std::make_unique<ASTStructAccessNode>("player1", "health");
+    std::string printedAccess = printer.Print(structAccess.get());
+    EXPECT_NE(printedAccess.find("StructAccess: player1.health"), std::string::npos);
 }
 
