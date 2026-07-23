@@ -94,6 +94,17 @@ static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
     if (openParen != std::string::npos && trimmed.back() == ')') {
         std::string arrName = Trim(trimmed.substr(0, openParen));
         if (IsSimpleIdentifier(arrName)) {
+            std::string lowerName = arrName;
+            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+            // Built-in functions ending with $ or common math/string commands are not array accesses
+            if (!lowerName.empty() && (lowerName.back() == '$' ||
+                lowerName == "len" || lowerName == "sin" || lowerName == "cos" || lowerName == "tan" ||
+                lowerName == "asin" || lowerName == "acos" || lowerName == "atan" || lowerName == "abs" ||
+                lowerName == "sqr" || lowerName == "sqrt" || lowerName == "rnd" || lowerName == "val" ||
+                lowerName == "asc" || lowerName == "rgb" || lowerName == "timer")) {
+                return nullptr;
+            }
+
             std::string argsStr = trimmed.substr(openParen + 1, trimmed.size() - openParen - 2);
             std::vector<std::unique_ptr<ASTNode>> indices;
             std::stringstream ss(argsStr);

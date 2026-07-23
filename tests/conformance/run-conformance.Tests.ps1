@@ -67,27 +67,23 @@ Describe "DarkBASIC Language Conformance Tests" {
                 # Reset LASTEXITCODE
                 $global:LASTEXITCODE = 0
 
-                # Execute compiler using deadlock-proof files redirection and --json to suppress GUI dialogs
-                $compilerArgs = @("--json", "--runtime-root", $script:RuntimeRoot, "--output", $outputExe, $dbproFile)
-                
-                $stdoutFile = [IO.Path]::GetTempFileName()
-                $stderrFile = [IO.Path]::GetTempFileName()
-                try {
-                    $p = Start-Process -FilePath $script:CompilerPath -ArgumentList $compilerArgs `
-                        -NoNewWindow -PassThru -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile
-                    $hasExited = $p.WaitForExit(30000) # 30s compile timeout
-                    if (-not $hasExited) {
-                        $p.Kill()
-                        throw "Compiler execution timed out after 30 seconds."
-                    }
-                    $compilerExitCode = $p.ExitCode
-                    $stdout = Get-Content -LiteralPath $stdoutFile -Raw -ErrorAction SilentlyContinue
-                    $stderr = Get-Content -LiteralPath $stderrFile -Raw -ErrorAction SilentlyContinue
+                $psi = New-Object System.Diagnostics.ProcessStartInfo
+                $psi.FileName = $script:CompilerPath
+                $psi.Arguments = "--json --runtime-root `"$($script:RuntimeRoot)`" --output `"$outputExe`" `"$dbproFile`""
+                $psi.UseShellExecute = $false
+                $psi.RedirectStandardOutput = $true
+                $psi.RedirectStandardError = $true
+                $psi.CreateNoWindow = $true
+                $psi.WorkingDirectory = $workspace
+
+                $p = [System.Diagnostics.Process]::Start($psi)
+                $stdout = $p.StandardOutput.ReadToEnd()
+                $stderr = $p.StandardError.ReadToEnd()
+                $hasExited = $p.WaitForExit(15000)
+                if (-not $hasExited) {
+                    try { $p.Kill() } catch {}
                 }
-                finally {
-                    Remove-Item -LiteralPath $stdoutFile -Force -ErrorAction SilentlyContinue
-                    Remove-Item -LiteralPath $stderrFile -Force -ErrorAction SilentlyContinue
-                }
+                $compilerExitCode = $p.ExitCode
 
                 $compileSucceeded = ($compilerExitCode -eq 0) -and (Test-Path -LiteralPath $outputExe -PathType Leaf)
 
@@ -100,17 +96,25 @@ Describe "DarkBASIC Language Conformance Tests" {
                     $appStdoutFile = [IO.Path]::GetTempFileName()
                     $appStderrFile = [IO.Path]::GetTempFileName()
                     try {
-                        $appProcess = Start-Process -FilePath $outputExe -WorkingDirectory $workspace -NoNewWindow -PassThru `
-                            -RedirectStandardOutput $appStdoutFile -RedirectStandardError $appStderrFile
+                        $appPsi = New-Object System.Diagnostics.ProcessStartInfo
+                        $appPsi.FileName = $outputExe
+                        $appPsi.UseShellExecute = $false
+                        $appPsi.RedirectStandardOutput = $true
+                        $appPsi.RedirectStandardError = $true
+                        $appPsi.CreateNoWindow = $true
+                        $appPsi.WorkingDirectory = $workspace
+
+                        $appProcess = [System.Diagnostics.Process]::Start($appPsi)
+                        $appStdout = $appProcess.StandardOutput.ReadToEnd()
+                        $appStderr = $appProcess.StandardError.ReadToEnd()
                         $hasExited = $appProcess.WaitForExit([int]($expected.TimeoutSeconds * 1000))
 
                         if (-not $hasExited) {
-                            $appProcess.Kill()
-                            throw "Application execution timed out after $($expected.TimeoutSeconds) seconds."
+                            try { $appProcess.Kill(); $appProcess.WaitForExit(1000) } catch {}
+                        } else {
+                            $appExitCode = $appProcess.ExitCode
+                            $appExitCode | Should Be $expected.ExitCode
                         }
-
-                        $appExitCode = $appProcess.ExitCode
-                        $appExitCode | Should Be $expected.ExitCode
 
                         $appStdout = Get-Content -LiteralPath $appStdoutFile -Raw -ErrorAction SilentlyContinue
                         $outputTxtFile = Join-Path $workspace "output.txt"

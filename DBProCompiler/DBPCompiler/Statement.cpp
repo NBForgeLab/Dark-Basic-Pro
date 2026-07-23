@@ -3180,65 +3180,41 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 		valStr.erase(0, valStr.find_first_not_of(" \t\r\n"));
 
 		bool isSimpleId = IsSimpleIdentifier(varName);
+		if (!varName.empty() && (varName.back() == '$' || varName.back() == '#' || varName.find('.') != std::string::npos)) {
+			isSimpleId = false;
+		}
+
 		std::unique_ptr<ASTNode> parsedExpr = nullptr;
 		if (isSimpleId) {
 			parsedExpr = ASTExpressionParser::Parse(valStr);
 		}
+
+		// Helper to verify AST tree consists only of supported basic types
+		std::function<bool(ASTNode*)> isSupportedAST = [&](ASTNode* node) -> bool {
+			if (!node) return false;
+			if (dynamic_cast<ASTLiteralNode*>(node)) return true;
+			if (auto varNode = dynamic_cast<ASTVariableNode*>(node)) {
+				const std::string& name = varNode->m_varName;
+				return !name.empty() && name.back() != '$' && name.back() != '#' && name.find('.') == std::string::npos;
+			}
+			if (auto binNode = dynamic_cast<ASTBinaryOpNode*>(node)) {
+				return isSupportedAST(binNode->m_left.get()) && isSupportedAST(binNode->m_right.get());
+			}
+			return false;
+		};
+
+		if (parsedExpr != nullptr && !isSupportedAST(parsedExpr.get())) {
+			parsedExpr = nullptr;
+		}
+
 		DBP_INFO("DoAssignment line {}: varName='{}' (simple={}), valStr='{}' (parsable={})", 
 			StatementLineNumber, varName, isSimpleId, valStr, (parsedExpr != nullptr));
 
-		// If it's a simple identifier variable assigned with a parsable expression, route through modern AST pipeline
+		// If it's a simple identifier variable assigned with a parsable expression, run modern AST pipeline for diagnostics
 		if (parsedExpr != nullptr)
 		{
-			// Implicit variable declaration if not already exists in symbol table
-			LPSTR pScope = NULL;
-			LPSTR pUserFunc = g_pStatementList->GetUserFunctionName();
-			if (pUserFunc && stricmp(pUserFunc, "") != NULL)
-			{
-				pScope = pUserFunc;
-			}
-			CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(varName.c_str()), 0);
-			if (!pVar)
-			{
-				pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(varName.c_str()), 0);
-			}
-			if (!pVar)
-			{
-				DWORD dwAction = 0;
-				g_pVarTable->AddVariable(const_cast<LPSTR>(varName.c_str()), const_cast<LPSTR>("integer"), 0, StatementLineNumber, true, &dwAction, false);
-			}
-
-			CASTAssignment* pASTAssignment = new CASTAssignment(varName, valStr, StatementLineNumber);
-
-			CStatement* TheObject = new CStatement();
-			TheObject->SetObjectType(20);
-			TheObject->SetObjectClass((void*)pASTAssignment);
-			TheObject->SetLineAndCharPos(StatementLineNumber);
-			this->Add(TheObject);
-
-			// Advance file data pointer and line number following same rules as DoExpressionList
-			bool bCRValid = false;
-			while (pPointer < g_pStatementList->GetFileDataEnd() &&
-				   *(unsigned char*)pPointer != 10 &&
-				   *(unsigned char*)pPointer != 0 &&
-				   *(unsigned char*)pPointer != ':')
-			{
-				if (*(unsigned char*)pPointer == 13) bCRValid = true;
-				pPointer++;
-			}
-			if (bCRValid && pPointer < g_pStatementList->GetFileDataEnd() && *(unsigned char*)pPointer == 10)
-			{
-				g_pStatementList->IncLineNumber();
-			}
-			if (pPointer < g_pStatementList->GetFileDataEnd())
-			{
-				pPointer++;
-			}
-			g_pStatementList->SetFileDataPointer(pPointer);
-
-			SAFE_DELETE(pAlternateFullString);
-			SAFE_DELETE(pAltString);
-			return true;
+			CASTAssignment astAssignment(varName, valStr, StatementLineNumber);
+			astAssignment.WriteDBM();
 		}
 	}
 
@@ -6432,6 +6408,5 @@ bool CASTAssignment::WriteDBM()
 	DBP_INFO("AST:\n{}", printer.Print(assignment.get()));
 	DBP_INFO("Typed IR:\n{}", PrintIR(lowering.GetProgram()));
 
-	TargetCodegen codegen(g_pASMWriter, m_lineNumber);
-	return codegen.Generate(lowering.GetProgram());
+	return false;
 }
