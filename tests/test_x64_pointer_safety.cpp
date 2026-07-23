@@ -38,12 +38,12 @@ TEST(EXEBlockPointerSafetyTest, StringArrayAllocatesUintptrMemory) {
 
 TEST(EXEBlockPointerSafetyTest, RecreateAndCleanArrayContents) {
     CEXEBlock exeBlock;
-    DWORD* pArray = exeBlock.CreateArray(3);
+    uintptr_t* pArray = exeBlock.CreatePtrArray(3);
     ASSERT_NE(pArray, nullptr);
 
     // Allocate dynamic strings
-    pArray[0] = reinterpret_cast<DWORD>(new char[16]{"test1"});
-    pArray[1] = reinterpret_cast<DWORD>(new char[16]{"test2"});
+    pArray[0] = reinterpret_cast<uintptr_t>(new char[16]{"test1"});
+    pArray[1] = reinterpret_cast<uintptr_t>(new char[16]{"test2"});
     pArray[2] = 0;
 
     // Recreate array to size 5

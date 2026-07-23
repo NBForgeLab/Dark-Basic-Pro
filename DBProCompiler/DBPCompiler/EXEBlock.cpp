@@ -293,6 +293,48 @@ DWORD* CEXEBlock::CreateArray(DWORD dwCount)
 	return CreateArray(dwCount,0);
 }
 
+uintptr_t* CEXEBlock::CreatePtrArray(DWORD dwCount)
+{
+	uintptr_t* pArray = new uintptr_t[dwCount];
+	for(DWORD i=0; i<dwCount; i++)
+		*(pArray+i)=0;
+	return pArray;
+}
+
+bool CEXEBlock::RecreateArray(uintptr_t** pArray, DWORD dwCount, DWORD NewCount)
+{
+	if(pArray)
+	{
+		uintptr_t* pTempArray = new uintptr_t[NewCount];
+		if(pTempArray)
+		{
+			// Clear New
+			for(DWORD i=0; i<NewCount; i++)
+				*(pTempArray+i)=0;
+
+			// Copy Old to New
+			if(*pArray && dwCount > 0)
+				memcpy(pTempArray, *pArray, dwCount*sizeof(uintptr_t));
+
+			// Delete Old (pointer array only)
+			delete[] *pArray;
+
+			// Switch Pointers
+			*pArray=pTempArray;
+
+			return true;
+		}
+		else
+		{
+			// EXEBlock shared - silent fail
+			return false;
+		}
+	}
+
+	// Soft fail
+	return false;
+}
+
 bool CEXEBlock::RecreateArray(DWORD** pArray, DWORD dwCount, DWORD NewCount)
 {
 	if(pArray)
@@ -326,7 +368,7 @@ bool CEXEBlock::RecreateArray(DWORD** pArray, DWORD dwCount, DWORD NewCount)
 	return false;
 }
 
-void CEXEBlock::DeleteArrayContents(DWORD* pArray, DWORD dwCount)
+void CEXEBlock::DeleteArrayContents(uintptr_t* pArray, DWORD dwCount)
 {
 	if(pArray)
 	{
@@ -335,7 +377,7 @@ void CEXEBlock::DeleteArrayContents(DWORD* pArray, DWORD dwCount)
 			if(*(pArray+i))
 			{
 				delete[] (char*)*(pArray+i);
-				*(pArray+i)=NULL;
+				*(pArray+i)=0;
 			}
 		}
 	}
@@ -489,7 +531,7 @@ bool CEXEBlock::SaveValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
 	return bResult;
 }
 
-bool CEXEBlock::SaveStringArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
+bool CEXEBlock::SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
 	bool bResult=true;
@@ -499,7 +541,7 @@ bool CEXEBlock::SaveStringArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 		{
 			char* pStr = (char*)*(*pArray+index);
 			DWORD length = 0;
-			if(pStr) length = strlen(pStr);
+			if(pStr) length = (DWORD)strlen(pStr);
 			WriteFile(hFile, &length, 4, &bytes, NULL);
 			if(bytes==0) bResult=false;
 			if(pStr)
@@ -679,14 +721,14 @@ bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
 }
 
 
-bool CEXEBlock::LoadStringArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
+bool CEXEBlock::LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
 	bool bResult=true;
 	if(*Count>0)
 	{
 		// Create Array 
-		*pArray = CreateArray(*Count,0);
+		*pArray = CreatePtrArray(*Count);
 
 		// Read strings into Array of strings
 		for(DWORD index=0; index<*Count; index++)
@@ -701,7 +743,7 @@ bool CEXEBlock::LoadStringArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 				if(bytes==0) bResult=false;
 			}
 			pStr[length]=0;
-			*(*pArray+index) = (DWORD)pStr;
+			*(*pArray+index) = (uintptr_t)pStr;
 		}
 	}
 	else
@@ -783,9 +825,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		m_pDLLLoadedAlreadyArray = new DWORD[1];
 		m_pDLLLoadedAlreadyArray[0] = 0;
 
-		m_pDLLFilenameArray = new DWORD[1];
-		m_pDLLFilenameArray[0] = (DWORD)new char[strlen(pCoreName)+1];
-		strcpy((LPSTR)m_pDLLFilenameArray[0], pCoreName);
+		m_pDLLFilenameArray = new uintptr_t[1];
+		m_pDLLFilenameArray[0] = (uintptr_t)new char[strlen(pCoreName)+1];
+		strcpy((char*)m_pDLLFilenameArray[0], pCoreName);
 	}
 
 	// [EXE] - Detect if using Basic3D.DLL and if so, check for DX9!

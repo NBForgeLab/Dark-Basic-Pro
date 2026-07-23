@@ -70,17 +70,19 @@ class CEXEBlock
 		bool			LoadValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count);
 		bool			LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, DWORD dwType);
 		bool			LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count);
-		bool			LoadStringArray(HANDLE hFile, DWORD** pArray, DWORD* Count);
+		bool			LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* dwSize);
 		bool			Save(char* filename);
 		bool			SaveValue(HANDLE hFile, DWORD* Value);
 		bool			SaveBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize);
 		bool			SaveValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count);
 		bool			SaveValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count);
-		bool			SaveStringArray(HANDLE hFile, DWORD** pArray, DWORD* Count);
+		bool			SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* dwSize);
 		DWORD*			CreateArray(DWORD dwCount,DWORD dwType);
 		DWORD*			CreateArray(DWORD dwCount);
+		uintptr_t*		CreatePtrArray(DWORD dwCount);
 		bool			RecreateArray(DWORD** pArray, DWORD dwCount, DWORD NewCount);
-		void			DeleteArrayContents(DWORD* pArray, DWORD dwCount);
+		bool			RecreateArray(uintptr_t** pArray, DWORD dwCount, DWORD NewCount);
+		void			DeleteArrayContents(uintptr_t* pArray, DWORD dwCount);
 		bool			FileExists(LPSTR pFilename);
 
 		bool			CheckIfGotLatestDirectX ( bool bSilent );
@@ -111,7 +113,7 @@ class CEXEBlock
 		// DLL Data
 		DWORD			m_dwNumberOfDLLs;
 		DWORD*			m_pDLLIndexArray;
-		DWORD*			m_pDLLFilenameArray;
+		uintptr_t*		m_pDLLFilenameArray;
 		DWORD*			m_pDLLLoadedAlreadyArray;
 
 		// MCB Reference Data
@@ -127,7 +129,7 @@ class CEXEBlock
 
 		// Runtime Error String Database
 		DWORD			m_dwNumberOfRuntimeErrorStrings;
-		DWORD*			m_pRuntimeErrorStringsArray;
+		uintptr_t*		m_pRuntimeErrorStringsArray;
 
 		// Machine Code Block (MCB)
 		DWORD			m_dwSizeOfMCB;
@@ -137,16 +139,16 @@ class CEXEBlock
 		// Commands Data
 		DWORD			m_dwNumberOfCommands;
 		DWORD*			m_pCommandDLLIdArray;
-		DWORD*			m_pCommandDLLCallArray;
+		uintptr_t*		m_pCommandDLLCallArray;
 
 		// Strings Data
 		DWORD			m_dwNumberOfStrings;
-		DWORD*			m_pStringsArray;
+		uintptr_t*		m_pStringsArray;
 
 		// Data Statements Data
 		DWORD			m_dwNumberOfDataItems;
 		LPSTR			m_pDataArray;
-		DWORD*			m_pDataStringsArray;
+		uintptr_t*		m_pDataStringsArray;
 
 		// Variable Space Data
 		DWORD			m_dwOldVariableSpaceSize;

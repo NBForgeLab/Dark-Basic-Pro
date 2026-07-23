@@ -1340,7 +1340,7 @@ bool CDBPCompiler::MakeProgram(void)
 	{
 		// Entire Runtime Database Part of EXE
 		g_pEXE->m_dwNumberOfRuntimeErrorStrings=g_pErrorReport->GetRuntimeErrorStringMax();
-		g_pEXE->m_pRuntimeErrorStringsArray = g_pEXE->CreateArray(g_pEXE->m_dwNumberOfRuntimeErrorStrings);
+		g_pEXE->m_pRuntimeErrorStringsArray = g_pEXE->CreatePtrArray(g_pEXE->m_dwNumberOfRuntimeErrorStrings);
 		for(DWORD err=0; err<g_pEXE->m_dwNumberOfRuntimeErrorStrings; err++)
 		{
 			// Get Data from error runtime string database
@@ -1355,7 +1355,7 @@ bool CDBPCompiler::MakeProgram(void)
 			}
 
 			// Copy to EXEData
-			g_pEXE->m_pRuntimeErrorStringsArray[err]=(DWORD)pDynamicString;
+			g_pEXE->m_pRuntimeErrorStringsArray[err]=(uintptr_t)pDynamicString;
 		}
 	}
 	else
@@ -1364,10 +1364,6 @@ bool CDBPCompiler::MakeProgram(void)
 		g_pEXE->m_dwNumberOfRuntimeErrorStrings=0;
 		g_pEXE->m_pRuntimeErrorStringsArray=NULL;
 	}
-
-	// LEE: (a) Can Parse Main Program
-	// LEE: (b) Can Parse CLI Mini-programs
-	// LEE: (c) fot future, can recompile sections of changed code only..
 
 	// Start With Main Program
 	bool bParsingMainProgram = true;

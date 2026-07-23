@@ -507,7 +507,7 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 					CStr* pCleanStr = new CStr(pStr);
 					pCleanStr->EatEdgeSpacesandTabs(NULL);
 					strcpy(pStr, pCleanStr->GetStr());
-					*(m_pProgramRefLabel+m_dwProgramRefPointer)=(DWORD)pStr;
+					*(m_pProgramRefLabel+m_dwProgramRefPointer)=(uintptr_t)pStr;
 					SAFE_DELETE(pCleanStr);
 
 					// Advance Ref Index
@@ -1794,15 +1794,15 @@ bool CASMWriter::UpdateDLLData(void)
 	if(g_pEXE->m_pDLLIndexArray==NULL)
 	{
 		// Create Array(s)
-		DWORD dwNewSize = g_pStatementList->GetDLLIndexCounter();// + 1; //for EXE nonDLL
-		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		DWORD dwDLLCount = g_pStatementList->GetDLLIndexCounter();
+		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwDLLCount);
+		uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwDLLCount);
+		LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwDLLCount);
 
 		// Update pointers
-		g_pEXE->m_dwNumberOfDLLs = dwNewSize;
+		g_pEXE->m_dwNumberOfDLLs = dwDLLCount;
 		g_pEXE->m_pDLLIndexArray = (DWORD*)pNewArray1;
-		g_pEXE->m_pDLLFilenameArray = (DWORD*)pNewArray2;
+		g_pEXE->m_pDLLFilenameArray = pNewArray2;
 		g_pEXE->m_pDLLLoadedAlreadyArray = (DWORD*)pNewArray3;
 	}
 	else
@@ -1819,19 +1819,19 @@ bool CASMWriter::UpdateDLLData(void)
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwNumberOfDLLs;
 		LPSTR pOldArray1 = (LPSTR)g_pEXE->m_pDLLIndexArray;
-		LPSTR pOldArray2 = (LPSTR)g_pEXE->m_pDLLFilenameArray;
+		uintptr_t* pOldArray2 = g_pEXE->m_pDLLFilenameArray;
 		LPSTR pOldArray3 = (LPSTR)g_pEXE->m_pDLLLoadedAlreadyArray;
 		DWORD dwNewSize = dwOldSize + dwNewDLLs;
 		if(dwNewSize>dwOldSize)
 		{
 			// Only DLLs can wind up with less in the table than before!
 			LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-			LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+			uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwNewSize);
 			LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
 
 			// Fill New Array with Old+New, then delete Old
 			memcpy(pNewArray1, pOldArray1, dwOldSize*sizeof(DWORD));
-			memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(DWORD));
+			memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
 			memcpy(pNewArray3, pOldArray3, dwOldSize*sizeof(DWORD));
 			SAFE_DELETE(pOldArray1);
 			SAFE_DELETE(pOldArray2);
@@ -1840,7 +1840,7 @@ bool CASMWriter::UpdateDLLData(void)
 			// Update pointers
 			g_pEXE->m_dwNumberOfDLLs = dwNewSize;
 			g_pEXE->m_pDLLIndexArray = (DWORD*)pNewArray1;
-			g_pEXE->m_pDLLFilenameArray = (DWORD*)pNewArray2;
+			g_pEXE->m_pDLLFilenameArray = pNewArray2;
 			g_pEXE->m_pDLLLoadedAlreadyArray = (DWORD*)pNewArray3;
 		}
 
@@ -1908,33 +1908,33 @@ bool CASMWriter::UpdateCommandData(void)
 		// Create Array(s)
 		DWORD dwNewSize = g_pStatementList->GetCommandIndexCounter();
 		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfCommands = dwNewSize;
 		g_pEXE->m_pCommandDLLIdArray = (DWORD*)pNewArray1;
-		g_pEXE->m_pCommandDLLCallArray = (DWORD*)pNewArray2;
+		g_pEXE->m_pCommandDLLCallArray = pNewArray2;
 	}
 	else
 	{
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwNumberOfCommands;
 		LPSTR pOldArray1 = (LPSTR)g_pEXE->m_pCommandDLLIdArray;
-		LPSTR pOldArray2 = (LPSTR)g_pEXE->m_pCommandDLLCallArray;
+		uintptr_t* pOldArray2 = g_pEXE->m_pCommandDLLCallArray;
 		DWORD dwNewSize = g_pStatementList->GetCommandIndexCounter();
 		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Fill New Array with Old+New, then delete Old
 		memcpy(pNewArray1, pOldArray1, dwOldSize*sizeof(DWORD));
-		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(DWORD));
+		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
 		SAFE_DELETE(pOldArray1);
 		SAFE_DELETE(pOldArray2);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfCommands = dwNewSize;
 		g_pEXE->m_pCommandDLLIdArray = (DWORD*)pNewArray1;
-		g_pEXE->m_pCommandDLLCallArray = (DWORD*)pNewArray2;
+		g_pEXE->m_pCommandDLLCallArray = pNewArray2;
 	}
 
 	// Assumes commands are added in sequential order
@@ -1963,7 +1963,7 @@ bool CASMWriter::UpdateCommandData(void)
 
 			// EXEData from Table
 			g_pEXE->m_pCommandDLLIdArray[c]=atoi(pLeft);
-			g_pEXE->m_pCommandDLLCallArray[c]=(DWORD)pDynamicString;
+			g_pEXE->m_pCommandDLLCallArray[c]=(uintptr_t)pDynamicString;
 
 			// Free usage
 			if(pStringEntry)
@@ -1989,27 +1989,27 @@ bool CASMWriter::UpdateStringData(void)
 	{
 		// Create Array(s)
 		DWORD dwNewSize = g_pStatementList->GetStringIndexCounter();
-		LPSTR pNewArray = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		uintptr_t* pNewArray = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfStrings = dwNewSize;
-		g_pEXE->m_pStringsArray = (DWORD*)pNewArray;
+		g_pEXE->m_pStringsArray = pNewArray;
 	}
 	else
 	{
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwNumberOfStrings;
-		LPSTR pOldArray = (LPSTR)g_pEXE->m_pStringsArray;
+		uintptr_t* pOldArray = g_pEXE->m_pStringsArray;
 		DWORD dwNewSize = g_pStatementList->GetStringIndexCounter();
-		LPSTR pNewArray = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		uintptr_t* pNewArray = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Fill New Array with Old+New, then delete Old
-		memcpy(pNewArray, pOldArray, dwOldSize*sizeof(DWORD));
+		memcpy(pNewArray, pOldArray, dwOldSize*sizeof(uintptr_t));
 		SAFE_DELETE(pOldArray);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfStrings = dwNewSize;
-		g_pEXE->m_pStringsArray = (DWORD*)pNewArray;
+		g_pEXE->m_pStringsArray = pNewArray;
 	}
 
 	// Strings Data (assumed added in sequential order)
@@ -2058,33 +2058,33 @@ bool CASMWriter::UpdateDataData(void)
 		// Create Array(s)
 		DWORD dwNewSize = g_pStatementList->GetDataIndexCounter();
 		LPSTR pNewArray1 = (LPSTR)new char[dwNewSize*10];
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfDataItems = dwNewSize;
 		g_pEXE->m_pDataArray = pNewArray1;
-		g_pEXE->m_pDataStringsArray = (DWORD*)pNewArray2;
+		g_pEXE->m_pDataStringsArray = pNewArray2;
 	}
 	else
 	{
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwNumberOfDataItems;
 		LPSTR pOldArray1 = (LPSTR)g_pEXE->m_pDataArray;
-		LPSTR pOldArray2 = (LPSTR)g_pEXE->m_pDataStringsArray;
+		uintptr_t* pOldArray2 = g_pEXE->m_pDataStringsArray;
 		DWORD dwNewSize = g_pStatementList->GetDataIndexCounter();
 		LPSTR pNewArray1 = (LPSTR)new char[dwNewSize*10];
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
+		uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Fill New Array with Old+New, then delete Old
 		memcpy(pNewArray1, pOldArray1, dwOldSize*10);
-		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(DWORD));
+		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
 		SAFE_DELETE(pOldArray1);
 		SAFE_DELETE(pOldArray2);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfDataItems = dwNewSize;
 		g_pEXE->m_pDataArray = pNewArray1;
-		g_pEXE->m_pDataStringsArray = (DWORD*)pNewArray2;
+		g_pEXE->m_pDataStringsArray = pNewArray2;
 	}
 
 	// Data Data (assumed added in sequential order)
@@ -2125,7 +2125,7 @@ bool CASMWriter::UpdateDataData(void)
 				// EXEData from Table
 				DWORD dwStrIndex=d/10;
 				*(DWORD*)&g_pEXE->m_pDataArray[d+2] = (DWORD)dwStrIndex;
-				g_pEXE->m_pDataStringsArray[dwStrIndex]=(DWORD)pDynamicString;
+				g_pEXE->m_pDataStringsArray[dwStrIndex]=(uintptr_t)pDynamicString;
 			}
 		}
 
@@ -4776,7 +4776,7 @@ bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 		pTempStr->SetNumericText(dwLeapOffset);
 		pRefStr = new char[strlen(pTempStr->GetStr())+1];
 		strcpy(pRefStr, pTempStr->GetStr());
-		*(m_pProgramRefLabel+m_pRecordRefPosition[di])=(DWORD)pRefStr;
+		*(m_pProgramRefLabel+m_pRecordRefPosition[di])=(uintptr_t)pRefStr;
 		SAFE_DELETE(pTempStr);
 
 		// Clear leap flag
