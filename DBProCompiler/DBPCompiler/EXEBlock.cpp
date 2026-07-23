@@ -308,7 +308,7 @@ bool CEXEBlock::RecreateArray(DWORD** pArray, DWORD dwCount, DWORD NewCount)
 			memcpy(pTempArray, *pArray, dwCount*sizeof(DWORD));
 
 			// Delete Old (pointer array only)
-			delete *pArray;
+			delete[] *pArray;
 
 			// Switch Pointers
 			*pArray=pTempArray;
@@ -334,7 +334,7 @@ void CEXEBlock::DeleteArrayContents(DWORD* pArray, DWORD dwCount)
 		{
 			if(*(pArray+i))
 			{
-				delete (DWORD*)*(pArray+i);
+				delete[] (char*)*(pArray+i);
 				*(pArray+i)=NULL;
 			}
 		}
