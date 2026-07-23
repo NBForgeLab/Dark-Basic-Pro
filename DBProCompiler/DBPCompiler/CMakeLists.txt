@@ -38,6 +38,7 @@ set(LIB_SOURCES
     IRLoweringVisitor.cpp
     TargetCodegen.cpp
     ASTPrinter.cpp
+    ASTOptimizer.cpp
     ASTExpressionParser.cpp
     ASTPipelineParser.cpp
     DiagnosticEngine.cpp

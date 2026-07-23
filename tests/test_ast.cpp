@@ -8,6 +8,7 @@
 #include "SemanticVisitor.h"
 #include "IRLoweringVisitor.h"
 #include "TargetCodegen.h"
+#include "ASTOptimizer.h"
 #include "CompilerContext.h"
 #include "VarTable.h"
 #include "StatementList.h"
@@ -582,6 +583,29 @@ TEST(ASTControlFlowTest, ControlFlowNodesConstructionAndLowering) {
     IRProgram ir = lowering.GetProgram();
     EXPECT_GT(ir.instructions.size(), 0);
 }
+
+TEST(ASTOptimizerTest, ConstantFoldingFoldsArithmeticLiterals) {
+    // 5 + 10 * 2 -> 5 + 20 -> 25
+    auto expr = std::make_unique<ASTBinaryOpNode>(
+        BinaryOpType::Add,
+        std::make_unique<ASTLiteralNode>("5", 1),
+        std::make_unique<ASTBinaryOpNode>(
+            BinaryOpType::Multiply,
+            std::make_unique<ASTLiteralNode>("10", 1),
+            std::make_unique<ASTLiteralNode>("2", 1)
+        )
+    );
+
+    ASTOptimizer optimizer;
+    auto optimized = optimizer.Optimize(std::move(expr));
+    ASSERT_NE(optimized, nullptr);
+
+    auto literal = dynamic_cast<ASTLiteralNode*>(optimized.get());
+    ASSERT_NE(literal, nullptr);
+    EXPECT_EQ(literal->m_value, "25");
+    EXPECT_EQ(literal->m_type, 1);
+}
+
 
 
 
