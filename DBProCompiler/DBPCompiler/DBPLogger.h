@@ -31,7 +31,7 @@ public:
             spdlog::set_level(level);
             spdlog::flush_on(spdlog::level::err);
         }
-        catch (const spdlog::spdlog_ex& ex) {
+        catch (const spdlog::spdlog_ex&) {
             // Logger configuration failure
         }
     }
