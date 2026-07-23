@@ -14,30 +14,19 @@ extern CStructTable* g_pStructTable;
 extern CStatementList* g_pStatementList;
 
 #ifdef __AARON_VARTABLEPERF__
-# define ALLOWED_LOWER "abcdefghijklmnopqrstuvwxyz"
-# define ALLOWED_UPPER "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-# define ALLOWED_ALPHA ALLOWED_LOWER ALLOWED_UPPER
-# define ALLOWED_DIGIT "0123456789"
-# define ALLOWED_ALNUM ALLOWED_ALPHA ALLOWED_DIGIT
-# define ALLOWED_IDENT ALLOWED_ALNUM "_"
-# define ALLOWED_TYPES "#$%"
-# define ALLOWED_SCOPE ":"
-# define ALLOWED_INTRN "&@"
-# define ALLOWED_MISCL ALLOWED_TYPES ALLOWED_INTRN ALLOWED_SCOPE
-
-# define ALLOWED_DBVAR ALLOWED_IDENT ALLOWED_MISCL
-
 #include <algorithm>
 #include <string>
 #include <unordered_map>
 
 std::unordered_map<std::string, CVarTable*> CVarTable::g_Table;
 
-static std::string to_lower(const std::string& s)
+namespace {
+static std::string var_to_lower(const std::string& s)
 {
 	std::string res = s;
 	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
 	return res;
+}
 }
 
 inline const char *MakeIntVarName(const char *scope, const char *name)
@@ -92,7 +81,7 @@ CVarTable::CVarTable(LPSTR pStr)
 	m_pPrev=NULL;
 
 #ifdef __AARON_VARTABLEPERF__
-	std::string lowerStr = to_lower(pStr);
+	std::string lowerStr = var_to_lower(pStr);
 	assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Variable already exists");
 	g_Table[lowerStr] = this;
 #endif
@@ -103,7 +92,7 @@ CVarTable::~CVarTable()
 #ifdef __AARON_VARTABLEPERF__
 	if (m_pVarName)
 	{
-		std::string lowerStr = to_lower(m_pVarName->GetStr());
+		std::string lowerStr = var_to_lower(m_pVarName->GetStr());
 		auto it = g_Table.find(lowerStr);
 		if (it != g_Table.end() && it->second == this)
 		{
@@ -436,7 +425,7 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 
 #ifdef __AARON_VARTABLEPERF__
 	const char *pIntVarName = MakeIntVarName(pVarScopeStr->GetStr(), pName);
-	std::string lowerIntVarName = to_lower(pIntVarName);
+	std::string lowerIntVarName = var_to_lower(pIntVarName);
 	assert_msg(g_Table.find(lowerIntVarName) == g_Table.end() || g_Table[lowerIntVarName] == nullptr, "Variable already exists");
 	g_Table[lowerIntVarName] = pNewVar;
 #endif
@@ -455,7 +444,7 @@ CVarTable* CVarTable::FindVariable(LPSTR pScope, LPSTR pName, DWORD dwArrFlag)
 {
 #ifdef __AARON_VARTABLEPERF__
 	const char *pIntName = MakeIntVarName(pScope, pName);
-	std::string lowerIntName = to_lower(pIntName);
+	std::string lowerIntName = var_to_lower(pIntName);
 	auto it = g_Table.find(lowerIntName);
 	if (it == g_Table.end() || !it->second)
 		return nullptr;

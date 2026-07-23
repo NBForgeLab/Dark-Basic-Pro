@@ -341,18 +341,20 @@ void CEXEBlock::DeleteArrayContents(DWORD* pArray, DWORD dwCount)
 	}
 }
 
-static std::string get_filename_only(const std::string& path) {
+namespace {
+static std::string exe_get_filename_only(const std::string& path) {
     size_t pos = path.find_last_of("\\/");
     if (pos != std::string::npos) {
         return path.substr(pos + 1);
     }
     return path;
 }
+}
 
 bool CEXEBlock::FileExists(LPSTR pFilename)
 {
 	if (!pFilename) return false;
-	if (VFSRegistry::Exists(get_filename_only(pFilename))) return true;
+	if (VFSRegistry::Exists(exe_get_filename_only(pFilename))) return true;
 	return std::filesystem::exists(pFilename);
 }
 
@@ -883,7 +885,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						// Module is a DLL
 						if(FileExists(pTryDLLName))
 						{
-							hDLLMod[dllindex] = MemoryPE::LoadFromVFS(get_filename_only(pTryDLLName));
+							hDLLMod[dllindex] = MemoryPE::LoadFromVFS(exe_get_filename_only(pTryDLLName));
 							if (hDLLMod[dllindex] == NULL)
 							{
 								hDLLMod[dllindex]=LoadLibraryW(TextConvert::UTF8ToUTF16(pTryDLLName).c_str());

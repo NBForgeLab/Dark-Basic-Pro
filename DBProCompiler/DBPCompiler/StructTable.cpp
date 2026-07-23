@@ -11,30 +11,19 @@
 extern CStructTable* g_pStructTable;
 
 #ifdef __AARON_STRUCPERF__
-# define ALLOWED_LOWER "abcdefghijklmnopqrstuvwxyz"
-# define ALLOWED_UPPER "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-# define ALLOWED_ALPHA ALLOWED_LOWER ALLOWED_UPPER
-# define ALLOWED_DIGIT "0123456789"
-# define ALLOWED_ALNUM ALLOWED_ALPHA ALLOWED_DIGIT
-# define ALLOWED_IDENT ALLOWED_ALNUM "_"
-# define ALLOWED_TYPES "#$%"
-# define ALLOWED_SCOPE ":"
-# define ALLOWED_INTRN "&@ "
-# define ALLOWED_MISCL ALLOWED_TYPES ALLOWED_INTRN ALLOWED_SCOPE
-
-# define ALLOWED_DBVAR ALLOWED_IDENT ALLOWED_MISCL
-
 #include <algorithm>
 #include <string>
 #include <unordered_map>
 
 std::unordered_map<std::string, CStructTable*> CStructTable::g_Table;
 
-static std::string to_lower(const std::string& s)
+namespace {
+static std::string struct_to_lower(const std::string& s)
 {
 	std::string res = s;
 	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
 	return res;
+}
 }
 #endif
 
@@ -63,7 +52,7 @@ CStructTable::~CStructTable()
 #ifdef __AARON_STRUCPERF__
 	if (m_pTypeName)
 	{
-		std::string lowerStr = to_lower(m_pTypeName->GetStr());
+		std::string lowerStr = struct_to_lower(m_pTypeName->GetStr());
 		auto it = g_Table.find(lowerStr);
 		if (it != g_Table.end() && it->second == this)
 		{
@@ -136,7 +125,7 @@ bool CStructTable::SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 	SetTypeSize(dwSize);
 
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = to_lower(pStructName);
+	std::string lowerName = struct_to_lower(pStructName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
 	g_Table[lowerName] = this;
 #endif
@@ -160,7 +149,7 @@ bool CStructTable::AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 	pNewType->SetTypeBlock(NULL);
 
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = to_lower(pStructName);
+	std::string lowerName = struct_to_lower(pStructName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
 	g_Table[lowerName] = pNewType;
 #endif
@@ -219,7 +208,7 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 	pNewType->SetTypeBlock(pTypeBlock);
 
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = to_lower(pStructName);
+	std::string lowerName = struct_to_lower(pStructName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
 	g_Table[lowerName] = pNewType;
 #endif
@@ -367,7 +356,7 @@ bool CStructTable::CalculateSize(void)
 CStructTable* CStructTable::DoesTypeEvenExist(LPSTR pName)
 {
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = to_lower(pName);
+	std::string lowerName = struct_to_lower(pName);
 	auto it = g_Table.find(lowerName);
 	if (it == g_Table.end() || !it->second)
 		return NULL;
@@ -403,7 +392,7 @@ CDeclaration* CStructTable::FindDecInType(LPSTR pTypename, LPSTR pFieldname)
 	CStructTable *struc;
 	CDeclaration *dec;
 
-	std::string lowerTypeName = to_lower(pTypename);
+	std::string lowerTypeName = struct_to_lower(pTypename);
 	auto it = g_Table.find(lowerTypeName);
 	if (it == g_Table.end() || !it->second)
 		return NULL;

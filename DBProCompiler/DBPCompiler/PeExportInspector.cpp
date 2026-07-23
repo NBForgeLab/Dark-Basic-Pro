@@ -11,6 +11,7 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <vector>
 
 namespace {
@@ -26,10 +27,20 @@ const T* ReadObject(const std::vector<std::byte>& bytes, const std::size_t offse
 bool CheckedMultiply(const std::size_t left,
                      const std::size_t right,
                      std::size_t& result) {
-    if (left != 0 && right > std::numeric_limits<std::size_t>::max() / left) {
+    if (left != 0 && right > (std::numeric_limits<std::size_t>::max)() / left) {
         return false;
     }
     result = left * right;
+    return true;
+}
+
+bool CheckedAdd(const std::size_t left,
+                const std::size_t right,
+                std::size_t& result) {
+    if (left > (std::numeric_limits<std::size_t>::max)() - right) {
+        return false;
+    }
+    result = left + right;
     return true;
 }
 
@@ -41,7 +52,7 @@ std::optional<std::size_t> RvaToOffset(
     const std::size_t requiredSize) {
     for (WORD index = 0; index < sectionCount; ++index) {
         const auto& section = sections[index];
-        const DWORD sectionSize = std::max(
+        const DWORD sectionSize = (std::max)(
             section.Misc.VirtualSize, section.SizeOfRawData);
         if (rva < section.VirtualAddress ||
             rva - section.VirtualAddress >= sectionSize) {

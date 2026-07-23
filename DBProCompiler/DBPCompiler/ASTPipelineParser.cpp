@@ -5,7 +5,8 @@
 #include <vector>
 #include <algorithm>
 
-static std::string Trim(const std::string& str) {
+namespace {
+static std::string PipelineTrim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\r\n");
     if (first == std::string::npos) return "";
     size_t last = str.find_last_not_of(" \t\r\n");
@@ -21,13 +22,14 @@ static std::vector<std::string> SplitLines(const std::string& source) {
     }
     return lines;
 }
+}
 
 std::unique_ptr<ASTProgramNode> ASTPipelineParser::ParseProgram(const std::string& source) {
     auto program = std::make_unique<ASTProgramNode>();
     auto lines = SplitLines(source);
 
     for (size_t i = 0; i < lines.size(); ++i) {
-        std::string line = Trim(lines[i]);
+        std::string line = PipelineTrim(lines[i]);
         if (line.empty() || line.rfind("rem", 0) == 0 || line.rfind("REM", 0) == 0 || line.rfind("//", 0) == 0) {
             continue;
         }
@@ -39,8 +41,8 @@ std::unique_ptr<ASTProgramNode> ASTPipelineParser::ParseProgram(const std::strin
         // Parse assignment: var = expr
         size_t eqPos = line.find('=');
         if (eqPos != std::string::npos && line.find("==") == std::string::npos) {
-            std::string varName = Trim(line.substr(0, eqPos));
-            std::string exprStr = Trim(line.substr(eqPos + 1));
+            std::string varName = PipelineTrim(line.substr(0, eqPos));
+            std::string exprStr = PipelineTrim(line.substr(eqPos + 1));
             if (!varName.empty() && !exprStr.empty()) {
                 auto exprNode = ASTExpressionParser::Parse(exprStr);
                 if (exprNode) {

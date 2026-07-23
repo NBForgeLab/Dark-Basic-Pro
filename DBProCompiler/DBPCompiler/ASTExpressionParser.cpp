@@ -5,11 +5,13 @@
 #include <sstream>
 #include <vector>
 
-static std::string Trim(const std::string& s) {
+namespace {
+static std::string ExpressionTrim(const std::string& s) {
     size_t start = s.find_first_not_of(" \t\r\n");
     if (start == std::string::npos) return "";
     size_t end = s.find_last_not_of(" \t\r\n");
     return s.substr(start, end - start + 1);
+}
 }
 
 static bool IsSimpleIdentifier(const std::string& name) {
@@ -48,7 +50,7 @@ static bool IsStringLiteral(const std::string& val) {
 static std::unique_ptr<ASTNode> ParseSubExpr(const std::string& str);
 
 static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
-    std::string trimmed = Trim(str);
+    std::string trimmed = ExpressionTrim(str);
     if (trimmed.empty()) return nullptr;
 
     // Parentheses: ( sub_expr )
@@ -82,8 +84,8 @@ static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
     // Struct property dot access: varName.fieldName
     size_t dotPos = trimmed.find('.');
     if (dotPos != std::string::npos && dotPos > 0 && dotPos < trimmed.size() - 1) {
-        std::string varName = Trim(trimmed.substr(0, dotPos));
-        std::string fieldName = Trim(trimmed.substr(dotPos + 1));
+        std::string varName = ExpressionTrim(trimmed.substr(0, dotPos));
+        std::string fieldName = ExpressionTrim(trimmed.substr(dotPos + 1));
         if (IsSimpleIdentifier(varName) && IsSimpleIdentifier(fieldName)) {
             return std::make_unique<ASTStructAccessNode>(varName, fieldName);
         }
@@ -92,7 +94,7 @@ static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
     // Array element access: arrayName(idx1, idx2)
     size_t openParen = trimmed.find('(');
     if (openParen != std::string::npos && trimmed.back() == ')') {
-        std::string arrName = Trim(trimmed.substr(0, openParen));
+        std::string arrName = ExpressionTrim(trimmed.substr(0, openParen));
         if (IsSimpleIdentifier(arrName)) {
             std::string lowerName = arrName;
             std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
@@ -130,7 +132,7 @@ static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
 
 // Level 2: Multiplicative (*, /)
 static std::unique_ptr<ASTNode> ParseMultiplicative(const std::string& str) {
-    std::string trimmed = Trim(str);
+    std::string trimmed = ExpressionTrim(str);
     int depth = 0;
     for (int i = (int)trimmed.size() - 1; i > 0; --i) {
         char c = trimmed[i];
@@ -138,8 +140,8 @@ static std::unique_ptr<ASTNode> ParseMultiplicative(const std::string& str) {
         else if (c == '(') depth--;
         else if (depth == 0) {
             if (c == '*' || c == '/') {
-                std::string leftStr = Trim(trimmed.substr(0, i));
-                std::string rightStr = Trim(trimmed.substr(i + 1));
+                std::string leftStr = ExpressionTrim(trimmed.substr(0, i));
+                std::string rightStr = ExpressionTrim(trimmed.substr(i + 1));
                 auto left = ParseMultiplicative(leftStr);
                 auto right = ParsePrimary(rightStr);
                 if (left && right) {
@@ -154,7 +156,7 @@ static std::unique_ptr<ASTNode> ParseMultiplicative(const std::string& str) {
 
 // Level 1: Additive (+, -)
 static std::unique_ptr<ASTNode> ParseAdditive(const std::string& str) {
-    std::string trimmed = Trim(str);
+    std::string trimmed = ExpressionTrim(str);
     int depth = 0;
     for (int i = (int)trimmed.size() - 1; i > 0; --i) {
         char c = trimmed[i];
@@ -162,8 +164,8 @@ static std::unique_ptr<ASTNode> ParseAdditive(const std::string& str) {
         else if (c == '(') depth--;
         else if (depth == 0) {
             if (c == '+' || c == '-') {
-                std::string leftStr = Trim(trimmed.substr(0, i));
-                std::string rightStr = Trim(trimmed.substr(i + 1));
+                std::string leftStr = ExpressionTrim(trimmed.substr(0, i));
+                std::string rightStr = ExpressionTrim(trimmed.substr(i + 1));
                 auto left = ParseAdditive(leftStr);
                 auto right = ParseMultiplicative(rightStr);
                 if (left && right) {
@@ -178,7 +180,7 @@ static std::unique_ptr<ASTNode> ParseAdditive(const std::string& str) {
 
 // Level 0: Relational / Comparison (<, >, =)
 static std::unique_ptr<ASTNode> ParseSubExpr(const std::string& str) {
-    std::string trimmed = Trim(str);
+    std::string trimmed = ExpressionTrim(str);
     int depth = 0;
     for (int i = (int)trimmed.size() - 1; i > 0; --i) {
         char c = trimmed[i];
@@ -192,8 +194,8 @@ static std::unique_ptr<ASTNode> ParseSubExpr(const std::string& str) {
                 else if (c == '>') op = BinaryOpType::GreaterThan;
                 else if (c == '=') op = BinaryOpType::Equal;
 
-                std::string leftStr = Trim(trimmed.substr(0, i));
-                std::string rightStr = Trim(trimmed.substr(i + opLen));
+                std::string leftStr = ExpressionTrim(trimmed.substr(0, i));
+                std::string rightStr = ExpressionTrim(trimmed.substr(i + opLen));
                 auto left = ParseSubExpr(leftStr);
                 auto right = ParseAdditive(rightStr);
                 if (left && right) {

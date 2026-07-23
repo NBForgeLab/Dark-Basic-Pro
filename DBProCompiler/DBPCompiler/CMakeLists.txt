@@ -89,6 +89,7 @@ endif()
 
 # Create static library to allow linking with tests
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
+set_target_properties(dbp_compiler_lib PROPERTIES UNITY_BUILD ON)
 dbp_apply_legacy_cpp_options(dbp_compiler_lib)
 target_compile_definitions(dbp_compiler_lib PRIVATE UNICODE _UNICODE)
 target_link_libraries(dbp_compiler_lib PUBLIC winmm dbghelp spdlog::spdlog)
