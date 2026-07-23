@@ -4,6 +4,7 @@
 // Includes used for DX check
 #include <windows.h>
 #include <stdio.h>
+#include <cstdint>
 
 // Safe Macros
 #include "macros.h"

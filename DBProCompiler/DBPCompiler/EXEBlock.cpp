@@ -1141,7 +1141,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	{
 		memset ( g_pGlob->pEXEUnpackDirectory, 0, _MAX_PATH );
 		strcpy(g_pGlob->pEXEUnpackDirectory, m_pUnpackFolderName);
-		g_pGlob->ppEXEAbsFilename = (DWORD)m_pAbsoluteAppFile;
+		g_pGlob->ppEXEAbsFilename = (uintptr_t)m_pAbsoluteAppFile;
 		g_pGlob->dwEncryptionUniqueKey = m_dwEncryptionKey;
 	}
 
@@ -1459,17 +1459,17 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(hDLLMod[dll]==0)
 					{
 						// Locate function ptr from EXE function ptr (passed in)
-						if(stricmp(pStr, "DHookS")==NULL) *(pProgramRefPtr+ref)=(DWORD)pDHookS;
-						if(stricmp(pStr, "DHookJ")==NULL) *(pProgramRefPtr+ref)=(DWORD)pDHookJ;
-						if(stricmp(pStr, "DHookR")==NULL) *(pProgramRefPtr+ref)=(DWORD)pDHookR;
+						if(stricmp(pStr, "DHookS")==NULL) *(pProgramRefPtr+ref)=(uintptr_t)pDHookS;
+						if(stricmp(pStr, "DHookJ")==NULL) *(pProgramRefPtr+ref)=(uintptr_t)pDHookJ;
+						if(stricmp(pStr, "DHookR")==NULL) *(pProgramRefPtr+ref)=(uintptr_t)pDHookR;
 					}
 					else
 					{
 						// Locate function ptr from DLL
-						DWORD dwAdd = (DWORD)GetProcAddress(hDLLMod[dll], pStr);
-						if(dwAdd!=NULL)
+						uintptr_t dwAdd = (uintptr_t)GetProcAddress(hDLLMod[dll], pStr);
+						if(dwAdd!=0)
 						{
-							*(pProgramRefPtr+ref)=dwAdd;
+							*(pProgramRefPtr+ref)=(DWORD)dwAdd;
 						}
 						else
 						{
