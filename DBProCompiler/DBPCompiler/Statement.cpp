@@ -38,6 +38,7 @@
 #include "TargetCodegen.h"
 #include "ASTExpressionParser.h"
 #include "ASTPrinter.h"
+#include "ASTOptimizer.h"
 
 // External References
 extern CError *g_pErrorReport;
@@ -6387,7 +6388,11 @@ bool CASTAssignment::WriteDBM()
 	auto parsedExpr = ASTExpressionParser::Parse(m_valStr);
 	if (!parsedExpr) return false;
 
-	auto assignment = std::make_unique<ASTAssignmentNode>(m_varName, std::move(parsedExpr));
+	ASTOptimizer optimizer;
+	auto optimizedExpr = optimizer.Optimize(std::move(parsedExpr));
+	if (!optimizedExpr) return false;
+
+	auto assignment = std::make_unique<ASTAssignmentNode>(m_varName, std::move(optimizedExpr));
 
 	SourceLocation loc;
 	loc.line = m_lineNumber;

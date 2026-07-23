@@ -606,6 +606,36 @@ TEST(ASTOptimizerTest, ConstantFoldingFoldsArithmeticLiterals) {
     EXPECT_EQ(literal->m_type, 1);
 }
 
+TEST(ASTPipelineOptimizerIntegrationTest, AssignmentOptimizationTrace) {
+    CASTAssignment assignment("x", "10 + 20 * 2", 1);
+    
+    // Test that optimization passes before lowering
+    auto parsedExpr = ASTExpressionParser::Parse("10 + 20 * 2");
+    ASSERT_NE(parsedExpr, nullptr);
+
+    ASTOptimizer optimizer;
+    auto optimizedExpr = optimizer.Optimize(std::move(parsedExpr));
+    ASSERT_NE(optimizedExpr, nullptr);
+
+    auto assignNode = std::make_unique<ASTAssignmentNode>("x", std::move(optimizedExpr));
+
+    SemanticVisitor semantic;
+    assignNode->Accept(&semantic);
+    EXPECT_FALSE(semantic.HasErrors());
+
+    IRLoweringVisitor lowering;
+    assignNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+
+    // Verification: constant folding reduced expression to 1 LoadConst(50) and 1 StoreVar(x)
+    ASSERT_EQ(ir.instructions.size(), 2);
+    EXPECT_EQ(ir.instructions[0].opCode, IROpCode::LoadConst);
+    EXPECT_EQ(ir.instructions[0].operandStr, "50");
+    EXPECT_EQ(ir.instructions[1].opCode, IROpCode::StoreVar);
+    EXPECT_EQ(ir.instructions[1].operandStr, "x");
+}
+
+
 
 
 
