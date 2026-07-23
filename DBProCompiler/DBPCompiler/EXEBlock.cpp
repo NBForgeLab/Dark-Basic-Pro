@@ -766,48 +766,7 @@ bool CEXEBlock::InitMini(LPVOID pDHookS, LPVOID pDHookJ, LPVOID pDHookR, bool bR
 
 bool CEXEBlock::CheckIfGotLatestDirectX ( bool bSilent )
 {
-	// Check if got Vista, which means DX9 is already there (as 9.0L)
-	#ifndef NOGETDXVERSIONCODE
-	OSVERSIONINFO versionInfo;
-	versionInfo.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
-	if (::GetVersionEx (&versionInfo))
-	{
-		if (versionInfo.dwPlatformId == VER_PLATFORM_WIN32_NT)
-		{
-			if (versionInfo.dwMajorVersion >= 6)
-			{
-				// yes we have it by virtue of Vista!
-				return true;
-			}
-		}
-	}
-
-	// LATEST DIRECTX EXE NEEDS..
-	LPSTR pDXRequired = "DirectX 9.0c (October 2006) or later";
-	DWORD dwRequiresVersion = 0x00090003;
-
-	// lee - 270206 - u60 - new check, right out of DXSKDEC2005
-    char strResult[128];
-    HRESULT hr = GetDXVersion( &g_dwDirectXVersion, g_strDirectXVersion, 10 );
-    if( SUCCEEDED(hr) )
-    {
-        if( g_dwDirectXVersion > 0 )
-			sprintf_s ( strResult, 128, "DirectX %S installed (%d). Requires %s.", g_strDirectXVersion, g_dwDirectXVersion, pDXRequired );
-        else
-            strcpy_s ( strResult, 128, "DirectX not installed" );
-    }
-    else
-        strcpy_s ( strResult, 128, "Unknown version of DirectX installed" );
-
-	if ( g_dwDirectXVersion < dwRequiresVersion && bSilent==false )
-	{
-		// fail immediately if not got dx!
-		MessageBoxW(NULL, TextConvert::UTF8ToUTF16(strResult).c_str(), L"DirectX Error", MB_OK | MB_ICONERROR);
-		return false;
-	}
-	#endif
-
-	// yes we have it!
+	// Modern Windows 10/11 natively supports DirectX runtime execution.
 	return true;
 }
 
