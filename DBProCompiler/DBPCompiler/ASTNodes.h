@@ -19,6 +19,10 @@ class ASTBlockNode : public ASTNode {
 public:
     std::vector<std::unique_ptr<ASTNode>> m_statements;
 
+    ASTBlockNode() = default;
+    explicit ASTBlockNode(std::vector<std::unique_ptr<ASTNode>> statements)
+        : m_statements(std::move(statements)) {}
+
     void Accept(ASTVisitor* visitor) override {
         visitor->Visit(this);
     }

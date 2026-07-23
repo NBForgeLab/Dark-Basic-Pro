@@ -556,3 +556,32 @@ TEST(ASTExpressionParserTest, ParseArrayElementAccess) {
     EXPECT_EQ(arrAccess->m_indices.size(), 2);
 }
 
+TEST(ASTControlFlowTest, ControlFlowNodesConstructionAndLowering) {
+    auto cond = std::make_unique<ASTBinaryOpNode>(BinaryOpType::GreaterThan, std::make_unique<ASTVariableNode>("score"), std::make_unique<ASTLiteralNode>("100", 1));
+    
+    std::vector<std::unique_ptr<ASTNode>> thenStmts;
+    thenStmts.push_back(std::make_unique<ASTAssignmentNode>("highScore", std::make_unique<ASTLiteralNode>("1", 1)));
+    auto thenBlock = std::make_unique<ASTBlockNode>(std::move(thenStmts));
+
+    std::vector<std::unique_ptr<ASTNode>> elseStmts;
+    elseStmts.push_back(std::make_unique<ASTAssignmentNode>("highScore", std::make_unique<ASTLiteralNode>("0", 1)));
+    auto elseBlock = std::make_unique<ASTBlockNode>(std::move(elseStmts));
+
+    auto ifNode = std::make_unique<ASTIfNode>(std::move(cond), std::move(thenBlock), std::move(elseBlock));
+
+    ASTPrinter printer;
+    std::string printedIf = printer.Print(ifNode.get());
+    EXPECT_NE(printedIf.find("If"), std::string::npos);
+
+    SemanticVisitor semantic;
+    ifNode->Accept(&semantic);
+    EXPECT_FALSE(semantic.HasErrors());
+
+    IRLoweringVisitor lowering;
+    ifNode->Accept(&lowering);
+    IRProgram ir = lowering.GetProgram();
+    EXPECT_GT(ir.instructions.size(), 0);
+}
+
+
+
