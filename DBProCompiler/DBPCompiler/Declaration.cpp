@@ -15,37 +15,25 @@ extern CVarTable *g_pVarTable;
 //////////////////////////////////////////////////////////////////////
 
 CDeclaration::CDeclaration()
+	: m_dwLineNumber(0), m_dwArr(0), m_dwOffset(0), m_dwDataSize(0), m_pPrev(nullptr)
 {
-	m_dwLineNumber=0;
-
-	m_dwArr=0;
-	m_pArrValue=NULL;
-	m_pName=NULL;
-	m_pType=NULL;
-	m_pInit=NULL;
-	m_dwOffset=0;
-	m_dwDataSize=0;
-
-	m_pNext=NULL;
-	m_pPrev=NULL;
 }
 
 CDeclaration::~CDeclaration()
 {
-	SAFE_DELETE(m_pArrValue);
-	SAFE_DELETE(m_pName);
-	SAFE_DELETE(m_pType);
-	SAFE_DELETE(m_pInit);
-
-	SAFE_DELETE(m_pNext);
+	// Iteratively release chain to prevent stack overflow on deep lists
+	auto current = std::move(m_pNext);
+	while (current) {
+		current = std::move(current->m_pNext);
+	}
 }
 
 void CDeclaration::Add(CDeclaration* pNew)
 {
-	if(m_pNext==NULL)
+	if(!m_pNext)
 	{
 		pNew->m_pPrev=this;
-		m_pNext = pNew;
+		m_pNext.reset(pNew);
 	}
 	else
 		m_pNext->Add(pNew);
@@ -96,20 +84,19 @@ bool CDeclaration::GetNumberOfDecsInChain(DWORD* pdwCount)
 bool CDeclaration::GetTypeStringOfDecsInChain(LPSTR* pTypeString)
 {
 	// Collect characters rep. types that make up dec chain
-	CStr* pStr = new CStr("");
+	CStr pStr("");
 	CDeclaration* pEntry = this;
 	while(pEntry)
 	{
 		LPSTR pTypeNameString = pEntry->GetType()->GetStr();
 		DWORD dwTypeValue = g_pVarTable->GetBasicTypeValue(pTypeNameString);
-		pStr->AddChar(g_pVarTable->GetCharOfType(dwTypeValue));
+		pStr.AddChar(g_pVarTable->GetCharOfType(dwTypeValue));
 		pEntry=pEntry->GetNext();
 	}
 
 	// Create Type String
-	*pTypeString = new char[pStr->Length()+1];
-	strcpy(*pTypeString, pStr->GetStr());
-	SAFE_DELETE(pStr);
+	*pTypeString = new char[pStr.Length()+1];
+	strcpy(*pTypeString, pStr.GetStr());
 
 	// Complete
 	return true;
@@ -120,13 +107,13 @@ bool CDeclaration::WriteDBM(void)
 	// Write out text
 	CStr strDBMLine(256);
 	strDBMLine.SetText("STRUCT@");
-	strDBMLine.AddText(m_pName);
+	strDBMLine.AddText(m_pName.get());
 	if(GetArrFlag()==1)
 	{
 		strDBMLine.AddText("(array)");
 	}
 	strDBMLine.AddText("    TYPE>");
-	strDBMLine.AddText(m_pType);
+	strDBMLine.AddText(m_pType.get());
 	strDBMLine.AddText("    OFFSET>");
 	strDBMLine.AddNumericText(m_dwOffset);
 

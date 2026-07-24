@@ -9,14 +9,15 @@
 #include "windows.h"
 #include "macros.h"
 #include "Str.h"
+#include <memory>
 
 class CDeclaration  
 {
 	public:
 		CDeclaration();
-		virtual ~CDeclaration();
+		~CDeclaration();
 		void Add(CDeclaration* pNew);
-		CDeclaration* GetNext(void) { return m_pNext; }
+		CDeclaration* GetNext(void) { return m_pNext.get(); }
 		CDeclaration* GetPrev(void) { return m_pPrev; }
 		CDeclaration* Find(LPSTR pName, DWORD dwArrFlag);
 
@@ -24,10 +25,10 @@ class CDeclaration
 		DWORD GetLineNumber(void) { return m_dwLineNumber; }
 
 		void SetArr(DWORD dwArr) { m_dwArr = dwArr; }
-		void SetArrValue(CStr* pArrValue) { m_pArrValue = pArrValue; }
-		void SetName(CStr* pName) { m_pName = pName; }
-		void SetType(CStr* pType) { m_pType = pType; }
-		void SetInit(CStr* pInit) { m_pInit = pInit; }
+		void SetArrValue(CStr* pArrValue) { m_pArrValue.reset(pArrValue); }
+		void SetName(CStr* pName) { m_pName.reset(pName); }
+		void SetType(CStr* pType) { m_pType.reset(pType); }
+		void SetInit(CStr* pInit) { m_pInit.reset(pInit); }
 		void SetOffset(DWORD dwOffset) { m_dwOffset = dwOffset; }
 		void SetDataSize(DWORD dwSize) { m_dwDataSize = dwSize; }
 		void SetDecData(DWORD dwDecArr, LPSTR pDecArrValue, LPSTR pDecName, LPSTR pDecType, LPSTR pDecInit, DWORD LineNumberRef);
@@ -35,9 +36,9 @@ class CDeclaration
 		bool GetNumberOfDecsInChain(DWORD* pdwCount);
 		bool GetTypeStringOfDecsInChain(LPSTR* pTypeString);
 
-		CStr* GetName(void) { return m_pName; }
-		CStr* GetType(void) { return m_pType; }
-		CStr* GetArrValue(void) { return m_pArrValue; }
+		CStr* GetName(void) { return m_pName.get(); }
+		CStr* GetType(void) { return m_pType.get(); }
+		CStr* GetArrValue(void) { return m_pArrValue.get(); }
 		DWORD GetArrFlag(void) { return m_dwArr; }
 		DWORD GetOffset(void) { return m_dwOffset; }
 		DWORD GetDataSize(void) { return m_dwDataSize; }
@@ -47,20 +48,20 @@ class CDeclaration
 	private:
 
 		// Debug Data
-		DWORD			m_dwLineNumber;
+		DWORD					m_dwLineNumber;
 
 		// Declaration Data
-		DWORD			m_dwArr;
-		CStr*			m_pArrValue;
-		CStr*			m_pName;
-		CStr*			m_pType;
-		CStr*			m_pInit;
-		DWORD			m_dwOffset;
-		DWORD			m_dwDataSize;
+		DWORD					m_dwArr;
+		std::unique_ptr<CStr>	m_pArrValue;
+		std::unique_ptr<CStr>	m_pName;
+		std::unique_ptr<CStr>	m_pType;
+		std::unique_ptr<CStr>	m_pInit;
+		DWORD					m_dwOffset;
+		DWORD					m_dwDataSize;
 
 		// Hierarchy Data
-		CDeclaration*	m_pNext;
-		CDeclaration*	m_pPrev;
+		std::unique_ptr<CDeclaration>	m_pNext;
+		CDeclaration*					m_pPrev;  // Non-owning back-pointer
 };
 
 #endif // !defined(AFX_DECLARATION_H__105B07AA_795F_45E5_8648_CA2399C29110__INCLUDED_)
