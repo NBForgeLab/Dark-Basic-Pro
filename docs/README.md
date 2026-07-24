@@ -48,7 +48,10 @@ This guide details the structural and code modernization process for the **DarkB
 [ Phase 14: Job System & Task-based Concurrency ]
                │
                ▼
-[ Final Phase: x64 Architecture & Modern Graphics ]
+[ Phase 15: x64 Architecture & Modern Graphics ]
+               │
+               ▼
+[ Phase 16: Modern Asset Protection & VFS PAK Containers ]
 ```
 
 ---
@@ -85,8 +88,10 @@ Each phase of the modernization process is detailed in its own markdown document
     * Avoiding temporary files to prevent false antivirus flags and increase load speed.
 14. **[Phase 14: Modern Threading & Job System](file:///d:/GitHub-repo/Dark-Basic-Pro/docs/14_modern_threading_job_system.md)**
     * Task-based concurrency using standard thread pools.
-15. **[Final Phase: x64 and Future Tech](file:///d:/GitHub-repo/Dark-Basic-Pro/docs/15_x64_and_future_tech.md)**
+15. **[Phase 15: x64 and Future Tech](file:///d:/GitHub-repo/Dark-Basic-Pro/docs/15_x64_and_future_tech.md)**
     * Compiler x86-64 backend rewrite, DLL rebuilds, and upgrading to DirectX 11/Vulkan.
+16. **[Phase 16: Modern Asset Protection & VFS PAK Containers](file:///d:/GitHub-repo/Dark-Basic-Pro/docs/16_modern_asset_protection_and_vfs_pak_roadmap.md)**
+    * Transitioning from legacy inline PE byte-shifting and activation DRM to AES-256 / ChaCha20 PAK archives matching Unreal Engine 5 & Godot 4 standards.
 
 ---
 

@@ -3,10 +3,22 @@ Dark Basic Pro is an open source BASIC programming language for creating Windows
 
 Over the years, Dark Basic Pro produced many first and third party plugins which we have made free thanks to permission from third party developers.
 
-[DarkPHYSICS V1](http://fstore.thegamecreators.com/DarkBasicPro/DarkPhysics_v1.zip) & 
-[DarkPHYSICS Update 105](http://fstore.thegamecreators.com/DarkBasicPro/DarkPhysics_Update_105.zip)
+---
 
-Notes:
+## 📚 Documentation & Modernization Roadmap
+
+For architecture details, modern build setup, and refactoring guidelines, please see the [Documentation Index](docs/README.md).
+
+- **[Phase 16: Modern Asset Protection & VFS PAK Containers](docs/16_modern_asset_protection_and_vfs_pak_roadmap.md)**: Roadmap for replacing legacy 2002 PE byte-shifting with modern AES-256 / ChaCha20 PAK archives (matching Unreal Engine 5 & Godot 4 standards).
+
+---
+
+## 🔌 Plugins & Resources
+
+- [DarkPHYSICS V1](http://fstore.thegamecreators.com/DarkBasicPro/DarkPhysics_v1.zip)
+- [DarkPHYSICS Update 105](http://fstore.thegamecreators.com/DarkBasicPro/DarkPhysics_Update_105.zip)
+
+## Notes:
 
 1. The Synergy Editor assumes DBPro is directly installed in the default folder for 32-bit program files on the OS drive: "C:\Program Files (x86)\Dark-Basic-Pro\". To change this behavior open the file "Editor\Synergy Editor.cfg" and change the value of the "DBPLocation" property accordingly. The value of the "DBPLocation" property in the 090216 and 120216 binary releases has a placeholder value used on development that most likely will need to be changed.
 
