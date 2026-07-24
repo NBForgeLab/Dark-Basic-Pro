@@ -16,7 +16,6 @@ endif()
 include_directories(
     .
     icons
-    ../TGCOnline
 )
 
 # Source files for the static library (excluding Main.cpp and resources)
@@ -93,7 +92,7 @@ set_target_properties(dbp_compiler_lib PROPERTIES UNITY_BUILD ON)
 dbp_apply_legacy_cpp_options(dbp_compiler_lib)
 target_compile_definitions(dbp_compiler_lib PRIVATE UNICODE _UNICODE)
 target_link_libraries(dbp_compiler_lib PUBLIC winmm dbghelp spdlog::spdlog)
-target_include_directories(dbp_compiler_lib PUBLIC . icons ../TGCOnline)
+target_include_directories(dbp_compiler_lib PUBLIC . icons)
 
 # Compile main executable linking to the compiler library
 add_executable(DBPCompiler WIN32 Main.cpp DBPCompiler.rc)
