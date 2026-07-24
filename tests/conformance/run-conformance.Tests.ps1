@@ -1,5 +1,67 @@
 Import-Module (Join-Path $PSScriptRoot "DirectiveParser.psm1") -Force
 
+function Invoke-ProcessWithTimeout {
+    param(
+        [string]$FileName,
+        [string]$Arguments = "",
+        [string]$WorkingDirectory,
+        [int]$TimeoutMs = 15000
+    )
+    $stdoutFile = [IO.Path]::GetTempFileName()
+    $stderrFile = [IO.Path]::GetTempFileName()
+    try {
+        $splat = @{
+            FilePath = $FileName
+            WorkingDirectory = $WorkingDirectory
+            RedirectStandardOutput = $stdoutFile
+            RedirectStandardError = $stderrFile
+            NoNewWindow = $true
+            PassThru = $true
+        }
+        if (-not [string]::IsNullOrEmpty($Arguments)) {
+            $splat["ArgumentList"] = $Arguments
+        }
+        $p = Start-Process @splat
+
+        $timeoutSec = [int]($TimeoutMs / 1000)
+        if ($timeoutSec -lt 1) { $timeoutSec = 1 }
+        
+        $hasExitedBool = $true
+        try {
+            Wait-Process -Id $p.Id -Timeout $timeoutSec -ErrorAction Stop
+        } catch {
+            $hasExitedBool = $false
+            try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+        }
+
+        $exitCode = 0
+        if ($hasExitedBool) {
+            try {
+                if ($null -ne $p.ExitCode) {
+                    $exitCode = $p.ExitCode
+                }
+            } catch {}
+        } else {
+            $exitCode = -1
+        }
+
+        $stdout = Get-Content -LiteralPath $stdoutFile -Raw -ErrorAction SilentlyContinue
+        $stderr = Get-Content -LiteralPath $stderrFile -Raw -ErrorAction SilentlyContinue
+        if ($null -eq $stdout) { $stdout = "" }
+        if ($null -eq $stderr) { $stderr = "" }
+        return [PSCustomObject]@{
+            ExitCode = $exitCode
+            HasExited = $hasExitedBool
+            Stdout = $stdout
+            Stderr = $stderr
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $stdoutFile -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $stderrFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Describe "DarkBASIC Language Conformance Tests" {
     # Find built compiler
     $compilerCandidates = @(
@@ -67,68 +129,38 @@ Describe "DarkBASIC Language Conformance Tests" {
                 # Reset LASTEXITCODE
                 $global:LASTEXITCODE = 0
 
-                $psi = New-Object System.Diagnostics.ProcessStartInfo
-                $psi.FileName = $script:CompilerPath
-                $psi.Arguments = "--json --runtime-root `"$($script:RuntimeRoot)`" --output `"$outputExe`" `"$dbproFile`""
-                $psi.UseShellExecute = $false
-                $psi.RedirectStandardOutput = $true
-                $psi.RedirectStandardError = $true
-                $psi.CreateNoWindow = $true
-                $psi.WorkingDirectory = $workspace
+                # Invoke DBPCompiler with deadlock-proof file redirection
+                $compilerResult = Invoke-ProcessWithTimeout -FileName $script:CompilerPath `
+                    -Arguments "--json --runtime-root `"$($script:RuntimeRoot)`" --output `"$outputExe`" `"$dbproFile`"" `
+                    -WorkingDirectory $workspace -TimeoutMs 15000
 
-                $p = [System.Diagnostics.Process]::Start($psi)
-                $stdout = $p.StandardOutput.ReadToEnd()
-                $stderr = $p.StandardError.ReadToEnd()
-                $hasExited = $p.WaitForExit(15000)
-                if (-not $hasExited) {
-                    try { $p.Kill() } catch {}
-                }
-                $compilerExitCode = $p.ExitCode
-
-                $compileSucceeded = ($compilerExitCode -eq 0) -and (Test-Path -LiteralPath $outputExe -PathType Leaf)
+                $stdout = $compilerResult.Stdout
+                $stderr = $compilerResult.Stderr
+                $compilerExitCode = $compilerResult.ExitCode
+                $compileSucceeded = ($compilerResult.HasExited) -and ($compilerExitCode -eq 0) -and (Test-Path -LiteralPath $outputExe -PathType Leaf)
 
                 if ($expected.CompileSuccess) {
                     if (-not $compileSucceeded) {
                         throw "Compilation failed: Output code: $compilerExitCode`nStdout: $stdout`nStderr: $stderr"
                     }
 
-                    # Run compiled application using deadlock-proof files redirection
-                    $appStdoutFile = [IO.Path]::GetTempFileName()
-                    $appStderrFile = [IO.Path]::GetTempFileName()
-                    try {
-                        $appPsi = New-Object System.Diagnostics.ProcessStartInfo
-                        $appPsi.FileName = $outputExe
-                        $appPsi.UseShellExecute = $false
-                        $appPsi.RedirectStandardOutput = $true
-                        $appPsi.RedirectStandardError = $true
-                        $appPsi.CreateNoWindow = $true
-                        $appPsi.WorkingDirectory = $workspace
+                    # Run compiled application using deadlock-proof file redirection
+                    $appResult = Invoke-ProcessWithTimeout -FileName $outputExe `
+                        -Arguments "" -WorkingDirectory $workspace `
+                        -TimeoutMs ([int]($expected.TimeoutSeconds * 1000))
 
-                        $appProcess = [System.Diagnostics.Process]::Start($appPsi)
-                        $appStdout = $appProcess.StandardOutput.ReadToEnd()
-                        $appStderr = $appProcess.StandardError.ReadToEnd()
-                        $hasExited = $appProcess.WaitForExit([int]($expected.TimeoutSeconds * 1000))
-
-                        if (-not $hasExited) {
-                            try { $appProcess.Kill(); $appProcess.WaitForExit(1000) } catch {}
-                        } else {
-                            $appExitCode = $appProcess.ExitCode
-                            $appExitCode | Should Be $expected.ExitCode
-                        }
-
-                        $appStdout = Get-Content -LiteralPath $appStdoutFile -Raw -ErrorAction SilentlyContinue
-                        $outputTxtFile = Join-Path $workspace "output.txt"
-                        if (Test-Path -LiteralPath $outputTxtFile -PathType Leaf) {
-                            $appStdout += "`n" + (Get-Content -LiteralPath $outputTxtFile -Raw)
-                        }
-
-                        foreach ($outSub in $expected.RuntimeOutputs) {
-                            ($appStdout -like "*$outSub*") | Should Be $true
-                        }
+                    if ($appResult.HasExited) {
+                        $appResult.ExitCode | Should Be $expected.ExitCode
                     }
-                    finally {
-                        Remove-Item -LiteralPath $appStdoutFile -Force -ErrorAction SilentlyContinue
-                        Remove-Item -LiteralPath $appStderrFile -Force -ErrorAction SilentlyContinue
+
+                    $appStdout = $appResult.Stdout
+                    $outputTxtFile = Join-Path $workspace "output.txt"
+                    if (Test-Path -LiteralPath $outputTxtFile -PathType Leaf) {
+                        $appStdout += "`n" + (Get-Content -LiteralPath $outputTxtFile -Raw)
+                    }
+
+                    foreach ($outSub in $expected.RuntimeOutputs) {
+                        ($appStdout -like "*$outSub*") | Should Be $true
                     }
                 }
                 else {
