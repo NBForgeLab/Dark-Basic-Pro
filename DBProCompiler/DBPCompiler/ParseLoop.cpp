@@ -100,17 +100,15 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 				g_pASMWriter->WriteASMTaskP1(dwLineToReport, ASMTASK_CONDITION, GetForNextCheckParameter()->GetMathItem()->FindResultData());
 
 				// Set the JE Instruction for the Condition
-				CStr* pData = new CStr(pELabelStr);
-				g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPE, pData, 10);
-				SAFE_DELETE(pData);
+				CStr pData(pELabelStr);
+				g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPE, &pData, 10);
 			}
 		}
 		if(PlacementCode==DBMPLACEMENT_BOTTOM)
 		{
 			// Set the JMP Instruction for the Condition
-			CStr* pData = new CStr(pSLabelStr);
-			g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_JUMP, pData, 10);
-			SAFE_DELETE(pData);
+			CStr pData(pSLabelStr);
+			g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_JUMP, &pData, 10);
 		}
 	}
 	else
@@ -127,27 +125,25 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 			// Set the JE Instruction for the Condition
 			if(PlacementCode==DBMPLACEMENT_TOP)
 			{
-				CStr* pData = new CStr(pELabelStr);
+				CStr pData(pELabelStr);
 				if ( g_pASMWriter->GetCondToggle() )
 				{
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPNE, pData, 10);
+					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPNE, &pData, 10);
 					g_pASMWriter->SetCondToggle(false);
 				}
 				else
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPE, pData, 10);
-				SAFE_DELETE(pData);
+					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPE, &pData, 10);
 			}
 			if(PlacementCode==DBMPLACEMENT_BOTTOM)
 			{
-				CStr* pData = new CStr(pSLabelStr);
+				CStr pData(pSLabelStr);
 				if ( g_pASMWriter->GetCondToggle() )
 				{
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPNE, pData, 10);
+					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPNE, &pData, 10);
 					g_pASMWriter->SetCondToggle(false);
 				}
 				else
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPE, pData, 10);
-				SAFE_DELETE(pData);
+					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_CONDJUMPE, &pData, 10);
 			}
 		}
 		else
@@ -156,10 +152,9 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 			if(PlacementCode==DBMPLACEMENT_BOTTOM)
 			{
 				// Set the JMP Instruction
-				CStr* pData = new CStr(pSLabelStr);
-				g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_JUMP, pData, 10);
-				SAFE_DELETE(pData);
-			}		
+				CStr pData(pSLabelStr);
+				g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, ASMTASK_JUMP, &pData, 10);
+			}
 		}
 	}
 	return true;

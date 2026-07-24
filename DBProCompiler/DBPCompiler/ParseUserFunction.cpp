@@ -51,12 +51,12 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 	if((dwType>100 && dwType<200) || dwType==3)
 	{
 		// Write offset out
-		CStr* pData = new CStr("");
-		pData->SetText("@:");
-		pData->AddNumericText(iDisplacement);
+		CStr pData("");
+		pData.SetText("@:");
+		pData.AddNumericText(iDisplacement);
 
 		// Local Var - not part of param-in data
-		CStr* pNull = new CStr("0");
+		CStr pNull("0");
 		if(PlacementCode==DBMPLACEMENT_TOP)
 		{
 			// Special Recreate creates a new string from current ptr address
@@ -65,22 +65,21 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 				// Used for strings passed into functions (need to be new instances)
 
 				// Pass DEST + CURRENT STRING (same address)
-				CStr* pNull = new CStr("0");
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_PUSH, pData, 7);
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_PUSH, pNull, 7);
-				SAFE_DELETE(pNull);
+				CStr pNull2("0");
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_PUSH, &pData, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_PUSH, &pNull2, 7);
 
 				// CALL EQUATE to create a NEW STRING from CURRENT STRING
 				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
 
 				// Put EAX overwrites DEST
-				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), ASMTASK_ASSIGN, pData, 7, NULL, 7);
+				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), ASMTASK_ASSIGN, &pData, 7, NULL, 7);
 			}
 			else
 			{
 				// Clear func-mem
 				//g_pASMWriter->WriteASMTaskCoreP2(GetEndLineNumber(), ASMTASK_ASSIGN, pData, 7, pNull, 7); //120108 - u71 - fix line number (and above)
-				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), ASMTASK_ASSIGN, pData, 7, pNull, 7);
+				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), ASMTASK_ASSIGN, &pData, 7, &pNull, 7);
 			}
 		}
 		if(PlacementCode==DBMPLACEMENT_BOTTOM)
@@ -88,13 +87,13 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 			// Free func-mem (except 'any' return string)
 			bool bValidFree=true;
 			if(pDoNotFree)
-				if(stricmp(pDoNotFree->GetStr(), pData->GetStr())==NULL)
+				if(stricmp(pDoNotFree->GetStr(), pData.GetStr())==NULL)
 					bValidFree=false;
 
 			// Only the return string is not freed here
 			if(bValidFree==true)
 			{
-				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), ASMTASK_PUSH, pData, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), ASMTASK_PUSH, &pData, 7);
 
 				CInstructionTableEntry* pRef = NULL;
 				if(dwType==3) pRef=g_pInstructionTable->GetRef(IT_INTERNAL_STRFREE);
@@ -107,10 +106,6 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), ASMTASK_POPEBX, NULL, 0);
 			}
 		}
-
-		// Free usages
-		SAFE_DELETE(pNull);
-		SAFE_DELETE(pData);
 	}
 
 	// Complete
@@ -173,10 +168,9 @@ bool CParseUserFunction::ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree)
 	if(PlacementCode==DBMPLACEMENT_TOP)
 	{
 		// ASM Task to clear current ESP position -> 
-		CStr* pClearSize = new CStr();
-		pClearSize->SetNumericText(dwSizeOfLocalParams);
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CLEARSTACK, pClearSize, 7);
-		SAFE_DELETE(pClearSize);
+		CStr pClearSize;
+		pClearSize.SetNumericText(dwSizeOfLocalParams);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CLEARSTACK, &pClearSize, 7);
 	}
 
 	// Clear all local vars that are string and array pointers
@@ -261,13 +255,11 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_MOVEBPESP, NULL, 0);
 
 		// Advance ESP Stack Register to skip 'local function space'
-		CStr* pString = new CStr(GetName()->GetStr());
-		DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pString->GetStr());
-		CStr* pStrNum = new CStr("");
-		pStrNum->SetNumericText(dwTypeSize+4);//extra 4 bytes as start adds some for byte start
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_SUBESP, pStrNum, 7);
-		SAFE_DELETE(pString);
-		SAFE_DELETE(pStrNum);
+		CStr pString(GetName()->GetStr());
+		DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pString.GetStr());
+		CStr pStrNum("");
+		pStrNum.SetNumericText(dwTypeSize+4);//extra 4 bytes as start adds some for byte start
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_SUBESP, &pStrNum, 7);
 
 		// Clear all vars, and especially strings and array ptrs (and those in usertypes too)
 		ActOnLocalVars(PlacementCode, NULL);
@@ -318,9 +310,8 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 				g_pASMWriter->WriteASMTaskP1(GetEndLineNumber(), ASMTASK_PUSH, pResultData);
 
 				// Blank String - no thing to free
-				CStr* pNull = new CStr("0");
-				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), ASMTASK_PUSH, pNull, 7);
-				SAFE_DELETE(pNull);
+				CStr pNull("0");
+				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), ASMTASK_PUSH, &pNull, 7);
 
 				// Put new string address in EAX for return passing
 				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");

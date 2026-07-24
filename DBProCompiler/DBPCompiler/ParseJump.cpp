@@ -106,11 +106,10 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			// As GOTO can be used to bypass a loop (causing freezes), insert a message call
 			if ( g_pDBPCompiler->m_bRemoveSafetyCode==false )
 			{
-				CParseInstruction* pTemp = new CParseInstruction;
-				pTemp->SetLineNumber(GetStartLineNumber());
-				pTemp->PassStartEndCharForPossibleDebugHook(0, 0);
-				pTemp->WriteDBMHardCode(BUILD_SYNC, NULL, NULL, NULL);
-				SAFE_DELETE(pTemp);
+				CParseInstruction pTemp;
+				pTemp.SetLineNumber(GetStartLineNumber());
+				pTemp.PassStartEndCharForPossibleDebugHook(0, 0);
+				pTemp.WriteDBMHardCode(BUILD_SYNC, NULL, NULL, NULL);
 			}
 		}
 
@@ -122,9 +121,8 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			pLabelStr = m_pParameter->GetMathItem()->GetResultStringToken()->GetStr();
 
 		// Set the JMP Instruction
-		CStr* pData = new CStr(pLabelStr);
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, pData, 10);
-		SAFE_DELETE(pData);
+		CStr pData(pLabelStr);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, &pData, 10);
 
 	}
 	if(GetJumpType()==JUMPTYPE_GOSUB)
@@ -133,9 +131,8 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 		LPSTR pLabelStr = m_pParameter->GetMathItem()->GetResultStringToken()->GetStr();
 
 		// Set the JMP Instruction
-		CStr* pData = new CStr(pLabelStr);
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMPSUBROUTINE, pData, 10);
-		SAFE_DELETE(pData);
+		CStr pData(pLabelStr);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMPSUBROUTINE, &pData, 10);
 	}
 	if(GetJumpType()==JUMPTYPE_SELECT)
 	{
@@ -170,11 +167,10 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_POPEBX, NULL);
 
 				// If EAX is one, jump to the label colding the case code
-				CStr* pOne = new CStr("1");
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDITIONDATA, pOne, 7);
+				CStr pOne("1");
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDITIONDATA, &pOne, 7);
 				CStr* pJumpToLabel=pCaseLabel->GetMathItem()->FindResultStringTokenForDBM();
 				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPE, pJumpToLabel, 10);
-				SAFE_DELETE(pOne);
 
 				// Next in chain
 				pCaseCondition=pCaseCondition->GetNext();

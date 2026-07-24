@@ -55,11 +55,11 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 	if(dwType==3)
 	{
 		// Write offset out
-		CStr* pData = new CStr("");
-		pData->AddNumericText(iDisplacement);
+		CStr pData("");
+		pData.AddNumericText(iDisplacement);
 
 		// Local Var - not part of param-in data
-		CStr* pNull = new CStr("0");
+		CStr pNull("0");
 
 		// Determine natural mode, and make sure its an offset to get at the UDT element
 		DWORD dwAccessMode = g_pASMWriter->DetMode(pVar->m_pStringToken, pVar->m_dwType, pVar->m_dwDataOffset);
@@ -72,8 +72,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		g_pASMWriter->WriteASMComment("PUSH TO STACK", "", "", "");
 
 		// Pass DEST + CURRENT STRING (same address)
-		g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, pNull, 7);
-		SAFE_DELETE(pNull);
+		g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, &pNull, 7);
 
 		// CALL EQUATE to create a NEW STRING from CURRENT STRING
 		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
@@ -85,10 +84,6 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		// Pop param data
 		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
 		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
-
-		// Free usages
-		SAFE_DELETE(pNull);
-		SAFE_DELETE(pData);
 	}
 
 	// Complete
@@ -490,9 +485,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 		case BUILD_END:
 			{
 				// Always jump to END OF PROGRAM
-				CStr* pAlwaysJump = new CStr("$labelend");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, pAlwaysJump, 10);
-				SAFE_DELETE(pAlwaysJump);
+				CStr pAlwaysJump("$labelend");
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, &pAlwaysJump, 10);
 			}
 			break;
 
@@ -502,9 +496,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EarlyEnd@@YAXXZ");
 
 				// Always jump to END OF PROGRAM
-				CStr* pAlwaysJump = new CStr("$labelend");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, pAlwaysJump, 10);
-				SAFE_DELETE(pAlwaysJump);
+				CStr pAlwaysJump("$labelend");
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, &pAlwaysJump, 10);
 			}
 			break;
 
@@ -514,12 +507,11 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				if(g_DebugInfo.DebugModeOn())
 				{
 					// Calculate Current Position Of Program
-					CStr* pData = new CStr("");
+					CStr pData("");
 					DWORD dwPosition=g_pASMWriter->GetCurrentMCPosition();
 					g_DebugInfo.SetLastBreakPoint(dwPosition);
-					pData->SetNumericText(dwPosition);
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, pData, 7);
-					SAFE_DELETE(pData);
+					pData.SetNumericText(dwPosition);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, &pData, 7);
 
 					// Call PROCESSMESSAGES Function with Debug Prog-Position
 					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?ProcessMessages@@YAKK@Z");
@@ -528,9 +520,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_POPEBX, NULL, 0);
 
 					// Check if EAX=1 (got a message to QUIT)
-					pData = new CStr("1");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDITIONDATA, pData, 7);
-					SAFE_DELETE(pData);
+					CStr pCondData("1");
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDITIONDATA, &pCondData, 7);
 
 					// Only snapshot if parsing main, not mini
 					if(g_DebugInfo.GetParsingMain())
@@ -549,9 +540,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 //						g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?StackSnapshotStore@@YAXK@Z");
 
 						// Jump to END OF PROGRAM
-						CStr* pJumpToLabel = new CStr("$labelend");
-						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, pJumpToLabel, 10);
-						SAFE_DELETE(pJumpToLabel);
+						CStr pJumpToLabel("$labelend");
+						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, &pJumpToLabel, 10);
 
 						// Complete LEAP-FORWARD Marker
 						g_pASMWriter->WriteASMLeapMarkerEnd(1);
@@ -559,9 +549,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					else
 					{
 						// Jump to END OF PROGRAM
-						CStr* pJumpToLabel = new CStr("$labelend");
-						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDJUMPE, pJumpToLabel, 10);
-						SAFE_DELETE(pJumpToLabel);
+						CStr pJumpToLabel("$labelend");
+						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDJUMPE, &pJumpToLabel, 10);
 					}
 				}
 				else
@@ -570,14 +559,12 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?ProcessMessages@@YAKXZ");
 
 					// Check if EAX=1 (got a message to QUIT)
-					CStr* pData = new CStr("1");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDITIONDATA, pData, 7);
-					SAFE_DELETE(pData);
+					CStr pData("1");
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDITIONDATA, &pData, 7);
 
 					// If so, jump to END OF PROGRAM
-					CStr* pJumpToLabel = new CStr("$labelend");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDJUMPE, pJumpToLabel, 10);
-					SAFE_DELETE(pJumpToLabel);
+					CStr pJumpToLabel("$labelend");
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDJUMPE, &pJumpToLabel, 10);
 				}
 			}							
 			break;
@@ -585,10 +572,9 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 		case BUILD_STARTPROGRAM:
 			{
 				// Store Registers before program begins
-				CStr* pParam1 = new CStr("@$_ESP_");
+				CStr pParam1("@$_ESP_");
 				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSHREGISTERS, NULL, 0);
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_STOREESP, pParam1, 7);
-				SAFE_DELETE(pParam1);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_STOREESP, &pParam1, 7);
 
 				// If Debug Mode, special jump if breakpoint needs to be jumped to
 				if(g_DebugInfo.DebugModeOn() && g_DebugInfo.GetParsingMain())
@@ -624,16 +610,14 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				{
 					// If they are different, broke from function or stack leak
 					// set special escapecode so cannot resume this program
-					CStr* pParam1 = new CStr("@$_ESP_");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_SETNORETURNIFESPLEAK, pParam1, 7);
-					SAFE_DELETE(pParam1);
+					CStr pParam1("@$_ESP_");
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_SETNORETURNIFESPLEAK, &pParam1, 7);
 				}
 
 				// Restore STACK Pointer
-				CStr* pParam1 = new CStr("@$_ESP_");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_RESTOREESP, pParam1, 7);
+				CStr pParam1("@$_ESP_");
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_RESTOREESP, &pParam1, 7);
 				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_POPREGISTERS, NULL, 0);
-				SAFE_DELETE(pParam1);
 			}
 			break;
 
