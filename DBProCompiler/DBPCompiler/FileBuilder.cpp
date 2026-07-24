@@ -28,50 +28,24 @@ extern bool g_bLocalTempFolder;
 
 // Implementations
 CFileBuilder::CFileBuilder()
+	: m_hfile(NULL), m_SizeOfEXECode(0), m_bEncryptionState(false)
 {
-	// EXEMaker
-	m_hfile = NULL;
-	m_SizeOfEXECode = 0;
-
-	// File Table
-	m_dwFileTableSize=0;
-	m_pFileTable=NULL;
-	m_pFileTablePlacement=NULL;
-}
-
-CFileBuilder::~CFileBuilder()
-{
-	DeleteFileTable();
 }
 
 void CFileBuilder::DeleteFileTable(void)
 {
-	if(m_pFileTable)
-	{
-		for(DWORD f=0; f<m_dwFileTableSize; f++)
-		{
-			SAFE_DELETE(m_pFileTablePlacement[f]);
-			m_pFileTablePlacement[f]=NULL;
-			SAFE_DELETE(m_pFileTable[f]);
-			m_pFileTable[f]=NULL;
-		}
-	}
-	SAFE_DELETE(m_pFileTablePlacement);
-	SAFE_DELETE(m_pFileTable);
+	m_FileTable.clear();
+	m_FileTablePlacement.clear();
 }
 
 bool CFileBuilder::NewFileTable(void)
 {
-	// Delete odl filetable
+	// Delete old filetable
 	DeleteFileTable();
 
-	// New File Table
-	m_dwFileTableSize=10;
-	m_pFileTable = new LPSTR[m_dwFileTableSize];
-	ZeroMemory(m_pFileTable, sizeof(LPSTR)*m_dwFileTableSize);
-	m_pFileTablePlacement = new LPSTR[m_dwFileTableSize];
-	ZeroMemory(m_pFileTablePlacement, sizeof(LPSTR)*m_dwFileTableSize);
-	m_dwFileTableIndex=0;
+	// Reserve initial capacity
+	m_FileTable.reserve(10);
+	m_FileTablePlacement.reserve(10);
 
 	// Complete
 	return true;
@@ -79,42 +53,9 @@ bool CFileBuilder::NewFileTable(void)
 
 bool CFileBuilder::AddFile(LPSTR pFilename, LPSTR pPlacementFolder)
 {
-	// Increase dize of file table if too small
-	if(m_dwFileTableIndex>m_dwFileTableSize-2)
-	{
-		// New Table Array
-		DWORD dwSize = m_dwFileTableSize*2;
-		LPSTR* pNewTable = new LPSTR[dwSize];
-		ZeroMemory(pNewTable, dwSize*sizeof(LPSTR));
-		LPSTR* pNewTablePlacement = new LPSTR[dwSize];
-		ZeroMemory(pNewTablePlacement, dwSize*sizeof(LPSTR));
-
-		// Copy what have so far
-		memcpy(pNewTable, m_pFileTable, sizeof(LPSTR)*m_dwFileTableSize);
-		memcpy(pNewTablePlacement, m_pFileTablePlacement, sizeof(LPSTR)*m_dwFileTableSize);
-
-		// Delete old
-		SAFE_DELETE(m_pFileTable);
-		SAFE_DELETE(m_pFileTablePlacement);
-
-		// New Ptrs
-		m_dwFileTableSize=dwSize;
-		m_pFileTable=pNewTable;
-		m_pFileTablePlacement=pNewTablePlacement;
-	}
-
-	// Add filename to table
-	DWORD dwFilenameLength = strlen(pFilename);
-	m_pFileTable[m_dwFileTableIndex] = new char[dwFilenameLength+1];
-	strcpy(m_pFileTable[m_dwFileTableIndex], pFilename);
-
-	// Add placement path to table
-	dwFilenameLength = strlen(pPlacementFolder);
-	m_pFileTablePlacement[m_dwFileTableIndex] = new char[dwFilenameLength+1];
-	strcpy(m_pFileTablePlacement[m_dwFileTableIndex], pPlacementFolder);
-
-	// Advance count
-	m_dwFileTableIndex++;
+	// Add filename and placement path to table
+	m_FileTable.emplace_back(pFilename);
+	m_FileTablePlacement.emplace_back(pPlacementFolder);
 
 	// Complete
 	return true;
@@ -220,10 +161,10 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 	ConstructPCK(destPCKfilename);
 
 	// Go Through Files in Table
-	float pBit = 30.0f/m_dwFileTableIndex;
-	for(DWORD f=0; f<m_dwFileTableIndex; f++)
+	float pBit = 30.0f/m_FileTable.size();
+	for(DWORD f=0; f<m_FileTable.size(); f++)
 	{
-		AddFileToConstruct(m_pFileTable[f], m_pFileTablePlacement[f]);
+		AddFileToConstruct(const_cast<LPSTR>(m_FileTable[f].c_str()), const_cast<LPSTR>(m_FileTablePlacement[f].c_str()));
 		g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc((DWORD)(10+(pBit*f))));
 	}
 
@@ -248,8 +189,8 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 		// Read readout file into memory
 		DWORD bytesread=0;
 		DWORD filebuffersize = GetFileSize(hreadfile, NULL);	
-		LPSTR filebuffer = (LPSTR)GlobalAlloc(GMEM_FIXED, filebuffersize);
-		ReadFile(hreadfile, filebuffer, filebuffersize, &bytesread, NULL); 
+		std::vector<char> filebuffer(filebuffersize);
+		ReadFile(hreadfile, filebuffer.data(), filebuffersize, &bytesread, NULL); 
 		CloseHandle(hreadfile);
 
 		// Dynamically load compress.dll and use it to compress
@@ -259,18 +200,16 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 		// Compress PCK Data
 		LPSTR pData=NULL;
 		DWORD dwDataSize=0;
-		int iReturnInt =  CompressBlock((DWORD*)filebuffer, (int)filebuffersize);
+		int iReturnInt =  CompressBlock((DWORD*)filebuffer.data(), (int)filebuffersize);
 		if(iReturnInt==-1)
 		{
 			// Error while compressing!
-			SAFE_FREE(filebuffer);
 			g_pErrorReport->AddErrorString("Failed to 'MakeEXE' : Error while compressing!");
 			return false;
 		}
 		if(iReturnInt==-2)
 		{
 			// Compressed data is larger than uncompressed data!
-			SAFE_FREE(filebuffer);
 			g_pErrorReport->AddErrorString("Failed to 'MakeEXE' : Compressed data is larger than uncompressed data!");
 			return false;
 		}
@@ -280,8 +219,7 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 		pData = (LPSTR)GlobalLock(hGlobAlloc);
 		dwDataSize = GlobalSize(hGlobAlloc);
 
-		// Free old data
-		SAFE_FREE(filebuffer);
+		// filebuffer auto-freed by vector going out of scope
 
 		// Create new PCK File (CompressDLL + PCKData)
 		ConstructPCK(destPCKfilename);
@@ -383,8 +321,8 @@ bool CFileBuilder::AddFileToConstruct(LPSTR FilenameString, LPSTR pPlacement)
 
 		// Read readout file into memory
 		DWORD filebuffersize = GetFileSize(hreadfile, NULL);	
-		LPSTR filebuffer = (char*)GlobalAlloc(GMEM_FIXED, filebuffersize);
-		ReadFile(hreadfile, filebuffer, filebuffersize, &bytesread, NULL); 
+		std::vector<char> filebuffer(filebuffersize);
+		ReadFile(hreadfile, filebuffer.data(), filebuffersize, &bytesread, NULL); 
 		CloseHandle(hreadfile);
 
 		// Header: [FILENAME LENGTH] and [FILENAME STRING]
@@ -399,19 +337,12 @@ bool CFileBuilder::AddFileToConstruct(LPSTR FilenameString, LPSTR pPlacement)
 			DWORD dwVal = 0;
 			if(m_bEncryptionState==true) dwVal = 12321;
 			CEncryptor pEncryptor(dwVal);
-			pEncryptor.EncryptFileData(filebuffer, filebuffersize, true);
+			pEncryptor.EncryptFileData(filebuffer.data(), filebuffersize, true);
 		}
 
 		// Header: [FILEDATA LENGTH] and [FILEDATA]
 		WriteFile(m_hfile, &filebuffersize, 4, &byteswritten, NULL); 
-		WriteFile(m_hfile, filebuffer, filebuffersize, &byteswritten, NULL); 
-
-		// Clear mem usage
-		if(filebuffer)
-		{
-			GlobalFree(filebuffer);
-			filebuffer=NULL;
-		}
+		WriteFile(m_hfile, filebuffer.data(), filebuffersize, &byteswritten, NULL); 
 	}
 	else
 	{
@@ -454,7 +385,6 @@ struct newBITMAPINFO
 bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersioBlock, DWORD dwOffsetToFirstEntry, DWORD dwVersionBlockSize)
 {
 	// Simply scans the EXE and locates the Version Block, and directly replaces it
-	LPSTR pEXEData = NULL;
 	DWORD dwSizeOfEXECode = 0;	
 	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
@@ -462,12 +392,12 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 		// Read EXE into memory
 		DWORD bytesread=0;
 		dwSizeOfEXECode = GetFileSize(hreadfile, NULL);	
-		pEXEData = new char[dwSizeOfEXECode];
-		ReadFile(hreadfile, pEXEData, dwSizeOfEXECode, &bytesread, NULL); 
+		std::vector<char> exeData(dwSizeOfEXECode);
+		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, NULL); 
 		CloseHandle(hreadfile);
 
 		// Modify this data
-		LPSTR pPtr = pEXEData;
+		LPSTR pPtr = exeData.data();
 		LPSTR pPtrEnd = pPtr + dwSizeOfEXECode;
 		while (pPtr<pPtrEnd)
 		{
@@ -506,12 +436,9 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD byteswritten=0;
-			WriteFile(hwritefile, pEXEData, dwSizeOfEXECode, &byteswritten, NULL); 
+			WriteFile(hwritefile, exeData.data(), dwSizeOfEXECode, &byteswritten, NULL); 
 			CloseHandle(hwritefile);
 		}
-
-		// Free usages
-		SAFE_DELETE(pEXEData);
 	}
 
 	// complete
@@ -782,21 +709,21 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBuilder)
 {
 	// File 0-9 is version string info
-	LPSTR pVerComments = m_pFileTable[0];
-	LPSTR pVerCompany = m_pFileTable[1];
-	LPSTR pVerFileDesc = m_pFileTable[2];
-	LPSTR pVerFileNumber = m_pFileTable[3];
-	LPSTR pVerInternal = m_pFileTable[4];
-	LPSTR pVerCopyright = m_pFileTable[5];
-	LPSTR pVerTrademark = m_pFileTable[6];
-	LPSTR pVerFilename = m_pFileTable[7];
-	LPSTR pVerProduct = m_pFileTable[8];
-	LPSTR pVerProductNumber = m_pFileTable[9];
+	LPSTR pVerComments = const_cast<LPSTR>(m_FileTable[0].c_str());
+	LPSTR pVerCompany = const_cast<LPSTR>(m_FileTable[1].c_str());
+	LPSTR pVerFileDesc = const_cast<LPSTR>(m_FileTable[2].c_str());
+	LPSTR pVerFileNumber = const_cast<LPSTR>(m_FileTable[3].c_str());
+	LPSTR pVerInternal = const_cast<LPSTR>(m_FileTable[4].c_str());
+	LPSTR pVerCopyright = const_cast<LPSTR>(m_FileTable[5].c_str());
+	LPSTR pVerTrademark = const_cast<LPSTR>(m_FileTable[6].c_str());
+	LPSTR pVerFilename = const_cast<LPSTR>(m_FileTable[7].c_str());
+	LPSTR pVerProduct = const_cast<LPSTR>(m_FileTable[8].c_str());
+	LPSTR pVerProductNumber = const_cast<LPSTR>(m_FileTable[9].c_str());
 
 	// Files are 32x32 and 16x16 Icons
-	LPSTR pLargeIcon = m_pFileTable[10];
-	LPSTR pSmallIcon = m_pFileTable[11];
-	LPSTR pLarge256Icon = m_pFileTable[12];
+	LPSTR pLargeIcon = const_cast<LPSTR>(m_FileTable[10].c_str());
+	LPSTR pSmallIcon = const_cast<LPSTR>(m_FileTable[11].c_str());
+	LPSTR pLarge256Icon = const_cast<LPSTR>(m_FileTable[12].c_str());
 
 	// Absolute Path for Modulename
 	char ModuleName[256];

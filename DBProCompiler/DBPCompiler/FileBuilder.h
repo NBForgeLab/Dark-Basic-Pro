@@ -1,6 +1,8 @@
 // FileBuilder.h: interface for the CFileBuilder class.
 #include "direct.h"
 #include "io.h"
+#include <vector>
+#include <string>
 
 /* 3.0 icon/cursor header  */
 typedef struct {
@@ -26,7 +28,7 @@ class CFileBuilder
 {
 	public:
 		CFileBuilder();
-		~CFileBuilder();
+		~CFileBuilder() = default;
 		void DeleteFileTable(void);
 
 		bool NewFileTable(void);
@@ -58,11 +60,9 @@ class CFileBuilder
 		HANDLE		m_hfile;
 		DWORD		m_SizeOfEXECode;
 
-		// File Table
-		DWORD		m_dwFileTableSize;
-		LPSTR*		m_pFileTable;
-		LPSTR*		m_pFileTablePlacement;
-		DWORD		m_dwFileTableIndex;
+		// File Table (RAII vectors)
+		std::vector<std::string>	m_FileTable;
+		std::vector<std::string>	m_FileTablePlacement;
 
 		// Encryption Vars
 		bool		m_bEncryptionState;
