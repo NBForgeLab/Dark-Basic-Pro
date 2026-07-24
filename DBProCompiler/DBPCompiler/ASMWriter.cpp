@@ -56,8 +56,6 @@ CASMWriter::CASMWriter()
 	// Reference Tracking
 	m_dwRefBufferSize=0;
 	m_dwProgramRefPointer=0;
-	m_pProgramRefs=NULL;
-	m_pProgramRefLabel=NULL;
 	m_bOneOffCondToggle=false;
 
 	// Work Variables
@@ -66,7 +64,6 @@ CASMWriter::CASMWriter()
 	// Reset ASM Code Database
 	for(DWORD i=0; i<ASMMAXCOUNT; i++)
 	{
-		m_pASMDebugString[i]=NULL;
 		m_iASMPreOp[i]=0;
 		m_iASMOp1[i]=0;
 		m_iASMOp2[i]=0;
@@ -89,8 +86,7 @@ CASMWriter::CASMWriter()
 
 CASMWriter::~CASMWriter()
 {
-	// Free all usages
-	FreeAll();
+	// RAII handles cleanup of vector members
 }
 
 void CASMWriter::SetDefaultCompileFlags ( bool bArraySafetyFlag )
@@ -383,8 +379,7 @@ void CASMWriter::GenerateASMCodes(void)
 void CASMWriter::DefineASM(DWORD dwASMCode, LPSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData)
 {
 	// Store Debug String for ASM Code
-	m_pASMDebugString[dwASMCode]=new char[strlen(pDebugStr)+1];
-	strcpy(m_pASMDebugString[dwASMCode], pDebugStr);
+	m_ASMDebugStrings[dwASMCode] = pDebugStr;
 
 	// Store OpCodes for ASM Code
 	m_iASMPreOp[dwASMCode]=iPreOp;
@@ -399,18 +394,14 @@ bool CASMWriter::CreateASMHeader(void)
 {
 	// Create Empty MC Block
 	m_dwMCBlockSize=1024;
-	m_pProgramStart = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, m_dwMCBlockSize);
-
-	// Fill With RET Codes
-	for(DWORD n=0; n<m_dwMCBlockSize; n++) *((LPSTR)m_pProgramStart+n) = (unsigned char)0xC3;
+	m_machineCodeStorage.assign(m_dwMCBlockSize, (char)0xC3);
+	m_pProgramStart = m_machineCodeStorage.data();
 
 	// Prepare RefData
 	m_dwRefBufferSize=1024;
 	m_dwProgramRefPointer=0;
-	m_pProgramRefs = new DWORD[m_dwRefBufferSize];
-	m_pProgramRefLabel = new DWORD[m_dwRefBufferSize];
-	ZeroMemory(m_pProgramRefs, sizeof(DWORD)*m_dwRefBufferSize);
-	ZeroMemory(m_pProgramRefLabel, sizeof(DWORD)*m_dwRefBufferSize);
+	m_ProgramRefs.assign(m_dwRefBufferSize, 0);
+	m_ProgramRefLabels.assign(m_dwRefBufferSize, 0);
 
 	// Write Program Into MC Block
 	m_pMachineBlock = m_pProgramStart;
@@ -499,7 +490,7 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 					DWORD MCBBytePos = m_pMachineBlock-m_pProgramStart;
 
 					// Record Reference Position at index
-					*(m_pProgramRefs+m_dwProgramRefPointer)=MCBBytePos;
+					m_ProgramRefs[m_dwProgramRefPointer]=MCBBytePos;
 
 					// Record Reference Label at index
 					char* pStr = new char[strlen(pData)+1];
@@ -507,7 +498,7 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 					CStr* pCleanStr = new CStr(pStr);
 					pCleanStr->EatEdgeSpacesandTabs(NULL);
 					strcpy(pStr, pCleanStr->GetStr());
-					*(m_pProgramRefLabel+m_dwProgramRefPointer)=(uintptr_t)pStr;
+					m_ProgramRefLabels[m_dwProgramRefPointer]=(uintptr_t)pStr;
 					SAFE_DELETE(pCleanStr);
 
 					// Advance Ref Index
@@ -540,26 +531,20 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 		for(DWORD di=0; di<9; di++)
 			dwLeapRelDiff[di] = m_pRecordBytePosition[di]-m_pProgramStart;
 
-		// Create New Larger memory (another 100K)
+		// Expand memory (another 100K) via vector resize
 		DWORD dwNewSize = m_dwMCBlockSize+(102400);
-		LPSTR pNewMem = (LPSTR)GlobalAlloc(GMEM_FIXED, dwNewSize);
-
-		// Fill With RET Codes
-		for(DWORD n=0; n<dwNewSize; n++) *((LPSTR)pNewMem+n) = (unsigned char)0xC3;
-
-		// Copy current data to new memory
-		memcpy(pNewMem, m_pProgramStart, m_dwMCBlockSize);
-
-		// Erase old
-		SAFE_FREE(m_pProgramStart);
+		DWORD dwOldSize = m_dwMCBlockSize;
+		m_machineCodeStorage.resize(dwNewSize);
+		// Fill new portion with RET codes
+		memset(m_machineCodeStorage.data() + dwOldSize, 0xC3, dwNewSize - dwOldSize);
 
 		// Rereference to new memory
 		m_dwMCBlockSize=dwNewSize;
-		m_pProgramStart=pNewMem;
-		m_pMachineBlock=pNewMem+dwOffset;
+		m_pProgramStart=m_machineCodeStorage.data();
+		m_pMachineBlock=m_pProgramStart+dwOffset;
 
 		// If in middle of leap, ensure update
-		for(di=0; di<9; di++) m_pRecordBytePosition[di]=pNewMem+dwLeapRelDiff[di];
+		for(di=0; di<9; di++) m_pRecordBytePosition[di]=m_pProgramStart+dwLeapRelDiff[di];
 		m_pRecordTopBytePosition=m_pProgramStart+dwByteOffset;
 
 		// Mem was expanded
@@ -573,34 +558,15 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 bool CASMWriter::CheckAndExpandREFMemory(void)
 {
 	// If within 100 bytes of end, expand memory
-	DWORD* pREFDataBarrier=(m_pProgramRefs+m_dwRefBufferSize)-(100);
-	if(m_pProgramRefs+m_dwProgramRefPointer>pREFDataBarrier)
+	if(m_dwProgramRefPointer > m_dwRefBufferSize - 100)
 	{
-		// Work out offset of pointer
-		DWORD dwOffset = m_dwProgramRefPointer;
-
 		// Create New Larger memory (another 1K)
 		DWORD dwNewSize = m_dwRefBufferSize+1024;
-		DWORD* pNewMem = new DWORD[dwNewSize];
-		DWORD* pNewMemLabel = new DWORD[dwNewSize];
-
-		// Clear memory
-		ZeroMemory(pNewMem, dwNewSize*sizeof(DWORD));
-		ZeroMemory(pNewMemLabel, dwNewSize*sizeof(DWORD));
-
-		// Copy current data to new memory
-		memcpy(pNewMem, m_pProgramRefs, m_dwRefBufferSize*sizeof(DWORD));
-		memcpy(pNewMemLabel, m_pProgramRefLabel, m_dwRefBufferSize*sizeof(DWORD));
-
-		// Erase old
-		SAFE_DELETE(m_pProgramRefs);
-		SAFE_DELETE(m_pProgramRefLabel);
+		m_ProgramRefs.resize(dwNewSize, 0);
+		m_ProgramRefLabels.resize(dwNewSize, 0);
 
 		// Rereference to new memory
 		m_dwRefBufferSize=dwNewSize;
-		m_pProgramRefs=pNewMem;
-		m_pProgramRefLabel=pNewMemLabel;
-		m_dwProgramRefPointer=dwOffset;
 
 		// Mem was expanded
 		return true;
@@ -691,7 +657,7 @@ bool CASMWriter::ReportAnyErrorsToCLI(void)
 	if(dwRTError>0)
 	{
 		// Report error
-		LPSTR lpReturnError = new char[1024];
+		char lpReturnError[1024];
 		LPSTR pRuntimeErrorString = NULL;
 		if(g_pEXE->m_pRuntimeErrorStringsArray) pRuntimeErrorString = (LPSTR)g_pEXE->m_pRuntimeErrorStringsArray[dwRTError];
 		if(dwRTErrorLine>0)
@@ -700,8 +666,6 @@ bool CASMWriter::ReportAnyErrorsToCLI(void)
 			wsprintf(lpReturnError, "Runtime Error %d [%s]", dwRTError, pRuntimeErrorString);
 			
 		SendDataToDebugger(31, lpReturnError, strlen(lpReturnError));
-		delete lpReturnError;
-		lpReturnError=NULL;
 
 		// Clear error
 		g_pEXE->m_dwRuntimeErrorDWORD=0;
@@ -906,9 +870,9 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			LPSTR pReturnError = NULL;
 
 			// Critical start info
-			strcpy(g_pEXE->m_pUnpackFolderName, g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
+			g_pEXE->m_UnpackFolderName = g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER);
 			g_pEXE->m_dwEncryptionKey=0;
-			g_pEXE->StartInfo(g_pEXE->m_pUnpackFolderName, g_pEXE->m_dwEncryptionKey);
+			g_pEXE->StartInfo(const_cast<LPSTR>(g_pEXE->m_UnpackFolderName.c_str()), g_pEXE->m_dwEncryptionKey);
 
 			// Main Program Run or MiniProgram Run
 			if(bParsingMainProgram)
@@ -1682,7 +1646,7 @@ bool CASMWriter::UpdateMCBRefData(void)
 		DWORD dwArrFlag=0;
 		DWORD dwUseMemOffset=0;
 		unsigned char iRefType=0;
-		LPSTR pStr = (LPSTR)*(m_pProgramRefLabel+ref);
+		LPSTR pStr = (LPSTR)m_ProgramRefLabels[ref];
 		if(iRefType==0 && pStr[0]=='[') iRefType=1;
 		if(iRefType==0 && pStr[0]=='$' && pStr[1]=='$') iRefType=2;
 		if(iRefType==0 && pStr[0]=='@' && pStr[1]=='&') { iRefType=3; dwArrFlag=1; }
@@ -1778,7 +1742,7 @@ bool CASMWriter::UpdateMCBRefData(void)
 				SAFE_DELETE(pRealLabel);
 			}
 			g_pEXE->m_pRefIndexArray[dwEXERefIndex] = dwIndex;
-			g_pEXE->m_pRefArray[dwEXERefIndex] = ( *(m_pProgramRefs+ref) + g_pEXE->m_dwStartOfMiniMC );
+			g_pEXE->m_pRefArray[dwEXERefIndex] = ( m_ProgramRefs[ref] + g_pEXE->m_dwStartOfMiniMC );
 		}
 	}
 
@@ -2514,28 +2478,29 @@ void CASMWriter::GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwDataSize)
 void CASMWriter::FreeMachineBlock(void)
 {
 	// Clear Writer Data
-	SAFE_FREE(m_pProgramStart);
-	SAFE_DELETE(m_pProgramRefs);
-	if(m_pProgramRefLabel)
+	m_machineCodeStorage.clear();
+	m_pProgramStart=NULL;
+	m_pMachineBlock=NULL;
+
+	// Free label strings stored as raw pointers in ref labels
+	for(DWORD n=0; n<m_dwRefBufferSize; n++)
 	{
-		for(DWORD n=0; n<m_dwRefBufferSize; n++)
+		if(m_ProgramRefLabels[n]!=0)
 		{
-			if(*(m_pProgramRefLabel+n)!=NULL)
-			{
-				delete (char*)*(m_pProgramRefLabel+n);
-				*(m_pProgramRefLabel+n)=NULL;
-			}
+			delete[] (char*)m_ProgramRefLabels[n];
+			m_ProgramRefLabels[n]=0;
 		}
-		SAFE_DELETE(m_pProgramRefLabel);
 	}
+	m_ProgramRefs.clear();
+	m_ProgramRefLabels.clear();
 }
 
 void CASMWriter::FreeAll(void)
 {
-	// Clear ASM Code Database
+	// Clear ASM Code Database (std::string auto-clears)
 	for(DWORD i=0; i<ASMMAXCOUNT; i++)
 	{
-		SAFE_DELETE(m_pASMDebugString[i]);
+		m_ASMDebugStrings[i].clear();
 	}
 }
 
@@ -4558,7 +4523,7 @@ bool CASMWriter::WriteASMLine(DWORD dwOp, LPSTR pOpData)
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(m_pASMDebugString[dwOp]);
+	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(pOpData);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
@@ -4579,7 +4544,7 @@ bool CASMWriter::WriteASMLine2(DWORD dwOp, LPSTR pOpData, LPSTR pOpData2)
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(m_pASMDebugString[dwOp]);
+	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(pOpData);
 	strDBMLine.AddText(", ");
@@ -4599,7 +4564,7 @@ bool CASMWriter::WriteASMLine1IMM(DWORD dwOp, LPSTR pOpData, DWORD dwSizeIMM)
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(m_pASMDebugString[dwOp]);
+	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(pOpData);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
@@ -4617,7 +4582,7 @@ bool CASMWriter::WriteASMLine2IMM(DWORD dwOp, LPSTR pOpData, LPSTR pOpData2, DWO
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(m_pASMDebugString[dwOp]);
+	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(pOpData);
 	strDBMLine.AddText(", ");
@@ -4679,7 +4644,7 @@ bool CASMWriter::WriteASMLineLeapToTop(DWORD dwOp)
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(m_pASMDebugString[dwOp]);
+	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText("LEAP TO TOP");
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
@@ -4710,7 +4675,7 @@ bool CASMWriter::WriteASMLineLeap(DWORD dwOp, DWORD di)
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(m_pASMDebugString[dwOp]);
+	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText("LEAP");
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
@@ -4761,10 +4726,10 @@ bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 		m_pRecordRefPosition[di]-=2;
 
 		// Get old ref-string
-		LPSTR pRefStr = (LPSTR)*(m_pProgramRefLabel+m_pRecordRefPosition[di]);
+		LPSTR pRefStr = (LPSTR)m_ProgramRefLabels[m_pRecordRefPosition[di]];
 		if(pRefStr)
 		{
-			delete pRefStr;
+			delete[] pRefStr;
 			pRefStr=NULL;
 		}
 
@@ -4776,7 +4741,7 @@ bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 		pTempStr->SetNumericText(dwLeapOffset);
 		pRefStr = new char[strlen(pTempStr->GetStr())+1];
 		strcpy(pRefStr, pTempStr->GetStr());
-		*(m_pProgramRefLabel+m_pRecordRefPosition[di])=(uintptr_t)pRefStr;
+		m_ProgramRefLabels[m_pRecordRefPosition[di]]=(uintptr_t)pRefStr;
 		SAFE_DELETE(pTempStr);
 
 		// Clear leap flag

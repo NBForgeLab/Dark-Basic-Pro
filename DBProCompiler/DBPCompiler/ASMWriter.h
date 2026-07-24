@@ -8,6 +8,8 @@
 // Common Includes
 #include "windows.h"
 #include "macros.h"
+#include <vector>
+#include <string>
 
 // Custom Includes
 #include "Statement.h"
@@ -492,14 +494,15 @@ class CASMWriter : public ICodeGenerator
 
 		// ASM Program Block
 		DWORD					m_dwMCBlockSize;
+		std::vector<char>		m_machineCodeStorage;
 		LPSTR					m_pProgramStart;
 		LPSTR					m_pMachineBlock;
 
 		// Reference Tracking
 		DWORD					m_dwRefBufferSize;
 		DWORD					m_dwProgramRefPointer;
-		DWORD*					m_pProgramRefs;
-		DWORD*					m_pProgramRefLabel;
+		std::vector<DWORD>		m_ProgramRefs;
+		std::vector<DWORD>		m_ProgramRefLabels;
 
 		// Work Variables
 	public:
@@ -516,7 +519,7 @@ class CASMWriter : public ICodeGenerator
 
 	private:
 
-		LPSTR					m_pASMDebugString[ASMMAXCOUNT];
+		std::string				m_ASMDebugStrings[ASMMAXCOUNT];
 		int						m_iASMPreOp[ASMMAXCOUNT];
 		int						m_iASMOp1[ASMMAXCOUNT];
 		int						m_iASMOp2[ASMMAXCOUNT];
