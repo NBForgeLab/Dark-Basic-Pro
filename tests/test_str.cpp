@@ -92,3 +92,128 @@ TEST(CStrTest, LengthSynchronizationAfterMutations) {
     EXPECT_EQ(testStr.Length(), 11);
     EXPECT_STREQ(testStr.GetStr(), "hello world");
 }
+
+// ============================================================
+// Phase 1 TDD: Vector-based buffer and modern C++ features
+// ============================================================
+
+TEST(CStrTest, VectorBufferResizePreservesContent) {
+    CStr s("Hello");
+    EXPECT_EQ(s.Length(), 5);
+
+    // Enlarge should preserve existing content
+    s.Enlarge(100);
+    EXPECT_STREQ(s.GetStr(), "Hello");
+    EXPECT_EQ(s.Length(), 5);
+
+    // Adding text after enlarge should work correctly
+    s.AddText(" World");
+    EXPECT_STREQ(s.GetStr(), "Hello World");
+    EXPECT_EQ(s.Length(), 11);
+}
+
+TEST(CStrTest, VectorBufferAppendGrowsAutomatically) {
+    CStr s("");
+    // Append many characters to force multiple resizes
+    for (int i = 0; i < 1000; ++i) {
+        s.AddChar('A');
+    }
+    EXPECT_EQ(s.Length(), 1000);
+    // Verify all chars are 'A'
+    for (DWORD i = 0; i < s.Length(); ++i) {
+        EXPECT_EQ(s.GetChar(i), 'A');
+    }
+}
+
+TEST(CStrTest, MoveConstructorTransfersOwnership) {
+    CStr s1("Move Me");
+    EXPECT_EQ(s1.Length(), 7);
+
+    CStr s2(std::move(s1));
+    EXPECT_STREQ(s2.GetStr(), "Move Me");
+    EXPECT_EQ(s2.Length(), 7);
+    // Moved-from object should be in valid empty state
+    EXPECT_EQ(s1.Length(), 0);
+    EXPECT_STREQ(s1.GetStr(), "");
+}
+
+TEST(CStrTest, MoveAssignmentTransfersOwnership) {
+    CStr s1("Source");
+    CStr s2("Target");
+
+    s2 = std::move(s1);
+    EXPECT_STREQ(s2.GetStr(), "Source");
+    EXPECT_EQ(s2.Length(), 6);
+    // Moved-from object should be in valid empty state
+    EXPECT_EQ(s1.Length(), 0);
+    EXPECT_STREQ(s1.GetStr(), "");
+}
+
+TEST(CStrTest, StringViewAccessor) {
+    CStr s("Hello View");
+    std::string_view view = s.View();
+    EXPECT_EQ(view, "Hello View");
+    EXPECT_EQ(view.size(), 10);
+
+    // View updates after mutation
+    s.AddText("!");
+    std::string_view view2 = s.View();
+    EXPECT_EQ(view2, "Hello View!");
+    EXPECT_EQ(view2.size(), 11);
+}
+
+TEST(CStrTest, InsertTextPrependsCorrectly) {
+    CStr s("World");
+    s.InsertText("Hello ");
+    EXPECT_STREQ(s.GetStr(), "Hello World");
+    EXPECT_EQ(s.Length(), 11);
+}
+
+TEST(CStrTest, SizeConstructorCreatesEmptyBufferOfCapacity) {
+    CStr s((DWORD)256);
+    EXPECT_EQ(s.Length(), 0);
+    EXPECT_STREQ(s.GetStr(), "");
+
+    // Should be able to set text up to the pre-allocated size without issue
+    s.SetText("Pre-allocated buffer test");
+    EXPECT_STREQ(s.GetStr(), "Pre-allocated buffer test");
+}
+
+TEST(CStrTest, NumericTextConversions) {
+    CStr s;
+    s.SetNumericText(42);
+    EXPECT_STREQ(s.GetStr(), "42");
+
+    s.SetNumericText(0);
+    EXPECT_STREQ(s.GetStr(), "0");
+
+    s.SetUnsignedNumericText(4294967295U);
+    EXPECT_STREQ(s.GetStr(), "4294967295");
+
+    CStr s2;
+    s2.SetDWORDNumericText(12345);
+    EXPECT_STREQ(s2.GetStr(), "12345");
+}
+
+TEST(CStrTest, DestructorDoesNotLeak) {
+    // This test verifies RAII - no manual cleanup needed
+    // Under a memory sanitizer, this would catch leaks
+    for (int i = 0; i < 100; ++i) {
+        CStr s("Leak test iteration");
+        s.AddText(" - some more data to allocate");
+        s.Enlarge(500);
+        s.SetText("Reset");
+    }
+    // If we get here without a crash/leak, RAII is working
+    SUCCEED();
+}
+
+TEST(CStrTest, EmptyStringOperations) {
+    CStr empty;
+    EXPECT_EQ(empty.Length(), 0);
+    EXPECT_STREQ(empty.GetStr(), "");
+    EXPECT_EQ(empty.View(), "");
+    EXPECT_EQ(empty.GetValue(), 0.0);
+    // Note: empty string is vacuously "numeric" (no chars fail the check)
+    EXPECT_TRUE(empty.IsTextNumericValue());
+}

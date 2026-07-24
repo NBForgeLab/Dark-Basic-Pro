@@ -7,13 +7,11 @@
 
 #include "windows.h"
 #include <memory>
+#include <vector>
+#include <string_view>
 
 #include <DB3.h>
 #include <DB3Factory.h>
-
-#include "PerfMacros.h"
-// Disable performance macros to use safe smart pointers for strings
-#undef __AARON_STRPERF__
 
 class CResultData;
 
@@ -21,15 +19,18 @@ class CStr: public db3::TObject<CStr>
 {
 	public:
 		CStr();
-		virtual ~CStr();
-		// Disable copy and assignment to prevent double-free bugs
+		virtual ~CStr() = default;
+		// Disable copy to prevent double-free bugs
 		CStr(const CStr&) = delete;
 		CStr& operator=(const CStr&) = delete;
+		// Enable move semantics for modern ownership transfer
+		CStr(CStr&& other) noexcept;
+		CStr& operator=(CStr&& other) noexcept;
 	public:
 		CStr(LPSTR pText);
 		CStr(DWORD dwTextSize);
 		void		Enlarge(DWORD length);
-		LPSTR		GetStr(void) const { return m_pStr; }
+		LPSTR		GetStr(void) const { return const_cast<char*>(m_buffer.data()); }
 		double		GetValue(void) const;
 		void		SetText(LPSTR pStr);
 		void		SetText(CStr* pStrText);
@@ -105,10 +106,12 @@ class CStr: public db3::TObject<CStr>
 
 		bool		IsConstant(void) const;
 
+		// Modern accessor - zero-copy view into the buffer
+		std::string_view View() const { return {m_buffer.data(), m_dwLen}; }
+
 	private:
-		char*                   m_pStr;
-		DWORD                   m_dwSize;
-		DWORD                   m_dwLen;
+		std::vector<char>       m_buffer;  // Null-terminated string buffer (RAII managed)
+		DWORD                   m_dwLen;   // Cached string length (excludes null terminator)
 
 		void                    UpdateLen(void);
 };
