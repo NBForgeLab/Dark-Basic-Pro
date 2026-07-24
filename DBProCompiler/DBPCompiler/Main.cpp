@@ -601,7 +601,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		#else
 		 sprintf_s( line, "Full installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
 		#endif
-		if (g_bJsonDiagnostics) {
+		if (g_bJsonDiagnostics || db3::g_bHeadlessMode) {
 			std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(line) << "\"}\n" << std::flush;
 		} else {
 			MessageBoxW(NULL, TextConvert::UTF8ToUTF16(line).c_str(), L"Compiler Error", MB_OK);
@@ -630,7 +630,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			? std::string()
 			: parsedArguments.error();
 		if (!argumentError.empty()) {
-			if (g_bJsonDiagnostics)
+			if (g_bJsonDiagnostics || db3::g_bHeadlessMode)
 				std::cout << "{\"type\":\"error\",\"stage\":\"arguments\",\"message\":\""
 					<< EscapeJSON(argumentError) << "\"}\n" << std::flush;
 			else
