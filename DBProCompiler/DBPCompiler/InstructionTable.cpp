@@ -11,6 +11,7 @@
 #include "DBPCompiler.h"
 #include "io.h"
 #include "TextConvert.h"
+#include <string>
 
 // External Class Pointers
 extern CVarTable* g_pVarTable;
@@ -453,11 +454,9 @@ void CInstructionTable::ScanStep(void)
 			else
 			{
 				// Do File Thing
-				LPSTR pName = new char[strlen(pDLLFile)+1];
-				strcpy(pName, pDLLFile);
-				pName[strlen(pName)-4]=0;
-				LoadCommandsFromDLL(pName, pDLLFile);
-				SAFE_DELETE(pName);
+				std::string name(pDLLFile);
+				name.resize(name.size()-4);
+				LoadCommandsFromDLL(const_cast<LPSTR>(name.c_str()), pDLLFile);
 			}
 		}
 
@@ -1109,7 +1108,7 @@ bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructi
 	DWORD dwBiggestInstructionLength=0;
 
 	// Scan entire instruction database
-	LPSTR pTry = new char[256];
+	char pTry[256];
 	CInstructionTableEntry* pEntry = pBaseEntry;
 	if(pEntry)
 	{
@@ -1182,7 +1181,6 @@ bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructi
 			pEntry=pEntry->GetNext();
 		}
 	}
-	SAFE_DELETE(pTry);
 
 	return bResult;
 #endif
@@ -1675,7 +1673,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 			DWORD dwTry=0;
 			DWORD dwMax=0;
 			DWORD dwLength = 255;
-			LPSTR pTempStr = new char[dwLength+1];
+			char pTempStr[256];
 			while(dwTry<1000)
 			{
 				int iStrQty = LoadStringA(hModule, 1+dwTry, pTempStr, 2);
@@ -1698,13 +1696,11 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 						char err[512];
 						wsprintf(err, "Command in '%s' command-table unrecognised (%s)", pFilename, pTempStr);
 						g_pErrorReport->AddErrorString(err);
-						SAFE_DELETE(pTempStr);
 						FreeLibrary(hModule);
 						return false;
 					}
 				}
 			}
-			SAFE_DELETE(pTempStr);
 		}
 
 		// free module
