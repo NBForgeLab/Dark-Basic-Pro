@@ -21,6 +21,7 @@ add_executable(dbp_tests
     test_core_runtime_api.cpp
     test_x64_pointer_safety.cpp
     test_modern_cpp_safety.cpp
+    test_debugger.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
@@ -39,6 +40,7 @@ target_compile_definitions(dbp_tests PRIVATE DBP_TESTS_COMPILATION)
 
 target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompiler"
+    "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPDebugger"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
 )
 

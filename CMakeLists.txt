@@ -101,9 +101,10 @@ link_directories(
     ${DXSDK_LIBRARY_DIR}
 )
 
-# إضافة المشاريع الفرعية للترجمة والمشغل
+# إضافة المشاريع الفرعية للترجمة والمشغل والمصحح
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
+add_subdirectory(DBProCompiler/DBPDebugger)
 
 if(BUILD_TESTING)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
