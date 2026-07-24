@@ -3264,7 +3264,8 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Clear D1=D9 parameter ptrs
 	CParameter* pSizeParameter[10];
-	for(DWORD d=0; d<=9; d++) pSizeParameter[d]=NULL;
+	DWORD d = 0;
+	for(d=0; d<=9; d++) pSizeParameter[d]=NULL;
 
 	// lee - 150206 - u60 - brackets in array-based-subscript causes wrong comma to be picked up
 	int iBracketCount = 0;
@@ -4526,7 +4527,7 @@ LPSTR CStatement::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 				}
 
 				// check forward
-				for ( pChk=pStringPointer+1; pChk<g_pStatementList->GetFileDataEnd(); pChk++ )
+				for ( LPSTR pChk=pStringPointer+1; pChk<g_pStatementList->GetFileDataEnd(); pChk++ )
 				{
 					if ( *(unsigned char*)pChk!=' ' && *(unsigned char*)pChk!='=' )
 						break;
@@ -4961,7 +4962,8 @@ bool CStatement::SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrVa
 		{
 			// Extract out value
 			*pArrValue = new char[(length-dwPos)+1];
-			for(DWORD n=0; n<length-dwPos; n++)
+			DWORD n = 0;
+			for(n=0; n<length-dwPos; n++)
 				*(*pArrValue+n)=pString.GetChar(dwPos+n);
 			*(*pArrValue+n)=0;
 

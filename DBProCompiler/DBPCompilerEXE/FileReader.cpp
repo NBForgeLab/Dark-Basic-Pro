@@ -176,7 +176,8 @@ bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 		if(FilenameSize==0) break;
 
 		DataPtr+=4;
-		for(unsigned int n=0; n<FilenameSize; n++)
+		unsigned int n = 0;
+		for(n=0; n<FilenameSize; n++)
 			filename[n] = *(DataPtr++);
 		filename[n] = 0;
 
@@ -408,7 +409,8 @@ bool CFileReader::CreateInstallerFolder(LPSTR ActualEXEFilename)
 		DWORD FilenameSize = *(DWORD*)(DataPtr);
 		if(FilenameSize==0) break;
 		DataPtr+=4;
-		for(unsigned int n=0; n<FilenameSize; n++)
+		unsigned int n = 0;
+		for(n=0; n<FilenameSize; n++)
 			filename[n] = *(DataPtr++);
 		filename[n] = 0;
 

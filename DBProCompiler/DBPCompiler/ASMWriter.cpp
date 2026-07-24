@@ -544,7 +544,7 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 		m_pMachineBlock=m_pProgramStart+dwOffset;
 
 		// If in middle of leap, ensure update
-		for(di=0; di<9; di++) m_pRecordBytePosition[di]=m_pProgramStart+dwLeapRelDiff[di];
+		for(DWORD di=0; di<9; di++) m_pRecordBytePosition[di]=m_pProgramStart+dwLeapRelDiff[di];
 		m_pRecordTopBytePosition=m_pProgramStart+dwByteOffset;
 
 		// Mem was expanded

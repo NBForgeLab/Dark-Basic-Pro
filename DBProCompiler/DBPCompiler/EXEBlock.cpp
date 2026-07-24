@@ -1699,7 +1699,7 @@ void CEXEBlock::Free(void)
 			if(g_DLL_Destructor)	g_DLL_Destructor();
 		}
 	}
-	for(dll=255; dll>=0; dll--)
+	for(int dll=255; dll>=0; dll--)
 	{
 		if(bDLLTPC[dll]==true)
 		{

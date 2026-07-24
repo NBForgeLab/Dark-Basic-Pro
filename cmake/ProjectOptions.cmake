@@ -41,7 +41,6 @@ function(dbp_apply_legacy_cpp_options target)
         target_compile_options(${target} PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:/EHa>
             $<$<COMPILE_LANGUAGE:C,CXX>:/W3>
-            $<$<COMPILE_LANGUAGE:CXX>:/Zc:forScope->
         )
     endif()
 

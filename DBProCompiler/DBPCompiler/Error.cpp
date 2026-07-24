@@ -181,7 +181,8 @@ DWORD CError::CountDatabaseSubset(LPSTR pSection, LPSTR pErrorFilename)
 {
 	char label[_MAX_PATH];
 	char tempfile[_MAX_PATH];
-	for(DWORD i=1; i<65535; i++)
+	DWORD i = 1;
+	for(i=1; i<65535; i++)
 	{
 		wsprintf(label, "%d", i);
 		GetPrivateProfileString(pSection, label, "", tempfile, _MAX_PATH, pErrorFilename);

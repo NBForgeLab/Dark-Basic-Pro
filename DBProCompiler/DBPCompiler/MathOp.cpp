@@ -1287,7 +1287,8 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	// Check if array-subscript provided for var
 	CStr* pSubscriptString = NULL;
 	int iGrabSubscriptString=-1;
-	for(DWORD n=0; n<dwSepPos; n++)
+	DWORD n = 0;
+	for(n=0; n<dwSepPos; n++)
 	{
 		if(pName->CheckChar(n, '(')) { iGrabSubscriptString=n; break; }
 	}
@@ -2152,7 +2153,8 @@ bool CMathOp::IsItLabelFollowedByBracket(CStr* pExpressionValue, DWORD *pdwLabel
 		if(length>1)
 		{
 			bool bHoweverNoMoreLetters=false;
-			for(DWORD n=1; n<length-1; n++)
+			DWORD n = 1;
+			for(n=1; n<length-1; n++)
 			{
 				bool bValid=false;
 

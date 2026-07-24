@@ -1491,7 +1491,8 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 	if(length>6)
 	{
 		DWORD readn=length-6;
-		for(DWORD n=0; n<6; n++)
+		DWORD n = 0;
+		for(n=0; n<6; n++)
 		{
 			pStrExt[n]=pFilename[readn++];
 		}
