@@ -31,20 +31,13 @@ extern CStructTable* g_pStructTable;
 //////////////////////////////////////////////////////////////////////
 
 CDBMWriter::CDBMWriter()
+	: m_dwDBMOffset(0), m_bNewCodeToParse(false)
 {
-	m_pDBMData=NULL;
-	m_pDBMDataPointer=NULL;
-	m_dwDBMDataSize=0;
-}
-
-CDBMWriter::~CDBMWriter()
-{
-	SAFE_FREE(m_pDBMData);
 }
 
 bool CDBMWriter::OutputDBM(const char *pDBMStr, size_t length)
 {
-	if (!m_pDBMData)
+	if (m_dbmData.empty())
 		return true;
 
 	// Calculate content and complete line sizes separately.
@@ -57,7 +50,7 @@ bool CDBMWriter::OutputDBM(const char *pDBMStr, size_t length)
 
 	// Proceed to add to memory
 	LPSTR pPointer = GetDBMDataPointer();
-	if(pPointer+required > m_pDBMData+m_dwDBMDataSize)
+	if(pPointer+required > m_dbmData.data()+m_dbmData.size())
 	{
 		// Failed
 		g_pErrorReport->AddErrorString("Failed to 'OutputDBM'");
@@ -81,14 +74,14 @@ bool CDBMWriter::OutputDBM(CStr* pDBMStr)
 DWORD CDBMWriter::EatCarriageReturn(void)
 {
 	DWORD dwCount=0;
-	if(m_pDBMData)
+	if(!m_dbmData.empty())
 	{
 		// Backtrack two to eat carriage return
 		LPSTR pPointer = GetDBMDataPointer()-2;
 		SetDBMDataPointer(pPointer);
 
 		// Count characters in line
-		while(pPointer>m_pDBMData)
+		while(pPointer>m_dbmData.data())
 		{
 			if(*pPointer==10) break;
 			pPointer--;
@@ -100,32 +93,18 @@ DWORD CDBMWriter::EatCarriageReturn(void)
 
 bool CDBMWriter::CheckAndExpandDBMMemory(DWORD dwLengthOfNewAddData)
 {
-	if(!m_pDBMData)
+	if(m_dbmData.empty())
 		return true;
 
-	// If within 10K of end, expand memory
-	LPSTR pDBMDataBarrier=(m_pDBMData+m_dwDBMDataSize)-(dwLengthOfNewAddData*2);
-	if(m_pDBMDataPointer<=pDBMDataBarrier)
+	// If within range of end, expand memory
+	LPSTR pDBMDataBarrier=(m_dbmData.data()+m_dbmData.size())-(dwLengthOfNewAddData*2);
+	if(GetDBMDataPointer()<=pDBMDataBarrier)
 		// Did not expand
 		return false;
 
-	// Work out offset of pointer
-	DWORD dwOffset = m_pDBMDataPointer-m_pDBMData;
-
 	// Create New Larger memory (another 1MB)
-	DWORD dwNewSize = m_dwDBMDataSize+(102400*10);
-	LPSTR pNewMem = (LPSTR)GlobalAlloc(GMEM_FIXED, dwNewSize);
-
-	// Copy current data to new memory
-	memcpy(pNewMem, m_pDBMData, m_dwDBMDataSize);
-
-	// Erase old
-	SAFE_FREE(m_pDBMData);
-
-	// Rereference to new memory
-	m_dwDBMDataSize=dwNewSize;
-	m_pDBMData=pNewMem;
-	m_pDBMDataPointer=pNewMem+dwOffset;
+	DWORD dwNewSize = static_cast<DWORD>(m_dbmData.size())+(102400*10);
+	m_dbmData.resize(dwNewSize);
 
 	// Mem was expanded
 	return true;
@@ -134,7 +113,8 @@ bool CDBMWriter::CheckAndExpandDBMMemory(DWORD dwLengthOfNewAddData)
 bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMainProgram)
 {
 	// Free any previous usage
-	SAFE_DELETE(m_pDBMData);
+	m_dbmData.clear();
+	m_dwDBMOffset = 0;
 
 	// Only parse if new code to parse
 	if(GetNewCodeFlag()==true)
@@ -148,15 +128,13 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 		// Create DBM Buffer (default 1MB)?
 		if(g_pDBPCompiler->GetProduceDBMFile())
 		{
-			m_dwDBMDataSize=102400*10;
-			m_pDBMData = (LPSTR)GlobalAlloc(GMEM_FIXED, m_dwDBMDataSize);
-			m_pDBMDataPointer=m_pDBMData;
+			m_dbmData.assign(102400*10, '\0');
+			m_dwDBMOffset = 0;
 		}
 		else
 		{
-			m_dwDBMDataSize = 0;
-			m_pDBMData = NULL;
-			m_pDBMDataPointer = NULL;
+			m_dbmData.clear();
+			m_dwDBMOffset = 0;
 		}
 
 		// Write DBM starting with first statement
@@ -304,9 +282,9 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 			if(hFile!=INVALID_HANDLE_VALUE)
 			{
 				DWORD BytesWritten=0;
-				DWORD ActualBytesToWrite=m_pDBMDataPointer-m_pDBMData;
-				WriteFile(hFile, m_pDBMData, ActualBytesToWrite, &BytesWritten, NULL);
-				SAFE_CLOSE(hFile);
+				DWORD ActualBytesToWrite=m_dwDBMOffset;
+				WriteFile(hFile, m_dbmData.data(), ActualBytesToWrite, &BytesWritten, NULL);
+				CloseHandle(hFile);
 			}
 		}
 		//}
@@ -314,7 +292,7 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 
 		// Free DBM memory
 		g_pStatementList->SetWriteStarted(false);
-		if(g_pDBPCompiler->GetProduceDBMFile()) SAFE_FREE(m_pDBMData);
+		if(g_pDBPCompiler->GetProduceDBMFile()) m_dbmData.clear();
 		if (!codeGeneration.Finish())
 			return false;
 	}
