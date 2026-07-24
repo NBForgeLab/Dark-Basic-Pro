@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <memory>
 
 struct MemoryModuleInfo {
     BYTE* baseAddress = nullptr;
@@ -11,7 +12,7 @@ struct MemoryModuleInfo {
     bool initialized = false;
 };
 
-static std::unordered_map<HMODULE, MemoryModuleInfo*> g_memoryModules;
+static std::unordered_map<HMODULE, std::unique_ptr<MemoryModuleInfo>> g_memoryModules;
 
 HMODULE MemoryPE::LoadFromVFS(const std::string& filename) {
     if (!VFSRegistry::Exists(filename)) {
@@ -237,15 +238,16 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     
     // Register module
     HMODULE hModule = (HMODULE)baseAddress;
-    MemoryModuleInfo* info = new MemoryModuleInfo{baseAddress, destNtHeaders, name, false};
-    g_memoryModules[hModule] = info;
+    auto info = std::make_unique<MemoryModuleInfo>(MemoryModuleInfo{baseAddress, destNtHeaders, name, false});
+    MemoryModuleInfo* infoPtr = info.get();
+    g_memoryModules[hModule] = std::move(info);
     
     // Invoke DllMain
     typedef BOOL (WINAPI *DllMain_t)(HINSTANCE, DWORD, LPVOID);
     if (destNtHeaders->OptionalHeader.AddressOfEntryPoint != 0) {
         DllMain_t pDllMain = (DllMain_t)(baseAddress + destNtHeaders->OptionalHeader.AddressOfEntryPoint);
         pDllMain((HINSTANCE)baseAddress, DLL_PROCESS_ATTACH, nullptr);
-        info->initialized = true;
+        infoPtr->initialized = true;
     }
     
     // Call TLS callbacks if they exist
@@ -274,7 +276,7 @@ FARPROC MemoryPE::GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
     auto it = g_memoryModules.find(hModule);
     if (it == g_memoryModules.end()) return nullptr;
     
-    MemoryModuleInfo* mod = it->second;
+    MemoryModuleInfo* mod = it->second.get();
     BYTE* baseAddress = mod->baseAddress;
     IMAGE_DATA_DIRECTORY* exportDir = &mod->ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
     if (exportDir->Size == 0) return nullptr;
@@ -304,7 +306,7 @@ void MemoryPE::UnloadModule(HMODULE hModule) {
     auto it = g_memoryModules.find(hModule);
     if (it == g_memoryModules.end()) return;
     
-    MemoryModuleInfo* info = it->second;
+    MemoryModuleInfo* info = it->second.get();
     if (info->initialized && info->ntHeaders->OptionalHeader.AddressOfEntryPoint != 0) {
         typedef BOOL (WINAPI *DllMain_t)(HINSTANCE, DWORD, LPVOID);
         DllMain_t pDllMain = (DllMain_t)(info->baseAddress + info->ntHeaders->OptionalHeader.AddressOfEntryPoint);
@@ -312,21 +314,19 @@ void MemoryPE::UnloadModule(HMODULE hModule) {
     }
     
     VirtualFree(info->baseAddress, 0, MEM_RELEASE);
-    delete info;
     g_memoryModules.erase(it);
 }
 
 void MemoryPE::FreeAll() {
     auto it = g_memoryModules.begin();
     while (it != g_memoryModules.end()) {
-        MemoryModuleInfo* info = it->second;
+        MemoryModuleInfo* info = it->second.get();
         if (info->initialized && info->ntHeaders->OptionalHeader.AddressOfEntryPoint != 0) {
             typedef BOOL (WINAPI *DllMain_t)(HINSTANCE, DWORD, LPVOID);
             DllMain_t pDllMain = (DllMain_t)(info->baseAddress + info->ntHeaders->OptionalHeader.AddressOfEntryPoint);
             pDllMain((HINSTANCE)info->baseAddress, DLL_PROCESS_DETACH, nullptr);
         }
         VirtualFree(info->baseAddress, 0, MEM_RELEASE);
-        delete info;
         it = g_memoryModules.erase(it);
     }
 }

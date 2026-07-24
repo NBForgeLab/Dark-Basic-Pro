@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <iostream>
+#include <memory>
 
 struct VFSStream {
     const char* dataPtr = nullptr;
@@ -13,7 +14,7 @@ struct VFSStream {
 
 // Global Registry State
 static std::unordered_map<std::string, VFSFile> g_vfsMap;
-static std::unordered_map<HANDLE, VFSStream*> g_activeStreams;
+static std::unordered_map<HANDLE, std::unique_ptr<VFSStream>> g_activeStreams;
 static uintptr_t g_nextHandleId = 0x7F000000;
 static bool g_hookActive = false;
 
@@ -81,9 +82,9 @@ HANDLE WINAPI Hook_CreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD 
 
     if (!matchedName.empty()) {
         const VFSFile* f = VFSRegistry::Get(matchedName);
-        VFSStream* stream = new VFSStream{f->dataPtr, f->size, 0};
+        auto stream = std::make_unique<VFSStream>(VFSStream{f->dataPtr, f->size, 0});
         HANDLE hVFS = (HANDLE)(uintptr_t)g_nextHandleId++;
-        g_activeStreams[hVFS] = stream;
+        g_activeStreams[hVFS] = std::move(stream);
         return hVFS;
     }
     
@@ -116,9 +117,9 @@ HANDLE WINAPI Hook_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD d
 
     if (!matchedName.empty()) {
         const VFSFile* f = VFSRegistry::Get(matchedName);
-        VFSStream* stream = new VFSStream{f->dataPtr, f->size, 0};
+        auto stream = std::make_unique<VFSStream>(VFSStream{f->dataPtr, f->size, 0});
         HANDLE hVFS = (HANDLE)(uintptr_t)g_nextHandleId++;
-        g_activeStreams[hVFS] = stream;
+        g_activeStreams[hVFS] = std::move(stream);
         return hVFS;
     }
     
@@ -131,7 +132,7 @@ BOOL WINAPI Hook_ReadFile(HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToR
     if (IsVFSHandle(hFile)) {
         auto it = g_activeStreams.find(hFile);
         if (it != g_activeStreams.end()) {
-            VFSStream* stream = it->second;
+            VFSStream* stream = it->second.get();
             DWORD readSize = nNumberOfBytesToRead;
             if (stream->offset + readSize > stream->size) {
                 readSize = (DWORD)(stream->size - stream->offset);
@@ -151,7 +152,7 @@ DWORD WINAPI Hook_GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh) {
     if (IsVFSHandle(hFile)) {
         auto it = g_activeStreams.find(hFile);
         if (it != g_activeStreams.end()) {
-            VFSStream* stream = it->second;
+            VFSStream* stream = it->second.get();
             if (lpFileSizeHigh) {
                 *lpFileSizeHigh = (DWORD)(stream->size >> 32);
             }
@@ -165,7 +166,7 @@ DWORD WINAPI Hook_SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDis
     if (IsVFSHandle(hFile)) {
         auto it = g_activeStreams.find(hFile);
         if (it != g_activeStreams.end()) {
-            VFSStream* stream = it->second;
+            VFSStream* stream = it->second.get();
             LONGLONG distance = lDistanceToMove;
             if (lpDistanceToMoveHigh) {
                 distance |= ((LONGLONG)*lpDistanceToMoveHigh << 32);
@@ -192,7 +193,7 @@ BOOL WINAPI Hook_SetFilePointerEx(HANDLE hFile, LARGE_INTEGER liDistanceToMove, 
     if (IsVFSHandle(hFile)) {
         auto it = g_activeStreams.find(hFile);
         if (it != g_activeStreams.end()) {
-            VFSStream* stream = it->second;
+            VFSStream* stream = it->second.get();
             LONGLONG distance = liDistanceToMove.QuadPart;
             LONGLONG newOffset = stream->offset;
             switch (dwMoveMethod) {
@@ -216,7 +217,6 @@ BOOL WINAPI Hook_CloseHandle(HANDLE hObject) {
     if (IsVFSHandle(hObject)) {
         auto it = g_activeStreams.find(hObject);
         if (it != g_activeStreams.end()) {
-            delete it->second;
             g_activeStreams.erase(it);
             return TRUE;
         }
@@ -281,9 +281,6 @@ bool VFSHooks::Initialize() {
 }
 
 void VFSHooks::Shutdown() {
-    for (auto it : g_activeStreams) {
-        delete it.second;
-    }
     g_activeStreams.clear();
     g_hookActive = false;
 }
