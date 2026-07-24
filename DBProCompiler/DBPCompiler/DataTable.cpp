@@ -16,42 +16,38 @@ extern bool g_bExternaliseDLLS;
 //////////////////////////////////////////////////////////////////////
 
 CDataTable::CDataTable()
+	: m_dwIndex(0), m_dwType(0), m_pNumeric(0), m_bAddedToEXEData(false)
 {
-	m_dwIndex=0;
-	m_dwType=0;
-	m_pNumeric=0;
-	m_pString=NULL;
-	m_pString2=NULL;
-	m_pNext=NULL;
-	m_bAddedToEXEData=false;
 }
 
 CDataTable::CDataTable(LPSTR pInitString)
+	: m_dwIndex(0), m_dwType(0), m_pNumeric(0),
+	  m_pString(new CStr(pInitString)),
+	  m_pString2(new CStr((LPSTR)"")),
+	  m_bAddedToEXEData(false)
 {
-	m_dwIndex=0;
-	m_dwType=0;
-	m_pNumeric=0;
-	m_pString=new CStr(pInitString);
-	m_pString2=new CStr("");
-	m_pNext=NULL;
-	m_bAddedToEXEData=false;
 }
 
 CDataTable::~CDataTable()
 {
-	SAFE_DELETE(m_pString);
-	SAFE_DELETE(m_pString2);
+	// Iteratively release chain to prevent stack overflow on deep lists
+	auto current = std::move(m_pNext);
+	while (current) {
+		current = std::move(current->m_pNext);
+	}
 }
 
 void CDataTable::Free(void)
 {
-	CDataTable* pCurrent = this;
-	while(pCurrent)
-	{
-		CDataTable* pNext = pCurrent->GetNext();
-		delete pCurrent;
-		pCurrent = pNext;
+	// Iteratively release the entire chain after this node
+	auto current = std::move(m_pNext);
+	while (current) {
+		auto next = std::move(current->m_pNext);
+		current.reset();
+		current = std::move(next);
 	}
+	// Delete self (preserves original Free() semantics for callers)
+	delete this;
 }
 
 void CDataTable::Add(CDataTable* pNew)
@@ -59,9 +55,9 @@ void CDataTable::Add(CDataTable* pNew)
 	CDataTable* pCurrent = this;
 	while(pCurrent->m_pNext)
 	{
-		pCurrent=pCurrent->GetNext();
+		pCurrent = pCurrent->m_pNext.get();
 	}
-	pCurrent->m_pNext=pNew;
+	pCurrent->m_pNext.reset(pNew);
 }
 
 bool CDataTable::AddNumeric(double dNum, DWORD dwIndex)
@@ -194,8 +190,8 @@ bool CDataTable::NotExcluded ( LPSTR pFilename )
 {
 	// false if excluded from compile
 	for ( DWORD i=1; i<g_pDBPCompiler->g_dwExcludeFilesCount; i++)
-		if ( g_pDBPCompiler->g_pExcludeFiles [ i ] )
-			if ( stricmp ( g_pDBPCompiler->g_pExcludeFiles [ i ], pFilename )==NULL )
+		if ( !g_pDBPCompiler->g_ExcludeFiles [ i ].empty() )
+			if ( stricmp ( g_pDBPCompiler->g_ExcludeFiles [ i ].c_str(), pFilename )==NULL )
 				return false;
 
 	// lee - 270308 - u67 - do not include DLL at all if flagged
