@@ -43,27 +43,18 @@ CMathOp::CMathOp()
 	m_bConcatFlagUsed=false;
 
 	m_dwMathSymbol=0;
-	m_pRightMathOp=NULL;
-	m_pLeftMathOp=NULL;
-
-	m_pStatement=NULL;
-	m_pNext=NULL;
 }
 
 CMathOp::~CMathOp()
 {
 	SAFE_DELETE(m_Result.m_pStringToken);
 	SAFE_DELETE(m_Result.m_pAdditionalOffset);
-	SAFE_DELETE(m_pRightMathOp);
-	SAFE_DELETE(m_pLeftMathOp);
-	SAFE_DELETE(m_pStatement);
-	SAFE_DELETE(m_pNext);
 }
 
 void CMathOp::Add(CMathOp* pNext)
 {
-	if(m_pNext==NULL)
-		m_pNext = pNext;
+	if(!m_pNext)
+		m_pNext.reset(pNext);
 	else
 		m_pNext->Add(pNext);
 }
@@ -383,8 +374,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 				|| strcmp(StrRight.GetStr(),"")==NULL )
 				{
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+59);
-					SAFE_DELETE(m_pRightMathOp);
-					SAFE_DELETE(m_pLeftMathOp);
+					m_pRightMathOp.reset();
+					m_pLeftMathOp.reset();
 					return false;
 				}
 			}
@@ -394,7 +385,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 		m_dwMathSymbol=dwMathSymbol;
 
 		// Traverse each side for final values
-		m_pLeftMathOp = new CMathOp;
+		m_pLeftMathOp = std::make_unique<CMathOp>();
 		if(m_pLeftMathOp)
 		{
 			if(m_pLeftMathOp->DoValue(&StrLeft)==false)
@@ -402,11 +393,11 @@ bool CMathOp::DoValue(CStr* pExpression)
 // lee - 150306 - u60b3 - surfaced at end user level, replaced with line number error
 //				g_pErrorReport->AddErrorString("Failed to 'DoValue::m_pLeftMathOp->DoValue'");
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+1, StrLeft.GetStr() );
-				SAFE_DELETE(m_pLeftMathOp);
+				m_pLeftMathOp.reset();
 				return false;
 			}
 		}
-		m_pRightMathOp = new CMathOp;
+		m_pRightMathOp = std::make_unique<CMathOp>();
 		if(m_pRightMathOp)
 		{
 			if(m_pRightMathOp->DoValue(&StrRight)==false)
@@ -414,8 +405,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 // lee - 150306 - u60b3 - surfaced at end user level, replaced with line number error
 //				g_pErrorReport->AddErrorString("Failed to 'DoValue::m_pRightMathOp->DoValue'");
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+1, StrRight.GetStr() );
-				SAFE_DELETE(m_pLeftMathOp);
-				SAFE_DELETE(m_pRightMathOp);
+				m_pLeftMathOp.reset();
+				m_pRightMathOp.reset();
 				return false;
 			}
 		}
@@ -478,8 +469,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 				{
 					// tried to subtract or power two strings
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+11);
-					SAFE_DELETE(m_pRightMathOp);
-					SAFE_DELETE(m_pLeftMathOp);
+					m_pRightMathOp.reset();
+					m_pLeftMathOp.reset();
 					return false;
 				}
 			}
@@ -509,8 +500,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 			LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 			LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+2, pL, pR);
-			SAFE_DELETE(m_pRightMathOp);
-			SAFE_DELETE(m_pLeftMathOp);
+			m_pRightMathOp.reset();
+			m_pLeftMathOp.reset();
 			return false;
 		}
 
@@ -527,25 +518,25 @@ bool CMathOp::DoValue(CStr* pExpression)
 			{
 				if(dwRealLValue!=dwTypeMode)
 				{
-					if(DoCastOnMathOp(&m_pLeftMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pLeftMathOp, dwTypeMode)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+2, pL, pR);
-						SAFE_DELETE(m_pRightMathOp);
-						SAFE_DELETE(m_pLeftMathOp);
+						m_pRightMathOp.reset();
+						m_pLeftMathOp.reset();
 						return false;
 					}
 				}
 				if(dwRealRValue!=dwTypeMode)
 				{
-					if(DoCastOnMathOp(&m_pRightMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pRightMathOp, dwTypeMode)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+2, pL, pR);
-						SAFE_DELETE(m_pRightMathOp);
-						SAFE_DELETE(m_pLeftMathOp);
+						m_pRightMathOp.reset();
+						m_pLeftMathOp.reset();
 						return false;
 					}
 				}
@@ -562,25 +553,25 @@ bool CMathOp::DoValue(CStr* pExpression)
 				if ( dwLType==101 && dwRType==102 )
 				{
 					dwActualLType = 2;
-					if(DoCastOnMathOp(&m_pLeftMathOp, dwActualLType)==false)
+					if(DoCastOnMathOp(m_pLeftMathOp, dwActualLType)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+3, pL, pR);
-						SAFE_DELETE(m_pRightMathOp);
-						SAFE_DELETE(m_pLeftMathOp);
+						m_pRightMathOp.reset();
+						m_pLeftMathOp.reset();
 						return false;
 					}
 				}
 				else
 				{
-					if(DoCastOnMathOp(&m_pRightMathOp, dwActualLType)==false)
+					if(DoCastOnMathOp(m_pRightMathOp, dwActualLType)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+3, pL, pR);
-						SAFE_DELETE(m_pRightMathOp);
-						SAFE_DELETE(m_pLeftMathOp);
+						m_pRightMathOp.reset();
+						m_pLeftMathOp.reset();
 						return false;
 					}
 				}
@@ -602,13 +593,13 @@ bool CMathOp::DoValue(CStr* pExpression)
 			{
 				if(dwRType%100 != dwTypeMode%100)
 				{
-					if(DoCastOnMathOp(&m_pRightMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pRightMathOp, dwTypeMode)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+3, pL, pR);
-						SAFE_DELETE(m_pRightMathOp);
-						SAFE_DELETE(m_pLeftMathOp);
+						m_pRightMathOp.reset();
+						m_pLeftMathOp.reset();
 						return false;
 					}
 				}
@@ -619,13 +610,13 @@ bool CMathOp::DoValue(CStr* pExpression)
 			{
 				if(dwLType%100 != dwTypeMode%100)
 				{
-					if(DoCastOnMathOp(&m_pLeftMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pLeftMathOp, dwTypeMode)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+3, pL, pR);
-						SAFE_DELETE(m_pRightMathOp);
-						SAFE_DELETE(m_pLeftMathOp);
+						m_pRightMathOp.reset();
+						m_pLeftMathOp.reset();
 						return false;
 					}
 				}
@@ -675,8 +666,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 			if(pAnotherMathOp->DoValue(&strNewString)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValue::pAnotherMathOp->DoValue'");
-				SAFE_DELETE(m_pRightMathOp);
-				SAFE_DELETE(m_pLeftMathOp);
+				m_pRightMathOp.reset();
+				m_pLeftMathOp.reset();
 				SAFE_DELETE(pAnotherMathOp);
 				return false;
 			}
@@ -708,42 +699,36 @@ bool CMathOp::DoValue(CStr* pExpression)
 	return true;
 }
 
-bool CMathOp::DoCastOnMathOp(CMathOp** ppMathOp, DWORD dwTypeWant)
+bool CMathOp::DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeWant)
 {
 	// Produce Temp to hold cast
-	CStr* pTempVarToken = new CStr("");
-	ProduceNewTempToken(pTempVarToken, dwTypeWant);
+	CStr pTempVarToken("");
+	ProduceNewTempToken(&pTempVarToken, dwTypeWant);
 
 	// Produce Code to specify new type (in math instruction)
-	CStr* pTypeCodeStr = new CStr("");
-	pTypeCodeStr->SetNumericText(dwTypeWant);
+	CStr pTypeCodeStr("");
+	pTypeCodeStr.SetNumericText(dwTypeWant);
 
 	// Value as it is originally
-	CMathOp* pValueToCast = *ppMathOp;
+	CMathOp* pValueToCast = pMathOp.get();
 
 	// Determine what I am ultimately casting into
 	DWORD dwTypeHave = pValueToCast->FindResultTypeValueForDBM();
 
 	if(dwTypeWant==501)
 	{
-		SAFE_DELETE(pTempVarToken);
-		SAFE_DELETE(pTypeCodeStr);
 		return true;
 	}
 
 	// Some types simply cannot be cast
 	if(((dwTypeWant%100)==3 && (dwTypeHave%100)!=3) || ((dwTypeHave%100)==3 && (dwTypeWant%100)!=3))
 	{
-		SAFE_DELETE(pTempVarToken);
-		SAFE_DELETE(pTypeCodeStr);
 		return false;
 	}
 
 	// Some types are different, but dont need casting
 	if((dwTypeWant==4 && dwTypeHave==5) || (dwTypeHave==4 && dwTypeWant==5))
 	{
-		SAFE_DELETE(pTempVarToken);
-		SAFE_DELETE(pTypeCodeStr);
 		return true;
 	}
 
@@ -762,24 +747,19 @@ bool CMathOp::DoCastOnMathOp(CMathOp** ppMathOp, DWORD dwTypeWant)
 	// If no cast required, skip new cast task
 	if(dwTypeHave==dwTypeWant)
 	{
-		SAFE_DELETE(pTempVarToken);
-		SAFE_DELETE(pTypeCodeStr);
-		*ppMathOp = pValueToCast;
 		return true;
 	}
 
 	// Create a Cast Math Instruction
-	CMathOp* pNewMath = new CMathOp;
+	auto pNewMath = std::make_unique<CMathOp>();
 	pNewMath->m_dwLineNumber=GetLineNumber();
-	pNewMath->m_pLeftMathOp=pValueToCast;
-	pNewMath->m_pRightMathOp = new CMathOp;
-	pNewMath->m_pRightMathOp->DoValue(pTypeCodeStr);
-	pNewMath->m_pStatement=NULL;
+	pNewMath->m_pLeftMathOp=std::move(pMathOp);
+	pNewMath->m_pRightMathOp = std::make_unique<CMathOp>();
+	pNewMath->m_pRightMathOp->DoValue(&pTypeCodeStr);
 
 	// Produce result token as var
-	pNewMath->SetResult(pTempVarToken->GetStr(), dwTypeWant, 0);
+	pNewMath->SetResult(pTempVarToken.GetStr(), dwTypeWant, 0);
 	pNewMath->SetResultStruct(NULL);
-	SAFE_DELETE(pTempVarToken);
 
 	// Types that are ptrs, can only be cast to actual datatypes
 	if(dwTypeWant>=101 && dwTypeWant<=109) dwTypeWant-=100;
@@ -788,10 +768,7 @@ bool CMathOp::DoCastOnMathOp(CMathOp** ppMathOp, DWORD dwTypeWant)
 	pNewMath->m_dwMathSymbol=100+dwTypeWant+((dwTypeHave-1)*10);
 
 	// Assign to original math chain
-	*ppMathOp = pNewMath;
-
-	// Free usages
-	SAFE_DELETE(pTypeCodeStr);
+	pMathOp = std::move(pNewMath);
 
 	// Complete
 	return true;
@@ -824,7 +801,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	DWORD dwInstructionParamMax = g_pStatementList->GetInstructionParamMax();
 
 	// Create param chain from param string
-	m_pStatement = new CStatement;
+	m_pStatement = std::make_unique<CStatement>();
 	CParameter* pFirstParameter = NULL;
 	if(m_pStatement->DoParameterListString(pFunctionDataString, &pFirstParameter)==false)
 	{
@@ -832,7 +809,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		SAFE_DELETE(pFunctionNameString);
 		SAFE_DELETE(pFunctionDataString);
 		SAFE_DELETE(pFirstParameter);
-		SAFE_DELETE(m_pStatement);
+		m_pStatement.reset();
 		return false;
 	}
 
@@ -1057,7 +1034,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		SAFE_DELETE(pFunctionNameString);
 		SAFE_DELETE(pFunctionDataString);
 		SAFE_DELETE(pFirstParameter);
-		SAFE_DELETE(m_pStatement);
+		m_pStatement.reset();
 		return false;
 	}
 
@@ -1583,7 +1560,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 		pCalculateArrayOffset->SetResult(pTempTokenOffset->GetStr(), 7, dwSubscriptCount);
 		pCalculateArrayOffset->SetResultStruct(NULL);
 		pCalculateArrayOffset->SetMathSymbol(10003);
-		pCalculateArrayOffset->m_pLeftMathOp = pPassArrayForOffsetCalc;
+		pCalculateArrayOffset->m_pLeftMathOp.reset(pPassArrayForOffsetCalc);
 		Add(pCalculateArrayOffset);
 
 		// Make math for [Array Name, Dynamic Offset and Data Offset]

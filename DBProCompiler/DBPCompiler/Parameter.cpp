@@ -16,22 +16,18 @@ extern CDataTable* g_pStringTable;
 
 CParameter::CParameter()
 {
-	m_pMainMathOp=NULL;
-	m_pNext=NULL;
 	m_pPrev=NULL;
 }
 
 CParameter::~CParameter()
 {
-	SAFE_DELETE(m_pMainMathOp);
-	SAFE_DELETE(m_pNext);
 }
 
 void CParameter::Add(CParameter* pParameter)
 {
-	if(m_pNext==NULL)
+	if(!m_pNext)
 	{
-		m_pNext=pParameter;
+		m_pNext.reset(pParameter);
 		pParameter->m_pPrev=this;
 	}
 	else
@@ -429,17 +425,19 @@ bool CParameter::CastAllParametersToInstruction(CInstructionTableEntry* pRef)
 						{
 							// Create New Math Op to Cast Value
 							DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-							CMathOp* pValueToCast = pCheckParam->GetMathItem();
+							std::unique_ptr<CMathOp> pValueToCast(pCheckParam->ReleaseMathItem());
 							pValueToCast->SetLineNumber(StatementLineNumber);
-							if(pCheckParam->GetMathItem()->DoCastOnMathOp(&pValueToCast, dwRequiredTypeValue)==false)
+							CMathOp* pCastCaller = pValueToCast.get();
+							if(pCastCaller->DoCastOnMathOp(pValueToCast, dwRequiredTypeValue)==false)
 							{
 								LPSTR pTypeStr = g_pVarTable->MakeTypeNameOfTypeValue(dwRequiredTypeValue);
 								LPSTR pR = pValueToCast->FindResultStringTokenForDBM()->GetStr();
 								g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+10, pTypeStr, pR);
 								SAFE_DELETE(pTypeStr);
+								pCheckParam->SetMathItem(pValueToCast.release());
 								return false;
 							}
-							pCheckParam->SetMathItem(pValueToCast);
+							pCheckParam->SetMathItem(pValueToCast.release());
 						}
 					}
 				}
@@ -474,17 +472,14 @@ CParameter* CParameter::GetLast(void)
 bool CParameter::SetParamAsLabel(CStr* pInternalLabelName)
 {
 	// Prepare string
-	CStr* pStr = NULL;
-	if(pInternalLabelName==NULL)
-		pStr = new CStr("");
-	else
-		pStr = new CStr(pInternalLabelName->GetStr());
+	CStr pStr("");
+	if(pInternalLabelName!=NULL)
+		pStr.SetText(pInternalLabelName->GetStr());
 
 	// Create math object to hold param lebel
 	CMathOp* pMathOp = new CMathOp;
-	pMathOp->SetResult(pStr->GetStr(), 10, 0);
+	pMathOp->SetResult(pStr.GetStr(), 10, 0);
 	SetMathItem(pMathOp);
-	SAFE_DELETE(pStr);
 
 	// Complete	
 	return true;

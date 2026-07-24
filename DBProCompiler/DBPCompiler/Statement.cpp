@@ -65,7 +65,6 @@ CStatement::CStatement()
 
 	m_dwObjectType=0;
 	m_pObjectClass=NULL;
-	m_pParameters=NULL;
 
 	m_pNext=NULL;
 }
@@ -73,7 +72,6 @@ CStatement::CStatement()
 CStatement::~CStatement()
 {
 	FreeObjects();
-	SAFE_DELETE(m_pParameters);
 }
 
 void CStatement::Free(void)
@@ -1059,7 +1057,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		CStatement* pSkipInitLabelStatement = new CStatement;
 		pSkipInitLabelStatement->m_dwObjectType = 0;
 		pSkipInitLabelStatement->m_pObjectClass = NULL;
-		pSkipInitLabelStatement->m_pParameters = pForNextInitParameter;
+		pSkipInitLabelStatement->SetParameter(pForNextInitParameter);
 		pSkipInitLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pSkipInitLabelStatement);
 	}
@@ -1074,7 +1072,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		pTopLabelStatement = new CStatement;
 		pTopLabelStatement->m_dwObjectType = 0;
 		pTopLabelStatement->m_pObjectClass = NULL;
-		pTopLabelStatement->m_pParameters = pForNextIncParameter;
+		pTopLabelStatement->SetParameter(pForNextIncParameter);
 		pTopLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pTopLabelStatement);
 	}
@@ -1220,9 +1218,10 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		if ( (pConditionParameter->GetMathItem()->FindResultTypeValueForDBM() % 100 )>=4
 		&&   (pConditionParameter->GetMathItem()->FindResultTypeValueForDBM() % 100 )<=6 )
 		{
-			CMathOp* pValueToCast = pConditionParameter->GetMathItem();
-			pConditionParameter->GetMathItem()->DoCastOnMathOp ( &pValueToCast, 1 );
-			pConditionParameter->SetMathItem(pValueToCast);
+			std::unique_ptr<CMathOp> pValueToCast(pConditionParameter->ReleaseMathItem());
+			CMathOp* pCastCaller = pValueToCast.get();
+			pCastCaller->DoCastOnMathOp ( pValueToCast, 1 );
+			pConditionParameter->SetMathItem(pValueToCast.release());
 		}
 	}
 
@@ -2970,8 +2969,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 			CParameter* pNewTempParam = new CParameter;
 			if ( pCurrentParameter )
 			{
-				pNewTempParam->SetMathItem(pCurrentParameter->GetMathItem());
-				pCurrentParameter->SetMathItem(NULL);
+				pNewTempParam->SetMathItem(pCurrentParameter->ReleaseMathItem());
 				pUseParameter=pNewTempParam;
 			}
 
@@ -3024,10 +3022,11 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 					// Copy temp var into input-param (cast maybe required)
 					pInputAsOutputAssignment = new CStatement;
 					CParameter* pInputAsOutputParam = new CParameter;
-					if(pMathOp->DoCastOnMathOp(&pMathOp, dwRequiredTypeValue)==false)
+					std::unique_ptr<CMathOp> pMathOpOwner(pMathOp);
+					CMathOp* pCastCaller = pMathOpOwner.get();
+					if(pCastCaller->DoCastOnMathOp(pMathOpOwner, dwRequiredTypeValue)==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'DoInstruction::DoCastOnMathOp'");
-						SAFE_DELETE(pMathOp);
 						SAFE_DELETE(pReturnParameterToken);
 						SAFE_DELETE(pInputAsOutputParam);
 						SAFE_DELETE(pInputAsOutputAssignment);
@@ -3042,9 +3041,9 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 //					CStr* pFinalVar = new CStr(pUseParameter->GetMathItem()->FindResultStringTokenForDBM()->GetStr());
 //					pMathOp->GetResultStringToken()->SetText(pFinalVar->GetStr());
 					CResultData* pFinalVar = pUseParameter->GetMathItem()->FindResultDataForDBM();
-					if ( pFinalVar ) pMathOp->SetResultData(*pFinalVar);
+					if ( pFinalVar ) pMathOpOwner->SetResultData(*pFinalVar);
 					pInputAsOutputAssignment->SetParameter(pInputAsOutputParam);
-					pInputAsOutputParam->SetMathItem(pMathOp);
+					pInputAsOutputParam->SetMathItem(pMathOpOwner.release());
 				}
 			}
 			else
@@ -3426,9 +3425,10 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 			if(pSizeParameter[d]->GetMathItem()->FindResultTypeValueForDBM()!=7)
 			{
 				// Create New Math Op to Cast Value
-				CMathOp* pValueToCast = pSizeParameter[d]->GetMathItem();
-				pSizeParameter[d]->GetMathItem()->DoCastOnMathOp(&pValueToCast, 7);
-				pSizeParameter[d]->SetMathItem(pValueToCast);
+				std::unique_ptr<CMathOp> pValueToCast(pSizeParameter[d]->ReleaseMathItem());
+				CMathOp* pCastCaller = pValueToCast.get();
+				pCastCaller->DoCastOnMathOp(pValueToCast, 7);
+				pSizeParameter[d]->SetMathItem(pValueToCast.release());
 			}
 		}
 	}
@@ -3437,9 +3437,10 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 	if(pTypeSizeParameter->GetMathItem()->FindResultTypeValueForDBM()!=7)
 	{
 		// Create New Math Op to Cast Value
-		CMathOp* pValueToCast = pTypeSizeParameter->GetMathItem();
-		pTypeSizeParameter->GetMathItem()->DoCastOnMathOp(&pValueToCast, 7);
-		pTypeSizeParameter->SetMathItem(pValueToCast);
+		std::unique_ptr<CMathOp> pValueToCast(pTypeSizeParameter->ReleaseMathItem());
+		CMathOp* pCastCaller = pValueToCast.get();
+		pCastCaller->DoCastOnMathOp(pValueToCast, 7);
+		pTypeSizeParameter->SetMathItem(pValueToCast.release());
 	}
 
 	// Add second param

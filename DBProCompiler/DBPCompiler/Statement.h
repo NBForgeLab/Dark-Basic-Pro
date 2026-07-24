@@ -7,6 +7,7 @@
 
 // Common Includes
 #include "windows.h"
+#include <memory>
 
 // Custom Includes
 #include "InstructionTableEntry.h"
@@ -99,7 +100,7 @@ class CStatement
 		void			SetLineNumber(DWORD line) { m_dwLineNumber=line; }
 		void			SetObjectType(DWORD type) { m_dwObjectType=type; }
 		void			SetObjectClass(void* pPtr) { m_pObjectClass=pPtr; }
-		void			SetParameter(CParameter* pParam) { m_pParameters=pParam; }
+		void			SetParameter(CParameter* pParam) { m_pParameters.reset(pParam); }
 		void			SetLine(DWORD dwLine);
 		DWORD			GetLineNumber(void) { return m_dwLineNumber; }
 
@@ -173,7 +174,7 @@ class CStatement
 		DWORD			GetObjectLineNumber(void) { return m_dwLineNumber; }
 		DWORD			GetObjectType(void) { return m_dwObjectType; }
 		void*			GetObjectClass(void) { return m_pObjectClass; }
-		CParameter*		GetParameter(void) { return m_pParameters; }
+		CParameter*		GetParameter(void) { return m_pParameters.get(); }
 
 		bool			WriteDBM(void);
 		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
@@ -189,7 +190,7 @@ class CStatement
 		// Object Data
 		DWORD			m_dwObjectType;
 		void			*m_pObjectClass;
-		CParameter*		m_pParameters;
+		std::unique_ptr<CParameter>	m_pParameters;
 
 		// Hierarchy Data
 		CStatement		*m_pNext;
@@ -201,14 +202,15 @@ class CParameter
 		CParameter();
 		virtual ~CParameter();
 
-		CMathOp* GetMathItem(void) { return m_pMainMathOp; }
-		CParameter* GetNext(void) { return m_pNext; }
+		CMathOp* GetMathItem(void) { return m_pMainMathOp.get(); }
+		CParameter* GetNext(void) { return m_pNext.get(); }
 		CParameter* GetPrev(void) { return m_pPrev; }
-		void SetNext(CParameter* pPtr) { m_pNext=pPtr; }
+		void SetNext(CParameter* pPtr) { m_pNext.reset(pPtr); }
 		CParameter* GetLast(void);
 
 		void Add(CParameter* pParameter);
-		void SetMathItem(CMathOp* pItem) { m_pMainMathOp = pItem; }
+		void SetMathItem(CMathOp* pItem) { m_pMainMathOp.reset(pItem); }
+		CMathOp* ReleaseMathItem(void) { return m_pMainMathOp.release(); }
 		bool MakeParamList(CStr* pStrList);
 		bool ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore, DWORD dwInternalCode);
 		bool CastAllParametersToInstruction(CInstructionTableEntry* pRef);
@@ -221,10 +223,10 @@ class CParameter
 	private:
 
 		// Uses math object to store value
-		CMathOp*			m_pMainMathOp;
+		std::unique_ptr<CMathOp>	m_pMainMathOp;
 
 		// Hierarchy Data
-		CParameter*			m_pNext;
+		std::unique_ptr<CParameter>	m_pNext;
 		CParameter*			m_pPrev;
 };
 
@@ -233,7 +235,7 @@ class CMathOp
 	public:
 		CMathOp();
 		virtual ~CMathOp();
-		CMathOp* GetNext(void) { return m_pNext; }
+		CMathOp* GetNext(void) { return m_pNext.get(); }
 
 		void SetResult(LPSTR pString, DWORD dwType, DWORD dwDataOffset);
 		void SetResultData(CResultData ResultData);
@@ -269,7 +271,7 @@ class CMathOp
 		void Add(CMathOp* pNext);
 
 		bool DoValue(CStr* pStr);
-		bool DoCastOnMathOp(CMathOp** ppMathOp, DWORD dwTypeMode);
+		bool DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeMode);
 		bool DoValueFunction(CStr* pExpression);
 		bool DoValueComplexVariable(CStr* pExpression);
 		bool TokeniseStructuresOfDataString(CStr* pEntireData, DWORD* pdwLValueType);
@@ -318,14 +320,14 @@ class CMathOp
 
 		// Further math operations
 		DWORD			m_dwMathSymbol;
-		CMathOp*		m_pLeftMathOp;
-		CMathOp*		m_pRightMathOp;
+		std::unique_ptr<CMathOp>	m_pLeftMathOp;
+		std::unique_ptr<CMathOp>	m_pRightMathOp;
 
 		// Seen as a work class..
-		CStatement*		m_pStatement;
+		std::unique_ptr<CStatement>	m_pStatement;
 
 		// Hierarchy Data
-		CMathOp*		m_pNext;
+		std::unique_ptr<CMathOp>	m_pNext;
 };
 
 #endif // !defined(AFX_STATEMENT_H__2A1543E2_9870_4E5E_B056_C09192997E8D__INCLUDED_)
