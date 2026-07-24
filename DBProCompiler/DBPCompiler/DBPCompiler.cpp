@@ -64,18 +64,13 @@ extern DWORD g_dwEscapeValueMem;
 CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
 {
 	// Store Compiler Filename
-	m_pCompilerFilename = new CStr(pCompilerFilename);
-	m_pCompilerPathOnly = new CStr(pCompilerFilename);
+	m_pCompilerFilename = std::make_unique<CStr>(pCompilerFilename);
+	m_pCompilerPathOnly = std::make_unique<CStr>(pCompilerFilename);
 	m_pCompilerPathOnly->TrimToPathOnly();
 	m_pContext = NULL;
 
-	// Clear these strings
-	m_pAbsolutePathToProjectFile=NULL;
-	m_pRelativePathToProjectFile=NULL;
-
 	// Initialisation of File Data Ptrs
 	m_dwOriginalFileDataSize=0;
-	m_pOriginalFileData=NULL;
 	m_FileDataSize=0;
 	m_pFileData=NULL;
 
@@ -110,44 +105,19 @@ CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
 	// lee - 210406 - can switch this to true to generate new HELPTXT in plugins folder
 	m_bGenerateHelpTxtOn = true;
 	#endif
-
-	// Clear Path Database
-	for(DWORD n=0; n<PATH_MAX; n++)
-		m_pInternalFile[n]=NULL;
-
-	// lee - 110307 - u6.6 - Clear exclusion strings
-	for ( int i=0; i<MAX_EXCLUSIONS; i++)
-		g_pExcludeFiles [ i ] = NULL;
-
-	// Cleat breakpoint list
-	m_pBreakpointList = NULL;
 }
 
 CDBPCompiler::~CDBPCompiler()
 {
-	// Compiler Path Freeing
-	SAFE_DELETE(m_pCompilerFilename);
-	SAFE_DELETE(m_pCompilerPathOnly);
-
-	// Safe Deletions
-	SAFE_DELETE(m_pOriginalFileData);
+	// Safe Deletions (GlobalAlloc buffers)
 	SAFE_FREE(m_pFileData);
 	SAFE_FREE(m_pProjectFileData);
 	SAFE_DELETE_ARRAY(m_pFinalDBASource);
 	SAFE_DELETE_ARRAY(m_pEXEFilename);
 
-	// Release strings
-	for(DWORD n=0; n<PATH_MAX; n++)
-	{
-		SAFE_DELETE(m_pInternalFile[n]);
-	}
-
-	// Free exclusion strings
-	for ( int i=0; i<MAX_EXCLUSIONS; i++)
-		SAFE_DELETE ( g_pExcludeFiles [ i ] );
-
-	// Delete breakpoint lsit
-	SAFE_DELETE(m_pBreakpointList);
+	// RAII handles: m_pCompilerFilename, m_pCompilerPathOnly, m_OriginalFileData,
+	// m_pInternalFile[], m_pAbsolutePathToProjectFile, m_pRelativePathToProjectFile,
+	// m_BreakpointList, g_ExcludeFiles
 }
 
 bool CDBPCompiler::PerformCompileOnProject(void)
@@ -368,11 +338,9 @@ bool CDBPCompiler::LoadPreparedSource(void)
 	memcpy(m_pFileData, trimmed.GetStr(), trimmedSize);
 	m_FileDataSize = trimmedSize;
 
-	SAFE_DELETE(m_pOriginalFileData);
 	m_dwOriginalFileDataSize = m_FileDataSize;
-	m_pOriginalFileData = new char[m_dwOriginalFileDataSize + 256];
-	memset(m_pOriginalFileData, 0, m_dwOriginalFileDataSize + 256);
-	memcpy(m_pOriginalFileData, m_pFileData, m_FileDataSize);
+	m_OriginalFileData.assign(m_dwOriginalFileDataSize + 256, 0);
+	memcpy(m_OriginalFileData.data(), m_pFileData, m_FileDataSize);
 	return true;
 }
 
@@ -419,11 +387,9 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 	}
 
 	// Make snapshot of filedata in original store
-	SAFE_DELETE(m_pOriginalFileData);
 	m_dwOriginalFileDataSize = m_FileDataSize;
-	m_pOriginalFileData = new char[m_dwOriginalFileDataSize+256];
-	memset(m_pOriginalFileData, 0, m_FileDataSize+256);
-	memcpy(m_pOriginalFileData, m_pFileData, m_FileDataSize);
+	m_OriginalFileData.assign(m_dwOriginalFileDataSize+256, 0);
+	memcpy(m_OriginalFileData.data(), m_pFileData, m_FileDataSize);
 
 	// Complete
 	return true;
@@ -614,10 +580,9 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	m_FileDataSize=dwNewDataSize;
 
 	// Make snapshot of filedata in original store
-	SAFE_DELETE(m_pOriginalFileData);
 	m_dwOriginalFileDataSize = m_FileDataSize;
-	m_pOriginalFileData = new char[m_dwOriginalFileDataSize];
-	memcpy(m_pOriginalFileData, m_pFileData, m_FileDataSize);
+	m_OriginalFileData.assign(m_dwOriginalFileDataSize, 0);
+	memcpy(m_OriginalFileData.data(), m_pFileData, m_FileDataSize);
 
 	// As a later compiler option, dump entire source to debugfile
 	if ( 1 )
@@ -1550,10 +1515,10 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 		projectDirectoryText.back() != '\\' && projectDirectoryText.back() != '/')
 		projectDirectoryText.push_back(std::filesystem::path::preferred_separator);
 
-	m_pRelativePathToProjectFile = new CStr();
+	m_pRelativePathToProjectFile = std::make_unique<CStr>();
 	m_pRelativePathToProjectFile->SetText(&projectDirectoryText[0]);
 
-	m_pAbsolutePathToProjectFile = new CStr();
+	m_pAbsolutePathToProjectFile = std::make_unique<CStr>();
 	m_pAbsolutePathToProjectFile->SetText(&projectDirectoryText[0]);
 
 	// Read in project file if it is one
@@ -1593,12 +1558,12 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 bool CDBPCompiler::FreeProjectFile(void)
 {
 	// Delete DBPCompiler Strings
-	SAFE_DELETE(m_pCompilerFilename);
-	SAFE_DELETE(m_pCompilerPathOnly);
-	SAFE_DELETE(m_pAbsolutePathToProjectFile);
-	SAFE_DELETE(m_pRelativePathToProjectFile);
+	m_pCompilerFilename.reset();
+	m_pCompilerPathOnly.reset();
+	m_pAbsolutePathToProjectFile.reset();
+	m_pRelativePathToProjectFile.reset();
 
-	// Delete POroject Setting Strings
+	// Delete Project Setting Strings
 	SAFE_DELETE_ARRAY(m_pFinalDBASource);
 	SAFE_DELETE_ARRAY(m_pEXEFilename);
 
@@ -1963,7 +1928,7 @@ LPSTR CDBPCompiler::GetProjectField(LPSTR pFieldName)
 
 void CDBPCompiler::SetInternalFile(DWORD dwFileID, LPSTR pFilename)
 {
-	if(m_pInternalFile[dwFileID]==NULL) m_pInternalFile[dwFileID] = new CStr("");
+	if(!m_pInternalFile[dwFileID]) m_pInternalFile[dwFileID] = std::unique_ptr<CStr>(new CStr(""));
 	m_pInternalFile[dwFileID]->SetText(pFilename);
 }
 
@@ -2096,7 +2061,7 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	strcpy(path, GetInternalFile(PATH_ROOTPATH));
 	strcat(path, "SETUP.INI");
 	g_dwExcludeFilesCount=0;
-	memset ( g_pExcludeFiles, 0, MAX_EXCLUSIONS * sizeof(LPSTR) );
+	for ( int i=0; i<MAX_EXCLUSIONS; i++) g_ExcludeFiles[i].clear();
 	for ( int i=1; i<MAX_EXCLUSIONS; i++)
 	{
 		char pExDLL[256];
@@ -2104,9 +2069,7 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 		GetPrivateProfileString("EXCLUSIONS", pExDLL, "", textfiles, 256, path);
 		if ( strcmp ( textfiles, "" )!=NULL )
 		{
-			DWORD dwSize = strlen ( textfiles )+1;
-			g_pExcludeFiles [ i ] = new char [ dwSize ];
-			strcpy ( g_pExcludeFiles [ i ], textfiles );
+			g_ExcludeFiles [ i ] = textfiles;
 			g_dwExcludeFilesCount = 1+i;
 		}
 		else
@@ -2368,10 +2331,8 @@ bool CDBPCompiler::RemoveAndRecordBreakpoints(void)
 
 bool CDBPCompiler::ClearBreakPointList(void)
 {
-	SAFE_DELETE(m_pBreakpointList);
+	m_BreakpointList.assign(m_FileDataSize+1, 0);
 	m_dwBreakpointSize = m_FileDataSize;
-	m_pBreakpointList = new DWORD[m_dwBreakpointSize+1];
-	ZeroMemory(m_pBreakpointList, sizeof(DWORD)*(m_dwBreakpointSize+1));
 	m_dwBreakpointIndex = 0;
 	return true;
 }
@@ -2382,11 +2343,11 @@ bool CDBPCompiler::AddToBreakPointList(DWORD dwLine)
 	{
 		bool bLineIsUnique=true;
 		if(m_dwBreakpointIndex>0)
-			if(m_pBreakpointList[m_dwBreakpointIndex-1]==dwLine) bLineIsUnique=false;
+			if(m_BreakpointList[m_dwBreakpointIndex-1]==dwLine) bLineIsUnique=false;
 
 		if(bLineIsUnique)
 		{
-			m_pBreakpointList[m_dwBreakpointIndex]=dwLine;
+			m_BreakpointList[m_dwBreakpointIndex]=dwLine;
 			m_dwBreakpointIndex++;
 		}
 		return true;

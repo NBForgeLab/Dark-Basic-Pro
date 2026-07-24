@@ -9,6 +9,8 @@
 #include "windows.h"
 #include "RuntimeBundleResolver.h"
 #include <memory>
+#include <vector>
+#include <string>
 
 // PATH Defines
 #define PATH_MAX 20
@@ -114,19 +116,19 @@ class CDBPCompiler
 		bool			FinishBreakPointList(void);
 
 		DWORD			GetBreakPointIndex(void) { return m_dwBreakpointIndex; }
-		DWORD			GetBreakPointLine(DWORD nIndex) { return m_pBreakpointList[nIndex]; }
+		DWORD			GetBreakPointLine(DWORD nIndex) { return m_BreakpointList[nIndex]; }
 		void			IncBreakPointIndex(void) { m_dwBreakpointIndex++; }
 		DWORD			GetBreakPointMax(void) { return m_dwBreakpointMax; }
 
 	public:
 
 		// Compiler Path Info
-		CStr*			m_pCompilerFilename;
-		CStr*			m_pCompilerPathOnly;
+		std::unique_ptr<CStr>	m_pCompilerFilename;
+		std::unique_ptr<CStr>	m_pCompilerPathOnly;
 
 		// Original Source File Data for display in debugger
 		DWORD			m_dwOriginalFileDataSize;
-		LPSTR			m_pOriginalFileData;
+		std::vector<char>	m_OriginalFileData;
 
 		// Main Source File Data for parsing
 		DWORD			m_FileDataSize;
@@ -138,8 +140,8 @@ class CDBPCompiler
 		LPSTR			m_pProjectFileData;
 
 		// Project Settings
-		CStr*			m_pAbsolutePathToProjectFile;
-		CStr*			m_pRelativePathToProjectFile;
+		std::unique_ptr<CStr>	m_pAbsolutePathToProjectFile;
+		std::unique_ptr<CStr>	m_pRelativePathToProjectFile;
 		LPSTR			m_pFinalDBASource;
 		LPSTR			m_pEXEFilename;
 		bool			m_bSourceIsMMF;
@@ -170,11 +172,11 @@ class CDBPCompiler
 		bool			m_bLocalTempFolder;
 
 		// Internal Files Database
-		CStr*			m_pInternalFile[PATH_MAX];
+		std::unique_ptr<CStr>	m_pInternalFile[PATH_MAX];
 
 		// Breakpoint List Data
 		DWORD			m_dwBreakpointSize;
-		DWORD*			m_pBreakpointList;
+		std::vector<DWORD>	m_BreakpointList;
 		DWORD			m_dwBreakpointIndex;
 		DWORD			m_dwBreakpointMax;
 
@@ -183,7 +185,7 @@ class CDBPCompiler
 
 		// Exclusion Files
 		DWORD			g_dwExcludeFilesCount;
-		LPSTR			g_pExcludeFiles [ MAX_EXCLUSIONS ];
+		std::string		g_ExcludeFiles [ MAX_EXCLUSIONS ];
 
 		CompilerContext* m_pContext;
 		std::unique_ptr<CompilationInput> m_compilationInput;
