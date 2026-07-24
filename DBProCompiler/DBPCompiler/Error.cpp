@@ -23,41 +23,18 @@ extern CIncludeTable* g_pIncludeTable;
 //////////////////////////////////////////////////////////////////////
 
 CError::CError()
+	: m_bErrorExist(false), m_bParserErrorExist(false),
+	  m_bEstablishedConnectionToMonitor(false), m_hMonitorFileMap(NULL),
+	  m_lpVoidMonitor(NULL), m_dwMaxLines(0)
 {
-	m_bErrorExist							= false;
-	m_pErrorString							= NULL;
-
-	m_bParserErrorExist						= false;
-	m_pParserErrorString					= NULL;
-
-	m_bEstablishedConnectionToMonitor		= false;
-	m_hMonitorFileMap						= NULL;
-	m_lpVoidMonitor							= NULL;
-//	m_hWndMonitor							= NULL;
-
 	// Establish Connection To A Progress Monitor
-	// leechange - 130306 - u60 - remove dependence on FindWindow, just broadcast filemap openly
-//	m_hWndMonitor = FindWindow("TDBPROEDITOR",NULL);
-//	if(m_hWndMonitor)
-//	{
-		m_bEstablishedConnectionToMonitor=true;
-		m_hMonitorFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
-		m_lpVoidMonitor = MapViewOfFile(m_hMonitorFileMap,FILE_MAP_WRITE,0,0,256);
-//	}
-
-	m_dwInternalErrorsMax					= 0;
-	m_pInternalError						= NULL;
-	m_dwParserErrorsMax						= 0;
-	m_pParserError							= NULL;
-	m_dwRuntimeErrorsMax					= 0;
-	m_pRuntimeError							= NULL;
+	m_bEstablishedConnectionToMonitor=true;
+	m_hMonitorFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
+	m_lpVoidMonitor = MapViewOfFile(m_hMonitorFileMap,FILE_MAP_WRITE,0,0,256);
 }
 
 CError::~CError()
 {
-	// Free Errors Database
-	FreeErrorDatabase();
-
 	// Free Monitor Vars
 	if(m_bEstablishedConnectionToMonitor)
 	{
@@ -65,9 +42,7 @@ CError::~CError()
 		UnmapViewOfFile(m_lpVoidMonitor);
 		CloseHandle(m_hMonitorFileMap);
 	}
-
-	SAFE_DELETE(m_pParserErrorString);
-	SAFE_DELETE(m_pErrorString);
+	// unique_ptr and vector members auto-cleanup via RAII
 }
 
 void CError::PrepareVerboseErrorHeader(DWORD LineNumber, LPSTR ErrorString)
@@ -88,18 +63,14 @@ void CError::PrepareVerboseErrorHeader(DWORD LineNumber, LPSTR ErrorString)
 		AddErrorString("-------------");
 
 		// Sample Of Line in error
-		CStr* pStr = new CStr(65);
+		CStr pStr(65);
 		LPSTR pPointer=g_pStatementList->GetFileDataPointer();
 		LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
 		if(pPointer)
 		{
-			pStr->CopyFromPtr(pPointer, pPointerEnd, 64);
-			pStr->SetChar(64,0);
-			LPSTR pLineDump = new char[pStr->Length()+1];
-			strcpy(pLineDump, pStr->GetStr());
-			AddErrorString(pLineDump);
-			SAFE_DELETE(pLineDump);
-			SAFE_DELETE(pStr);
+			pStr.CopyFromPtr(pPointer, pPointerEnd, 64);
+			pStr.SetChar(64,0);
+			AddErrorString(pStr.GetStr());
 			AddErrorString("");
 		}
 
@@ -112,13 +83,13 @@ void CError::AddErrorString(LPSTR ErrorString)
 {
 	db3::CAutolock autolock(m_Lock);
 
-	if(m_pParserErrorString==NULL)
+	if(!m_pParserErrorString)
 	{
 		if(g_pStatementList)
 		{
 			DWORD dwLineNum = 0;
 			g_pStatementList->GetTokenLineNumber();
-			m_pParserErrorString = new CStr(1);
+			m_pParserErrorString.reset(new CStr(1));
 			m_pParserErrorString->SetText(ErrorString);
 			if(dwLineNum>0)
 			{
@@ -150,7 +121,7 @@ void CError::AddErrorString(LPSTR ErrorString)
 		length+=oldsize;
 	}
 	length+=2;
-	CStr* pNewErrorString = new CStr(length+1);
+	auto pNewErrorString = std::make_unique<CStr>(length+1);
 	if(oldsize>0) memcpy(pNewErrorString->GetStr(), m_pErrorString->GetStr(), oldsize);
 	memcpy(pNewErrorString->GetStr()+oldsize, ErrorString, addsize+1);
 	*((pNewErrorString->GetStr()+oldsize+addsize)+0)=13;
@@ -158,8 +129,7 @@ void CError::AddErrorString(LPSTR ErrorString)
 	*((pNewErrorString->GetStr()+oldsize+addsize)+2)=0;
 
 	// Replace with new
-	SAFE_DELETE(m_pErrorString);
-	m_pErrorString=pNewErrorString;
+	m_pErrorString = std::move(pNewErrorString);
 	m_bErrorExist=true;
 }
 
@@ -167,9 +137,9 @@ void CError::SetParserError(DWORD dwLine, LPSTR ErrorString)
 {
 	db3::CAutolock autolock(m_Lock);
 
-	if(m_pParserErrorString==NULL)
+	if(!m_pParserErrorString)
 	{
-		m_pParserErrorString = new CStr(1);
+		m_pParserErrorString.reset(new CStr(1));
 		m_pParserErrorString->SetText(ErrorString);
 		if(dwLine>0)
 		{
@@ -201,7 +171,7 @@ void CError::OutputInternalErrorReport(void)
 		DWORD BytesWritten=0;
 		DWORD ActualBytesToWrite=strlen(lpString);
 		WriteFile(hFile, lpString, ActualBytesToWrite, &BytesWritten, NULL);
-		SAFE_CLOSE(hFile);
+		CloseHandle(hFile);
 	}
 }
 
@@ -220,33 +190,29 @@ DWORD CError::CountDatabaseSubset(LPSTR pSection, LPSTR pErrorFilename)
 	return i;
 }
 
-LPSTR* CError::CreateDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename)
+void CError::LoadDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename, std::vector<std::string>& outDB)
 {
 	// Temp Vars
 	char label[_MAX_PATH];
 	char tempfile[_MAX_PATH];
-	LPSTR* pDatabase = new LPSTR[dwMax];
-	ZeroMemory(pDatabase, dwMax * sizeof(LPSTR));
+	outDB.resize(dwMax);
 	for(DWORD i=1; i<dwMax; i++)
 	{
 		wsprintf(label, "%d", i);
 		GetPrivateProfileString(pSection, label, "", tempfile, _MAX_PATH, pErrorFilename);
 		if(strcmp(tempfile,"")!=0)
 		{
-			pDatabase[i] = (LPSTR)new char[strlen(tempfile)+1];
-			strcpy(pDatabase[i], tempfile);
+			outDB[i] = tempfile;
 		}
 	}
-	return pDatabase;
 }
 
-LPSTR* CError::CreateRuntimeDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename)
+void CError::LoadRuntimeDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename, std::vector<std::string>& outDB)
 {
 	// Temp Vars
 	char label[_MAX_PATH];
 	char tempfile[_MAX_PATH];
-	LPSTR* pDatabase = new LPSTR[dwMax];
-	ZeroMemory(pDatabase, dwMax * sizeof(LPSTR));
+	outDB.resize(dwMax);
 	for(DWORD i=1; i<dwMax; i++)
 	{
 		// Runtime has large gaps in the numeric sequence (speed things up)
@@ -277,82 +243,53 @@ LPSTR* CError::CreateRuntimeDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pE
 		GetPrivateProfileString(pSection, label, "", tempfile, _MAX_PATH, pErrorFilename);
 		if(strcmp(tempfile,"")!=0)
 		{
-			pDatabase[i] = (LPSTR)new char[strlen(tempfile)+1];
-			strcpy(pDatabase[i], tempfile);
+			outDB[i] = tempfile;
 		}
 	}
-	return pDatabase;
 }
 
 void CError::LoadErrorDatabase(LPSTR pErrorFilename)
 {
 	// Load Internal Errors
-	m_dwInternalErrorsMax = CountDatabaseSubset("INTERNAL", pErrorFilename);
-	m_pInternalError = CreateDatabaseSubset("INTERNAL", m_dwInternalErrorsMax, pErrorFilename);
+	DWORD dwInternalMax = CountDatabaseSubset("INTERNAL", pErrorFilename);
+	LoadDatabaseSubset("INTERNAL", dwInternalMax, pErrorFilename, m_InternalErrors);
 
 	// Load Parser Errors
-	m_dwParserErrorsMax = CountDatabaseSubset("SYNTAX", pErrorFilename);
-	m_pParserError = CreateDatabaseSubset("SYNTAX", m_dwParserErrorsMax, pErrorFilename);
+	DWORD dwParserMax = CountDatabaseSubset("SYNTAX", pErrorFilename);
+	LoadDatabaseSubset("SYNTAX", dwParserMax, pErrorFilename, m_ParserErrors);
 
 	// Load Runtime Errors
-	m_dwRuntimeErrorsMax = 9999;
-	m_pRuntimeError = CreateRuntimeDatabaseSubset("RUNTIME", m_dwRuntimeErrorsMax, pErrorFilename);
-}
-
-void CError::FreeDatabaseSubset(LPSTR* pDatabase, DWORD dwMax)
-{
-	if(pDatabase)
-	{
-		for(DWORD i=0; i<dwMax; i++)
-		{
-			delete pDatabase[i];
-			pDatabase[i]=NULL;
-		}
-	}
-}
-
-void CError::FreeErrorDatabase(void)
-{
-	// Free Internal Database
-	FreeDatabaseSubset(m_pInternalError, m_dwInternalErrorsMax);
-	SAFE_DELETE(m_pInternalError);
-
-	// Free Parser Database
-	FreeDatabaseSubset(m_pParserError, m_dwParserErrorsMax);
-	SAFE_DELETE(m_pParserError);
-
-	// Free RuntimeError Database
-	FreeDatabaseSubset(m_pRuntimeError, m_dwRuntimeErrorsMax);
-	SAFE_DELETE(m_pRuntimeError);
+	DWORD dwRuntimeMax = 9999;
+	LoadRuntimeDatabaseSubset("RUNTIME", dwRuntimeMax, pErrorFilename, m_RuntimeErrors);
 }
 
 void CError::GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, CStr** pRawErrorString)
 {
 	// Find String from database
 	DWORD dwIndex=0;
-	LPSTR* ppDatabase=NULL;
-	if(dwErrCode>=ERR_INTERNAL && dwErrCode<=ERR_SYNTAX) { ppDatabase=m_pInternalError; dwIndex=dwErrCode; }
-	if(dwErrCode>=ERR_SYNTAX && dwErrCode<=ERR_COMPILER) { ppDatabase=m_pParserError; dwIndex=dwErrCode-ERR_SYNTAX; }
+	std::vector<std::string>* pDatabase=nullptr;
+	if(dwErrCode>=ERR_INTERNAL && dwErrCode<=ERR_SYNTAX) { pDatabase=&m_InternalErrors; dwIndex=dwErrCode; }
+	if(dwErrCode>=ERR_SYNTAX && dwErrCode<=ERR_COMPILER) { pDatabase=&m_ParserErrors; dwIndex=dwErrCode-ERR_SYNTAX; }
 
 	// Use database to return correct error construction line
-	if(pRawErrorString && ppDatabase && dwIndex<m_dwParserErrorsMax)
+	if(pRawErrorString && pDatabase && dwIndex<pDatabase->size() && !(*pDatabase)[dwIndex].empty())
 	{
 		// scan with dwErrCode
-		(*pRawErrorString)->SetText(ppDatabase[dwIndex]);
+		(*pRawErrorString)->SetText(const_cast<LPSTR>((*pDatabase)[dwIndex].c_str()));
 	}
 	else
 	{
-		if(m_pInternalError)
-			(*pRawErrorString)->SetText(m_pInternalError[1]);
+		if(!m_InternalErrors.empty() && m_InternalErrors.size() > 1 && !m_InternalErrors[1].empty())
+			(*pRawErrorString)->SetText(const_cast<LPSTR>(m_InternalErrors[1].c_str()));
 		else
 			(*pRawErrorString)->SetText("");
 	}
 
 	// Remove AT LINE X. if line is zero
-	if(dwLine==0)
+	if(dwLine==0 && m_InternalErrors.size() > 3 && !m_InternalErrors[2].empty() && !m_InternalErrors[3].empty())
 	{
-		LPSTR pOrig = m_pInternalError[2];
-		LPSTR pRepl = m_pInternalError[3];
+		LPSTR pOrig = const_cast<LPSTR>(m_InternalErrors[2].c_str());
+		LPSTR pRepl = const_cast<LPSTR>(m_InternalErrors[3].c_str());
 		CStr* pStr = (*pRawErrorString);
 		if(strnicmp((pStr->GetStr()+pStr->Length())-strlen(pOrig), pOrig, strlen(pOrig))==NULL)
 		{
@@ -375,53 +312,37 @@ DWORD CError::GetTokenIndex(CStr* pTokenFieldString)
 	return 0;
 }
 
-LPSTR CError::CreateAndReword ( LPSTR pI )
+std::string CError::CreateAndReword(LPSTR pI)
 {
-	LPSTR pStr = NULL;
-	if ( pI )
+	if (!pI) return {};
+	if (pI[0]=='@' && pI[1]=='$')
 	{
-		DWORD dwSize = strlen(pI)+1;
-		char pNewString [ 512 ];
-		if ( pI[0]=='@' && pI[1]=='$' )
-		{
-			// rename
-			strcpy ( pNewString, "TEMP" );
-			strcat ( pNewString, pI+3 );
-			dwSize = strlen(pNewString)+1;
-			pStr = new char [ dwSize ];
-			strcpy ( pStr, pNewString );
-		}
-		else
-		{
-			if ( pI[0]=='@' )
-			{
-				// straight copy +1
-				pStr = new char [ dwSize ];
-				strcpy ( pStr, pI+1 );
-			}
-			else
-			{
-				// straight copy
-				pStr = new char [ dwSize ];
-				strcpy ( pStr, pI );
-			}
-		}
+		// rename
+		return std::string("TEMP") + (pI+3);
 	}
-	return pStr;
+	else if (pI[0]=='@')
+	{
+		// straight copy +1
+		return std::string(pI+1);
+	}
+	else
+	{
+		// straight copy
+		return std::string(pI);
+	}
 }
 
 void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB, LPSTR pIC)
 {
-	// temp 
-	LPSTR pA=NULL;
-	LPSTR pB=NULL;
-	LPSTR pC=NULL;
-	CIncludeTable* pMustBeWithin = NULL;
-
 	// make temp string (and reword if required)
-	pA = CreateAndReword ( pIA );
-	pB = CreateAndReword ( pIB );
-	pC = CreateAndReword ( pIC );
+	std::string strA = CreateAndReword(pIA);
+	std::string strB = CreateAndReword(pIB);
+	std::string strC = CreateAndReword(pIC);
+	LPSTR pA = strA.empty() ? nullptr : const_cast<LPSTR>(strA.c_str());
+	LPSTR pB = strB.empty() ? nullptr : const_cast<LPSTR>(strB.c_str());
+	LPSTR pC = strC.empty() ? nullptr : const_cast<LPSTR>(strC.c_str());
+
+	CIncludeTable* pMustBeWithin = NULL;
 
 	// CharPos From Line
 	DWORD dwCharPosAt = 0;
@@ -434,11 +355,11 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 
 	// Line as text
 	bool bRemoveAtLine=false;
-	CStr* pLine = new CStr("");
+	CStr pLine("");
 	if(dwCharPosAt<=dwMainCharPosMax || dwMainCharPosMax==0)
 	{
 		// Within main program
-		pLine->SetNumericText(dwLine);
+		pLine.SetNumericText(dwLine);
 	}
 	else
 	{
@@ -455,8 +376,8 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 		// State which include program
 		if(pMustBeWithin)
 		{
-			pLine->SetText("inside ");
-			pLine->AddText(pMustBeWithin->GetFilename());
+			pLine.SetText("inside ");
+			pLine.AddText(pMustBeWithin->GetFilename());
 			bRemoveAtLine=true;
 		}
 	}
@@ -465,16 +386,17 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 	DWORD n=0;
 	int iStart=-1;
 	DWORD dwTokenID=0;
-	CStr* pToken = new CStr("");
-	CStr* pWorkStr = new CStr("");
-	CStr* pConstruction = new CStr("");
-	GetErrorConstruction(dwLine, dwErrCode, &pConstruction);
-	while(n<pConstruction->Length())
+	CStr pToken("");
+	CStr pWorkStr("");
+	CStr pConstruction("");
+	CStr* pConPtr = &pConstruction;
+	GetErrorConstruction(dwLine, dwErrCode, &pConPtr);
+	while(n<pConstruction.Length())
 	{
 		// Find replacement token
 		if(iStart==-1)
 		{
-			if(pConstruction->GetChar(n)=='#')
+			if(pConstruction.GetChar(n)=='#')
 			{
 				// Token start
 				iStart=n;
@@ -482,39 +404,39 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
 			else
 			{
 				// Build New Line
-				pWorkStr->AddChar(pConstruction->GetChar(n));
+				pWorkStr.AddChar(pConstruction.GetChar(n));
 			}
 		}
 		else
 		{
-			if(pConstruction->GetChar(n)=='#')
+			if(pConstruction.GetChar(n)=='#')
 			{
 				// Token end
 				iStart=-1;
 
 				// Use Token to append data to new line
-				switch(GetTokenIndex(pToken))
+				switch(GetTokenIndex(&pToken))
 				{
-					case 1 :	pWorkStr->AddText(pA);		break;
-					case 2 :	pWorkStr->AddText(pB);		break;
-					case 3 :	pWorkStr->AddText(pC);		break;
+					case 1 :	pWorkStr.AddText(pA);		break;
+					case 2 :	pWorkStr.AddText(pB);		break;
+					case 3 :	pWorkStr.AddText(pC);		break;
 
 					case 99 :	// Line Or Include Program
 								if(bRemoveAtLine==true)
-									if(strnicmp(pWorkStr->GetStr()+pWorkStr->Length()-8, "at line ", 8)==NULL)
-										pWorkStr->SetChar(pWorkStr->Length()-8, 0);
+									if(strnicmp(pWorkStr.GetStr()+pWorkStr.Length()-8, "at line ", 8)==NULL)
+										pWorkStr.SetChar(pWorkStr.Length()-8, 0);
 
-								pWorkStr->AddText(pLine);
+								pWorkStr.AddText(&pLine);
 								break;
 				}
 
 				// Clear Token
-				pToken->SetText("");
+				pToken.SetText("");
 			}
 			else
 			{
 				// Build Token
-				pToken->AddChar(pConstruction->GetChar(n));
+				pToken.AddChar(pConstruction.GetChar(n));
 			}
 		}
 
@@ -562,7 +484,7 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
     if (loc.length == 0) loc.length = 1;
 
     // Determine Help hint
-    std::string errMsg = pWorkStr ? pWorkStr->GetStr() : "";
+    std::string errMsg = pWorkStr.GetStr();
     std::string hint = "";
     if (errMsg.find("Syntax Error") != std::string::npos || errMsg.find("syntax error") != std::string::npos) {
         hint = "Check for matching brackets, parentheses, or correct operator usage.";
@@ -593,22 +515,14 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pIA, LPSTR pIB,
     DBP_ERROR("\n{}", formattedReportClean);
 
     // Set internal compiler parser error
-    if (m_pParserErrorString == NULL) {
-        m_pParserErrorString = new CStr(const_cast<LPSTR>(formattedReportClean.c_str()));
+    if (!m_pParserErrorString) {
+        m_pParserErrorString.reset(new CStr(const_cast<LPSTR>(formattedReportClean.c_str())));
         m_bParserErrorExist = true;
     }
 
     // Append to accumulated error report for PATH_TEMPERRORFILE
     AddErrorString(const_cast<LPSTR>(formattedReportClean.c_str()));
-
-	// Free usages
-	SAFE_DELETE(pLine);
-	SAFE_DELETE(pToken);
-	SAFE_DELETE(pWorkStr);
-	SAFE_DELETE(pConstruction);
-	SAFE_DELETE(pA);
-	SAFE_DELETE(pB);
-	SAFE_DELETE(pC);
+	// Stack-allocated CStr and std::string objects auto-cleanup
 }
 
 void CError::SetError(DWORD dwLine, DWORD dwErrCode)
@@ -619,10 +533,9 @@ void CError::SetError(DWORD dwLine, DWORD dwErrCode)
 
 void CError::SetError(DWORD dwLine, DWORD dwErrCode, DWORD dw1)
 {
-	CStr* pNum1 = new CStr();
-	pNum1->SetNumericText(dw1);
-	ConstructError(dwLine, dwErrCode, pNum1->GetStr(), NULL, NULL);
-	SAFE_DELETE(pNum1);
+	CStr pNum1;
+	pNum1.SetNumericText(dw1);
+	ConstructError(dwLine, dwErrCode, pNum1.GetStr(), NULL, NULL);
 	DB3_CRASH();
 }
 
@@ -649,34 +562,27 @@ void CError::ProgressReport(LPSTR lpString, DWORD dwValue)
 	if(m_bEstablishedConnectionToMonitor)
 	{
 		// Copy to Virtual File
-		LPSTR pTemp = new char[256];
+		char pTemp[256];
 		wsprintf(pTemp, "%s %d", lpString, dwValue);
 		*(DWORD*)m_lpVoidMonitor = dwValue;
 		strcpy((LPSTR)m_lpVoidMonitor+4, pTemp);
-		delete pTemp;
 	}
 	else
 	{
 		// Find Editor to send to
-		// leechange - 130306 - u60 - remove dependence on FindWindow, just broadcast filemap openly
-//		HWND hWnd = FindWindow("TDBPROEDITOR",NULL);
-//		if(hWnd)
-//		{
-			// Create Virtual File for Error Transfer
-			HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
-			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
+		// Create Virtual File for Error Transfer
+		HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
+		LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
 
-			// Copy to Virtual File
-			LPSTR pTemp = new char[256];
-			sprintf_s(pTemp, 256, "%s %d", lpString, dwValue);
-			*(DWORD*)lpVoid = dwValue;
-			strcpy((LPSTR)lpVoid+4, pTemp);
-			delete[] pTemp;
+		// Copy to Virtual File
+		char pTemp[256];
+		sprintf_s(pTemp, 256, "%s %d", lpString, dwValue);
+		*(DWORD*)lpVoid = dwValue;
+		strcpy((LPSTR)lpVoid+4, pTemp);
 
-			// Release virtual file
-			UnmapViewOfFile(lpVoid);
-			CloseHandle(hFileMap);
-//		}
+		// Release virtual file
+		UnmapViewOfFile(lpVoid);
+		CloseHandle(hFileMap);
 	}
 }
 

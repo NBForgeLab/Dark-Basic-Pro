@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 // Common Includes
 #ifndef DARKEXE
@@ -45,19 +46,21 @@ class CError
 
 	public:
 		DWORD CountDatabaseSubset(LPSTR pSection, LPSTR pErrorFilename);
-		LPSTR* CreateDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename);
-		LPSTR* CreateRuntimeDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename);
+		void LoadDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename, std::vector<std::string>& outDB);
+		void LoadRuntimeDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename, std::vector<std::string>& outDB);
 		void LoadErrorDatabase(LPSTR pErrorFilename);
-		void FreeDatabaseSubset(LPSTR* pDatabase, DWORD dwMax);
-		void FreeErrorDatabase(void);
 
-		DWORD GetRuntimeErrorStringMax(void) { return m_dwRuntimeErrorsMax; }
-		LPSTR GetRuntimeErrorString(int iIndex) { return m_pRuntimeError[iIndex]; }
+		DWORD GetRuntimeErrorStringMax(void) { return static_cast<DWORD>(m_RuntimeErrors.size()); }
+		LPSTR GetRuntimeErrorString(int iIndex) {
+			if (iIndex >= 0 && iIndex < (int)m_RuntimeErrors.size() && !m_RuntimeErrors[iIndex].empty())
+				return const_cast<LPSTR>(m_RuntimeErrors[iIndex].c_str());
+			return nullptr;
+		}
 
 	public:
 		void GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, CStr** pRawErrorString);
 		DWORD GetTokenIndex(CStr* pTokenFieldString);
-		LPSTR CreateAndReword ( LPSTR pI );
+		std::string CreateAndReword(LPSTR pI);
 		void ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pA, LPSTR pB, LPSTR pC);
 		void SetError(DWORD dwLine, DWORD dwErrCode);
 		void SetError(DWORD dwLine, DWORD dwErrCode, DWORD dw1);
@@ -71,27 +74,23 @@ class CError
 
 
 	private:
-		bool		m_bParserErrorExist;
-		CStr*		m_pParserErrorString;
+		bool						m_bParserErrorExist;
+		std::unique_ptr<CStr>		m_pParserErrorString;
 
 	private:
-		bool		m_bErrorExist;
-		CStr*		m_pErrorString;
+		bool						m_bErrorExist;
+		std::unique_ptr<CStr>		m_pErrorString;
 
 	private:
 		bool		m_bEstablishedConnectionToMonitor;
 		HANDLE		m_hMonitorFileMap;
 		LPVOID		m_lpVoidMonitor;
-//		HWND		m_hWndMonitor;
 		DWORD		m_dwMaxLines;
 
 	private:
-		DWORD		m_dwInternalErrorsMax;
-		LPSTR*		m_pInternalError;
-		DWORD		m_dwParserErrorsMax;
-		LPSTR*		m_pParserError;
-		DWORD		m_dwRuntimeErrorsMax;
-		LPSTR*		m_pRuntimeError;
+		std::vector<std::string>	m_InternalErrors;
+		std::vector<std::string>	m_ParserErrors;
+		std::vector<std::string>	m_RuntimeErrors;
 
 	private:
 		db3::CLock	m_Lock;
