@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <cstdint>
+#include <string>
 
 // Safe Macros
 #include "macros.h"
@@ -105,9 +106,9 @@ class CEXEBlock
 		DWORD			m_dwInitialDisplayHeight;
 		DWORD			m_dwInitialDisplayDepth;
 		LPSTR			m_pInitialAppName;
-		LPSTR			m_pOriginalFolderName;
-		LPSTR			m_pUnpackFolderName;
-		LPSTR			m_pAbsoluteAppFile;
+		std::string		m_OriginalFolderName;
+		std::string		m_UnpackFolderName;
+		std::string		m_AbsoluteAppFile;
 		DWORD			m_dwEncryptionKey;
 
 		// DLL Data

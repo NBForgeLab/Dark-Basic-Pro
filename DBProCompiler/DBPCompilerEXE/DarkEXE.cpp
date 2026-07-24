@@ -216,7 +216,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		// 2. external debugger writes DEBUGME to the shared string file map
 		LPSTR pDebugMeString = "debugme";
 		char pUniqueFileMapName [ 512 ];
-		strcpy ( pUniqueFileMapName, CEXE.m_pAbsoluteAppFile );
+		strcpy ( pUniqueFileMapName, CEXE.m_AbsoluteAppFile.c_str() );
 		strcat ( pUniqueFileMapName, "(FileMap)" );
 		DWORD dwWriteDataSize = strlen(pDebugMeString)+1;
 		HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize+4,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
@@ -246,7 +246,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 
 	// LEEADD - 221008 - U71 - EXTERNAL DEBUGGER SUPPORT
 	char pUniqueMutexName [ 512 ];
-	strcpy ( pUniqueMutexName, CEXE.m_pAbsoluteAppFile );
+	strcpy ( pUniqueMutexName, CEXE.m_AbsoluteAppFile.c_str() );
 	strcat ( pUniqueMutexName, "(Mutex)" );
 	for ( DWORD n=0; n<strlen(pUniqueMutexName); n++ )
 	{
@@ -264,7 +264,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		char pSharedStringStorage [ 512 ];
 		strcpy ( pSharedStringStorage, "" );
 		char pUniqueFileMapName [ 512 ];
-		strcpy ( pUniqueFileMapName, CEXE.m_pAbsoluteAppFile );
+		strcpy ( pUniqueFileMapName, CEXE.m_AbsoluteAppFile.c_str() );
 		strcat ( pUniqueFileMapName, "(FileMap)" );
 		for ( DWORD n=0; n<strlen(pUniqueFileMapName); n++ )
 		{
@@ -843,7 +843,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CEXE.StartInfo(gUnpackDirectory, gEncryptionKey);
 
 		// Place absolute EXE filename in CEXE structure
-		if ( CEXE.m_pAbsoluteAppFile ) strcpy ( CEXE.m_pAbsoluteAppFile, ActualEXEFilename );
+		CEXE.m_AbsoluteAppFile = ActualEXEFilename;
 
 		// In case of error
 		LPSTR pErrorString = NULL;

@@ -137,12 +137,9 @@ CEXEBlock::CEXEBlock()
 	m_dwInitialDisplayDepth=0;
 	m_pInitialAppName=NULL;
 
-	m_pOriginalFolderName=new char[_MAX_PATH+1];
-	strcpy(m_pOriginalFolderName,"");
-	m_pUnpackFolderName=new char[_MAX_PATH+1];
-	strcpy(m_pUnpackFolderName,"");
-	m_pAbsoluteAppFile=new char[_MAX_PATH+1];
-	strcpy(m_pAbsoluteAppFile,"");
+	m_OriginalFolderName.clear();
+	m_UnpackFolderName.clear();
+	m_AbsoluteAppFile.clear();
 
 	// DLL Data
 	m_dwNumberOfDLLs=0;
@@ -211,10 +208,10 @@ void CEXEBlock::Clear(void)
 	// Release appname
 	SAFE_DELETE(m_pInitialAppName);
 
-	// Release exefile ptrs
-	SAFE_DELETE(m_pOriginalFolderName);
-	SAFE_DELETE(m_pUnpackFolderName);
-	SAFE_DELETE(m_pAbsoluteAppFile);
+	// Release exefile ptrs (RAII handles strings)
+	m_OriginalFolderName.clear();
+	m_UnpackFolderName.clear();
+	m_AbsoluteAppFile.clear();
 
 	// Release DLLs Data
 	if ( m_pDLLFilenameArray ) DeleteArrayContents(m_pDLLFilenameArray,m_dwNumberOfDLLs);
@@ -565,7 +562,7 @@ bool CEXEBlock::SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 bool CEXEBlock::StartInfo(LPSTR pUnpackFolderName, DWORD dwEncryptionKey)
 {
 	// Set Unpack Folder (and copy to global data)
-	strcpy(m_pUnpackFolderName, pUnpackFolderName);
+	m_UnpackFolderName = pUnpackFolderName;
 	m_dwEncryptionKey = dwEncryptionKey;
 
 	// Complete
@@ -831,8 +828,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	HINSTANCE hCoreDLL = NULL;
 
 	// [EXE] Switch to TEMP Folder (that holds all exe-linked files)
-	getcwd(m_pOriginalFolderName, _MAX_PATH);
-	_chdir(m_pUnpackFolderName);
+	{ char cwdBuf[_MAX_PATH]; getcwd(cwdBuf, _MAX_PATH); m_OriginalFolderName = cwdBuf; }
+	_chdir(m_UnpackFolderName.c_str());
 
 	// [EXE] Dynamically load all DLLs
 	if(bResult==true)
@@ -865,11 +862,11 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 						// leeadd - 270308 - if DLL local to exe, switch to that folder for this DLL
 						bool bSwitchedToLocalEXEfolder = false;
-						_chdir(m_pOriginalFolderName);
+						_chdir(m_OriginalFolderName.c_str());
 						if(FileExists(pTryDLLName)==true)
 							bSwitchedToLocalEXEfolder = true;
 						else
-							_chdir(m_pUnpackFolderName);
+							_chdir(m_UnpackFolderName.c_str());
 
 						// leefix - 120104 - DEBUG MODE - may use a plugins-licensed folder
 						if(FileExists(pTryDLLName)==false)
@@ -897,7 +894,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 								sprintf_s(*pReturnError, 1024, "Failed to load DLL (%d: %s)", dllindex, pTryDLLName);
 								SAFE_DELETE(pTryDLLName);
 								bResult=false;
-								_chdir(m_pUnpackFolderName);//leeadd-270308-ifCWDswitched
+								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
 								break;
 							}
 							else
@@ -916,7 +913,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							if ( bIgnorableDLLs )
 							{
 								// skips rest of nested code
-								_chdir(m_pUnpackFolderName);//leeadd-270308-ifCWDswitched
+								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
 								continue;
 							}
 							else
@@ -926,14 +923,14 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 								wsprintf(*pReturnError,"Could not find a DLL (%s)", pTryDLLName);
 								SAFE_DELETE(pTryDLLName);
 								bResult=false;
-								_chdir(m_pUnpackFolderName);//leeadd-270308-ifCWDswitched
+								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
 								break;
 								*/
 							}
 						}
 
 						// leeadd - 270308 - if DLL local to exe, restore folder
-						if ( bSwitchedToLocalEXEfolder==true ) _chdir(m_pUnpackFolderName);
+						if ( bSwitchedToLocalEXEfolder==true ) _chdir(m_UnpackFolderName.c_str());
 
 						// Detect if DLL has the PassCoreData Function..
 						DLL_PassCore g_DLL_PassCoreData;
@@ -1143,8 +1140,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	if(g_pGlob)
 	{
 		memset ( g_pGlob->pEXEUnpackDirectory, 0, _MAX_PATH );
-		strcpy(g_pGlob->pEXEUnpackDirectory, m_pUnpackFolderName);
-		g_pGlob->ppEXEAbsFilename = (uintptr_t)m_pAbsoluteAppFile;
+		strcpy(g_pGlob->pEXEUnpackDirectory, m_UnpackFolderName.c_str());
+		g_pGlob->ppEXEAbsFilename = (uintptr_t)m_AbsoluteAppFile.c_str();
 		g_pGlob->dwEncryptionUniqueKey = m_dwEncryptionKey;
 	}
 
@@ -1600,7 +1597,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	SAFE_DELETE(pProgramRefPtr);
 
 	// [EXE] Switch out of TEMP Folder
-	_chdir(m_pOriginalFolderName);
+	_chdir(m_OriginalFolderName.c_str());
 
 	return bResult;
 }
