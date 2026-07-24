@@ -2063,16 +2063,15 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	SetInternalFile(PATH_ROOTPATH, m_pCompilerPathOnly->GetStr());
 
 	// Path to Test Files
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "SETUP.INI");
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_ROOTPATH));
+	strcat_s(path, sizeof(path), "SETUP.INI");
 	SetInternalFile(PATH_SETUPFILE, path);
 	CHECK_MISSING_FILE();
 
 	// Get Path to Language Folder
 	GetPrivateProfileString("SETTINGS", "TEXTLANGUAGE", "ENGLISH", textfiles, 256, path);
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "LANG");
-	strcat(path, "\\");
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_ROOTPATH));
+	strcat_s(path, sizeof(path), "LANG\\");
 	strupr(textfiles);
 	strcat(path, textfiles);
 	strcat(path, "\\ERRORS.TXT");

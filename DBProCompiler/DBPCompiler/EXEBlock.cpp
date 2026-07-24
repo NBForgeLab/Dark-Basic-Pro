@@ -63,18 +63,18 @@ bool								bDLLTPC[256];
 bool								g_bSuccessfulDLLLinks			= false;
 DWORD								g_dwEscapeValueMem				= 0;
 DWORD								g_dwBreakOutPosition			= 0;
-LPSTR								g_pVarSpaceAddressInUse			= NULL;
+LPSTR								g_pVarSpaceAddressInUse			= nullptr;
 DWORD								g_dwVarSpaceSizeInUse			= 0;
 bool								g_bIsInternalDebugger			= false;
 PROCESS_INFORMATION					g_InternalDebuggerProcessInfo;
-HANDLE								g_hLastGFXPointer				= NULL;
+HANDLE								g_hLastGFXPointer				= nullptr;
 
 // Store DirectX version for globstruct transfer (so core knows what we have - 080306)
 DWORD								g_dwDirectXVersion				= 0;
 TCHAR								g_strDirectXVersion[10]			= { 0 };
 
 // Global Shared Data Pointer (passed in from core)
-GlobStruct*							g_pGlob							= NULL;
+GlobStruct*							g_pGlob							= nullptr;
 
 // If linked from DarkEXE (temp loading... window)
 extern HWND g_hTempWindow;
@@ -270,18 +270,18 @@ void CEXEBlock::Clear(void)
 DWORD* CEXEBlock::CreateArray(DWORD dwCount,DWORD dwType)
 {
 	// leeadd - 090305 - DEP or regular flavour
-	DWORD* pArray = NULL;
+	DWORD* pArray = nullptr;
 	if ( dwType==PAGE_EXECUTE_READWRITE )
 	{
 		// data block used to execute code
-		pArray = (DWORD*) VirtualAlloc ( NULL, dwCount*sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );
+		pArray = (DWORD*) VirtualAlloc ( nullptr, dwCount*sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );
 	}
 	else
 	{
 		// regular data block
 		pArray = new DWORD[dwCount];
 		for(DWORD i=0; i<dwCount; i++)
-			*(pArray+i)=NULL;
+			pArray[i]=0;
 	}
 
 	// return ptr
