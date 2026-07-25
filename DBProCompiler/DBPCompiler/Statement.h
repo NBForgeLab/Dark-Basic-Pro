@@ -116,7 +116,7 @@ class CStatement
 		void			Add(CStatement *pNext);
 		CStatement*		GetNext(void) { return m_pNext; }
 		CStatement*		FindLastStatement(void);
-		void			SetData(DWORD LineNumber, DWORD m_dwObjectType, void* pPtr);
+		void			SetData(DWORD LineNumber, DWORD m_dwObjectType, void* pPtr) = delete; // Use SetData<T> or SetObject instead
 		void			SetNext(CStatement* pNext) { m_pNext=pNext; }
 
 		// Type-safe object setters (takes ownership)
@@ -150,7 +150,7 @@ class CStatement
 
 		void			SetLineNumber(DWORD line) { m_dwLineNumber=line; }
 		void			SetObjectType(DWORD type) { m_dwObjectType=type; }
-		void			SetObjectClass(void* pPtr) { m_pObjectClass=pPtr; }
+		void			SetObjectClass(void* pPtr) = delete; // Use SetObject<T> instead
 		void			SetParameter(CParameter* pParam) { m_pParameters.reset(pParam); }
 		void			SetLine(DWORD dwLine);
 		DWORD			GetLineNumber(void) { return m_dwLineNumber; }
@@ -224,7 +224,6 @@ class CStatement
 	
 		DWORD			GetObjectLineNumber(void) { return m_dwLineNumber; }
 		DWORD			GetObjectType(void) { return m_dwObjectType; }
-		void*			GetObjectClass(void) { return m_pObjectClass; }
 		CParameter*		GetParameter(void) { return m_pParameters.get(); }
 
 		bool			WriteDBM(void);
@@ -240,7 +239,6 @@ class CStatement
 
 		// Object Data
 		DWORD			m_dwObjectType;
-		void			*m_pObjectClass;
 		StatementObject	m_object;
 		std::unique_ptr<CParameter>	m_pParameters;
 

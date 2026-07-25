@@ -4,6 +4,7 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #pragma warning(disable : 4996)
 #include "ParserHeader.h"
+#include <type_traits>
 
 // Custom Includes
 #include "VarTable.h"
@@ -64,7 +65,6 @@ CStatement::CStatement()
 	m_bPerformJumpChecks=true; 
 
 	m_dwObjectType=0;
-	m_pObjectClass=NULL;
 
 	m_pNext=NULL;
 }
@@ -87,50 +87,16 @@ void CStatement::Free(void)
 
 void CStatement::FreeObjects(void)
 {
-	// Delete Object Classes By Type
-	CStatement* pCurrent=this;
-	switch(pCurrent->m_dwObjectType)
-	{
-		case 1 :	{	CParseLoop* pPtr = (CParseLoop*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 2 :	{	CParseType* pPtr = (CParseType*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 3 :	{	CParseInit* pPtr = (CParseInit*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 6 :	{	CParseUserFunction* pPtr = (CParseUserFunction*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 8 :	{	CParseJump* pPtr = (CParseJump*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 11 :	{	CParseInstruction* pPtr = (CParseInstruction*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 12 :	{	CParseFunction* pPtr = (CParseFunction*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-
-		case 20 :	{	CASTAssignment* pPtr = (CASTAssignment*)pCurrent->m_pObjectClass;
-						SAFE_DELETE(pPtr);
-						break;
-					}
-	}
+	// Type-safe deletion via std::visit on the variant
+	std::visit([](auto& ptr) {
+		using T = std::decay_t<decltype(ptr)>;
+		if constexpr (!std::is_same_v<T, std::monostate>) {
+			delete ptr;
+			ptr = nullptr;
+		}
+	}, m_object);
+	m_object = std::monostate{};
+	m_dwObjectType = 0;
 }
 
 void CStatement::Add(CStatement *pNext)
@@ -157,31 +123,20 @@ CStatement* CStatement::FindLastStatement(void)
 	return pFoundStatement;
 }
 
-void CStatement::SetData(DWORD LineNumber, DWORD dwObjectType, void* pPtr)
-{
-	m_dwLineNumber = LineNumber;
-	m_dwStartChar=0;
-	m_dwEndChar=0;
-	m_dwObjectType = dwObjectType;
-	m_pObjectClass = pPtr;
-}
 
 // Type-safe SetObject implementations (takes ownership of raw pointer)
-void CStatement::SetObject(CParseLoop* p) { FreeObjects(); m_object = p; m_dwObjectType = 1; m_pObjectClass = p; }
-void CStatement::SetObject(CParseType* p) { FreeObjects(); m_object = p; m_dwObjectType = 2; m_pObjectClass = p; }
-void CStatement::SetObject(CParseInit* p) { FreeObjects(); m_object = p; m_dwObjectType = 3; m_pObjectClass = p; }
-void CStatement::SetObject(CParseUserFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 6; m_pObjectClass = p; }
-void CStatement::SetObject(CParseJump* p) { FreeObjects(); m_object = p; m_dwObjectType = 8; m_pObjectClass = p; }
-void CStatement::SetObject(CParseInstruction* p) { FreeObjects(); m_object = p; m_dwObjectType = 11; m_pObjectClass = p; }
-void CStatement::SetObject(CParseFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 12; m_pObjectClass = p; }
-void CStatement::SetObject(CASTAssignment* p) { FreeObjects(); m_object = p; m_dwObjectType = 20; m_pObjectClass = p; }
+void CStatement::SetObject(CParseLoop* p) { FreeObjects(); m_object = p; m_dwObjectType = 1; }
+void CStatement::SetObject(CParseType* p) { FreeObjects(); m_object = p; m_dwObjectType = 2; }
+void CStatement::SetObject(CParseInit* p) { FreeObjects(); m_object = p; m_dwObjectType = 3; }
+void CStatement::SetObject(CParseUserFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 6; }
+void CStatement::SetObject(CParseJump* p) { FreeObjects(); m_object = p; m_dwObjectType = 8; }
+void CStatement::SetObject(CParseInstruction* p) { FreeObjects(); m_object = p; m_dwObjectType = 11; }
+void CStatement::SetObject(CParseFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 12; }
+void CStatement::SetObject(CASTAssignment* p) { FreeObjects(); m_object = p; m_dwObjectType = 20; }
 
 void CStatement::ClearObject()
 {
 	FreeObjects();
-	m_object = std::monostate{};
-	m_dwObjectType = 0;
-	m_pObjectClass = nullptr;
 }
 
 bool CStatement::DoPreScanBlock(DWORD RequiredTerminator)
@@ -338,8 +293,7 @@ CStatement* CStatement::AddInternalStatement(DWORD dwCodeIndex, DWORD dwInternal
 	pInstruction->SetReturnParameter(NULL);
 	pInstruction->SetParameter(NULL);
 	pInstruction->SetLineNumber(dwCodeIndex);
-	pStatement->m_dwObjectType = 11;
-	pStatement->m_pObjectClass = (void*)pInstruction;
+	pStatement->SetObject(pInstruction);
 	pStatement->m_pParameters = NULL;
 	pStatement->SetLineAndCharPos(dwCodeIndex);
 	Add(pStatement);
@@ -682,8 +636,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			// Add The Object To This Statement
 			CStatement *TheObject = new CStatement();
 			TheObject->SetLineAndCharPos(StatementLineNumber);
-			TheObject->m_dwObjectType = 8;
-			TheObject->m_pObjectClass = (void*)pJump;
+			TheObject->SetObject(pJump);
 			this->Add(TheObject);
 		}
 
@@ -1074,7 +1027,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		CStatement* pSkipInitLabelStatement = new CStatement;
 		pSkipInitLabelStatement->m_dwObjectType = 0;
-		pSkipInitLabelStatement->m_pObjectClass = NULL;
 		pSkipInitLabelStatement->SetParameter(pForNextInitParameter);
 		pSkipInitLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pSkipInitLabelStatement);
@@ -1089,7 +1041,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		pTopLabelStatement = new CStatement;
 		pTopLabelStatement->m_dwObjectType = 0;
-		pTopLabelStatement->m_pObjectClass = NULL;
 		pTopLabelStatement->SetParameter(pForNextIncParameter);
 		pTopLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pTopLabelStatement);
@@ -1151,13 +1102,11 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	SAFE_DELETE(pBottomOfLoopInternalLabel);
 
 	// Add The Main Loop Object To Statements
-	TheLoopObject->m_dwObjectType = dwStatementType;
-	TheLoopObject->m_pObjectClass = (void*)pLoop;
+	TheLoopObject->SetObject(pLoop);
 	this->Add(TheLoopObject);
 
 	// Add Empty Statement To Mark LoopEnd Label
 	pBlankStatement->m_dwObjectType = 999;//debug comment
-	pBlankStatement->m_pObjectClass = NULL;
 	pBlankStatement->m_pParameters = NULL;
 	pBlankStatement->SetLineAndCharPos(dwBottomOfLoopLine);
 	this->Add(pBlankStatement);
@@ -1725,8 +1674,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	pJump->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
 
 	// Add The Object To This Statement
-	TheObject->m_dwObjectType = dwStatementType;
-	TheObject->m_pObjectClass = (void*)pJump;
+	TheObject->SetObject(pJump);
 	this->Add(TheObject);
 
 	// End marker is last
@@ -1802,8 +1750,7 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 	pType->SetStartLineNumber(StatementLineNumber);
 	pType->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
 	pTypeBlock->SetLineAndCharPos(StatementLineNumber);
-	pTypeBlock->m_dwObjectType = 2;
-	pTypeBlock->m_pObjectClass = (void*)pType;
+	pTypeBlock->SetObject(pType);
 	return true;
 }
 
@@ -2537,8 +2484,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 
 			// Add The Object To This Statement
 			CStatement *TheObject = new CStatement();
-			TheObject->m_dwObjectType = 3;
-			TheObject->m_pObjectClass = (void*)pInit;
+			TheObject->SetObject(pInit);
 			TheObject->SetLineAndCharPos(StatementLineNumber);
 			this->Add(TheObject);
 		}
@@ -3117,8 +3063,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Add The Object To This Statement
 		CStatement *TheObject = new CStatement();
-		TheObject->m_dwObjectType = dwStatementType;
-		TheObject->m_pObjectClass = (void*)pInstruction;
+		TheObject->SetObject(pInstruction);
 		TheObject->m_pParameters = NULL;
 		TheObject->SetLineAndCharPos(StatementLineNumber);
 		this->Add(TheObject);
@@ -3483,8 +3428,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
-	TheObject->m_dwObjectType = 11;
-	TheObject->m_pObjectClass = (void*)pInstruction;
+	TheObject->SetObject(pInstruction);
 	TheObject->m_pParameters = NULL;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
@@ -3570,8 +3514,7 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
-	TheObject->m_dwObjectType = 11;
-	TheObject->m_pObjectClass = (void*)pInstruction;
+	TheObject->SetObject(pInstruction);
 	TheObject->m_pParameters = NULL;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
@@ -4021,8 +3964,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		AddInternalStatement(StatementLineNumber, IT_INTERNAL_ENDERROR);
 
 		// Add The Object To This Statement
-		TheUserFunctionObject->m_dwObjectType = 6;
-		TheUserFunctionObject->m_pObjectClass = (void*)pUserFunction;
+		TheUserFunctionObject->SetObject(pUserFunction);
 		TheUserFunctionObject->m_pParameters = NULL;
 		TheUserFunctionObject->SetLineAndCharPos(StatementLineNumber);
 		this->Add(TheUserFunctionObject);
@@ -4142,8 +4084,7 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
-	TheObject->m_dwObjectType = 11;
-	TheObject->m_pObjectClass = (void*)pInstruction;
+	TheObject->SetObject(pInstruction);
 	TheObject->m_pParameters = NULL;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
@@ -6160,7 +6101,7 @@ bool CStatement::WriteDBM(void)
 	static char s_Buf[MAX_SCRATCH_BUFFER];
 #endif
 	// Place Description of Program Line Here
-	if(m_dwLineNumber>0 && (m_pParameters || GetObjectClass()))
+	if(m_dwLineNumber>0 && (m_pParameters || HasObject()))
 	{
 		// U73 - 270309 - Paste any lines that may have been missed (ENDFUNCTION lines usually are)
 		WriteDBMBit(0, "", "");
@@ -6257,7 +6198,7 @@ bool CStatement::WriteDBM(void)
 					{
 						// LOOP OBJECT
 						CStatement* pStatementToUse = this;
-						CParseLoop* pLoop = (CParseLoop*)pStatementToUse->GetObjectClass();
+						CParseLoop* pLoop = pStatementToUse->GetObject<CParseLoop>();
 
 						// TOP OF LOOP
 						pLoop->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
@@ -6275,7 +6216,7 @@ bool CStatement::WriteDBM(void)
 					{
 						// TYPE OBJECT
 						CStatement* pStatementToUse = this;
-						CParseType* pType = (CParseType*)pStatementToUse->GetObjectClass();
+						CParseType* pType = pStatementToUse->GetObject<CParseType>();
 						pType->WriteDBM();
 					}
 					break;
@@ -6284,7 +6225,7 @@ bool CStatement::WriteDBM(void)
 					{
 						// DECLARATION OBJECT (Init Part)
 						CStatement* pStatementToUse = this;
-						CParseInit* pInit = (CParseInit*)pStatementToUse->GetObjectClass();
+						CParseInit* pInit = pStatementToUse->GetObject<CParseInit>();
 						pInit->WriteDBM();
 					}
 					break;
@@ -6293,7 +6234,7 @@ bool CStatement::WriteDBM(void)
 					{
 						// USERFUNCTION OBJECT
 						CStatement* pStatementToUse = this;
-						CParseUserFunction* pUserFunction = (CParseUserFunction*)pStatementToUse->GetObjectClass();
+						CParseUserFunction* pUserFunction = pStatementToUse->GetObject<CParseUserFunction>();
 
 						// TOP OF USERFUNCTION
 						pUserFunction->WriteDBM(DBMPLACEMENT_TOP);
@@ -6310,7 +6251,7 @@ bool CStatement::WriteDBM(void)
 					{
 						// JUMP OBJECT
 						CStatement* pStatementToUse = this;
-						CParseJump* pJump = (CParseJump*)pStatementToUse->GetObjectClass();
+						CParseJump* pJump = pStatementToUse->GetObject<CParseJump>();
 
 						// TOP 
 						pJump->WriteDBM(DBMPLACEMENT_TOP);
@@ -6320,7 +6261,7 @@ bool CStatement::WriteDBM(void)
 		case 11 :	// INSTRUCTION Object
 					{
 						CStatement* pStatementToUse = this;
-						CParseInstruction* pInstruction = (CParseInstruction*)pStatementToUse->GetObjectClass();
+						CParseInstruction* pInstruction = pStatementToUse->GetObject<CParseInstruction>();
 						pInstruction->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
 
 						// FUNCTION PRE-CALL CODE
@@ -6331,7 +6272,7 @@ bool CStatement::WriteDBM(void)
 		case 12 :	// FUNCTION Object
 					{
 						CStatement* pStatementToUse = this;
-						CParseFunction* pFunction = (CParseFunction*)pStatementToUse->GetObjectClass();
+						CParseFunction* pFunction = pStatementToUse->GetObject<CParseFunction>();
 
 						// FUNCTION PRE-CALL CODE
 						pFunction->WriteDBM();
@@ -6341,7 +6282,7 @@ bool CStatement::WriteDBM(void)
 		case 20 :	// AST Assignment Object
 					{
 						CStatement* pStatementToUse = this;
-						CASTAssignment* pASTAssignment = (CASTAssignment*)pStatementToUse->GetObjectClass();
+						CASTAssignment* pASTAssignment = pStatementToUse->GetObject<CASTAssignment>();
 						if (pASTAssignment->WriteDBM() == false) return false;
 					}
 					break;
@@ -6357,7 +6298,7 @@ bool CStatement::WriteDBM(void)
 	if(GetObjectType()!=6)
 	{
 		// leefix - 120108 - U71 - dont need RT hook after end of function (and solves line number issue in DBM)
-		if(m_dwLineNumber>0 && (m_pParameters || GetObjectClass()))
+		if(m_dwLineNumber>0 && (m_pParameters || HasObject()))
 		{
 			// If RuntimeErrorOn Mode, generate RUNTIMEERRORJUMP
 			if(m_bPerformJumpChecks && g_pDBPCompiler->GetRuntimeErrorMode())

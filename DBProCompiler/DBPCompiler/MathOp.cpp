@@ -1085,7 +1085,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	pInstruction->SetReturnParameter(pResultStr);
 	pInstruction->SetLabelParam(pFullLabelName);
 	pInstruction->SetInstructionRef(pRef);
-	m_pStatement->SetData(StatementLineNumber, 11, (void*)pInstruction);
+	m_pStatement->SetData(StatementLineNumber, std::unique_ptr<CParseInstruction>(pInstruction));
 
 	// Clear memory usage
 	SAFE_DELETE(pFunctionNameString);
