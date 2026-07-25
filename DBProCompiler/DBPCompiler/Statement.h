@@ -8,6 +8,7 @@
 // Common Includes
 #include "windows.h"
 #include <memory>
+#include <variant>
 
 // Custom Includes
 #include "InstructionTableEntry.h"
@@ -81,6 +82,27 @@
 class CParameter;
 class CDatatype;
 class CMathOp;
+class CParseLoop;
+class CParseType;
+class CParseInit;
+class CParseUserFunction;
+class CParseJump;
+class CParseInstruction;
+class CParseFunction;
+class CASTAssignment;
+
+// Type-safe tagged union for statement objects (replaces void* m_pObjectClass)
+using StatementObject = std::variant<
+	std::monostate,          // empty (legacy type 0, 999)
+	CParseLoop*,             // legacy type 1
+	CParseType*,             // legacy type 2
+	CParseInit*,             // legacy type 3
+	CParseUserFunction*,     // legacy type 6
+	CParseJump*,             // legacy type 8
+	CParseInstruction*,      // legacy type 11
+	CParseFunction*,         // legacy type 12
+	CASTAssignment*          // legacy type 20
+>;
 
 // Class Def
 class CStatement  
@@ -96,6 +118,35 @@ class CStatement
 		CStatement*		FindLastStatement(void);
 		void			SetData(DWORD LineNumber, DWORD m_dwObjectType, void* pPtr);
 		void			SetNext(CStatement* pNext) { m_pNext=pNext; }
+
+		// Type-safe object setters (takes ownership)
+		void			SetObject(CParseLoop* p);
+		void			SetObject(CParseType* p);
+		void			SetObject(CParseInit* p);
+		void			SetObject(CParseUserFunction* p);
+		void			SetObject(CParseJump* p);
+		void			SetObject(CParseInstruction* p);
+		void			SetObject(CParseFunction* p);
+		void			SetObject(CASTAssignment* p);
+
+		// Type-safe object access
+		template<typename T>
+		T* GetObject() const {
+			if (auto* ptr = std::get_if<T*>(&m_object))
+				return *ptr;
+			return nullptr;
+		}
+		bool			HasObject() const { return !std::holds_alternative<std::monostate>(m_object); }
+		void			ClearObject();
+
+		// Type-safe SetData overloads
+		template<typename T>
+		void SetData(DWORD LineNumber, std::unique_ptr<T> pObj) {
+			m_dwLineNumber = LineNumber;
+			m_dwStartChar = 0;
+			m_dwEndChar = 0;
+			SetObject(pObj.release());
+		}
 
 		void			SetLineNumber(DWORD line) { m_dwLineNumber=line; }
 		void			SetObjectType(DWORD type) { m_dwObjectType=type; }
@@ -190,6 +241,7 @@ class CStatement
 		// Object Data
 		DWORD			m_dwObjectType;
 		void			*m_pObjectClass;
+		StatementObject	m_object;
 		std::unique_ptr<CParameter>	m_pParameters;
 
 		// Hierarchy Data

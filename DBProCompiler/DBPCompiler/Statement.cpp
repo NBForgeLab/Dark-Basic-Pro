@@ -166,6 +166,24 @@ void CStatement::SetData(DWORD LineNumber, DWORD dwObjectType, void* pPtr)
 	m_pObjectClass = pPtr;
 }
 
+// Type-safe SetObject implementations (takes ownership of raw pointer)
+void CStatement::SetObject(CParseLoop* p) { FreeObjects(); m_object = p; m_dwObjectType = 1; m_pObjectClass = p; }
+void CStatement::SetObject(CParseType* p) { FreeObjects(); m_object = p; m_dwObjectType = 2; m_pObjectClass = p; }
+void CStatement::SetObject(CParseInit* p) { FreeObjects(); m_object = p; m_dwObjectType = 3; m_pObjectClass = p; }
+void CStatement::SetObject(CParseUserFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 6; m_pObjectClass = p; }
+void CStatement::SetObject(CParseJump* p) { FreeObjects(); m_object = p; m_dwObjectType = 8; m_pObjectClass = p; }
+void CStatement::SetObject(CParseInstruction* p) { FreeObjects(); m_object = p; m_dwObjectType = 11; m_pObjectClass = p; }
+void CStatement::SetObject(CParseFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 12; m_pObjectClass = p; }
+void CStatement::SetObject(CASTAssignment* p) { FreeObjects(); m_object = p; m_dwObjectType = 20; m_pObjectClass = p; }
+
+void CStatement::ClearObject()
+{
+	FreeObjects();
+	m_object = std::monostate{};
+	m_dwObjectType = 0;
+	m_pObjectClass = nullptr;
+}
+
 bool CStatement::DoPreScanBlock(DWORD RequiredTerminator)
 {
 	// Get Next Token from File Data
