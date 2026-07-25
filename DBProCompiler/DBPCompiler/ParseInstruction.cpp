@@ -62,12 +62,12 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		CStr pNull("0");
 
 		// Determine natural mode, and make sure its an offset to get at the UDT element
-		DWORD dwAccessMode = g_pASMWriter->DetMode(pVar->m_pStringToken, pVar->m_dwType, pVar->m_dwDataOffset);
+		DWORD dwAccessMode = g_pASMWriter->DetMode(pVar->m_pStringToken.get(), pVar->m_dwType, pVar->m_dwDataOffset);
 		if ( dwAccessMode==PMODE_MEM ) dwAccessMode=PMODE_MEMOFF;
 		if ( dwAccessMode==PMODE_EBP ) dwAccessMode=PMODE_EBPOFF;
 
 		// PUSH STRING FROM UDT TO STACK
-		g_pASMWriter->WriteASMXtoEAX(dwAccessMode, pVar->m_pStringToken, pVar->m_pAdditionalOffset, 3, iDisplacement);
+		g_pASMWriter->WriteASMXtoEAX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
 		g_pASMWriter->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, 3, iDisplacement);
 		g_pASMWriter->WriteASMComment("PUSH TO STACK", "", "", "");
 
@@ -78,7 +78,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
 
 		// Put EAX overwrites DEST
-		g_pASMWriter->WriteASMEAXtoX(dwAccessMode, pVar->m_pStringToken, pVar->m_pAdditionalOffset, 3, iDisplacement);
+		g_pASMWriter->WriteASMEAXtoX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
 		g_pASMWriter->WriteASMComment("ASSIGN EAX TO X", "", "", "");
 
 		// Pop param data
@@ -215,9 +215,9 @@ bool CParseInstruction::WriteDBMBit(void)
 			{
 				pPutEAXReturnDynCreated = new CResultData;
 				pPutEAXReturn = pPutEAXReturnDynCreated;
-				pPutEAXReturn->m_pStringToken = GetReturnParameter();
+				pPutEAXReturn->m_pStringToken = std::make_unique<CStr>(GetReturnParameter()->GetStr());
 				pPutEAXReturn->m_dwType = m_pRefInstructionEntry->GetReturnParam();
-				pPutEAXReturn->m_pAdditionalOffset = NULL;
+				pPutEAXReturn->m_pAdditionalOffset.reset();
 				pPutEAXReturn->m_dwDataOffset = 0;
 
 				// Ensure Return Param From UserFunction is freed if string or array
@@ -263,20 +263,16 @@ bool CParseInstruction::WriteDBMBit(void)
 							DWORD dwStackSize = dwUDTSize/4;
 							if ( dwStackSize*4!=dwUDTSize )	dwStackSize++;
 							DWORD dwStackSizeInBytes=dwStackSize*4;
-							CStr* pStackSize = new CStr();
-							pStackSize->SetNumericText(dwStackSizeInBytes);
 
 							// Push entire UDT data onto stack (force data through resultstructure)
-							CResultData* pSizeData = new CResultData();
-							pSizeData->m_pStringToken = pStackSize;
-							pSizeData->m_dwDataOffset = dwStackSize;
-							g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, ASMTASK_PUSHUDT, pResultData, pSizeData);
+							CResultData pSizeData;
+							pSizeData.m_pStringToken = std::make_unique<CStr>();
+							pSizeData.m_pStringToken->SetNumericText(dwStackSizeInBytes);
+							pSizeData.m_dwDataOffset = dwStackSize;
+							g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, ASMTASK_PUSHUDT, pResultData, &pSizeData);
 
 							// Record size on stack (for later removal)
 							dwMustPopStack+=dwStackSize;
-
-							// free result with string
-							SAFE_DELETE(pSizeData);
 						}
 						else
 						{
@@ -324,10 +320,10 @@ bool CParseInstruction::WriteDBMBit(void)
 						{
 							pPutEAXReturnDynCreated = new CResultData;
 							pPutEAXReturn = pPutEAXReturnDynCreated;
-							pPutEAXReturn->m_pStringToken = GetReturnParameter();
+							pPutEAXReturn->m_pStringToken = std::make_unique<CStr>(GetReturnParameter()->GetStr());
 							pPutEAXReturn->m_dwType = m_pRefInstructionEntry->GetReturnParam();
 							if(pPutEAXReturn->m_dwType>10 && pPutEAXReturn->m_dwType<20) pPutEAXReturn->m_dwType-=10;//INPUT marks param as an output var by setting type as 11-19
-							pPutEAXReturn->m_pAdditionalOffset = NULL;
+							pPutEAXReturn->m_pAdditionalOffset.reset();
 							pPutEAXReturn->m_dwDataOffset = 0;
 						}
 						else
@@ -413,7 +409,7 @@ bool CParseInstruction::WriteDBMBit(void)
 			// Handle Return Value later..
 			if(pPutEAXReturn)
 			{
-				pPutEAXReturn->m_pStringToken = GetReturnParameter();
+				pPutEAXReturn->m_pStringToken = std::make_unique<CStr>(GetReturnParameter()->GetStr());
 				pPutEAXReturn->m_dwType = m_pRefInstructionEntry->GetReturnParam();
 			}
 
@@ -634,7 +630,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 
 					// Call hard code builder (leefix-260603-passing in all data now as INC can change to ADD)
 //					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, dwASMToBuild, pP1->m_pStringToken, pP1->m_dwType);
-					g_pASMWriter->WriteASMTaskCore(	m_dwLineNumber, dwASMToBuild, pP1->m_pStringToken, pP1->m_pAdditionalOffset, pP1->m_dwType, pP1->m_dwDataOffset, NULL, NULL, 0, 0, NULL, NULL, 0, 0 );
+					g_pASMWriter->WriteASMTaskCore(	m_dwLineNumber, dwASMToBuild, pP1->m_pStringToken.get(), pP1->m_pAdditionalOffset.get(), pP1->m_dwType, pP1->m_dwDataOffset, NULL, NULL, 0, 0, NULL, NULL, 0, 0 );
 				}
 				else
 				{
@@ -645,9 +641,9 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 
 					// Call hard code builder
 					g_pASMWriter->WriteASMTaskCore(	m_dwLineNumber, dwASMToBuild,
-													pP1->m_pStringToken, pP1->m_pAdditionalOffset, pP1->m_dwType, pP1->m_dwDataOffset,
-													pP2->m_pStringToken, pP2->m_pAdditionalOffset, pP2->m_dwType, pP2->m_dwDataOffset,
-													pP1->m_pStringToken, pP1->m_pAdditionalOffset, pP1->m_dwType, pP1->m_dwDataOffset);
+													pP1->m_pStringToken.get(), pP1->m_pAdditionalOffset.get(), pP1->m_dwType, pP1->m_dwDataOffset,
+													pP2->m_pStringToken.get(), pP2->m_pAdditionalOffset.get(), pP2->m_dwType, pP2->m_dwDataOffset,
+													pP1->m_pStringToken.get(), pP1->m_pAdditionalOffset.get(), pP1->m_dwType, pP1->m_dwDataOffset);
 				}
 			}
 			break;
@@ -666,8 +662,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				if(pValue==NULL)
 				{
 					pDynValue = new CResultData();
-					ZeroMemory(pDynValue, sizeof(CResultData));
-					pDynValue->m_pStringToken = new CStr("1");
+					pDynValue->m_pStringToken = std::make_unique<CStr>(const_cast<LPSTR>("1"));
 					pDynValue->m_dwType = pP1->m_dwType % 100;
 					pValue = pDynValue;
 				}
@@ -744,7 +739,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 			DWORD dwReturnDataType = 0;
 			if(pP1)
 			{
-				pReturnData = pP1->m_pStringToken;
+				pReturnData = pP1->m_pStringToken.get();
 				dwReturnDataType = pP1->m_dwType;
 			}
 

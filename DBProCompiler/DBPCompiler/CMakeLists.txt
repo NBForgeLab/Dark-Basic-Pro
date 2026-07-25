@@ -53,6 +53,7 @@ set(LIB_SOURCES
     LabelTable.cpp
     MathOp.cpp
     Parameter.cpp
+    ParserResultData.cpp
     PeExportInspector.cpp
     ParseFunction.cpp
     ParseInit.cpp

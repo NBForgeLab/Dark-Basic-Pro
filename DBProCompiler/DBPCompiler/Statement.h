@@ -295,8 +295,8 @@ class CMathOp
 
 		CResultData* GetResultData(void);
 		CResultData* FindResultData(void);
-		CStr* GetResultStringToken(void) { return m_Result.m_pStringToken; }
-		CStr* GetResultArrayOffset(void) { return m_Result.m_pAdditionalOffset; }
+		CStr* GetResultStringToken(void) { return m_Result.m_pStringToken.get(); }
+		CStr* GetResultArrayOffset(void) { return m_Result.m_pAdditionalOffset.get(); }
 		DWORD GetResultType(void) { return m_Result.m_dwType; }
 		DWORD GetResultDataOffset(void) { return m_Result.m_dwDataOffset; }
 		

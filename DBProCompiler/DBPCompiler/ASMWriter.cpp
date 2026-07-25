@@ -3328,9 +3328,9 @@ bool CASMWriter::WriteASMTaskP1(DWORD dwLine, DWORD dwTask, CResultData* pP1Resu
 	if(pP1Result)
 	{
 		dwP1Type = pP1Result->m_dwType;
-		pP1Str = pP1Result->m_pStringToken;
+		pP1Str = pP1Result->m_pStringToken.get();
 		dwP1Offset = pP1Result->m_dwDataOffset;
-		pP1OffsetStr = pP1Result->m_pAdditionalOffset;
+		pP1OffsetStr = pP1Result->m_pAdditionalOffset.get();
 	}
 	return WriteASMTaskCore(dwLine, dwTask, pP1Str, pP1OffsetStr, dwP1Type, dwP1Offset, NULL, NULL, 0, 0);
 }
@@ -3348,16 +3348,16 @@ bool CASMWriter::WriteASMTaskP2(DWORD dwLine, DWORD dwTask, CResultData* pP1Resu
 	if(pP1Result)
 	{
 		dwP1Type = pP1Result->m_dwType;
-		pP1Str = pP1Result->m_pStringToken;
+		pP1Str = pP1Result->m_pStringToken.get();
 		dwP1Offset = pP1Result->m_dwDataOffset;
-		pP1OffsetStr = pP1Result->m_pAdditionalOffset;
+		pP1OffsetStr = pP1Result->m_pAdditionalOffset.get();
 	}
 	if(pP2Result)
 	{
 		dwP2Type = pP2Result->m_dwType;
-		pP2Str = pP2Result->m_pStringToken;
+		pP2Str = pP2Result->m_pStringToken.get();
 		dwP2Offset = pP2Result->m_dwDataOffset;
-		pP2OffsetStr = pP2Result->m_pAdditionalOffset;
+		pP2OffsetStr = pP2Result->m_pAdditionalOffset.get();
 	}
 	return WriteASMTaskCore(dwLine, dwTask, pP1Str, pP1OffsetStr, dwP1Type, dwP1Offset, pP2Str, pP2OffsetStr, dwP2Type, dwP2Offset);
 }
@@ -3378,23 +3378,23 @@ bool CASMWriter::WriteASMTaskP3(DWORD dwLine, DWORD dwTask, CResultData* pP1Resu
 	if(pP1Result)
 	{
 		dwP1Type = pP1Result->m_dwType;
-		pP1Str = pP1Result->m_pStringToken;
+		pP1Str = pP1Result->m_pStringToken.get();
 		dwP1Offset = pP1Result->m_dwDataOffset;
-		pP1OffsetStr = pP1Result->m_pAdditionalOffset;
+		pP1OffsetStr = pP1Result->m_pAdditionalOffset.get();
 	}
 	if(pP2Result)
 	{
 		dwP2Type = pP2Result->m_dwType;
-		pP2Str = pP2Result->m_pStringToken;
+		pP2Str = pP2Result->m_pStringToken.get();
 		dwP2Offset = pP2Result->m_dwDataOffset;
-		pP2OffsetStr = pP2Result->m_pAdditionalOffset;
+		pP2OffsetStr = pP2Result->m_pAdditionalOffset.get();
 	}
 	if(pP3Result)
 	{
 		dwP3Type = pP3Result->m_dwType;
-		pP3Str = pP3Result->m_pStringToken;
+		pP3Str = pP3Result->m_pStringToken.get();
 		dwP3Offset = pP3Result->m_dwDataOffset;
-		pP3OffsetStr = pP3Result->m_pAdditionalOffset;
+		pP3OffsetStr = pP3Result->m_pAdditionalOffset.get();
 	}
 	return WriteASMTaskCore(dwLine, dwTask, pP1Str, pP1OffsetStr, dwP1Type, dwP1Offset, pP2Str, pP2OffsetStr, dwP2Type, dwP2Offset, pP3Str, pP3OffsetStr, dwP3Type, dwP3Offset);
 }

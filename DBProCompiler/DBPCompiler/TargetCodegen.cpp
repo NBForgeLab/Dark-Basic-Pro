@@ -46,12 +46,13 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 CStr varName(const_cast<LPSTR>(decorated.c_str()));
                 if (pVar && pScope && stricmp(pScope, "") != 0) {
                     CResultData rd;
-                    rd.m_pStringToken = &varName;
-                    rd.m_pAdditionalOffset = NULL;
+                    rd.m_pStringToken.reset(&varName);
+                    rd.m_pAdditionalOffset.reset();
                     rd.m_dwType = dwType;
                     rd.m_dwDataOffset = dwOffset;
                     rd.m_pStruct = pStruct;
                     varName.TranslateForDBM(&rd);
+                    rd.m_pStringToken.release(); // non-owning: don't delete stack variable
                     dwOffset = 0;
                 }
 
@@ -101,12 +102,13 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 CStr varName(const_cast<LPSTR>(decorated.c_str()));
                 if (pScope && stricmp(pScope, "") != 0) {
                     CResultData rd;
-                    rd.m_pStringToken = &varName;
-                    rd.m_pAdditionalOffset = NULL;
+                    rd.m_pStringToken.reset(&varName);
+                    rd.m_pAdditionalOffset.reset();
                     rd.m_dwType = dwType;
                     rd.m_dwDataOffset = dwOffset;
                     rd.m_pStruct = pStruct;
                     varName.TranslateForDBM(&rd);
+                    rd.m_pStringToken.release(); // non-owning: don't delete stack variable
                     dwOffset = 0;
                 }
 

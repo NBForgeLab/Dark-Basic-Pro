@@ -34,8 +34,8 @@ CMathOp::CMathOp()
 {
 	m_dwLineNumber=0;
 
-	m_Result.m_pStringToken=NULL;
-	m_Result.m_pAdditionalOffset=NULL;
+	m_Result.m_pStringToken.reset();
+	m_Result.m_pAdditionalOffset.reset();
 	m_Result.m_dwType=0;
 	m_Result.m_dwDataOffset=0;
 
@@ -47,8 +47,7 @@ CMathOp::CMathOp()
 
 CMathOp::~CMathOp()
 {
-	SAFE_DELETE(m_Result.m_pStringToken);
-	SAFE_DELETE(m_Result.m_pAdditionalOffset);
+	// m_Result cleanup handled by unique_ptr members automatically
 }
 
 void CMathOp::Add(CMathOp* pNext)
@@ -61,24 +60,19 @@ void CMathOp::Add(CMathOp* pNext)
 
 void CMathOp::SetResult(LPSTR pString, DWORD dwType, DWORD dwDataOffset)
 {
-	SAFE_DELETE(m_Result.m_pStringToken);
-	m_Result.m_pStringToken = new CStr(pString);
+	m_Result.m_pStringToken = std::make_unique<CStr>(pString);
 	m_Result.m_dwType = dwType;
 	m_Result.m_dwDataOffset = dwDataOffset;
 }
 
 void CMathOp::SetResultData(CResultData ResultData)
 {
-	SAFE_DELETE(m_Result.m_pStringToken);
-	m_Result = ResultData;
-	if ( ResultData.m_pStringToken ) m_Result.m_pStringToken = new CStr(ResultData.m_pStringToken->GetStr());
-	if ( ResultData.m_pAdditionalOffset ) m_Result.m_pAdditionalOffset = new CStr(ResultData.m_pAdditionalOffset->GetStr());
+	m_Result = ResultData; // deep copy via CResultData copy assignment
 }
 
 void CMathOp::SetArrayOffsetResult(LPSTR pString)
 {
-	SAFE_DELETE(m_Result.m_pAdditionalOffset);
-	m_Result.m_pAdditionalOffset = new CStr(pString);
+	m_Result.m_pAdditionalOffset = std::make_unique<CStr>(pString);
 }
 
 CStr* CMathOp::FindResultStringTokenForDBM(void)
@@ -90,7 +84,7 @@ CStr* CMathOp::FindResultStringTokenForDBM(void)
 		{
 			return NULL;
 		}
-		return m_Result.m_pStringToken;
+		return m_Result.m_pStringToken.get();
 	}
 	else
 	{
@@ -229,11 +223,11 @@ bool CMathOp::DoValue(CStr* pExpression)
 		m_dwMathSymbol=0;
 
 		// Determine if function, array, variable or value
-		CStr* pExpressionValue = NULL;
+		std::unique_ptr<CStr> pExpressionValue;
 		if(pExpression)
 		{
 			// Create the exp value
-			pExpressionValue = new CStr(1);
+			pExpressionValue = std::make_unique<CStr>(1);
 			pExpressionValue->SetText(pExpression);
 
 			// leeadd - U71 - 111008 - if scientific notation
@@ -249,55 +243,50 @@ bool CMathOp::DoValue(CStr* pExpression)
 
 			if(g_pStatementList->GetAllowLabelAsValue()==true)
 			{
-				if(dwExpValueType==0 && IsLabel(pExpressionValue))			dwExpValueType=5;
+				if(dwExpValueType==0 && IsLabel(pExpressionValue.get()))			dwExpValueType=5;
 			}
-			if(dwExpValueType==0 && IsFunction(pExpressionValue))			dwExpValueType=1;
-			if(dwExpValueType==0 && IsReserved(pExpressionValue))			dwExpValueType=6;
-			if(dwExpValueType==0 && IsLiteral(pExpressionValue, &dwType))	dwExpValueType=2;
-			if(dwExpValueType==0 && IsSingleVariable(pExpressionValue))		dwExpValueType=3;
-			if(dwExpValueType==0 && IsComplexVariable(pExpressionValue))	dwExpValueType=4;
+			if(dwExpValueType==0 && IsFunction(pExpressionValue.get()))			dwExpValueType=1;
+			if(dwExpValueType==0 && IsReserved(pExpressionValue.get()))			dwExpValueType=6;
+			if(dwExpValueType==0 && IsLiteral(pExpressionValue.get(), &dwType))	dwExpValueType=2;
+			if(dwExpValueType==0 && IsSingleVariable(pExpressionValue.get()))		dwExpValueType=3;
+			if(dwExpValueType==0 && IsComplexVariable(pExpressionValue.get()))	dwExpValueType=4;
 			if(dwExpValueType>0)
 			{
 				if(dwExpValueType==1)
 				{
-					if(DoValueFunction(pExpressionValue)==false)
+					if(DoValueFunction(pExpressionValue.get())==false)
 					{
-						SAFE_DELETE(pExpressionValue);
 						return false;
 					}
 				}
 				if(dwExpValueType==2)
 				{
-					if(DoValueLiteral(pExpressionValue, dwType)==false)
+					if(DoValueLiteral(pExpressionValue.get(), dwType)==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to DoValueLiteral");
-						SAFE_DELETE(pExpressionValue);
 						return false;
 					}
 				}
 				if(dwExpValueType==3)
 				{
-					if(DoValueSingleVariable(pExpressionValue)==false)
+					if(DoValueSingleVariable(pExpressionValue.get())==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to DoValueSingleVariable");
-						SAFE_DELETE(pExpressionValue);
 						return false;
 					}
 				}
 				if(dwExpValueType==4)
 				{
-					if(DoValueComplexVariable(pExpressionValue)==false)
+					if(DoValueComplexVariable(pExpressionValue.get())==false)
 					{
-						SAFE_DELETE(pExpressionValue);
 						return false;
 					}
 				}
 				if(dwExpValueType==5)
 				{
-					if(DoValueLabel(pExpressionValue)==false)
+					if(DoValueLabel(pExpressionValue.get())==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to DoValueLabel");
-						SAFE_DELETE(pExpressionValue);
 						return false;
 					}
 				}
@@ -305,10 +294,9 @@ bool CMathOp::DoValue(CStr* pExpression)
 				{
 					DWORD dwLine = g_pStatementList->GetTokenLineNumber();
 					g_pErrorReport->SetError(dwLine, ERR_SYNTAX+60, pExpressionValue->GetStr());
-					SAFE_DELETE(pExpressionValue);
 					return false;
 				}
-				SAFE_DELETE(pExpressionValue);
+				pExpressionValue.reset();
 			}
 		}
 
@@ -317,17 +305,16 @@ bool CMathOp::DoValue(CStr* pExpression)
 		{
 			DWORD dwLine = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(dwLine, ERR_SYNTAX+1, pExpressionValue->GetStr());
-			SAFE_DELETE(pExpressionValue);
 			return false;
 		}
 	}
 	else
 	{
 		// Get Both Sides as strings
-		LPSTR pLeftText = pExpression->GetLeftOfPosition(dwPosition);
-		LPSTR pRightText = pExpression->GetRightOfPosition(dwPosition+dwMathSymbolWidth);
-		CStr StrLeft = CStr(pLeftText);
-		CStr StrRight = CStr(pRightText);
+		std::unique_ptr<char[]> pLeftText(pExpression->GetLeftOfPosition(dwPosition));
+		std::unique_ptr<char[]> pRightText(pExpression->GetRightOfPosition(dwPosition+dwMathSymbolWidth));
+		CStr StrLeft = CStr(pLeftText.get());
+		CStr StrRight = CStr(pRightText.get());
 		// LEEFIX - 201102 - Added prechop space eat as a string such as " -1" would actually chop before the minus
 		// LEEFIX - 211102 - Put dwLeftEaten/dwRightEaten as the rightmostpos was being calculated incorrectly for later
 		DWORD dwLeftEaten=0, dwRightEaten=0;
@@ -340,8 +327,6 @@ bool CMathOp::DoValue(CStr* pExpression)
 		StrLeft.EatEdgeSpacesandTabs(NULL);
 		StrRight.EatEdgeSpacesandTabs(NULL);
 		dwRightMostPos=dwPosition+dwMathSymbolWidth+dwRightMostPos;
-		SAFE_DELETE(pRightText);
-		SAFE_DELETE(pLeftText);
 
 // LEEFIX - 230604 - IS IT NEEDED ANY MORE? AS -X IS DONE ELSEWHEER (I THINK)
 //		// DOES THIS WORK FOR ALL UNARY OPERATORS?
@@ -638,16 +623,14 @@ bool CMathOp::DoValue(CStr* pExpression)
 		ProduceNewTempToken(&TempVarToken, dwTypeMode);
 
 		// Take Remainder of String and combine with temp var token from math result
-		LPSTR pRemainderLeftText = pExpression->GetLeftOfPosition(dwLeftMostPos);
-		LPSTR pRemainderRightText = pExpression->GetRightOfPosition(dwRightMostPos);
-		CStr StrRemainderLeft = CStr(pRemainderLeftText);
-		CStr StrRemainderRight = CStr(pRemainderRightText);
+		std::unique_ptr<char[]> pRemainderLeftText(pExpression->GetLeftOfPosition(dwLeftMostPos));
+		std::unique_ptr<char[]> pRemainderRightText(pExpression->GetRightOfPosition(dwRightMostPos));
+		CStr StrRemainderLeft = CStr(pRemainderLeftText.get());
+		CStr StrRemainderRight = CStr(pRemainderRightText.get());
 		CStr strNewString(1);
 		strNewString.SetText(&StrRemainderLeft);
 		strNewString.AddText(&TempVarToken);
 		strNewString.AddText(&StrRemainderRight);
-		SAFE_DELETE(pRemainderLeftText);
-		SAFE_DELETE(pRemainderRightText);
 
 		// Store Result String Token
 		SetResult(TempVarToken.GetStr(), dwTypeMode, 0);
@@ -658,8 +641,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 		if(m_pRightMathOp->GetResultOffsetLValueTypeValue()>0) dwDiscoveredOffsetLValueTypeValue = m_pRightMathOp->GetResultOffsetLValueTypeValue();
 
 		// Traverse until no more
-		CMathOp* pAnotherMathOp = new CMathOp;
-		if(pAnotherMathOp)
+		auto pAnotherMathOp = std::make_unique<CMathOp>();
 		{
 			// Travserse remaining maths
 			pAnotherMathOp->m_dwOffsetLValueTypeValue = dwDiscoveredOffsetLValueTypeValue;
@@ -668,14 +650,13 @@ bool CMathOp::DoValue(CStr* pExpression)
 				g_pErrorReport->AddErrorString("Failed to 'DoValue::pAnotherMathOp->DoValue'");
 				m_pRightMathOp.reset();
 				m_pLeftMathOp.reset();
-				SAFE_DELETE(pAnotherMathOp);
 				return false;
 			}
 
 			// If new math item redundant (it doesn't do maths, delete it)
 			if(pAnotherMathOp->GetMathSymbol()==0)
 			{
-				SAFE_DELETE(pAnotherMathOp);
+				pAnotherMathOp.reset();
 			}
 
 			// Ensure Offset L-Value is not forgotten
@@ -685,14 +666,15 @@ bool CMathOp::DoValue(CStr* pExpression)
 			}
 
 			// Add onto chain if still valid
-			if(pAnotherMathOp) Add(pAnotherMathOp);
-		}
+			CMathOp* pAddedMathOp = pAnotherMathOp.get();
+			if(pAnotherMathOp) Add(pAnotherMathOp.release());
 
-		// Carry back Offset LValue Type Value
-		if(pAnotherMathOp)
-			m_dwOffsetLValueTypeValue = pAnotherMathOp->GetResultOffsetLValueTypeValue();
-		else
-			m_dwOffsetLValueTypeValue = dwDiscoveredOffsetLValueTypeValue;
+			// Carry back Offset LValue Type Value
+			if(pAddedMathOp)
+				m_dwOffsetLValueTypeValue = pAddedMathOp->GetResultOffsetLValueTypeValue();
+			else
+				m_dwOffsetLValueTypeValue = dwDiscoveredOffsetLValueTypeValue;
+		}
 	}
 
 	// Complete
@@ -782,17 +764,17 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	//
 
 	// Process Value as Function
-	CStr* pFunctionNameString = new CStr(1);
-	CStr* pFunctionDataString = new CStr(1);
+	auto pFunctionNameString = std::make_unique<CStr>(1);
+	auto pFunctionDataString = std::make_unique<CStr>(1);
 	pFunctionNameString->SetText(pExpressionValue);
 	pFunctionDataString->SetText(pExpressionValue);
 	DWORD dwPos = pFunctionDataString->FindFirstChar('(');
-	LPSTR pLeft = pFunctionNameString->GetLeftOfPosition(dwPos);
-	LPSTR pRight = pFunctionDataString->GetRightOfPosition(dwPos);
-	pFunctionNameString->SetText(pLeft);
-	pFunctionDataString->SetText(pRight);
-	SAFE_DELETE(pLeft);
-	SAFE_DELETE(pRight);
+	{
+		std::unique_ptr<char[]> pLeft(pFunctionNameString->GetLeftOfPosition(dwPos));
+		std::unique_ptr<char[]> pRight(pFunctionDataString->GetRightOfPosition(dwPos));
+		pFunctionNameString->SetText(pLeft.get());
+		pFunctionDataString->SetText(pRight.get());
+	}
 
 	// Get Details of instruction
 	CInstructionTableEntry* pRef = g_pStatementList->GetInstructionRef();
@@ -803,11 +785,9 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	// Create param chain from param string
 	m_pStatement = std::make_unique<CStatement>();
 	CParameter* pFirstParameter = NULL;
-	if(m_pStatement->DoParameterListString(pFunctionDataString, &pFirstParameter)==false)
+	if(m_pStatement->DoParameterListString(pFunctionDataString.get(), &pFirstParameter)==false)
 	{
 		g_pErrorReport->SetError ( g_pStatementList->GetLineNumber(), ERR_SYNTAX+55, pFunctionNameString->GetStr() );
-		SAFE_DELETE(pFunctionNameString);
-		SAFE_DELETE(pFunctionDataString);
 		SAFE_DELETE(pFirstParameter);
 		m_pStatement.reset();
 		return false;
@@ -827,8 +807,8 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 
 	// Special invalid param reason
 	int iInvalidParamReason=0;
-	LPSTR pValidEntryStr = NULL;
-	LPSTR pFunctionTypeStr = NULL;
+	std::unique_ptr<char[]> pValidEntryStr;
+	std::unique_ptr<char[]> pFunctionTypeStr;
 
 	// Scan Each Matching Instruction and find match with parameters used, else error
 	DWORD dwScoreBestMatch=0;
@@ -894,12 +874,10 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 										if ( stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=NULL )
 										{
 											iInvalidParamReason=2;
-											SAFE_DELETE ( pValidEntryStr );
-											pValidEntryStr = new char [ strlen(pValidEntryRef->GetName()->GetStr())+1 ];
-											strcpy ( pValidEntryStr, pValidEntryRef->GetName()->GetStr() );
-											SAFE_DELETE ( pFunctionTypeStr );
-											pFunctionTypeStr = new char [ strlen(pFunctionTypeName->GetStr())+1 ];
-											strcpy ( pFunctionTypeStr, pFunctionTypeName->GetStr() );
+											pValidEntryStr.reset(new char [ strlen(pValidEntryRef->GetName()->GetStr())+1 ]);
+											strcpy ( pValidEntryStr.get(), pValidEntryRef->GetName()->GetStr() );
+											pFunctionTypeStr.reset(new char [ strlen(pFunctionTypeName->GetStr())+1 ]);
+											strcpy ( pFunctionTypeStr.get(), pFunctionTypeName->GetStr() );
 											//g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+8, pValidEntryRef->GetName()->GetStr(), pFunctionTypeName->GetStr());
 											bInValidParams=true;
 											break;
@@ -1022,7 +1000,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 							g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+46, pFunctionNameString->GetStr());
 							break;
 				case 2 :	// Function dec error
-							g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+8, pValidEntryStr, pFunctionTypeStr);
+							g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+8, pValidEntryStr.get(), pFunctionTypeStr.get());
 							break;
 
 				case 3 :	// Function dec error
@@ -1031,16 +1009,14 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 			}
 		}
 
-		SAFE_DELETE(pFunctionNameString);
-		SAFE_DELETE(pFunctionDataString);
 		SAFE_DELETE(pFirstParameter);
 		m_pStatement.reset();
 		return false;
 	}
 
 	// free usages
-	SAFE_DELETE(pValidEntryStr);
-	SAFE_DELETE(pFunctionTypeStr);
+	pValidEntryStr.reset();
+	pFunctionTypeStr.reset();
 
 	// Run through parameters of validated user function and make any required casts
 	if(pRef)
@@ -1088,8 +1064,8 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	m_pStatement->SetData(StatementLineNumber, std::unique_ptr<CParseInstruction>(pInstruction));
 
 	// Clear memory usage
-	SAFE_DELETE(pFunctionNameString);
-	SAFE_DELETE(pFunctionDataString);
+	pFunctionNameString.reset();
+	pFunctionDataString.reset();
 
 	// Complete
 	return true;
@@ -1101,19 +1077,18 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 	DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 
 	// Create name to begin structure search
-	CStr* pFirstName = NULL;
+	std::unique_ptr<CStr> pFirstName;
 	if(dwArrayType==1)
 	{
-		pFirstName = new CStr("&");
+		pFirstName = std::make_unique<CStr>(const_cast<LPSTR>("&"));
 		pFirstName->AddText(pVarName->GetStr());
 	}
 	else
-		pFirstName = new CStr(pVarName->GetStr());
+		pFirstName = std::make_unique<CStr>(pVarName->GetStr());
 	
 	if(pFirstName->Length()==0)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'Calculate DataOffsetAndTypeFromFieldString::pFirstName->Length()==0'");
-		SAFE_DELETE(pFirstName);
 		return false;
 	}
 
@@ -1127,7 +1102,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 		if(g_pVarTable->FindTypeOfVariable(pFirstName->GetStr(), dwArrayType, &pTypeName)==false)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+5, pFirstName->GetStr());
-			SAFE_DELETE(pFirstName);
 			SAFE_DELETE(pTypeName);
 			return false;
 		}
@@ -1135,7 +1109,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 	else
 	{
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+6, pFirstName->GetStr());
-		SAFE_DELETE(pFirstName);
 		return false;
 	}
 
@@ -1165,7 +1138,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 				char pErrorDetail[512];
 				sprintf_s(pErrorDetail, 512, "Failed to 'Calculate DataOffsetAndTypeFromFieldString' : %s %s %s %s", pVarName->GetStr(), pFieldData->GetStr(), pFirstName->GetStr(), pTypeName );
 				g_pErrorReport->AddErrorString(pErrorDetail);
-				SAFE_DELETE(pFirstName);
 				SAFE_DELETE(pTypeName);
 				return false;
 			}
@@ -1183,7 +1155,7 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 					dwEndNewName=n;
 
 				// Get fieldname
-				CStr* pFieldname = new CStr(1);
+				auto pFieldname = std::make_unique<CStr>(1);
 				for(DWORD o=iStartNewName; o<dwEndNewName; o++)
 					pFieldname->AddChar(pFieldData->GetChar(o));
 
@@ -1209,8 +1181,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 				{
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+38, pFieldname->GetStr(), pTypeName);
 					SAFE_DELETE(pTypeName);
-					SAFE_DELETE(pFieldname);
-					SAFE_DELETE(pFirstName);
 					return false;
 				}
 
@@ -1224,9 +1194,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 				// If field is still traversing type-nest, apply offset
 				dwTrackOffsetToActualData+=dwFieldOffset;
 
-				// Free field name
-				SAFE_DELETE(pFieldname);
-
 				// Restart and add non-ltr char too (ony if not at end of string)
 				if(n<length-1)
 				{
@@ -1238,7 +1205,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 	}
 
 	SAFE_DELETE(pTypeName);
-	SAFE_DELETE(pFirstName);
 
 	// Return Data gathered from traversal
 	*pdwLType=dwTrackLastValidLValueFieldType;
@@ -2616,9 +2582,9 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		if(GetResultData()->m_pStringToken) GetResultData()->m_pStringToken->TranslateForDBM(GetResultData());
 		if(GetResultData()->m_pAdditionalOffset) GetResultData()->m_pAdditionalOffset->TranslateForDBM(GetResultData());
 		g_pASMWriter->WriteASMTaskCore(	m_dwLineNumber, dwASMToBuild,
-										pA->m_pStringToken, pA->m_pAdditionalOffset, pA->m_dwType, pA->m_dwDataOffset,
-										pB->m_pStringToken, pB->m_pAdditionalOffset, pB->m_dwType, pB->m_dwDataOffset,
-										GetResultData()->m_pStringToken, GetResultData()->m_pAdditionalOffset, GetResultData()->m_dwType, GetResultData()->m_dwDataOffset);
+										pA->m_pStringToken.get(), pA->m_pAdditionalOffset.get(), pA->m_dwType, pA->m_dwDataOffset,
+										pB->m_pStringToken.get(), pB->m_pAdditionalOffset.get(), pB->m_dwType, pB->m_dwDataOffset,
+										GetResultData()->m_pStringToken.get(), GetResultData()->m_pAdditionalOffset.get(), GetResultData()->m_dwType, GetResultData()->m_dwDataOffset);
 	}
 	else
 	{
