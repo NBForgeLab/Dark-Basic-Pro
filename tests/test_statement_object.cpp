@@ -19,64 +19,71 @@
 // --- Test: Default-constructed CStatement holds no object ---
 TEST(StatementObjectTest, DefaultConstructedHoldsNoObject) {
     CStatement stmt;
-    EXPECT_EQ(stmt.GetObjectType(), 0u);
     EXPECT_FALSE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseInstruction>(), nullptr);
 }
 
-// --- Test: SetObject with CParseInstruction sets correct type ---
+// --- Test: SetObject with CParseInstruction stores correct type ---
 TEST(StatementObjectTest, SetInstructionObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseInstruction());
-    EXPECT_EQ(stmt.GetObjectType(), 11u);
+    auto* p = new CParseInstruction();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseInstruction>(), p);
 }
 
-// --- Test: SetObject with CParseLoop sets correct type ---
+// --- Test: SetObject with CParseLoop stores correct type ---
 TEST(StatementObjectTest, SetLoopObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseLoop());
-    EXPECT_EQ(stmt.GetObjectType(), 1u);
+    auto* p = new CParseLoop();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseLoop>(), p);
 }
 
-// --- Test: SetObject with CParseJump sets correct type ---
+// --- Test: SetObject with CParseJump stores correct type ---
 TEST(StatementObjectTest, SetJumpObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseJump());
-    EXPECT_EQ(stmt.GetObjectType(), 8u);
+    auto* p = new CParseJump();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseJump>(), p);
 }
 
-// --- Test: SetObject with CParseType sets correct type ---
+// --- Test: SetObject with CParseType stores correct type ---
 TEST(StatementObjectTest, SetTypeObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseType());
-    EXPECT_EQ(stmt.GetObjectType(), 2u);
+    auto* p = new CParseType();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseType>(), p);
 }
 
-// --- Test: SetObject with CParseInit sets correct type ---
+// --- Test: SetObject with CParseInit stores correct type ---
 TEST(StatementObjectTest, SetInitObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseInit());
-    EXPECT_EQ(stmt.GetObjectType(), 3u);
+    auto* p = new CParseInit();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseInit>(), p);
 }
 
-// --- Test: SetObject with CParseUserFunction sets correct type ---
+// --- Test: SetObject with CParseUserFunction stores correct type ---
 TEST(StatementObjectTest, SetUserFunctionObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseUserFunction());
-    EXPECT_EQ(stmt.GetObjectType(), 6u);
+    auto* p = new CParseUserFunction();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseUserFunction>(), p);
 }
 
-// --- Test: SetObject with CParseFunction sets correct type ---
+// --- Test: SetObject with CParseFunction stores correct type ---
 TEST(StatementObjectTest, SetFunctionObjectReportsCorrectType) {
     CStatement stmt;
-    stmt.SetObject(new CParseFunction());
-    EXPECT_EQ(stmt.GetObjectType(), 12u);
+    auto* p = new CParseFunction();
+    stmt.SetObject(p);
     EXPECT_TRUE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseFunction>(), p);
 }
 
 // --- Test: GetObject returns correct typed pointer ---
@@ -106,8 +113,10 @@ TEST(StatementObjectTest, DestructionFreesObject) {
 TEST(StatementObjectTest, ReplacingObjectFreesPrevious) {
     CStatement stmt;
     stmt.SetObject(new CParseLoop());
-    stmt.SetObject(new CParseJump()); // previous CParseLoop freed
-    EXPECT_EQ(stmt.GetObjectType(), 8u);
+    auto* pJump = new CParseJump();
+    stmt.SetObject(pJump); // previous CParseLoop freed
+    EXPECT_EQ(stmt.GetObject<CParseJump>(), pJump);
+    EXPECT_EQ(stmt.GetObject<CParseLoop>(), nullptr);
 }
 
 // --- Test: ClearObject resets to empty ---
@@ -115,16 +124,16 @@ TEST(StatementObjectTest, ClearObjectResetsToEmpty) {
     CStatement stmt;
     stmt.SetObject(new CParseInstruction());
     stmt.ClearObject();
-    EXPECT_EQ(stmt.GetObjectType(), 0u);
     EXPECT_FALSE(stmt.HasObject());
+    EXPECT_EQ(stmt.GetObject<CParseInstruction>(), nullptr);
 }
 
-// --- Test: Legacy SetData overload works for backward compatibility ---
-TEST(StatementObjectTest, LegacySetDataSetsLineAndObject) {
+// --- Test: SetData template sets line and object ---
+TEST(StatementObjectTest, SetDataSetsLineAndObject) {
     CStatement stmt;
-    auto pLoop = new CParseLoop();
+    auto* pLoop = new CParseLoop();
     stmt.SetData(42, std::unique_ptr<CParseLoop>(pLoop));
     EXPECT_EQ(stmt.GetLineNumber(), 42u);
-    EXPECT_EQ(stmt.GetObjectType(), 1u);
     EXPECT_EQ(stmt.GetObject<CParseLoop>(), pLoop);
+    EXPECT_TRUE(stmt.HasObject());
 }

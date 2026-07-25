@@ -64,8 +64,6 @@ CStatement::CStatement()
 	m_dwEndChar=0;
 	m_bPerformJumpChecks=true; 
 
-	m_dwObjectType=0;
-
 	m_pNext=NULL;
 }
 
@@ -96,7 +94,6 @@ void CStatement::FreeObjects(void)
 		}
 	}, m_object);
 	m_object = std::monostate{};
-	m_dwObjectType = 0;
 }
 
 void CStatement::Add(CStatement *pNext)
@@ -125,14 +122,14 @@ CStatement* CStatement::FindLastStatement(void)
 
 
 // Type-safe SetObject implementations (takes ownership of raw pointer)
-void CStatement::SetObject(CParseLoop* p) { FreeObjects(); m_object = p; m_dwObjectType = 1; }
-void CStatement::SetObject(CParseType* p) { FreeObjects(); m_object = p; m_dwObjectType = 2; }
-void CStatement::SetObject(CParseInit* p) { FreeObjects(); m_object = p; m_dwObjectType = 3; }
-void CStatement::SetObject(CParseUserFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 6; }
-void CStatement::SetObject(CParseJump* p) { FreeObjects(); m_object = p; m_dwObjectType = 8; }
-void CStatement::SetObject(CParseInstruction* p) { FreeObjects(); m_object = p; m_dwObjectType = 11; }
-void CStatement::SetObject(CParseFunction* p) { FreeObjects(); m_object = p; m_dwObjectType = 12; }
-void CStatement::SetObject(CASTAssignment* p) { FreeObjects(); m_object = p; m_dwObjectType = 20; }
+void CStatement::SetObject(CParseLoop* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CParseType* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CParseInit* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CParseUserFunction* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CParseJump* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CParseInstruction* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CParseFunction* p) { FreeObjects(); m_object = p; }
+void CStatement::SetObject(CASTAssignment* p) { FreeObjects(); m_object = p; }
 
 void CStatement::ClearObject()
 {
@@ -1026,7 +1023,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	if(pForNextInitParameter)
 	{
 		CStatement* pSkipInitLabelStatement = new CStatement;
-		pSkipInitLabelStatement->m_dwObjectType = 0;
 		pSkipInitLabelStatement->SetParameter(pForNextInitParameter);
 		pSkipInitLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pSkipInitLabelStatement);
@@ -1040,7 +1036,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	if(dwLoopType==LOOPTYPE_FORNEXT)
 	{
 		pTopLabelStatement = new CStatement;
-		pTopLabelStatement->m_dwObjectType = 0;
 		pTopLabelStatement->SetParameter(pForNextIncParameter);
 		pTopLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pTopLabelStatement);
@@ -1106,7 +1101,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	this->Add(TheLoopObject);
 
 	// Add Empty Statement To Mark LoopEnd Label
-	pBlankStatement->m_dwObjectType = 999;//debug comment
 	pBlankStatement->m_pParameters = NULL;
 	pBlankStatement->SetLineAndCharPos(dwBottomOfLoopLine);
 	this->Add(pBlankStatement);
@@ -6183,119 +6177,65 @@ bool CStatement::WriteDBM(void)
 	// Update label byte offset
 	g_pStatementList->UpdateLineDBMData(this);
 
-	// Proceed to write specific DBM Code
-	switch(GetObjectType())
+	// Proceed to write specific DBM Code — type-safe dispatch via variant
+	if (auto* pLoop = GetObject<CParseLoop>())
 	{
-		case 0 :	// Blank Object
-					if(m_pParameters)
-					{
-						// Sometimes contains inter-code (like fornextinitcode)
-						m_pParameters->WriteDBM();
-					}
-					break;
-
-		case 1 :	// LOOP Object
-					{
-						// LOOP OBJECT
-						CStatement* pStatementToUse = this;
-						CParseLoop* pLoop = pStatementToUse->GetObject<CParseLoop>();
-
-						// TOP OF LOOP
-						pLoop->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
-						pLoop->WriteDBM(DBMPLACEMENT_TOP);
-
-						// LOOP CONTENTS
-						pLoop->GetBlock()->WriteDBM();
-
-						// END OF LOOP
-						pLoop->WriteDBM(DBMPLACEMENT_BOTTOM);
-					}
-					break;
-
-		case 2 :	// TYPE Object
-					{
-						// TYPE OBJECT
-						CStatement* pStatementToUse = this;
-						CParseType* pType = pStatementToUse->GetObject<CParseType>();
-						pType->WriteDBM();
-					}
-					break;
-
-		case 3 :	// DECLARATION Object
-					{
-						// DECLARATION OBJECT (Init Part)
-						CStatement* pStatementToUse = this;
-						CParseInit* pInit = pStatementToUse->GetObject<CParseInit>();
-						pInit->WriteDBM();
-					}
-					break;
-
-		case 6 :	// USERFUNCTION Object
-					{
-						// USERFUNCTION OBJECT
-						CStatement* pStatementToUse = this;
-						CParseUserFunction* pUserFunction = pStatementToUse->GetObject<CParseUserFunction>();
-
-						// TOP OF USERFUNCTION
-						pUserFunction->WriteDBM(DBMPLACEMENT_TOP);
-
-						// USERFUNCTION CONTENTS
-						pUserFunction->GetBlock()->WriteDBM();
-
-						// END OF USERFUNCTION
-						pUserFunction->WriteDBM(DBMPLACEMENT_BOTTOM);
-					}
-					break;
-
-		case 8 :	// JUMP Object
-					{
-						// JUMP OBJECT
-						CStatement* pStatementToUse = this;
-						CParseJump* pJump = pStatementToUse->GetObject<CParseJump>();
-
-						// TOP 
-						pJump->WriteDBM(DBMPLACEMENT_TOP);
-					}
-					break;
-
-		case 11 :	// INSTRUCTION Object
-					{
-						CStatement* pStatementToUse = this;
-						CParseInstruction* pInstruction = pStatementToUse->GetObject<CParseInstruction>();
-						pInstruction->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
-
-						// FUNCTION PRE-CALL CODE
-						if(pInstruction->WriteDBM()==false) return false;
-					}
-					break;
-
-		case 12 :	// FUNCTION Object
-					{
-						CStatement* pStatementToUse = this;
-						CParseFunction* pFunction = pStatementToUse->GetObject<CParseFunction>();
-
-						// FUNCTION PRE-CALL CODE
-						pFunction->WriteDBM();
-					}
-					break;
-
-		case 20 :	// AST Assignment Object
-					{
-						CStatement* pStatementToUse = this;
-						CASTAssignment* pASTAssignment = pStatementToUse->GetObject<CASTAssignment>();
-						if (pASTAssignment->WriteDBM() == false) return false;
-					}
-					break;
-
-		case 999 :	// COMMENT (Debug) Object
-					break;
+		// LOOP OBJECT
+		pLoop->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
+		pLoop->WriteDBM(DBMPLACEMENT_TOP);
+		pLoop->GetBlock()->WriteDBM();
+		pLoop->WriteDBM(DBMPLACEMENT_BOTTOM);
 	}
+	else if (auto* pType = GetObject<CParseType>())
+	{
+		// TYPE OBJECT
+		pType->WriteDBM();
+	}
+	else if (auto* pInit = GetObject<CParseInit>())
+	{
+		// DECLARATION OBJECT (Init Part)
+		pInit->WriteDBM();
+	}
+	else if (auto* pUserFunction = GetObject<CParseUserFunction>())
+	{
+		// USERFUNCTION OBJECT
+		pUserFunction->WriteDBM(DBMPLACEMENT_TOP);
+		pUserFunction->GetBlock()->WriteDBM();
+		pUserFunction->WriteDBM(DBMPLACEMENT_BOTTOM);
+	}
+	else if (auto* pJump = GetObject<CParseJump>())
+	{
+		// JUMP OBJECT
+		pJump->WriteDBM(DBMPLACEMENT_TOP);
+	}
+	else if (auto* pInstruction = GetObject<CParseInstruction>())
+	{
+		// INSTRUCTION OBJECT
+		pInstruction->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
+		if(pInstruction->WriteDBM()==false) return false;
+	}
+	else if (auto* pFunction = GetObject<CParseFunction>())
+	{
+		// FUNCTION OBJECT
+		pFunction->WriteDBM();
+	}
+	else if (auto* pASTAssignment = GetObject<CASTAssignment>())
+	{
+		// AST Assignment Object
+		if (pASTAssignment->WriteDBM() == false) return false;
+	}
+	else if (m_pParameters)
+	{
+		// Blank Object — sometimes contains inter-code (like fornextinitcode)
+		m_pParameters->WriteDBM();
+	}
+	// else: comment/debug marker or truly empty — no-op
 
 	// lee - 240306 - u6b4 - unconventional flag for reversing a condition needs shutting down after instruction parse
 	if ( g_pASMWriter ) g_pASMWriter->SetCondToggle(false);
 
-	// For Valid Lines/Statements
-	if(GetObjectType()!=6)
+	// For Valid Lines/Statements — skip runtime error hook after end of function
+	if(!GetObject<CParseUserFunction>())
 	{
 		// leefix - 120108 - U71 - dont need RT hook after end of function (and solves line number issue in DBM)
 		if(m_dwLineNumber>0 && (m_pParameters || HasObject()))
