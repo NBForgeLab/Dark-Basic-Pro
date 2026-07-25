@@ -12,14 +12,11 @@
 CParseInit::CParseInit()
 {
 	m_dwLineNumber=0;
-	m_pMathOp=NULL;
-	m_pDataParamList=NULL;
 }
 
 CParseInit::~CParseInit()
 {
-	SAFE_DELETE(m_pMathOp);
-	SAFE_DELETE(m_pDataParamList);
+	// unique_ptr members auto-cleanup
 }
 
 bool CParseInit::WriteDBM(void)

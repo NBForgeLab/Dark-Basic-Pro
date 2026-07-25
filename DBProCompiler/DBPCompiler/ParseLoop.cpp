@@ -23,14 +23,6 @@ CParseLoop::CParseLoop()
 
 	m_dwLoopType=0;
 	m_pCodeBlock=NULL;
-	m_pParameter=NULL;
-	m_pStartLabelParameter=NULL;
-	m_pEndLabelParameter=NULL;
-
-	m_pMiddleLabelParameter=NULL;
-	m_pForNextInitParameter=NULL;
-	m_pForNextIncParameter=NULL;
-	m_pForNextCheckParameter=NULL;
 }
 
 CParseLoop::~CParseLoop()
@@ -39,14 +31,7 @@ CParseLoop::~CParseLoop()
 	m_pCodeBlock->Free();
 	m_pCodeBlock=NULL;
 
-	SAFE_DELETE(m_pParameter);
-	SAFE_DELETE(m_pStartLabelParameter);
-	SAFE_DELETE(m_pEndLabelParameter);
-
-	SAFE_DELETE(m_pMiddleLabelParameter);
-	SAFE_DELETE(m_pForNextInitParameter);
-	SAFE_DELETE(m_pForNextIncParameter);
-	SAFE_DELETE(m_pForNextCheckParameter);
+	// unique_ptr members auto-cleanup
 }
 
 bool CParseLoop::WriteDBM(DWORD PlacementCode)
@@ -72,11 +57,10 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 		// only if safety code allowed
 		if ( g_pDBPCompiler->m_bRemoveSafetyCode==false || m_dwLoopType==LOOPTYPE_DO )
 		{
-			CParseInstruction* pTemp = new CParseInstruction;
+			auto pTemp = std::make_unique<CParseInstruction>();
 			pTemp->SetLineNumber(m_dwStartLineNumber);
 			pTemp->PassStartEndCharForPossibleDebugHook(m_dwS, m_dwE);
 			pTemp->WriteDBMHardCode(BUILD_SYNC, NULL, NULL, NULL);
-			SAFE_DELETE(pTemp);
 		}
 	}
 

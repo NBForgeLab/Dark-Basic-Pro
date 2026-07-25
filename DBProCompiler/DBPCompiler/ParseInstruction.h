@@ -7,6 +7,7 @@
 
 // Common Includes
 #include "windows.h"
+#include <memory>
 
 // Custom Includes
 #include "Statement.h"
@@ -21,16 +22,16 @@ class CParseInstruction
 		void				SetType(DWORD dwType) { m_dwInstructionType = dwType; }
 		void				SetValue(DWORD dwValue) { m_dwInstructionValue = dwValue; }
 		void				SetParamMax(DWORD dwMax) { m_dwInstructionParamMax = dwMax; }
-		void				SetReturnParameter(CStr* pReturn) { m_pReturnParam = pReturn; }
-		void				SetLabelParam(CStr* pParam) { m_pLabelParameter = pParam; }
+		void				SetReturnParameter(CStr* pReturn) { m_pReturnParam.reset(pReturn); }
+		void				SetLabelParam(CStr* pParam) { m_pLabelParameter.reset(pParam); }
 
 		void				SetLineNumber(DWORD line) { m_dwLineNumber = line; }
 		DWORD				GetLineNumber(void) { return m_dwLineNumber; }
 
-		void				SetParameter(CParameter* pParam) { m_pParameter=pParam; }
-		CParameter*			GetParameter(void) { return m_pParameter; }
-		CStr*				GetReturnParameter(void) { return m_pReturnParam; }
-		CStr*				GetLabelParam(void) { return m_pLabelParameter; }
+		void				SetParameter(CParameter* pParam) { m_pParameter.reset(pParam); }
+		CParameter*			GetParameter(void) { return m_pParameter.get(); }
+		CStr*				GetReturnParameter(void) { return m_pReturnParam.get(); }
+		CStr*				GetLabelParam(void) { return m_pLabelParameter.get(); }
 
 		void				SetInstructionRef(CInstructionTableEntry* pRef) { m_pRefInstructionEntry=pRef; }
 		CInstructionTableEntry* GetInstructionRef(void) { return m_pRefInstructionEntry; }
@@ -59,9 +60,9 @@ class CParseInstruction
 		DWORD						m_dwInstructionType;
 		DWORD						m_dwInstructionValue;
 		DWORD						m_dwInstructionParamMax;
-		CParameter*					m_pParameter;
-		CStr*						m_pLabelParameter;
-		CStr*						m_pReturnParam;
+		std::unique_ptr<CParameter>	m_pParameter;
+		std::unique_ptr<CStr>		m_pLabelParameter;
+		std::unique_ptr<CStr>		m_pReturnParam;
 
 		CInstructionTableEntry*		m_pRefInstructionEntry;
 };

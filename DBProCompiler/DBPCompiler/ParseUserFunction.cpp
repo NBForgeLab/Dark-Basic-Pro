@@ -25,10 +25,8 @@ CParseUserFunction::CParseUserFunction()
 	m_dwStartLineNumber=0;
 	m_dwEndLineNumber=0;
 
-	m_pName=NULL;
 	m_dwParamMax=0;
 	m_pCodeBlock=NULL;
-	m_pParameter=NULL;
 
 	// Reference Pointer Only
 	m_pDecChainRef=NULL;
@@ -40,8 +38,7 @@ CParseUserFunction::~CParseUserFunction()
 	m_pCodeBlock->Free();
 	m_pCodeBlock=NULL;
 
-	SAFE_DELETE(m_pName);
-	SAFE_DELETE(m_pParameter);
+	// unique_ptr members (m_pName, m_pParameter) auto-cleanup
 }
 
 bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD PlacementCode, CStr* pDoNotFree, bool bSpecialRecreate)

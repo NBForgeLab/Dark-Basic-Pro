@@ -5,6 +5,7 @@
 #if !defined(AFX_PARSEFUNCTION_H__AE8F41D3_7DB7_44A6_B7FB_0F7B5DD429E4__INCLUDED_)
 #define AFX_PARSEFUNCTION_H__AE8F41D3_7DB7_44A6_B7FB_0F7B5DD429E4__INCLUDED_
 #include "ParserHeader.h"
+#include <memory>
 
 class CParseFunction  
 {
@@ -12,9 +13,9 @@ class CParseFunction
 		CParseFunction();
 		virtual ~CParseFunction();
 
-		void				SetParameter(CParameter* pParam) { m_pParameter=pParam; }
-		CParameter*			GetParameter(void) { return m_pParameter; }
-		void				SetResultString(CStr* pResultString) { m_pResultStringToken=pResultString; }
+		void				SetParameter(CParameter* pParam) { m_pParameter.reset(pParam); }
+		CParameter*			GetParameter(void) { return m_pParameter.get(); }
+		void				SetResultString(CStr* pResultString) { m_pResultStringToken.reset(pResultString); }
 
 		void				SetLineNumber(DWORD line) { m_dwLineNumber = line; }
 		DWORD				GetLineNumber(void) { return m_dwLineNumber; }
@@ -28,8 +29,8 @@ class CParseFunction
 		DWORD				m_dwLineNumber;
 
 		// Function Data
-		CParameter*			m_pParameter;
-		CStr*				m_pResultStringToken;
+		std::unique_ptr<CParameter>	m_pParameter;
+		std::unique_ptr<CStr>		m_pResultStringToken;
 };
 
 #endif // !defined(AFX_PARSEFUNCTION_H__AE8F41D3_7DB7_44A6_B7FB_0F7B5DD429E4__INCLUDED_)

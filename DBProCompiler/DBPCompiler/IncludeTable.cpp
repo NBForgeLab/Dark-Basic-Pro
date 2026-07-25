@@ -11,21 +11,18 @@
 
 CIncludeTable::CIncludeTable()
 {
-	m_pFilename=NULL;
 	m_dwFirstByte=0;
-	m_pNext=NULL;
 }
 
 CIncludeTable::~CIncludeTable()
 {
-	SAFE_DELETE(m_pFilename);
-	SAFE_DELETE(m_pNext);
+	// unique_ptr members auto-cleanup
 }
 
 void CIncludeTable::Add(CIncludeTable* pNew)
 {
-	if(m_pNext==NULL)
-		m_pNext=pNew;
+	if(m_pNext==nullptr)
+		m_pNext.reset(pNew);
 	else
 		m_pNext->Add(pNew);
 }

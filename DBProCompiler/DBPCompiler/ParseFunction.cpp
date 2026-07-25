@@ -11,14 +11,11 @@
 CParseFunction::CParseFunction()
 {
 	m_dwLineNumber=0;
-	m_pResultStringToken=NULL;
-	m_pParameter=NULL;
 }
 
 CParseFunction::~CParseFunction()
 {
-	SAFE_DELETE(m_pResultStringToken);
-	SAFE_DELETE(m_pParameter);
+	// unique_ptr members auto-cleanup
 }
 
 bool CParseFunction::WriteDBM(void)
@@ -50,7 +47,7 @@ bool CParseFunction::WriteDBMBit(DWORD dwLineNumber)
 	strDBMLine.AddText(" using params ");
 	strDBMLine.AddText(&strDBMParamList);
 	strDBMLine.AddText(". Produce ");
-	strDBMLine.AddText(m_pResultStringToken);
+	strDBMLine.AddText(m_pResultStringToken.get());
 	strDBMLine.AddText(".");
 
 	// Output final function call

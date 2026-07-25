@@ -18,14 +18,9 @@ CInstructionTableEntry::CInstructionTableEntry()
 	m_dwInternalID=0;
 	m_dwReturnParam=0;
 	m_dwParamMax=0;
-	m_pName=NULL;
-	m_pDLL=NULL;
-	m_pDecoratedName=NULL;
-	m_pParamTypes=NULL;
-	m_pParamDesc=NULL;
 	m_dwHardcoreInternalValue=0;
 	m_dwBuildID=0;
-	m_pDecChain=NULL;
+	m_pDecChain=nullptr;
 
 	m_pPrev=NULL;
 	m_pNext=NULL;
@@ -33,12 +28,7 @@ CInstructionTableEntry::CInstructionTableEntry()
 
 CInstructionTableEntry::~CInstructionTableEntry()
 {
-	SAFE_DELETE(m_pName);
-	SAFE_DELETE(m_pDLL);
-	SAFE_DELETE(m_pDecoratedName);
-	SAFE_DELETE(m_pParamTypes);
-	SAFE_DELETE(m_pParamDesc);
-	SAFE_DELETE(m_pDecChain);
+	// unique_ptr members auto-cleanup
 }
 
 void CInstructionTableEntry::Free(void)
@@ -82,10 +72,10 @@ void CInstructionTableEntry::SetData(DWORD InternalID, CStr* pStr, CStr* pDLL, C
 	m_dwInternalID = InternalID;
 	m_dwReturnParam = returnparam;
 	m_dwParamMax = param;
-	m_pName = pStr;
-	m_pDLL = pDLL;
-	m_pDecoratedName = pDecoratedName;
-	m_pParamTypes = pParamTypes;
+	m_pName.reset(pStr);
+	m_pDLL.reset(pDLL);
+	m_pDecoratedName.reset(pDecoratedName);
+	m_pParamTypes.reset(pParamTypes);
 	m_dwHardcoreInternalValue=dwInternalId;
 	m_dwBuildID=dwBuildID;
 }

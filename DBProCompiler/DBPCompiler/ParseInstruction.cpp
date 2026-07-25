@@ -34,9 +34,6 @@ CParseInstruction::CParseInstruction()
 	m_dwInstructionType=0;
 	m_dwInstructionValue=0;
 	m_dwInstructionParamMax=0;
-	m_pParameter=NULL;
-	m_pReturnParam=NULL;
-	m_pLabelParameter=NULL;
 
 	// Reference Only
 	m_pRefInstructionEntry=NULL;
@@ -44,9 +41,7 @@ CParseInstruction::CParseInstruction()
 
 CParseInstruction::~CParseInstruction()
 {
-	SAFE_DELETE(m_pParameter);
-	SAFE_DELETE(m_pReturnParam);
-	SAFE_DELETE(m_pLabelParameter);
+	// unique_ptr members auto-cleanup
 }
 
 bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iDisplacement)
@@ -202,7 +197,7 @@ bool CParseInstruction::WriteDBMBit(void)
 
 	// Prepare Return Param Flag
 	CResultData* pPutEAXReturn = NULL;
-	CResultData* pPutEAXReturnDynCreated = NULL;
+	std::unique_ptr<CResultData> pPutEAXReturnDynCreated;
 	CParameter* pInputParamToUseAsOutput = NULL;
 
 	// When userfunctions return a string/array, return var must be freed/cleared
@@ -213,8 +208,8 @@ bool CParseInstruction::WriteDBMBit(void)
 		{
 			if(GetReturnParameter())
 			{
-				pPutEAXReturnDynCreated = new CResultData;
-				pPutEAXReturn = pPutEAXReturnDynCreated;
+				pPutEAXReturnDynCreated = std::make_unique<CResultData>();
+				pPutEAXReturn = pPutEAXReturnDynCreated.get();
 				pPutEAXReturn->m_pStringToken = std::make_unique<CStr>(GetReturnParameter()->GetStr());
 				pPutEAXReturn->m_dwType = m_pRefInstructionEntry->GetReturnParam();
 				pPutEAXReturn->m_pAdditionalOffset.reset();
@@ -305,7 +300,7 @@ bool CParseInstruction::WriteDBMBit(void)
 			if(m_pRefInstructionEntry->GetDLL()->Length()>0)
 			{
 				// Prepare return result
-				pPutEAXReturnDynCreated=NULL;
+				pPutEAXReturnDynCreated.reset();
 				if(m_pRefInstructionEntry->GetReturnParam()>0)
 				{
 					// If input-specified output present, use it (except if require non-typical datatypes)
@@ -318,8 +313,8 @@ bool CParseInstruction::WriteDBMBit(void)
 						// Use Return Param, else last param of expression chain
 						if(GetReturnParameter())
 						{
-							pPutEAXReturnDynCreated = new CResultData;
-							pPutEAXReturn = pPutEAXReturnDynCreated;
+							pPutEAXReturnDynCreated = std::make_unique<CResultData>();
+							pPutEAXReturn = pPutEAXReturnDynCreated.get();
 							pPutEAXReturn->m_pStringToken = std::make_unique<CStr>(GetReturnParameter()->GetStr());
 							pPutEAXReturn->m_dwType = m_pRefInstructionEntry->GetReturnParam();
 							if(pPutEAXReturn->m_dwType>10 && pPutEAXReturn->m_dwType<20) pPutEAXReturn->m_dwType-=10;//INPUT marks param as an output var by setting type as 11-19
@@ -420,10 +415,9 @@ bool CParseInstruction::WriteDBMBit(void)
 			// Return stack pointer to normal
 			if(dwMustPopStack>0)
 			{
-				CStr* pData = new CStr;
-				pData->SetNumericText(dwMustPopStack*4);
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_ADDESP, pData, 7);
-				SAFE_DELETE(pData);
+				CStr pData("");
+				pData.SetNumericText(dwMustPopStack*4);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_ADDESP, &pData, 7);
 			}
 
 			// No need to pop stack
@@ -441,8 +435,8 @@ bool CParseInstruction::WriteDBMBit(void)
 		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_ASSIGN, pPutEAXReturn);
 	}
 
-	// Free usages
-	SAFE_DELETE(pPutEAXReturnDynCreated);
+	// Free usages (unique_ptr auto-cleanup)
+	pPutEAXReturnDynCreated.reset();
 
 	// Optional function return param
 	if(dwMustPopStack>0)
@@ -657,14 +651,14 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				if(dwBuildID==BUILD_DECADD) dwMathSymbol=5;
 
 				// If pP2 is empty, assume 1
-				CResultData* pDynValue = NULL;
+				std::unique_ptr<CResultData> pDynValue;
 				CResultData* pValue = pP2;
 				if(pValue==NULL)
 				{
-					pDynValue = new CResultData();
+					pDynValue = std::make_unique<CResultData>();
 					pDynValue->m_pStringToken = std::make_unique<CStr>(const_cast<LPSTR>("1"));
 					pDynValue->m_dwType = pP1->m_dwType % 100;
-					pValue = pDynValue;
+					pValue = pDynValue.get();
 				}
 
 				// Push Params for Add to stack (reverse order)
@@ -678,7 +672,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				{
 					// Command not yet implemented
 					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_UNKNOWN, NULL);
-					SAFE_DELETE(pDynValue);
+					pDynValue.reset();
 					return true;
 				}
 				DWORD dwInstructionValue=g_pInstructionTable->GetIIValue(dwUseNewInstruction);
@@ -693,9 +687,9 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				// Pop params after calc
 				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
 				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
-
-				// Free usages
-				SAFE_DELETE(pDynValue);
+				
+				// Free usages (unique_ptr auto-cleanup)
+				pDynValue.reset();
 			}
 			break;
 
@@ -775,9 +769,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pResultData);
 
 					// Blank String - no thing to free
-					CStr* pNull = new CStr("0");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, pNull, 7);
-					SAFE_DELETE(pNull);
+					CStr pNull("0");
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, &pNull, 7);
 
 					// Put new string address in EAX for return passing
 					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");

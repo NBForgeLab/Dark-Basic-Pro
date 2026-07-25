@@ -23,15 +23,8 @@ CParseJump::CParseJump()
 
 	m_dwJumpType=0;
 	m_pCodeBlockA=NULL;
-	m_pCodeBlockLabelA=NULL;
 	m_pCodeBlockB=NULL;
-	m_pCodeBlockLabelB=NULL;
-	m_pParameter=NULL;
-	m_pCaseParameter=NULL;
-	m_pLabelParameter=NULL;
 	m_pExitLabelParameterRef=NULL;//ref only
-
-	m_pCodeBlockChain=NULL;
 }
 
 CParseJump::~CParseJump()
@@ -44,13 +37,7 @@ CParseJump::~CParseJump()
 	m_pCodeBlockB->Free();
 	m_pCodeBlockB=NULL;
 
-	SAFE_DELETE(m_pCodeBlockLabelA);
-	SAFE_DELETE(m_pCodeBlockLabelB);
-	SAFE_DELETE(m_pParameter);
-	SAFE_DELETE(m_pCaseParameter);
-	SAFE_DELETE(m_pLabelParameter);
-
-	SAFE_DELETE(m_pCodeBlockChain);
+	// unique_ptr members auto-cleanup
 }
 
 bool CParseJump::WriteDBM(DWORD PlacementCode)
@@ -140,8 +127,8 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 		m_pParameter->WriteDBM();
 
 		// Create Condition Jump Chain
-		CParameter* pCaseLabel=m_pLabelParameter;
-		CParameter* pCaseCondition=m_pCaseParameter;
+		CParameter* pCaseLabel=m_pLabelParameter.get();
+		CParameter* pCaseCondition=m_pCaseParameter.get();
 
 		// If string select, use string comparison chain
 		// LEEFIX - 201102 - Added support for 103 which is a sting 'array'! && GetResultType to FindResultTypeValueForDBM

@@ -5,6 +5,7 @@
 #if !defined(AFX_PARSEUSERFUNCTION_H__7FF9540A_8B4A_4B3A_B490_A2E4549AD774__INCLUDED_)
 #define AFX_PARSEUSERFUNCTION_H__7FF9540A_8B4A_4B3A_B490_A2E4549AD774__INCLUDED_
 #include "ParserHeader.h"
+#include <memory>
 
 // Custom Includes
 #include "Statement.h"
@@ -17,16 +18,16 @@ class CParseUserFunction
 		virtual ~CParseUserFunction();
 
 	public:
-		void			SetName(CStr *pName) { m_pName = pName; }
+		void			SetName(CStr *pName) { m_pName.reset(pName); }
 		void			SetParamMax(DWORD dwPMax) { m_dwParamMax = dwPMax; }
 		void			SetBlock(CStatement *pStatement) { m_pCodeBlock = pStatement; }
-		void			SetResultParameter(CParameter *pParam) { m_pParameter = pParam; }
+		void			SetResultParameter(CParameter *pParam) { m_pParameter.reset(pParam); }
 		void			SetDecChainRef(CDeclaration *pDecRef) { m_pDecChainRef = pDecRef; }
 		
-		CStr*			GetName(void) { return m_pName; }
+		CStr*			GetName(void) { return m_pName.get(); }
 		DWORD			GetParamMax(void) { return m_dwParamMax; }
 		CStatement*		GetBlock(void) { return m_pCodeBlock; }
-		CParameter*		GetResultParameter(void) { return m_pParameter; }
+		CParameter*		GetResultParameter(void) { return m_pParameter.get(); }
 		CDeclaration*	GetDecChainRef(void) { return m_pDecChainRef; }
 
 		void			SetStartLineNumber(DWORD line) { m_dwStartLineNumber = line; }
@@ -48,10 +49,10 @@ class CParseUserFunction
 		DWORD			m_dwEndLineNumber;
 
 		// User Function Data
-		CStr*			m_pName;
+		std::unique_ptr<CStr>	m_pName;
 		DWORD			m_dwParamMax;
 		CStatement*		m_pCodeBlock;
-		CParameter*		m_pParameter;
+		std::unique_ptr<CParameter>	m_pParameter;
 
 		// Reference Pointer Only
 		CDeclaration*	m_pDecChainRef;

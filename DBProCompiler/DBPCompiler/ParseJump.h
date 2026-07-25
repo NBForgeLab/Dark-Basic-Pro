@@ -5,6 +5,7 @@
 #if !defined(AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_)
 #define AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_
 #include "ParserHeader.h"
+#include <memory>
 
 // Custom Includes
 #include "Statement.h"
@@ -25,24 +26,24 @@ class CParseJump
 	public:
 		void			SetType(DWORD dwType) { m_dwJumpType = dwType; }
 		void			SetBlockA(CStatement *pStatement) { m_pCodeBlockA = pStatement; }
-		void			SetBlockALabel(CStr* pLabelNameA) { m_pCodeBlockLabelA=pLabelNameA; }
+		void			SetBlockALabel(CStr* pLabelNameA) { m_pCodeBlockLabelA.reset(pLabelNameA); }
 		void			SetBlockB(CStatement *pStatement) { m_pCodeBlockB = pStatement; }
-		void			SetBlockBLabel(CStr* pLabelNameB) { m_pCodeBlockLabelB=pLabelNameB; }
-		void			SetBlockChain(CStatementChain* pStatementChain) { m_pCodeBlockChain = pStatementChain; }
-		void			SetConditionParameter(CParameter *pParam) { m_pParameter = pParam; }
-		void			SetConditionCaseParameter(CParameter *pParam) { m_pCaseParameter = pParam; }
-		void			SetConditionLabelParameter(CParameter *pParam) { m_pLabelParameter = pParam; }
+		void			SetBlockBLabel(CStr* pLabelNameB) { m_pCodeBlockLabelB.reset(pLabelNameB); }
+		void			SetBlockChain(CStatementChain* pStatementChain) { m_pCodeBlockChain.reset(pStatementChain); }
+		void			SetConditionParameter(CParameter *pParam) { m_pParameter.reset(pParam); }
+		void			SetConditionCaseParameter(CParameter *pParam) { m_pCaseParameter.reset(pParam); }
+		void			SetConditionLabelParameter(CParameter *pParam) { m_pLabelParameter.reset(pParam); }
 		void			SetExitLabelRefParameterRef(CParameter *pParam) { m_pExitLabelParameterRef = pParam; }
 		
 		DWORD			GetJumpType(void) { return m_dwJumpType; }
 		CStatement*		GetBlockA(void) { return m_pCodeBlockA; }
-		CStr*			GetBlockLabelA(void) { return m_pCodeBlockLabelA; }
+		CStr*			GetBlockLabelA(void) { return m_pCodeBlockLabelA.get(); }
 		CStatement*		GetBlockB(void) { return m_pCodeBlockB; }
-		CStr*			GetBlockLabelB(void) { return m_pCodeBlockLabelB; }
-		CStatementChain* GetBlockChain(void) { return m_pCodeBlockChain; }
-		CParameter*		GetConditionParameter(void) { return m_pParameter; }
-		CParameter*		GetConditionCaseParameter(void) { return m_pCaseParameter; }
-		CParameter*		GetConditionLabelParameter(void) { return m_pLabelParameter; }
+		CStr*			GetBlockLabelB(void) { return m_pCodeBlockLabelB.get(); }
+		CStatementChain* GetBlockChain(void) { return m_pCodeBlockChain.get(); }
+		CParameter*		GetConditionParameter(void) { return m_pParameter.get(); }
+		CParameter*		GetConditionCaseParameter(void) { return m_pCaseParameter.get(); }
+		CParameter*		GetConditionLabelParameter(void) { return m_pLabelParameter.get(); }
 		CParameter*		GetExitLabelRefParameterRef(void) { return m_pExitLabelParameterRef; }
 
 		void			SetStartLineNumber(DWORD line) { m_dwStartLineNumber = line; }
@@ -65,15 +66,15 @@ class CParseJump
 		// Loop Data
 		DWORD				m_dwJumpType;
 		CStatement*			m_pCodeBlockA;
-		CStr*				m_pCodeBlockLabelA;
+		std::unique_ptr<CStr>	m_pCodeBlockLabelA;
 		CStatement*			m_pCodeBlockB;
-		CStr*				m_pCodeBlockLabelB;
-		CParameter*			m_pParameter;
-		CParameter*			m_pCaseParameter;
-		CParameter*			m_pLabelParameter;
+		std::unique_ptr<CStr>	m_pCodeBlockLabelB;
+		std::unique_ptr<CParameter>	m_pParameter;
+		std::unique_ptr<CParameter>	m_pCaseParameter;
+		std::unique_ptr<CParameter>	m_pLabelParameter;
 		CParameter*			m_pExitLabelParameterRef;
 
-		CStatementChain*	m_pCodeBlockChain;
+		std::unique_ptr<CStatementChain>	m_pCodeBlockChain;
 };
 
 #endif // !defined(AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_)

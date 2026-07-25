@@ -8,6 +8,7 @@
 #include "windows.h"
 #include "Str.h"
 #include "Task.h"
+#include <memory>
 
 class CDeclaration;
 
@@ -26,39 +27,39 @@ class CInstructionTableEntry
 		void						SetReturnParamType(DWORD returnparam) { m_dwReturnParam=returnparam; }
 		void						SetReturnParamPlace(DWORD place) { m_dwReturnPlace=place; }
 		void						SetSpecialArrayParam(bool bState) { m_bSpecialArrayParam=bState; }
-		void						SetFullParamDesc(CStr* pStr) { m_pParamDesc=pStr; }
+		void						SetFullParamDesc(CStr* pStr) { m_pParamDesc.reset(pStr); }
 
-		void						SetDecChain(CDeclaration* pRef) { m_pDecChain=pRef; }
-		CDeclaration*				GetDecChain(void) { return m_pDecChain; }
+		void						SetDecChain(CDeclaration* pRef) { m_pDecChain.reset(pRef); }
+		CDeclaration*				GetDecChain(void) { return m_pDecChain.get(); }
 
 		DWORD						GetInternalID(void) { return m_dwInternalID; }
-		CStr*						GetName(void) { return m_pName; }
-		CStr*						GetDLL(void) { return m_pDLL; }
-		CStr*						GetDecoratedName(void) { return m_pDecoratedName; }
-		CStr*						GetParamTypes(void) { return m_pParamTypes; }
+		CStr*						GetName(void) { return m_pName.get(); }
+		CStr*						GetDLL(void) { return m_pDLL.get(); }
+		CStr*						GetDecoratedName(void) { return m_pDecoratedName.get(); }
+		CStr*						GetParamTypes(void) { return m_pParamTypes.get(); }
 		DWORD						GetReturnParam(void) { return m_dwReturnParam; }
 		DWORD						GetParamMax(void) { return m_dwParamMax; }
 		DWORD						GetHardcoreInternalValue(void) { return m_dwHardcoreInternalValue; }
 		DWORD						GetBuildID(void) { return m_dwBuildID; }
 		DWORD						GetReturnParamPlace(void) { return m_dwReturnPlace; }
 		bool						GetSpecialArrayParam(void) { return m_bSpecialArrayParam; }
-		CStr*						GetFullParamDesc(void) { return m_pParamDesc; }
+		CStr*						GetFullParamDesc(void) { return m_pParamDesc.get(); }
 
 	private:
 		// Instruction Entry Data
 		DWORD						m_dwInternalID;
 		DWORD						m_dwReturnParam;
 		DWORD						m_dwParamMax;
-		CStr*						m_pName;
-		CStr*						m_pDLL;
-		CStr*						m_pDecoratedName;
-		CStr*						m_pParamTypes;
-		CStr*						m_pParamDesc;
+		std::unique_ptr<CStr>		m_pName;
+		std::unique_ptr<CStr>		m_pDLL;
+		std::unique_ptr<CStr>		m_pDecoratedName;
+		std::unique_ptr<CStr>		m_pParamTypes;
+		std::unique_ptr<CStr>		m_pParamDesc;
 		DWORD						m_dwHardcoreInternalValue;
 		DWORD						m_dwBuildID;
 		DWORD						m_dwReturnPlace;
 		bool						m_bSpecialArrayParam;
-		CDeclaration*				m_pDecChain;
+		std::unique_ptr<CDeclaration> m_pDecChain;
 
 		// Hierarchy Data
 		CInstructionTableEntry*		m_pPrev;
