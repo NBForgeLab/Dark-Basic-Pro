@@ -1668,14 +1668,12 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 		// Add Variable to variable table
 		DWORD dwAction=0;
 		LPSTR pDecName = pExpressionValue->GetStr();
-		LPSTR pDecType = g_pVarTable->MakeDefaultVarType(pDecName);
-		if(g_pVarTable->AddVariable(pDecName, pDecType, dwArrFlag, 0, true, &dwAction, false)==false)
+		std::string decType = g_pVarTable->MakeDefaultVarType(pDecName);
+		if(g_pVarTable->AddVariable(pDecName, decType.data(), dwArrFlag, 0, true, &dwAction, false)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::AddVariable'");
-			SAFE_DELETE(pDecType);
 			return false;
 		}
-		SAFE_DELETE(pDecType);
 
 		// Is variable a userfunction local variabale
 		bool bVariableIsLocal=false;

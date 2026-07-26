@@ -634,27 +634,19 @@ bool CVarTable::FindTypeOfVariable(LPSTR pFindVar, DWORD dwArrType, LPSTR* pRetu
 	return false;
 }
 
-LPSTR CVarTable::MakeDefaultVarType(LPSTR pDecName)
+std::string CVarTable::MakeDefaultVarType(LPSTR pDecName)
 {
-	if(pDecName)
-	{
-		LPSTR pDecType = new char[8];
-		strcpy(pDecType,"integer");
+	if(pDecName==NULL)
+		return std::string();
 
-		// Suffix rule can pre-define variable types
-		DWORD length=strlen(pDecName);
-		if(pDecName[length-1]=='#')
-		{
-			strcpy(pDecType,"float");
-		}
-		if(pDecName[length-1]=='$')
-		{
-			strcpy(pDecType,"string");
-		}
-		return pDecType;
-	}
-	else
-		return NULL;
+	// Suffix rule can pre-define variable types
+	DWORD length=strlen(pDecName);
+	if(length>0 && pDecName[length-1]=='#')
+		return "float";
+	if(length>0 && pDecName[length-1]=='$')
+		return "string";
+
+	return "integer";
 }
 
 DWORD CVarTable::MakeDefaultVarTypeValue(LPSTR pDecName)

@@ -8,9 +8,10 @@
 
 #include "PerfMacros.h"
 
+#include <string>
+
 #ifdef __AARON_VARTABLEPERF__
 # include <unordered_map>
-# include <string>
 #endif
 
 class CVarTable  
@@ -35,7 +36,7 @@ class CVarTable
 		bool			FindVariableExist(LPSTR pFindVar, DWORD dwArrType);
 		bool			FindTypeOfVariable(LPSTR pFindVar, DWORD dwArrType, LPSTR* pReturnType);
 		DWORD			MakeDefaultVarTypeValue(LPSTR pDecName);
-		LPSTR			MakeDefaultVarType(LPSTR pDecName);
+		std::string		MakeDefaultVarType(LPSTR pDecName);
 		LPSTR			MakeTypeNameOfTypeValue(DWORD dwTypeValue);
 		DWORD			GetBasicTypeValue(LPSTR pTypeString);
 		CStructTable*	GetStruct(LPSTR pTypeString);

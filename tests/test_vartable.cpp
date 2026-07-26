@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
+#include <string>
+#include <type_traits>
 #include <windows.h>
 #include "DBPLogger.h"
 #include "VarTable.h"
@@ -103,4 +105,26 @@ TEST_F(VarTableTest, StructTableDictionaryCaseInsensitiveLookupAndFree) {
     CStructTable* pFound = g_pStructTable->DoesTypeEvenExist("mycustomtype");
     ASSERT_NE(pFound, nullptr);
     EXPECT_STREQ(pFound->GetTypeName()->GetStr(), "MyCustomType");
+}
+
+// --- MakeDefaultVarType contract: value-owning std::string, no raw heap handoff ---
+// The legacy API returned `new char[8]` that callers released with scalar
+// delete (undefined behavior). The modern contract returns std::string.
+
+TEST_F(VarTableTest, MakeDefaultVarTypeReturnsOwningString) {
+    static_assert(std::is_same_v<decltype(g_pVarTable->MakeDefaultVarType((LPSTR)nullptr)), std::string>,
+                  "MakeDefaultVarType must return std::string by value");
+}
+
+TEST_F(VarTableTest, MakeDefaultVarTypeMapsSuffixToType) {
+    char plainVar[] = "counter";
+    char floatVar[] = "speed#";
+    char stringVar[] = "name$";
+    EXPECT_EQ(g_pVarTable->MakeDefaultVarType(plainVar), "integer");
+    EXPECT_EQ(g_pVarTable->MakeDefaultVarType(floatVar), "float");
+    EXPECT_EQ(g_pVarTable->MakeDefaultVarType(stringVar), "string");
+}
+
+TEST_F(VarTableTest, MakeDefaultVarTypeHandlesNullName) {
+    EXPECT_TRUE(g_pVarTable->MakeDefaultVarType(nullptr).empty());
 }

@@ -660,21 +660,21 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	CParameter* pForNextCheckParameter = NULL;
 	if(TokenID==FORTK) 
 	{
-		// Gather fornext details
-		CStr* pVar = new CStr("");
-		CStr* pInitValue = new CStr("");
-		CStr* pEndValue = new CStr("");
-		CStr* pStepValue = new CStr("");
-		ExtractDetailsFromForNext(pVar, pInitValue, pEndValue, pStepValue);
+		// Gather fornext details (stack CStr: RAII on every exit path)
+		CStr var("");
+		CStr initValue("");
+		CStr endValue("");
+		CStr stepValue("");
+		ExtractDetailsFromForNext(&var, &initValue, &endValue, &stepValue);
 		bool bFixedStepDirection = true;
-		if(pStepValue->Length()==0)
+		if(stepValue.Length()==0)
 		{
-			pStepValue->SetText("1");
+			stepValue.SetText("1");
 		}
 		else
 		{
 			// lee - 030406 - u6rc5 - if step specified, and not literal, use any-step-direction code
-			if ( pStepValue->IsTextNumericValue()==false )
+			if ( stepValue.IsTextNumericValue()==false )
 			{
 				// expression () or () means any function will be called twice!
 				bFixedStepDirection = false;
@@ -682,35 +682,35 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// leefix - 210604 - u54 -Make sure var is not pure number
-		if ( pVar->IsTextIntegerOnlyValue() )
+		if ( var.IsTextIntegerOnlyValue() )
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+34);
 			return false;
 		}
 
 		// leefix - 010306 - u60 - further, only allow strict variables, no types (ie leevar.b)
-		if ( pVar->IsTextASingleVariable()==false )
+		if ( var.IsTextASingleVariable()==false )
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+68);
 			return false;
 		}
 
 		// Overwrite result with variable name (ENSURE local variables are handled too!)
-		CStr* pActualVar = new CStr("");
+		CStr actualVar("");
 		CDeclaration* pGlobalDecChain = g_pStatementList->GetUserFunctionDecChain();
 		if(pGlobalDecChain)
 		{
 			// Local Variable
-			pActualVar->SetText("FS@");
-			pActualVar->AddText(g_pStatementList->GetUserFunctionName());
-			pActualVar->AddText("@");
-			pActualVar->AddText(pVar);
+			actualVar.SetText("FS@");
+			actualVar.AddText(g_pStatementList->GetUserFunctionName());
+			actualVar.AddText("@");
+			actualVar.AddText(&var);
 		}
 		else
 		{
 			// Global Variable
-			pActualVar->SetText("@");
-			pActualVar->AddText(pVar);
+			actualVar.SetText("@");
+			actualVar.AddText(&var);
 		}
 
 		// LEEFIX - 281102 - Can cause float values to be written into an integer var
@@ -718,53 +718,43 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			
 		// Add Variable to variable table (if not exist)
 		DWORD dwAction=0;
-		LPSTR pDecType = g_pVarTable->MakeDefaultVarType(pActualVar->GetStr());
+		std::string decType = g_pVarTable->MakeDefaultVarType(actualVar.GetStr());
 //		if(g_pVarTable->AddVariable(pActualVar->GetStr()+1, pDecType, 0, 0, false, &dwAction, false)==false) -leefix-040803-turns out a new var was created
-		if(g_pVarTable->AddVariable(pActualVar->GetStr()+1, pDecType, 0, 0, true, &dwAction, false)==false)
+		if(g_pVarTable->AddVariable(actualVar.GetStr()+1, decType.data(), 0, 0, true, &dwAction, false)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::Add Variable'");
-			SAFE_DELETE(pDecType);
 			return false;
 		}
-		SAFE_DELETE(pDecType);
 			
 		// Find/Make Variable from pVar (required for type)
 //		CVarTable* pVarTest = g_pVarTable->FindVariable(g_pStatementList->GetUserFunctionName(), pActualVar->GetStr(), 0);-leefix-040803-use the actual varname nt the @ symbol
-		CVarTable* pVarTest = g_pVarTable->FindVariable(g_pStatementList->GetUserFunctionName(), pActualVar->GetStr()+1, 0);
+		CVarTable* pVarTest = g_pVarTable->FindVariable(g_pStatementList->GetUserFunctionName(), actualVar.GetStr()+1, 0);
 		if(pVarTest==NULL)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'FindVariable::DoLoop'");
-			SAFE_DELETE(pDecType);
 			return false;
 		}
 
 		// Determine direction of fornext loop
 		bool bForwardStep=true;
-		if(pStepValue->GetValue()<0) bForwardStep=false;
+		if(stepValue.GetValue()<0) bForwardStep=false;
 
 		// Create Init Maths - result in T
-		CStr* pInitStr = new CStr("");
-		pInitStr->SetText(pInitValue);
-		pInitStr->AddText("-");
-		pInitStr->AddText("(");
-		pInitStr->AddText(pStepValue);
-		pInitStr->AddText(")");
+		CStr initStr("");
+		initStr.SetText(&initValue);
+		initStr.AddText("-");
+		initStr.AddText("(");
+		initStr.AddText(&stepValue);
+		initStr.AddText(")");
 		pForNextInitParameter = new CParameter;
-		if(DoExpression(pInitStr, pForNextInitParameter)==false)
+		if(DoExpression(&initStr, pForNextInitParameter)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
-			SAFE_DELETE(pVar);
-			SAFE_DELETE(pInitStr);
-			SAFE_DELETE(pInitValue);
-			SAFE_DELETE(pEndValue);
-			SAFE_DELETE(pStepValue);
 			SAFE_DELETE(pForNextInitParameter);
 			SAFE_DELETE(pEndLabel);
-			SAFE_DELETE(pActualVar);
 			return false;
 		}
 		CStr* pResult = pForNextInitParameter->GetMathItem()->FindResultStringTokenForDBM();
-		SAFE_DELETE(pInitStr);
 
 		// Ensure value type matches variable type
 		DWORD dwValueType = pForNextInitParameter->GetMathItem()->FindResultTypeValueForDBM();
@@ -779,47 +769,33 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// Value type must match variable type
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+49);
-			SAFE_DELETE(pVar);
-			SAFE_DELETE(pInitStr);
-			SAFE_DELETE(pInitValue);
-			SAFE_DELETE(pEndValue);
-			SAFE_DELETE(pStepValue);
 			SAFE_DELETE(pForNextInitParameter);
 			SAFE_DELETE(pEndLabel);
-			SAFE_DELETE(pActualVar);
 			return false;
 		}
 			
 		// Set Result based on actual variable
-		pResult->SetText(pActualVar->GetStr());
+		pResult->SetText(actualVar.GetStr());
 
 		// Create Increment Maths - result in T
-		CStr* pIncStr = new CStr("");
-		pIncStr->SetText(pVar);
-		pIncStr->AddText("+");
-		pIncStr->AddText(pStepValue);
+		CStr incStr("");
+		incStr.SetText(&var);
+		incStr.AddText("+");
+		incStr.AddText(&stepValue);
 
 		pForNextIncParameter = new CParameter;
-		if(DoExpression(pIncStr, pForNextIncParameter)==false)
+		if(DoExpression(&incStr, pForNextIncParameter)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
 			SAFE_DELETE(pForNextIncParameter);
-			SAFE_DELETE(pIncStr);
-			SAFE_DELETE(pInitStr);
-			SAFE_DELETE(pVar);
-			SAFE_DELETE(pInitValue);
-			SAFE_DELETE(pEndValue);
-			SAFE_DELETE(pStepValue);
 			SAFE_DELETE(pForNextInitParameter);
 			SAFE_DELETE(pEndLabel);
-			SAFE_DELETE(pActualVar);
 			return false;
 		}
-		SAFE_DELETE(pIncStr);
 
 		// Return Var should be FORNEXT Var
 		pResult = pForNextIncParameter->GetMathItem()->FindResultStringTokenForDBM();
-		pResult->SetText(pActualVar->GetStr());
+		pResult->SetText(actualVar.GetStr());
 
 		// Create Compare Maths
 // leefix-250603-better condition to handle variable step value
@@ -847,72 +823,53 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		pCompareStr->AddText(")");
 		*/
 		// lee - 030406 - u6rc5 - based on step existence
-		CStr* pCompareStr = new CStr("");
+		CStr compareStr("");
 		if ( bFixedStepDirection==true )
 		{
 			// known direction
-			pCompareStr->SetText(pVar);
+			compareStr.SetText(&var);
 			if(bForwardStep)
-				pCompareStr->AddText("<=");
+				compareStr.AddText("<=");
 			else
-				pCompareStr->AddText(">=");
-			pCompareStr->AddText(pEndValue);
+				compareStr.AddText(">=");
+			compareStr.AddText(&endValue);
 		}
 		else
 		{
 			// either way
-			pCompareStr->SetText("(");
-			pCompareStr->AddText(pStepValue);
-			pCompareStr->AddText(">0 AND ");
-			pCompareStr->AddText(pVar);
-			pCompareStr->AddText("<=");
-			pCompareStr->AddText(pEndValue);
-			pCompareStr->AddText(") OR (");
-			pCompareStr->AddText(pStepValue);
-			pCompareStr->AddText("<0 AND ");
-			pCompareStr->AddText(pVar);
-			pCompareStr->AddText(">=");
-			pCompareStr->AddText(pEndValue);
-			pCompareStr->AddText(")");
+			compareStr.SetText("(");
+			compareStr.AddText(&stepValue);
+			compareStr.AddText(">0 AND ");
+			compareStr.AddText(&var);
+			compareStr.AddText("<=");
+			compareStr.AddText(&endValue);
+			compareStr.AddText(") OR (");
+			compareStr.AddText(&stepValue);
+			compareStr.AddText("<0 AND ");
+			compareStr.AddText(&var);
+			compareStr.AddText(">=");
+			compareStr.AddText(&endValue);
+			compareStr.AddText(")");
 		}
 		pForNextCheckParameter = new CParameter;
-		if(DoExpression(pCompareStr, pForNextCheckParameter)==false)
+		if(DoExpression(&compareStr, pForNextCheckParameter)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
-			SAFE_DELETE(pCompareStr);
 			SAFE_DELETE(pForNextCheckParameter);
 			SAFE_DELETE(pForNextIncParameter);
-			SAFE_DELETE(pIncStr);
-			SAFE_DELETE(pInitStr);
-			SAFE_DELETE(pVar);
-			SAFE_DELETE(pInitValue);
-			SAFE_DELETE(pEndValue);
-			SAFE_DELETE(pStepValue);
 			SAFE_DELETE(pForNextInitParameter);
 			SAFE_DELETE(pEndLabel);
-			SAFE_DELETE(pActualVar);
 			return false;
 		}
-		SAFE_DELETE(pCompareStr);
 
 		// Create Result Parameter for condition
-		CMathOp* pMathOp = new CMathOp;
-		CStr* pTempVarToken = new CStr("");
-		pMathOp->ProduceNewTempToken(pTempVarToken, 1);
-		SAFE_DELETE(pMathOp);
+		CMathOp mathOp;
+		CStr tempVarToken("");
+		mathOp.ProduceNewTempToken(&tempVarToken, 1);
 
 		// Assign final result to new temp variable
 		pResult = pForNextCheckParameter->GetMathItem()->FindResultStringTokenForDBM();
-		pResult->SetText(pTempVarToken->GetStr());
-
-		SAFE_DELETE(pTempVarToken);
-
-		// Free usages
-		SAFE_DELETE(pVar);
-		SAFE_DELETE(pInitValue);
-		SAFE_DELETE(pEndValue);
-		SAFE_DELETE(pStepValue);
-		SAFE_DELETE(pActualVar);
+		pResult->SetText(tempVarToken.GetStr());
 	}
 	else
 	{
@@ -2197,8 +2154,10 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// Default declaration settings
 		if(pDecType==NULL)
 		{
-			// Use default type
-			pDecType = g_pVarTable->MakeDefaultVarType(pDecName);
+			// Use default type (owned copy: this function's pDecType is always a new[] buffer)
+			std::string defaultType = g_pVarTable->MakeDefaultVarType(pDecName);
+			pDecType = new char[defaultType.size()+1];
+			strcpy(pDecType, defaultType.c_str());
 		}
 		if(pDecInit==NULL && bAutoInitialiseData==true)
 		{
@@ -2232,7 +2191,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+26);
 					SAFE_DELETE(pDecArrValue);
 					SAFE_DELETE(pDecName);
-					SAFE_DELETE(pDecType);
+					SAFE_DELETE_ARRAY(pDecType);
 					SAFE_DELETE(pDecInit);
 					SAFE_DELETE(pString);
 					SAFE_DELETE(pDecArrValue);
@@ -2294,7 +2253,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+36, pArrFullname->GetStr());
 					SAFE_DELETE(pDecArrValue);
 					SAFE_DELETE(pDecName);
-					SAFE_DELETE(pDecType);
+					SAFE_DELETE_ARRAY(pDecType);
 					SAFE_DELETE(pDecInit);
 					SAFE_DELETE(pString);
 					SAFE_DELETE(pDecArrValue);
@@ -2311,7 +2270,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 				g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::Add Variable'");
 				SAFE_DELETE(pDecArrValue);
 				SAFE_DELETE(pDecName);
-				SAFE_DELETE(pDecType);
+				SAFE_DELETE_ARRAY(pDecType);
 				SAFE_DELETE(pDecInit);
 				SAFE_DELETE(pString);
 				SAFE_DELETE(pDecArrValue);
@@ -2329,7 +2288,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoAllocation'");
 					SAFE_DELETE(pDecArrValue);
 					SAFE_DELETE(pDecName);
-					SAFE_DELETE(pDecType);
+					SAFE_DELETE_ARRAY(pDecType);
 					SAFE_DELETE(pDecInit);
 					SAFE_DELETE(pString);
 					SAFE_DELETE(pDecArrValue);
@@ -2367,7 +2326,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 				SAFE_DELETE(pVarInitName);
 				SAFE_DELETE(pDecArrValue);
 				SAFE_DELETE(pDecName);
-				SAFE_DELETE(pDecType);
+				SAFE_DELETE_ARRAY(pDecType);
 				SAFE_DELETE(pDecInit);
 				SAFE_DELETE(pString);
 				SAFE_DELETE(pDecArrValue);
@@ -2393,7 +2352,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					SAFE_DELETE(pVarInitName);
 					SAFE_DELETE(pDecArrValue);
 					SAFE_DELETE(pDecName);
-					SAFE_DELETE(pDecType);
+					SAFE_DELETE_ARRAY(pDecType);
 					SAFE_DELETE(pDecInit);
 					SAFE_DELETE(pString);
 					SAFE_DELETE(pDecArrValue);
@@ -2463,7 +2422,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					SAFE_DELETE(pVarInitName);
 					SAFE_DELETE(pDecArrValue);
 					SAFE_DELETE(pDecName);
-					SAFE_DELETE(pDecType);
+					SAFE_DELETE_ARRAY(pDecType);
 					SAFE_DELETE(pDecInit);
 					SAFE_DELETE(pString);
 					SAFE_DELETE(pDecArrValue);
@@ -2482,7 +2441,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// Release memory usage
 		SAFE_DELETE(pDecArrValue);
 		SAFE_DELETE(pDecName);
-		SAFE_DELETE(pDecType);
+		SAFE_DELETE_ARRAY(pDecType);
 		SAFE_DELETE(pDecInit);
 	}
 
