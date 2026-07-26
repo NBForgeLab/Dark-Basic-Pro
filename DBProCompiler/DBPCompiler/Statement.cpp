@@ -260,19 +260,15 @@ bool CStatement::DoEndCode(void)
 	pRetStat->SurpressJumpChecks();
 
 	// Create string and keep for usage later on
-	CStr* pLabelName = new CStr("$labelend");
+	CStr pLabelName("$labelend");
 	g_pStatementList->IncLabelIndexCounter(1);
 
 	// Add Label to Table
-	if(g_pLabelTable->AddLabel(pLabelName->GetStr(), dwCodeIndex, 0, pRESTORECodeForStopper)==false)
+	if(g_pLabelTable->AddLabel(pLabelName.GetStr(), dwCodeIndex, 0, pRESTORECodeForStopper)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'CStatement::DoEndCode::AddLabel'");
-		SAFE_DELETE(pLabelName);
 		return false;
 	}
-
-	// Free usages
-	SAFE_DELETE(pLabelName);
 
 	// Complete
 	return true;

@@ -85,7 +85,6 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 	DWORD dwParsedType=0;
 	CStr* pMathString=nullptr;
 	LPSTR pVarString=nullptr;
-	CStr* pFindVarName=nullptr;
 	LPSTR ReturnTypeString=nullptr;
 	while(pCurrent)
 	{
@@ -171,11 +170,11 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 					|| pMathString->CheckChars(0,3,"FS@"))
 					{
 						// Skip var token
-						pFindVarName = NULL;
+						std::unique_ptr<CStr> pFindVarName;
 						if(*pVarString=='@') pVarString++;
 						if(pMathString->CheckChars(0,3,"FS@"))
 						{
-							pFindVarName = new CStr(pMathString->GetStr()+3);
+							pFindVarName = std::make_unique<CStr>(pMathString->GetStr()+3);
 							pVarString = pFindVarName->GetStr() + pFindVarName->FindFirstChar('@') + 1;
 						}
 						if(*pVarString=='&') dwArrFlag=1;
@@ -212,9 +211,6 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 								SAFE_DELETE(ReturnTypeString);
 							}
 						}
-
-						// Free usages
-						SAFE_DELETE(pFindVarName);
 					}
 					if(pMathString->Length()>1)
 					{
@@ -430,10 +426,9 @@ bool CParameter::CastAllParametersToInstruction(CInstructionTableEntry* pRef)
 							CMathOp* pCastCaller = pValueToCast.get();
 							if(pCastCaller->DoCastOnMathOp(pValueToCast, dwRequiredTypeValue)==false)
 							{
-								LPSTR pTypeStr = g_pVarTable->MakeTypeNameOfTypeValue(dwRequiredTypeValue);
+								std::unique_ptr<char[]> pTypeStr(g_pVarTable->MakeTypeNameOfTypeValue(dwRequiredTypeValue));
 								LPSTR pR = pValueToCast->FindResultStringTokenForDBM()->GetStr();
-								g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+10, pTypeStr, pR);
-								SAFE_DELETE(pTypeStr);
+								g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+10, pTypeStr.get(), pR);
 								pCheckParam->SetMathItem(pValueToCast.release());
 								return false;
 							}

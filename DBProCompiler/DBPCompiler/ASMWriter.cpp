@@ -18,6 +18,8 @@
 
 #include <DB3Time.h>
 
+#include <memory>
+
 // External Class Pointer
 extern CEXEBlock* g_pEXE;
 extern CDBPCompiler* g_pDBPCompiler;
@@ -495,11 +497,10 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 					// Record Reference Label at index
 					char* pStr = new char[strlen(pData)+1];
 					strcpy(pStr, pData);
-					CStr* pCleanStr = new CStr(pStr);
-					pCleanStr->EatEdgeSpacesandTabs(NULL);
-					strcpy(pStr, pCleanStr->GetStr());
+					CStr cleanStr(pStr);
+					cleanStr.EatEdgeSpacesandTabs(NULL);
+					strcpy(pStr, cleanStr.GetStr());
 					m_ProgramRefLabels[m_dwProgramRefPointer]=(uintptr_t)pStr;
-					SAFE_DELETE(pCleanStr);
 
 					// Advance Ref Index
 					m_dwProgramRefPointer++;
@@ -580,9 +581,8 @@ void VarValueSenderHook(void)
 {
 	// Send Message To Debugger
 	DWORD dwSize=0;
-	LPSTR pData=g_pASMWriter->MakeVarValuesForTransfer(&dwSize);
-	g_pASMWriter->SendDataToDebugger(21, pData, dwSize);
-	SAFE_DELETE(pData);
+	std::unique_ptr<char[]> pData(g_pASMWriter->MakeVarValuesForTransfer(&dwSize));
+	g_pASMWriter->SendDataToDebugger(21, pData.get(), dwSize);
 }
 
 LRESULT DebugHookStatementFunctionCall(DWORD dwProg, DWORD dwLine, DWORD dwStart, DWORD dwEnd)
@@ -841,11 +841,10 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 // leefix - 210504 - seemed this could mess up EXE current directory 
 // leefix - 240604 - restored as running debug mode removes CWD info!
 				// Media Root Folder is project folder so switch to it
-				LPSTR pMediaRoot=g_pDBPCompiler->GetProjectMediaRoot();
+				std::unique_ptr<char[]> pMediaRoot(g_pDBPCompiler->GetProjectMediaRoot());
 				if(pMediaRoot)
-					if(strcmp(pMediaRoot,"")!=NULL)
-						chdir(pMediaRoot);
-				SAFE_DELETE(pMediaRoot);
+					if(strcmp(pMediaRoot.get(),"")!=NULL)
+						chdir(pMediaRoot.get());
 			}
 
 			// Transfer Compiler Info to Debugger
@@ -853,9 +852,8 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			HideAnyHiddenCode(pData, g_DebugInfo.GetProgramSize());
 			SendDataToDebugger(1, pData, g_DebugInfo.GetProgramSize());
 			DWORD dwDataSize=0;
-			LPSTR pVarGlobalData=MakeVarDataForTransfer(&dwDataSize);
-			SendDataToDebugger(2, pVarGlobalData, dwDataSize);
-			SAFE_DELETE(pVarGlobalData);
+			std::unique_ptr<char[]> pVarGlobalData(MakeVarDataForTransfer(&dwDataSize));
+			SendDataToDebugger(2, pVarGlobalData.get(), dwDataSize);
 			LPSTR pNameData = g_pDBPCompiler->GetProgramName();
 			SendDataToDebugger(3, pNameData, strlen(pNameData));
 
@@ -868,6 +866,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			LPVOID pDHookJ = (LPVOID)DebugHookJumpFunctionCall;
 			LPVOID pDHookR = (LPVOID)DebugHookReturnFunctionCall;
 			LPSTR pReturnError = NULL;
+			std::unique_ptr<char[]> pReturnErrorOwner;
 
 			// Critical start info
 			g_pEXE->m_UnpackFolderName = g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER);
@@ -957,7 +956,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			}
 
 			// Free Usages
-			SAFE_DELETE(pReturnError);
+			pReturnErrorOwner.reset(pReturnError);
 		}
 	}
 	else
@@ -991,13 +990,14 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
 
 		// Media Root Folder
-		LPSTR pMediaRoot=g_pDBPCompiler->GetProjectMediaRoot();
-		if(pMediaRoot==NULL)
+		std::unique_ptr<char[]> pMediaRootOwner(g_pDBPCompiler->GetProjectMediaRoot());
+		if(pMediaRootOwner==NULL)
 		{
 			// No Media Root Folder so use current directory)
-			pMediaRoot = new char[_MAX_PATH];
-			getcwd(pMediaRoot,_MAX_PATH);
+			pMediaRootOwner.reset(new char[_MAX_PATH]);
+			getcwd(pMediaRootOwner.get(),_MAX_PATH);
 		}
+		LPSTR pMediaRoot = pMediaRootOwner.get();
 		DWORD dwCutOutRoot=strlen(pMediaRoot);
 
 		// Create EXECUTABLE Here
@@ -1069,10 +1069,10 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 		}
 
 		// Check if Icon Specified256 colour icon specified
-		LPSTR pIncludesReplacementIconFile = g_pDBPCompiler->GetProjectField("icon1");
+		std::unique_ptr<char[]> pIncludesReplacementIconFile(g_pDBPCompiler->GetProjectField("icon1"));
 		if(pIncludesReplacementIconFile)
-			if(strcmp(pIncludesReplacementIconFile, "")==NULL)
-				SAFE_DELETE(pIncludesReplacementIconFile);
+			if(strcmp(pIncludesReplacementIconFile.get(), "")==NULL)
+				pIncludesReplacementIconFile.reset();
 
 		// All MEDIA required (from project file)
 		if(g_pDBPCompiler->m_bInternalMediaState==true)
@@ -1083,12 +1083,11 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				// Get Media File
 				char mediafieldname[256];
 				wsprintf(mediafieldname, "media%d", media);
-				LPSTR pMediaFileName = g_pDBPCompiler->GetProjectField(mediafieldname);
+				std::unique_ptr<char[]> pMediaFileName(g_pDBPCompiler->GetProjectField(mediafieldname));
 				if(pMediaFileName)
 				{
-					if(strcmp(pMediaFileName,"")==NULL)
+					if(strcmp(pMediaFileName.get(),"")==NULL)
 					{
-						SAFE_DELETE(pMediaFileName);
 						break;
 					}
 				}
@@ -1098,17 +1097,17 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				bool bUseMedia=true;
 				if(pMediaFileName[1]==':')
 				{
-					if(strnicmp(pMediaFileName, pMediaRoot, strlen(pMediaRoot))==NULL)
+					if(strnicmp(pMediaFileName.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
 					{
 						// remove media path from it
-						strrev(pMediaFileName);
+						strrev(pMediaFileName.get());
 						pMediaFileName[strlen(pMediaRoot)]=0;
-						strrev(pMediaFileName);
+						strrev(pMediaFileName.get());
 					}
 					else
 					{
 						// media must be in media root - otherwise ignore
-						SAFE_DELETE(pMediaFileName);
+						pMediaFileName.reset();
 						bUseMedia=false;
 					}
 				}
@@ -1116,7 +1115,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				{
 					// Check if media has wildcards (more than one file)
 					bool bHadWildcards=false;
-					for(DWORD d=0; d<strlen(pMediaFileName); d++)
+					for(DWORD d=0; d<strlen(pMediaFileName.get()); d++)
 						if(pMediaFileName[d]=='*')
 							bHadWildcards=true;
 
@@ -1127,27 +1126,22 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					{
 						// Add Actual File to Table
 						strcpy(pMediaPath, "media\\");
-						strcat(pMediaPath, pMediaFileName);
+						strcat(pMediaPath, pMediaFileName.get());
 						strcpy(pAbsPathToMedia, pMediaRoot);
-						strcat(pAbsPathToMedia, pMediaFileName);
+						strcat(pAbsPathToMedia, pMediaFileName.get());
 						CFBuilder.AddFile(pAbsPathToMedia, pMediaPath);
 					}
 					else
 					{
 						// Add Wildcard Files to Table
-						CFBuilder.AddWildcardFiles(pMediaRoot, pMediaFileName);
+						CFBuilder.AddWildcardFiles(pMediaRoot, pMediaFileName.get());
 					}
 
 					// Only overwrite if icon.ico (priority override icon)
-					if(stricmp(pMediaFileName, "icon.ico")==NULL)
+					if(stricmp(pMediaFileName.get(), "icon.ico")==NULL)
 					{
 						// Found better ICO file
-						SAFE_DELETE(pIncludesReplacementIconFile);
-						pIncludesReplacementIconFile = pMediaFileName;
-					}
-					else
-					{
-						SAFE_DELETE(pMediaFileName);
+						pIncludesReplacementIconFile = std::move(pMediaFileName);
 					}
 				}
 
@@ -1164,22 +1158,22 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			char pAbsPathToMediaIcon[_MAX_PATH];
 			if(pIncludesReplacementIconFile[1]==':')
 			{
-				if(strnicmp(pIncludesReplacementIconFile, pMediaRoot, strlen(pMediaRoot))==NULL)
+				if(strnicmp(pIncludesReplacementIconFile.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
 				{
 					// remove media path from it
-					strcpy(pAbsPathToMediaIcon, pIncludesReplacementIconFile);
+					strcpy(pAbsPathToMediaIcon, pIncludesReplacementIconFile.get());
 				}
 				else
 				{
 					// media must be in media root - otherwise ignore
-					SAFE_DELETE(pIncludesReplacementIconFile);
+					pIncludesReplacementIconFile.reset();
 					bUseMedia=false;
 				}
 			}
 			else
 			{
 				strcpy(pAbsPathToMediaIcon, pMediaRoot);
-				strcat(pAbsPathToMediaIcon, pIncludesReplacementIconFile);
+				strcat(pAbsPathToMediaIcon, pIncludesReplacementIconFile.get());
 			}
 			if(bUseMedia)
 			{
@@ -1201,7 +1195,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 
 				// Add Actual File to Table
 				CFBuilder.AddFile(pWorkIcon, "icon.ico");
-				SAFE_DELETE(pIncludesReplacementIconFile);
+				pIncludesReplacementIconFile.reset();
 			}
 		}
 		else
@@ -1234,32 +1228,32 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				wsprintf(pFinalFileName, "pointer%d.cur", cindex);
 			}
 
-			LPSTR pCursorFilename = g_pDBPCompiler->GetProjectField(pFieldName);
+			std::unique_ptr<char[]> pCursorFilename(g_pDBPCompiler->GetProjectField(pFieldName));
 			if(pCursorFilename)
 			{
-				if(strcmp(pCursorFilename, "")>0)
+				if(strcmp(pCursorFilename.get(), "")>0)
 				{
 					// Media includes an icon
 					bool bUseMedia=true;
 					char pAbsPathToMediaCur[_MAX_PATH];
 					if(pCursorFilename[1]==':')
 					{
-						if(strnicmp(pCursorFilename, pMediaRoot, strlen(pMediaRoot))==NULL)
+						if(strnicmp(pCursorFilename.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
 						{
 							// remove media path from it
-							strcpy(pAbsPathToMediaCur, pCursorFilename);
+							strcpy(pAbsPathToMediaCur, pCursorFilename.get());
 						}
 						else
 						{
 							// media must be in media root - otherwise ignore
-							SAFE_DELETE(pCursorFilename);
+							pCursorFilename.reset();
 							bUseMedia=false;
 						}
 					}
 					else
 					{
 						strcpy(pAbsPathToMediaCur, pMediaRoot);
-						strcat(pAbsPathToMediaCur, pCursorFilename);
+						strcat(pAbsPathToMediaCur, pCursorFilename.get());
 					}
 					if(bUseMedia)
 					{
@@ -1283,7 +1277,6 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					}
 				}
 			}
-			SAFE_DELETE(pCursorFilename);
 		}
 
 		// Add FX Files when appropriate
@@ -1334,22 +1327,22 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			CFBuilder.NewFileTable();
 
 			// Get stringdatas (max 24 chars as appendages takes up to 32 chars)
-			LPSTR pOrigAppName = g_pDBPCompiler->GetProjectField("app title");
-			LPSTR pAppName = new char[33];
+			std::unique_ptr<char[]> pOrigAppName(g_pDBPCompiler->GetProjectField("app title"));
+			char pAppName[33];
 			memset ( pAppName, 0, 33 );
 			if(pOrigAppName)
 			{
 				DWORD dwSourceSize = 0;
-				if ( pOrigAppName ) dwSourceSize = strlen(pOrigAppName);
+				if ( pOrigAppName ) dwSourceSize = strlen(pOrigAppName.get());
 				if ( dwSourceSize > 24 ) dwSourceSize=24;
-				memcpy(pAppName, pOrigAppName, dwSourceSize);
+				memcpy(pAppName, pOrigAppName.get(), dwSourceSize);
 			}
 			else
 				strcpy(pAppName, "DBPro Application");
 
 			pAppName[24]=0;
 
-			LPSTR pExeName = new char[33];
+			char pExeName[33];
 			memset ( pExeName, 0, 33 );
 			if(pEXEFilename)
 			{
@@ -1361,28 +1354,27 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				strcpy(pExeName, "executable.exe");
 
 			pExeName[24]=0;
-			SAFE_DELETE(pOrigAppName);
 
 			// [0-9] version info (strings not files)
 			for(int iIndex=0; iIndex<=9; iIndex++)
 			{
 				// Get ver info
-				LPSTR pStr = NULL;
-				if(iIndex==0) pStr = g_pDBPCompiler->GetProjectField("VerComments");
-				if(iIndex==1) pStr = g_pDBPCompiler->GetProjectField("VerCompany");
-				if(iIndex==2) pStr = g_pDBPCompiler->GetProjectField("VerFileDesc");
-				if(iIndex==3) pStr = g_pDBPCompiler->GetProjectField("VerFileNumber");
-				if(iIndex==4) pStr = g_pDBPCompiler->GetProjectField("VerInternal");
-				if(iIndex==5) pStr = g_pDBPCompiler->GetProjectField("VerCopyright");
-				if(iIndex==6) pStr = g_pDBPCompiler->GetProjectField("VerTrademark");
-				if(iIndex==7) pStr = g_pDBPCompiler->GetProjectField("VerFilename");
-				if(iIndex==8) pStr = g_pDBPCompiler->GetProjectField("VerProduct");
-				if(iIndex==9) pStr = g_pDBPCompiler->GetProjectField("VerProductNumber");
+				std::unique_ptr<char[]> pStr;
+				if(iIndex==0) pStr.reset(g_pDBPCompiler->GetProjectField("VerComments"));
+				if(iIndex==1) pStr.reset(g_pDBPCompiler->GetProjectField("VerCompany"));
+				if(iIndex==2) pStr.reset(g_pDBPCompiler->GetProjectField("VerFileDesc"));
+				if(iIndex==3) pStr.reset(g_pDBPCompiler->GetProjectField("VerFileNumber"));
+				if(iIndex==4) pStr.reset(g_pDBPCompiler->GetProjectField("VerInternal"));
+				if(iIndex==5) pStr.reset(g_pDBPCompiler->GetProjectField("VerCopyright"));
+				if(iIndex==6) pStr.reset(g_pDBPCompiler->GetProjectField("VerTrademark"));
+				if(iIndex==7) pStr.reset(g_pDBPCompiler->GetProjectField("VerFilename"));
+				if(iIndex==8) pStr.reset(g_pDBPCompiler->GetProjectField("VerProduct"));
+				if(iIndex==9) pStr.reset(g_pDBPCompiler->GetProjectField("VerProductNumber"));
 
 				// Add to filetable [0-9]
 				if(iIndex==3 || iIndex==9)
 				{
-					LPSTR pFillStr = new char[11];
+					char pFillStr[11];
 					memset(pFillStr, 0, 11);
 					if(pStr==NULL)
 					{
@@ -1392,17 +1384,16 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					else
 					{
 						DWORD dwSourceSize = 0;
-						if ( pStr ) dwSourceSize = strlen(pStr);
+						if ( pStr ) dwSourceSize = strlen(pStr.get());
 						if ( dwSourceSize > 10 ) dwSourceSize=10;
-						memcpy(pFillStr, pStr, dwSourceSize);
+						memcpy(pFillStr, pStr.get(), dwSourceSize);
 						pFillStr[10]=0;
 					}
 					CFBuilder.AddFile(pFillStr,"");
-					SAFE_DELETE(pFillStr);
 				}
 				else
 				{
-					LPSTR pFillStr = new char[33];
+					char pFillStr[33];
 					memset(pFillStr, 0, 33);
 					if(pStr==NULL)
 					{
@@ -1437,31 +1428,23 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					else
 					{
 						DWORD dwSourceSize = 0;
-						if ( pStr ) dwSourceSize = strlen(pStr);
+						if ( pStr ) dwSourceSize = strlen(pStr.get());
 						if ( dwSourceSize > 32 ) dwSourceSize=32;
-						memcpy(pFillStr, pStr, dwSourceSize);
+						memcpy(pFillStr, pStr.get(), dwSourceSize);
 						pFillStr[32]=0;
 					}
 					CFBuilder.AddFile(pFillStr,"");
-					SAFE_DELETE(pFillStr);
 				}
-
-				// Free usages
-				SAFE_DELETE(pStr);
 			}
-
-			// Free usages
-			SAFE_DELETE(pAppName);
-			SAFE_DELETE(pExeName);
 
 			// [10] 32x32 icon
 			strcpy(pAbsResourceFile, "");
-			LPSTR pIconFilename = g_pDBPCompiler->GetProjectField("icon1");
-			if(pIconFilename==NULL) pIconFilename = g_pDBPCompiler->GetProjectField("icon1");
+			std::unique_ptr<char[]> pIconFilename(g_pDBPCompiler->GetProjectField("icon1"));
+			if(pIconFilename==NULL) pIconFilename.reset(g_pDBPCompiler->GetProjectField("icon1"));
 			if(pIconFilename)
 			{
 				if(pIconFilename[1]!=':') strcpy(pAbsResourceFile, pMediaRoot);
-				strcat(pAbsResourceFile, pIconFilename);
+				strcat(pAbsResourceFile, pIconFilename.get());
 			}
 			else
 			{
@@ -1469,16 +1452,15 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				strcat(pAbsResourceFile, "icon.ico");
 			}
 			CFBuilder.AddFile(pAbsResourceFile,"");
-			SAFE_DELETE(pIconFilename);
 
 			// [11] 16x16 icon
 			strcpy(pAbsResourceFile, "");
-			pIconFilename = g_pDBPCompiler->GetProjectField("icon2");
-			if(pIconFilename==NULL) pIconFilename = g_pDBPCompiler->GetProjectField("icon1");
+			pIconFilename.reset(g_pDBPCompiler->GetProjectField("icon2"));
+			if(pIconFilename==NULL) pIconFilename.reset(g_pDBPCompiler->GetProjectField("icon1"));
 			if(pIconFilename)
 			{
 				if(pIconFilename[1]!=':') strcpy(pAbsResourceFile, pMediaRoot);
-				strcat(pAbsResourceFile, pIconFilename);
+				strcat(pAbsResourceFile, pIconFilename.get());
 			}
 			else
 			{
@@ -1486,7 +1468,6 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				strcat(pAbsResourceFile, "icon.ico");
 			}
 			CFBuilder.AddFile(pAbsResourceFile,"");
-			SAFE_DELETE(pIconFilename);
 
 			// Progress Reporting Tool
 			g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc(60));
@@ -1526,9 +1507,6 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			// return as failure
 			return false;
 		}
-
-		// Free dynamic media string
-		SAFE_DELETE(pMediaRoot);
 	}
 
 	// Free Usages
@@ -1560,14 +1538,13 @@ bool CASMWriter::UpdateMCB(DWORD dwProgramSizeBytes)
 
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwSizeOfMCB;
-		LPSTR pOldArray = (LPSTR)g_pEXE->m_pMachineCodeBlock;
+		std::unique_ptr<char[]> pOldArray((LPSTR)g_pEXE->m_pMachineCodeBlock);
 		DWORD dwNewSize = dwOldSize + dwProgramSizeBytes;
 		LPSTR pNewArray = new char[dwNewSize];
 
 		// Fill New Array with Old+New, then delete Old
-		memcpy(pNewArray, pOldArray, dwOldSize);
+		memcpy(pNewArray, pOldArray.get(), dwOldSize);
 		memcpy(pNewArray+dwOldSize, m_pProgramStart, dwProgramSizeBytes);
-		SAFE_DELETE(pOldArray);
 
 		// Update pointers
 		g_pEXE->m_dwSizeOfMCB = dwNewSize;
@@ -1608,21 +1585,18 @@ bool CASMWriter::UpdateMCBRefData(void)
 	{
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwNumberOfReferences;
-		LPSTR pOldArray1 = (LPSTR)g_pEXE->m_pRefArray;
-		LPSTR pOldArray2 = (LPSTR)g_pEXE->m_pRefTypeArray;
-		LPSTR pOldArray3 = (LPSTR)g_pEXE->m_pRefIndexArray;
+		std::unique_ptr<DWORD[]> pOldArray1(g_pEXE->m_pRefArray);
+		std::unique_ptr<DWORD[]> pOldArray2(g_pEXE->m_pRefTypeArray);
+		std::unique_ptr<DWORD[]> pOldArray3(g_pEXE->m_pRefIndexArray);
 		DWORD dwNewSize = dwOldSize + m_dwProgramRefPointer;
 		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
 		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
 		LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
 
 		// Fill New Array with Old+New, then delete Old
-		memcpy(pNewArray1, pOldArray1, dwOldSize*sizeof(DWORD));
-		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(DWORD));
-		memcpy(pNewArray3, pOldArray3, dwOldSize*sizeof(DWORD));
-		SAFE_DELETE(pOldArray1);
-		SAFE_DELETE(pOldArray2);
-		SAFE_DELETE(pOldArray3);
+		memcpy(pNewArray1, pOldArray1.get(), dwOldSize*sizeof(DWORD));
+		memcpy(pNewArray2, pOldArray2.get(), dwOldSize*sizeof(DWORD));
+		memcpy(pNewArray3, pOldArray3.get(), dwOldSize*sizeof(DWORD));
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfReferences = dwNewSize;
@@ -1700,14 +1674,13 @@ bool CASMWriter::UpdateMCBRefData(void)
 			}
 			if(iRefType==5)
 			{
-				CStr* pRealLabel = new CStr(pStr);
-				DWORD dwCrapPos = pRealLabel->FindFirstChar('@');
-				if(dwCrapPos>0) pRealLabel->EatChar(dwCrapPos);
-				CLabelTable* pLabel = g_pLabelTable->FindLabel(pRealLabel->GetStr());
+				CStr realLabel(pStr);
+				DWORD dwCrapPos = realLabel.FindFirstChar('@');
+				if(dwCrapPos>0) realLabel.EatChar(dwCrapPos);
+				CLabelTable* pLabel = g_pLabelTable->FindLabel(realLabel.GetStr());
 				if(pLabel==NULL)
 				{
 					g_pErrorReport->AddErrorString("Failed to 'CreateASMFooter::FindLabel'");
-					SAFE_DELETE(pRealLabel);
 					return false;
 				}
 				else
@@ -1720,15 +1693,14 @@ bool CASMWriter::UpdateMCBRefData(void)
 						dwIndex = dwIndex + g_pEXE->m_dwStartOfMiniMC;		
 					}
 				}
-				SAFE_DELETE(pRealLabel);
 			}
 			if(iRefType==6)
 			{
-				CStr* pRealLabel = new CStr(pStr);
-				pRealLabel->SetChar(1,'l');
-				DWORD dwCrapPos = pRealLabel->FindFirstChar('@');
-				if(dwCrapPos>0) pRealLabel->EatChar(dwCrapPos);
-				CLabelTable* pLabel = g_pLabelTable->FindLabel(pRealLabel->GetStr());
+				CStr realLabel(pStr);
+				realLabel.SetChar(1,'l');
+				DWORD dwCrapPos = realLabel.FindFirstChar('@');
+				if(dwCrapPos>0) realLabel.EatChar(dwCrapPos);
+				CLabelTable* pLabel = g_pLabelTable->FindLabel(realLabel.GetStr());
 				if(pLabel==NULL)
 				{
 					g_pErrorReport->AddErrorString("Failed to 'CreateASMFooter::FindLabel'");
@@ -1739,7 +1711,6 @@ bool CASMWriter::UpdateMCBRefData(void)
 					// XXX offset from datastatement start to data line
 					dwIndex=pLabel->GetDataIndex();
 				}
-				SAFE_DELETE(pRealLabel);
 			}
 			g_pEXE->m_pRefIndexArray[dwEXERefIndex] = dwIndex;
 			g_pEXE->m_pRefArray[dwEXERefIndex] = ( m_ProgramRefs[ref] + g_pEXE->m_dwStartOfMiniMC );
@@ -1797,9 +1768,9 @@ bool CASMWriter::UpdateDLLData(void)
 			memcpy(pNewArray1, pOldArray1, dwOldSize*sizeof(DWORD));
 			memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
 			memcpy(pNewArray3, pOldArray3, dwOldSize*sizeof(DWORD));
-			SAFE_DELETE(pOldArray1);
-			SAFE_DELETE(pOldArray2);
-			SAFE_DELETE(pOldArray3);
+			std::unique_ptr<DWORD[]> pOldArray1Owner((DWORD*)pOldArray1);
+			std::unique_ptr<uintptr_t[]> pOldArray2Owner(pOldArray2);
+			std::unique_ptr<DWORD[]> pOldArray3Owner((DWORD*)pOldArray3);
 
 			// Update pointers
 			g_pEXE->m_dwNumberOfDLLs = dwNewSize;
@@ -1892,8 +1863,8 @@ bool CASMWriter::UpdateCommandData(void)
 		// Fill New Array with Old+New, then delete Old
 		memcpy(pNewArray1, pOldArray1, dwOldSize*sizeof(DWORD));
 		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
-		SAFE_DELETE(pOldArray1);
-		SAFE_DELETE(pOldArray2);
+		std::unique_ptr<DWORD[]> pOldArray1Owner((DWORD*)pOldArray1);
+		std::unique_ptr<uintptr_t[]> pOldArray2Owner(pOldArray2);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfCommands = dwNewSize;
@@ -1913,12 +1884,15 @@ bool CASMWriter::UpdateCommandData(void)
 			// Cut String between DLL value and command string
 			LPSTR pLeft = "???";
 			LPSTR pRight = "???";
+			std::unique_ptr<char[]> pLeftOwner, pRightOwner;
 			if(pStringEntry)
 			{
 				CStr* pStr = pStringEntry->GetString();
 				DWORD dwPos = pStr->FindFirstChar(',');
-				pLeft = pStr->GetLeftOfPosition(dwPos);
-				pRight = pStr->GetRightOfPosition(dwPos+1);
+				pLeftOwner.reset(pStr->GetLeftOfPosition(dwPos));
+				pRightOwner.reset(pStr->GetRightOfPosition(dwPos+1));
+				pLeft = pLeftOwner.get();
+				pRight = pRightOwner.get();
 			}
 
 			// Create Dynamic String
@@ -1928,13 +1902,6 @@ bool CASMWriter::UpdateCommandData(void)
 			// EXEData from Table
 			g_pEXE->m_pCommandDLLIdArray[c]=atoi(pLeft);
 			g_pEXE->m_pCommandDLLCallArray[c]=(uintptr_t)pDynamicString;
-
-			// Free usage
-			if(pStringEntry)
-			{
-				SAFE_DELETE(pLeft);
-				SAFE_DELETE(pRight);
-			}
 		}
 
 		// Next String
@@ -1963,13 +1930,12 @@ bool CASMWriter::UpdateStringData(void)
 	{
 		// Add To Array(s)
 		DWORD dwOldSize = g_pEXE->m_dwNumberOfStrings;
-		uintptr_t* pOldArray = g_pEXE->m_pStringsArray;
+		std::unique_ptr<uintptr_t[]> pOldArray(g_pEXE->m_pStringsArray);
 		DWORD dwNewSize = g_pStatementList->GetStringIndexCounter();
 		uintptr_t* pNewArray = g_pEXE->CreatePtrArray(dwNewSize);
 
 		// Fill New Array with Old+New, then delete Old
-		memcpy(pNewArray, pOldArray, dwOldSize*sizeof(uintptr_t));
-		SAFE_DELETE(pOldArray);
+		memcpy(pNewArray, pOldArray.get(), dwOldSize*sizeof(uintptr_t));
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfStrings = dwNewSize;
@@ -2042,8 +2008,8 @@ bool CASMWriter::UpdateDataData(void)
 		// Fill New Array with Old+New, then delete Old
 		memcpy(pNewArray1, pOldArray1, dwOldSize*10);
 		memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
-		SAFE_DELETE(pOldArray1);
-		SAFE_DELETE(pOldArray2);
+		std::unique_ptr<char[]> pOldArray1Owner(pOldArray1);
+		std::unique_ptr<uintptr_t[]> pOldArray2Owner(pOldArray2);
 
 		// Update pointers
 		g_pEXE->m_dwNumberOfDataItems = dwNewSize;
@@ -2106,8 +2072,10 @@ bool CASMWriter::UpdateDynamicData(void)
 	db3::CProfile<> prof("CASMWriter::UpdateDynamicData");
 
 	// Complete Dynamic Array Refresh
-	SAFE_DELETE(g_pEXE->m_pDynamicVarsArray);
-	SAFE_DELETE(g_pEXE->m_pDynamicVarsArrayType);
+	std::unique_ptr<DWORD[]> oldDynamicVars(g_pEXE->m_pDynamicVarsArray);
+	std::unique_ptr<DWORD[]> oldDynamicVarsType(g_pEXE->m_pDynamicVarsArrayType);
+	g_pEXE->m_pDynamicVarsArray = NULL;
+	g_pEXE->m_pDynamicVarsArrayType = NULL;
 
 	// Dynamic Variables (Strings and Arrays, etc)
 	DWORD dwDynamicVarsCounter=0;
@@ -2196,7 +2164,8 @@ bool CASMWriter::UpdateStructurePatternData(void)
 
 	// go through all structures and create a full datatype pattern for each
 	g_pEXE->m_dwUsertypeStringPatternQuantity = 0;
-	SAFE_DELETE(g_pEXE->m_pUsertypeStringPatternArray);
+	std::unique_ptr<char[]> oldPatternArray(g_pEXE->m_pUsertypeStringPatternArray);
+	g_pEXE->m_pUsertypeStringPatternArray = NULL;
 
 	// first pass count structures, second pass create and fill arrays
 	for(short pass=0; pass<=1; pass++)

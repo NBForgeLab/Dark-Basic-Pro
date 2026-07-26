@@ -784,18 +784,19 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 
 	// Create param chain from param string
 	m_pStatement = std::make_unique<CStatement>();
-	CParameter* pFirstParameter = NULL;
-	if(m_pStatement->DoParameterListString(pFunctionDataString.get(), &pFirstParameter)==false)
+	CParameter* pFirstParameterRaw = NULL;
+	if(m_pStatement->DoParameterListString(pFunctionDataString.get(), &pFirstParameterRaw)==false)
 	{
 		g_pErrorReport->SetError ( g_pStatementList->GetLineNumber(), ERR_SYNTAX+55, pFunctionNameString->GetStr() );
-		SAFE_DELETE(pFirstParameter);
+		delete pFirstParameterRaw;
 		m_pStatement.reset();
 		return false;
 	}
+	std::unique_ptr<CParameter> pFirstParameter(pFirstParameterRaw);
 
 	// Work out if right number of parameterd parsed
 	DWORD dwParamCount=0;
-	CParameter* pCurrent = pFirstParameter;
+	CParameter* pCurrent = pFirstParameter.get();
 	while(pCurrent)
 	{
 		dwParamCount++;
@@ -857,7 +858,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 					if ( pDecChain )
 					{
 						CDeclaration* pDec = pDecChain->GetNext();
-						CParameter* pCurrent = pFirstParameter;
+						CParameter* pCurrent = pFirstParameter.get();
 						while ( pCurrent && pDec )
 						{
 							DWORD dwDataType = pCurrent->GetMathItem()->FindResultTypeValueForDBM();
@@ -1009,14 +1010,10 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 			}
 		}
 
-		SAFE_DELETE(pFirstParameter);
+		pFirstParameter.reset();
 		m_pStatement.reset();
 		return false;
 	}
-
-	// free usages
-	pValidEntryStr.reset();
-	pFunctionTypeStr.reset();
 
 	// Run through parameters of validated user function and make any required casts
 	if(pRef)
@@ -1024,7 +1021,6 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		if(pFirstParameter->CastAllParametersToInstruction(pRef)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoValueFunction::CastAllParametersToInstruction'");
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 	}
@@ -1056,7 +1052,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	pInstruction->SetType(dwInstructionType);
 	pInstruction->SetValue(dwInstructionValue);
 	pInstruction->SetParamMax(dwInstructionParamMax);
-	pInstruction->SetParameter(pFirstParameter);
+	pInstruction->SetParameter(pFirstParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 	pInstruction->SetReturnParameter(pResultStr);
 	pInstruction->SetLabelParam(pFullLabelName);
@@ -1097,14 +1093,15 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 
 	// Determine type of this variable
 	LPSTR pTypeName=NULL;
+	std::unique_ptr<char[]> pTypeNameOwner;
 	if(g_pVarTable->FindVariableExist(pFirstName->GetStr(), dwArrayType)==true)
 	{
 		if(g_pVarTable->FindTypeOfVariable(pFirstName->GetStr(), dwArrayType, &pTypeName)==false)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+5, pFirstName->GetStr());
-			SAFE_DELETE(pTypeName);
 			return false;
 		}
+		pTypeNameOwner.reset(pTypeName);
 	}
 	else
 	{
@@ -1138,7 +1135,6 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 				char pErrorDetail[512];
 				sprintf_s(pErrorDetail, 512, "Failed to 'Calculate DataOffsetAndTypeFromFieldString' : %s %s %s %s", pVarName->GetStr(), pFieldData->GetStr(), pFirstName->GetStr(), pTypeName );
 				g_pErrorReport->AddErrorString(pErrorDetail);
-				SAFE_DELETE(pTypeName);
 				return false;
 			}
 		}
@@ -1180,12 +1176,11 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 				if ( pLastDec==NULL )
 				{
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+38, pFieldname->GetStr(), pTypeName);
-					SAFE_DELETE(pTypeName);
 					return false;
 				}
-
+				
 				// Retain newly found type
-				SAFE_DELETE(pTypeName);
+				pTypeNameOwner.reset(pNewTypeName);
 				pTypeName=pNewTypeName;
 
 				// Store field type for L-Value process
@@ -1204,7 +1199,7 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 		}
 	}
 
-	SAFE_DELETE(pTypeName);
+	// pTypeNameOwner auto-cleanup
 
 	// Return Data gathered from traversal
 	*pdwLType=dwTrackLastValidLValueFieldType;

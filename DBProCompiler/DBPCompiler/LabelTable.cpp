@@ -166,7 +166,7 @@ CLabelTable* CLabelTable::Subtract(DWORD dwCountdown)
 bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
 {
 	// Make string
-	CStr* pStr = new CStr(pStrName);
+	auto pStr = std::make_unique<CStr>(pStrName);
 
 	// Remove colon from label
 	DWORD length = pStr->Length()-1;
@@ -176,7 +176,6 @@ bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex,
 	// Ensure label is unique (already got)
 	if(FindLabel(pStr->GetStr())!=NULL)
 	{
-		SAFE_DELETE(pStr);
 		return true;
 	}
 
@@ -184,20 +183,21 @@ bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex,
 	CLabelTable* pNewData = new CLabelTable;
 
 	// Set data for label
-	pNewData->SetName(pStr);
+	CStr* pStrRaw = pStr.get();
+	pNewData->SetName(pStr.release());
 	pNewData->SetCodeIndex(dwCodeIndex);
 	pNewData->SetDataIndex(dwDataIndex);
 	pNewData->SetBytePosition(0);
 	pNewData->SetSRef(pSRef);
 
 #ifdef __AARON_LBLTBLPERF__
-	std::string lowerName = to_lower(pStr->GetStr());
+	std::string lowerName = to_lower(pStrRaw->GetStr());
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Label already exists");
 	g_Table[lowerName] = pNewData;
 #endif
 
 	// Add to Table
-	AddInOrder(pStr->GetStr(), pNewData);
+	AddInOrder(pStrRaw->GetStr(), pNewData);
 
 	// Increment table entry count
 	g_pStatementList->IncLabelQtyCounter(1);

@@ -30,6 +30,7 @@
 #include <DB3Time.h>
 #include <algorithm>
 #include <cctype>
+#include <memory>
 
 // Internal Global Data Pointers
 CEXEBlock*			g_pEXE				= NULL;
@@ -374,11 +375,10 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 	if( bFileLoaded )
 	{
 		// Eat EdgeSpaces
-		CStr* pNewStr = new CStr(m_pFileData);
-		pNewStr->EatTrailingEdgeSpacesandTabs();
+		CStr newStr(m_pFileData);
+		newStr.EatTrailingEdgeSpacesandTabs();
 		ZeroMemory(m_pFileData, m_FileDataSize);
-		strcpy(m_pFileData, pNewStr->GetStr());
-		SAFE_DELETE(pNewStr);
+		strcpy(m_pFileData, newStr.GetStr());
 	}
 	else
 	{
@@ -508,12 +508,13 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	{
 		// Seek #include
 		DWORD dwCount=0;
-		LPSTR pIncludeFilename = NULL;
+		LPSTR pIncludeFilenameRaw = NULL;
 		LPSTR pPtrEnd=pNewData+dwNewDataSize;
-		if(SeekIncludeToken(&pPtr, pPtrEnd, &dwCount, &pIncludeFilename)==false)
+		bool bSeekResult = SeekIncludeToken(&pPtr, pPtrEnd, &dwCount, &pIncludeFilenameRaw);
+		std::unique_ptr<char[]> pIncludeFilename(pIncludeFilenameRaw);
+		if(bSeekResult==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'SeekIncludeToken'");
-			SAFE_DELETE(pIncludeFilename);
 			return false;
 		}
 
@@ -521,7 +522,6 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 		if(pPtr>=pPtrEnd)
 		{
 			// Ready for parsing single filedata block
-			SAFE_DELETE(pIncludeFilename);
 			break;
 		}
 
@@ -529,25 +529,24 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 		dwPtrCount=dwPtrCount+dwCount;
 
 		// Ensure include has not already been added
-		if(g_pIncludeTable->FindInclude(pIncludeFilename)==false)
+		if(g_pIncludeTable->FindInclude(pIncludeFilename.get())==false)
 		{
 			// Create Include Table Entry (INCLUDE BLOCK)
 			CIncludeTable* pIncludeEntry = new CIncludeTable;
-			CStr* pStrName = new CStr(pIncludeFilename);
+			CStr* pStrName = new CStr(pIncludeFilename.get());
 			pIncludeEntry->SetFilename(pStrName);
 			pIncludeEntry->SetFirstByte(dwNewDataSize);
 			g_pIncludeTable->Add(pIncludeEntry);
 
 			// Construct full include absolute path
-			LPSTR pMediaRoot=GetProjectMediaRoot();
-			CStr* pAbsoluteIncludeFile = new CStr(pMediaRoot);
-			pAbsoluteIncludeFile->AddText(pIncludeFilename);
-			SAFE_DELETE(pMediaRoot);
+			std::unique_ptr<char[]> pMediaRoot(GetProjectMediaRoot());
+			CStr absoluteIncludeFile(pMediaRoot.get());
+			absoluteIncludeFile.AddText(pIncludeFilename.get());
 
 			// Produce single FileData Block from multiple DBA Files
 			LPSTR pData=NULL;
 			DWORD dwDataSize=0;
-			if(LoadRaw(pAbsoluteIncludeFile->GetStr(), &pData, &dwDataSize))
+			if(LoadRaw(absoluteIncludeFile.GetStr(), &pData, &dwDataSize))
 			{
 				// Add Raw DBA to end of FileData
 				CopyData(&pNewData, &dwNewDataSize, pData, dwDataSize);
@@ -557,16 +556,10 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 			}
 			else
 			{
-				g_pErrorReport->SetError(0, ERR_SYNTAX+39, pIncludeFilename);
-				SAFE_DELETE(pIncludeFilename);
-				SAFE_DELETE(pAbsoluteIncludeFile);
+				g_pErrorReport->SetError(0, ERR_SYNTAX+39, pIncludeFilename.get());
 				return false;
 			}
-			SAFE_DELETE(pAbsoluteIncludeFile);
 		}
-
-		// Free usage
-		SAFE_DELETE(pIncludeFilename);
 
 		// Update pointer
 		pPtr=pNewData+dwPtrCount;
@@ -719,8 +712,8 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 				if(dwStringLength>0)
 				{
 					// Prepare CStr
-					CStr* pStrValue = new CStr(dwStringLength);
-					DB_SCOPE_GUARD({SAFE_DELETE(pStrValue);});
+					auto pStrValueOwner = std::make_unique<CStr>(dwStringLength);
+					CStr* pStrValue = pStrValueOwner.get();
 
 					pStrValue->CopyFromPtr(pStringStart, pStringStart, dwStringLength);
 
@@ -742,21 +735,20 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 							return false;
 						}
 #else
-						LPSTR pConstantName = new char[dwFirstSpaceOrEquate+1];
-						DB_SCOPE_GUARD({SAFE_DELETE(pConstantName);});
+						std::unique_ptr<char[]> pConstantNameOwner(new char[dwFirstSpaceOrEquate+1]);
+						LPSTR pConstantName = pConstantNameOwner.get();
 #endif
 						memcpy(pConstantName, pStrValue->GetStr(), dwFirstSpaceOrEquate);
 						pConstantName[dwFirstSpaceOrEquate]=0;
 
 						// LEEFIX - 191102 - Validate that it ONLY containts constant character
-						CStr* pValidConst = new CStr(pConstantName);
-						DB_SCOPE_GUARD({SAFE_DELETE(pValidConst);});
+						CStr validConst(pConstantName);
 
-						if(pValidConst->IsConstant())
+						if(validConst.IsConstant())
 						{
 							// Yes, so rest is constant value
-							LPSTR pConstantValue = pStrValue->GetRightOfPosition(dwFirstSpaceOrEquate);
-							pStrValue->SetText(pConstantValue);
+							std::unique_ptr<char[]> pConstantValue(pStrValue->GetRightOfPosition(dwFirstSpaceOrEquate));
+							pStrValue->SetText(pConstantValue.get());
 							pStrValue->EatEdgeSpacesandTabs(NULL);
 
 							// remove any equate symbol as this could be added by user
@@ -834,7 +826,6 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 					{
 						// Report that it is not valud constant name
 						g_pErrorReport->SetError(0, ERR_SYNTAX+52, pStrValue->GetStr());
-						SAFE_DELETE(pStrValue);
 						return false;
 					}
 
@@ -1152,11 +1143,11 @@ bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvan
 			pPtr+=9;
 
 			// Read in include name
-			CStr* pName = new CStr("");
+			CStr name("");
 			while(pPtr<pPtrEnd)
 			{
 				// Build name string
-				pName->AddChar(*(pPtr));
+				name.AddChar(*(pPtr));
 
 				// Leave at end of line
 				if(*(pPtr-1)==13 && *(pPtr-0)==10) break;
@@ -1172,19 +1163,19 @@ bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvan
 			for(LPSTR pP=pFirstChar; pP<pPtr; pP++) *(pP)=32;
 
 			// Strip spaces and stuff from name
-			pName->EatEdgeSpacesandTabs(NULL);
+			name.EatEdgeSpacesandTabs(NULL);
 
 			// Strip speech marks from name
-			pName->EatSpeechMarks();
+			name.EatSpeechMarks();
 
 			// Convert any forwards slashes to backwards slashes
-			for(DWORD d=0; d<pName->Length(); d++)
-				if(pName->GetChar(d)=='/')
-					pName->SetChar(d,'\\');
+			for(DWORD d=0; d<name.Length(); d++)
+				if(name.GetChar(d)=='/')
+					name.SetChar(d,'\\');
 
 			// Copy name and return 
-			*ppIncludeFilename = new char[pName->Length()+1];
-			strcpy(*ppIncludeFilename, pName->GetStr());
+			*ppIncludeFilename = new char[name.Length()+1];
+			strcpy(*ppIncludeFilename, name.GetStr());
 			break;
 		}
 
@@ -1277,16 +1268,16 @@ bool CDBPCompiler::MakeProgram(void)
 	{
 		// 280203 - default app name required or exe will not have a classname
 		DWORD dwLength = strlen ( m_pFinalDBASource );
-		g_pEXE->m_pInitialAppName = new char[dwLength+1];
-		strcpy ( g_pEXE->m_pInitialAppName, m_pFinalDBASource );
-		if ( dwLength>4 ) g_pEXE->m_pInitialAppName [ dwLength-4 ] = 0;
-		if ( strlen ( g_pEXE->m_pInitialAppName )==0 )
+		std::unique_ptr<char[]> pAppName(new char[dwLength+1]);
+		strcpy ( pAppName.get(), m_pFinalDBASource );
+		if ( dwLength>4 ) pAppName [ dwLength-4 ] = 0;
+		if ( strlen ( pAppName.get() )==0 )
 		{
 			// leefix - 230105 - proj with no appname would corrupt
-			SAFE_DELETE(g_pEXE->m_pInitialAppName);
-			g_pEXE->m_pInitialAppName = new char[strlen("DB3 Application")+1];
-			strcpy ( g_pEXE->m_pInitialAppName, "DB3 Application" );
+			pAppName.reset(new char[strlen("DB3 Application")+1]);
+			strcpy ( pAppName.get(), "DB3 Application" );
 		}
+		g_pEXE->m_pInitialAppName = pAppName.release();
 	}
 	
 	// IN Debug Mode, cannot have non-desktop mode
@@ -1335,7 +1326,7 @@ bool CDBPCompiler::MakeProgram(void)
 
 	// CLI can make some temp memory used for mini-program parsing
 	DWORD dwMiniSize = 0;
-	LPSTR pMiniData = NULL;
+	std::unique_ptr<char[]> pMiniData;
 
 	// Skips DBM Data production
 	m_bProduceDBMFileOn=true;
@@ -1376,11 +1367,13 @@ bool CDBPCompiler::MakeProgram(void)
 			g_DebugInfo.SetParsingMain(false);
 
 			// Load MiniCLI Text from debugger
-			SAFE_DELETE(pMiniData);
-			g_pASMWriter->GetDataFromDebugger(51, &pMiniData, &dwMiniSize);
+			pMiniData.reset();
+			LPSTR pMiniDataRaw = NULL;
+			g_pASMWriter->GetDataFromDebugger(51, &pMiniDataRaw, &dwMiniSize);
+			pMiniData.reset(pMiniDataRaw);
 
 			// Parse Mini Program
-			if(!g_pStatementList->AddMiniStatements(pMiniData, dwMiniSize))
+			if(!g_pStatementList->AddMiniStatements(pMiniData.get(), dwMiniSize))
 			{
 				// Report Error to Debugger
 				LPSTR pData = g_pErrorReport->GetParserErrorString();
@@ -1390,7 +1383,7 @@ bool CDBPCompiler::MakeProgram(void)
 
 				// Clear miniprogram for empty parse
 				g_pDBMWriter->SetNewCodeFlag(false);
-				SAFE_DELETE(pMiniData);
+				pMiniData.reset();
 				bResult=true;
 			}
 
@@ -1457,7 +1450,7 @@ bool CDBPCompiler::MakeProgram(void)
 	}
 
 	// Free MiniFileData Mem
-	SAFE_DELETE(pMiniData);
+	pMiniData.reset();
 
 	// Free The EXE when no more to run
 	if (g_pEXE) {
@@ -1529,11 +1522,10 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 		if(LoadRaw(pFilename, &m_pProjectFileData, &m_ProjectFileDataSize))
 		{
 			// Eat EdgeSpaces
-			CStr* pNewStr = new CStr(m_pProjectFileData);
-			pNewStr->EatEdgeSpacesandTabs(NULL);
+			CStr newStr(m_pProjectFileData);
+			newStr.EatEdgeSpacesandTabs(NULL);
 			ZeroMemory(m_pProjectFileData, m_ProjectFileDataSize);
-			strcpy(m_pProjectFileData, pNewStr->GetStr());
-			SAFE_DELETE(pNewStr);
+			strcpy(m_pProjectFileData, newStr.GetStr());
 
 			// Project File loaded ok
 			m_bProjectExists=true;
@@ -1576,25 +1568,24 @@ bool CDBPCompiler::FreeProjectFile(void)
 
 LPSTR CDBPCompiler::ReplaceTokens(LPSTR pFilename)
 {
-	CStr* pNewStr = new CStr("");
+	CStr newStr("");
 	DWORD dwLen=strlen(pFilename);
 	for(DWORD n=0; n<dwLen; n++)
 	{
 		if(strnicmp(pFilename+n, "%temp", 5)==NULL)
 		{
-			pNewStr->AddText(GetInternalFile(PATH_TEMPFOLDER));
+			newStr.AddText(GetInternalFile(PATH_TEMPFOLDER));
 			n+=5;
 		}
-		pNewStr->AddChar(*(pFilename+n));
+		newStr.AddChar(*(pFilename+n));
 	}
-	if(pNewStr->Length()>0)
+	if(newStr.Length()>0)
 	{
 		delete[] pFilename;
-		pFilename = new char[pNewStr->Length()+1];
-		strcpy(pFilename, pNewStr->GetStr());
-		pFilename[pNewStr->Length()]=0;
+		pFilename = new char[newStr.Length()+1];
+		strcpy(pFilename, newStr.GetStr());
+		pFilename[newStr.Length()]=0;
 	}
-	SAFE_DELETE(pNewStr);
 	return pFilename;
 }
 
@@ -1616,18 +1607,17 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 		if(m_pEXEFilename[1]!=':')
 		{
 			// Not absolute, make sire its just the exe
-			CStr* pExeOnly = new CStr("");
-			pExeOnly->SetText(m_pEXEFilename);
-			pExeOnly->Reverse();
-			DWORD dwPos = pExeOnly->FindFirstChar('\\');
-			if(dwPos>0) pExeOnly->SetChar(dwPos, 0);
-			dwPos = pExeOnly->FindFirstChar('/');
-			if(dwPos>0) pExeOnly->SetChar(dwPos, 0);
-			pExeOnly->Reverse();
+			CStr exeOnly("");
+			exeOnly.SetText(m_pEXEFilename);
+			exeOnly.Reverse();
+			DWORD dwPos = exeOnly.FindFirstChar('\\');
+			if(dwPos>0) exeOnly.SetChar(dwPos, 0);
+			dwPos = exeOnly.FindFirstChar('/');
+			if(dwPos>0) exeOnly.SetChar(dwPos, 0);
+			exeOnly.Reverse();
 			SAFE_DELETE_ARRAY(m_pEXEFilename);
-			m_pEXEFilename = new char[pExeOnly->Length()+1];
-			strcpy(m_pEXEFilename, pExeOnly->GetStr());
-			SAFE_DELETE(pExeOnly);
+			m_pEXEFilename = new char[exeOnly.Length()+1];
+			strcpy(m_pEXEFilename, exeOnly.GetStr());
 		}
 
 		// Compiler Display Settings
@@ -1710,15 +1700,13 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 bool CDBPCompiler::GetProjectState(LPSTR pFieldName, bool bDefault)
 {
 	bool bState=bDefault;
-	LPSTR pState = GetProjectField(pFieldName);
+	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
 	if(pState)
 	{
-		if(stricmp(pState,"yes")==NULL)
+		if(stricmp(pState.get(),"yes")==NULL)
 			bState=true;
 		else
 			bState=false;
-
-		SAFE_DELETE(pState);
 	}
 	return bState;
 }
@@ -1731,15 +1719,13 @@ bool CDBPCompiler::GetProjectState(LPSTR pFieldName)
 bool CDBPCompiler::GetProjectStateMatch(LPSTR pFieldName, LPSTR pCompareStr)
 {
 	bool bState=false;
-	LPSTR pState = GetProjectField(pFieldName);
+	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
 	if(pState)
 	{
-		if(stricmp(pState,pCompareStr)==NULL)
+		if(stricmp(pState.get(),pCompareStr)==NULL)
 			bState=true;
 		else
 			bState=false;
-
-		SAFE_DELETE(pState);
 	}
 	return bState;
 }
@@ -1747,7 +1733,8 @@ bool CDBPCompiler::GetProjectStateMatch(LPSTR pFieldName, LPSTR pCompareStr)
 DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
 {
 	DWORD dwDisplayData=0;
-	LPSTR pState = GetProjectField(pFieldName);
+	std::unique_ptr<char[]> pStateOwner(GetProjectField(pFieldName));
+	LPSTR pState = pStateOwner.get();
 	if(pState)
 	{
 		// U75 - 260210 - old editor used 0,0 for window resolution
@@ -1780,7 +1767,6 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
 			if(stricmp(depth, "16")==NULL) dwDisplayData=16;
 			if(stricmp(depth, "16M")==NULL) dwDisplayData=32;
 		}
-		SAFE_DELETE(pState);
 	}
 	if(dwDisplayData==0)
 	{
@@ -1794,19 +1780,16 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
 LPSTR CDBPCompiler::GetProjectFile(LPSTR pFieldName)
 {
 	// Find filename
-	LPSTR pFileOnly = GetProjectField(pFieldName);
+	std::unique_ptr<char[]> pFileOnly(GetProjectField(pFieldName));
 
 	// Create Full Path and File
 	CStr TempStr;
 	TempStr.SetText(m_pRelativePathToProjectFile->GetStr());
-	TempStr.AddText(pFileOnly);
+	TempStr.AddText(pFileOnly.get());
 
 	// Create new string
 	LPSTR pFullFile = new char[TempStr.Length()+1];
 	strcpy(pFullFile, TempStr.GetStr());
-
-	// Free usages
-	SAFE_DELETE(pFileOnly);
 
 	// Return new string
 	return pFullFile;
@@ -1815,6 +1798,7 @@ LPSTR CDBPCompiler::GetProjectFile(LPSTR pFieldName)
 LPSTR CDBPCompiler::GetProjectMediaRoot(void)
 {
 	LPSTR pConfiguredRoot = GetProjectField("media root path");
+	std::unique_ptr<char[]> pConfiguredRootOwner(pConfiguredRoot);
 	std::filesystem::path root;
 	if(pConfiguredRoot && pConfiguredRoot[0] != 0)
 	{
@@ -1826,7 +1810,6 @@ LPSTR CDBPCompiler::GetProjectMediaRoot(void)
 	{
 		root = std::filesystem::path(m_pRelativePathToProjectFile->GetStr());
 	}
-	SAFE_DELETE(pConfiguredRoot);
 
 	std::string text = root.lexically_normal().string();
 	if(!text.empty() && text.back() != '\\' && text.back() != '/')
@@ -1900,24 +1883,21 @@ LPSTR CDBPCompiler::GetProjectField(LPSTR pFieldName)
 			{
 				// Copy out dataitem if it matches seatch criteria
 				DWORD length = pEndOfField-pStartOfField;
-				LPSTR pFound = new char[length+1];
-				memcpy(pFound, pStartOfField, length);
+				std::unique_ptr<char[]> pFound(new char[length+1]);
+				memcpy(pFound.get(), pStartOfField, length);
 				pFound[length]=0;
-				if(stricmp(pFound, pFieldName)==NULL)
+				if(stricmp(pFound.get(), pFieldName)==NULL)
 				{
 					// Field has been found, make data string and exit
 					DWORD datalength = pEndOfDataItem-pStartOfDataItem;
-					LPSTR pDataItemString = new char[datalength+1];
-					memcpy(pDataItemString, pStartOfDataItem, datalength);
+					std::unique_ptr<char[]> pDataItemString(new char[datalength+1]);
+					memcpy(pDataItemString.get(), pStartOfDataItem, datalength);
 					pDataItemString[datalength]=0;
-					SAFE_DELETE(pFound);
-					if(pDataItemString)
-						if(strcmp(pDataItemString,"")==NULL)
-							SAFE_DELETE(pDataItemString);
+					if(strcmp(pDataItemString.get(),"")==NULL)
+						pDataItemString.reset();
 
-					return pDataItemString;
+					return pDataItemString.release();
 				}
-				SAFE_DELETE(pFound);
 			}
 
 			// if no more data, leave
