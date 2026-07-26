@@ -50,7 +50,7 @@ class CFileBuilder
 		bool MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename);
 
 		bool AddPCKToEXE(LPSTR pEXEFilename, DWORD KindOfExe);
-		void GetPCKFileFromEXEFile(LPSTR destPCKfilename, LPSTR destEXEfilename);
+		std::string GetPCKFileFromEXEFile(LPSTR destEXEfilename);
 
 		bool ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, LPSTR pDataBlock, DWORD dwBlockSize );
 

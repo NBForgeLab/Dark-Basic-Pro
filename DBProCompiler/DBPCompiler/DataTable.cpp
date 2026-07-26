@@ -22,8 +22,8 @@ CDataTable::CDataTable()
 
 CDataTable::CDataTable(LPSTR pInitString)
 	: m_dwIndex(0), m_dwType(0), m_pNumeric(0),
-	  m_pString(new CStr(pInitString)),
-	  m_pString2(new CStr((LPSTR)"")),
+	  m_pString(std::make_unique<CStr>(pInitString)),
+	  m_pString2(std::make_unique<CStr>((LPSTR)"")),
 	  m_bAddedToEXEData(false)
 {
 }
@@ -62,15 +62,15 @@ void CDataTable::Add(CDataTable* pNew)
 
 bool CDataTable::AddNumeric(double dNum, DWORD dwIndex)
 {
-	// Create new data item
-	CDataTable* pNewData = new CDataTable;
+	// Create new data item (owned until handed to the chain)
+	auto pNewData = std::make_unique<CDataTable>();
 	pNewData->SetNumeric(dNum);
 
 	// Set index
 	pNewData->SetIndex(dwIndex);
 
-	// Add to Data Table
-	Add(pNewData);
+	// Add to Data Table (chain takes ownership)
+	Add(pNewData.release());
 
 	// Complete
 	return true;
@@ -78,17 +78,16 @@ bool CDataTable::AddNumeric(double dNum, DWORD dwIndex)
 
 bool CDataTable::AddString(LPSTR pString, DWORD dwIndex)
 {
-	// Create new data item
-	CDataTable* pNewData = new CDataTable;
-	CStr* pStr = new CStr(pString);
-	pNewData->SetString(pStr);
+	// Create new data item (owned until handed to the chain)
+	auto pNewData = std::make_unique<CDataTable>();
+	pNewData->SetString(std::make_unique<CStr>(pString).release());
 	pNewData->SetString2(NULL);
 
 	// Set index
 	pNewData->SetIndex(dwIndex);
 
-	// Add to Data Table
-	Add(pNewData);
+	// Add to Data Table (chain takes ownership)
+	Add(pNewData.release());
 
 	// Complete
 	return true;
@@ -104,18 +103,16 @@ bool CDataTable::AddTwoStrings(LPSTR pString, LPSTR pString2, DWORD* dwIndex)
 		return false;
 	}
 
-	// Create new data item
-	CDataTable* pNewData = new CDataTable;
-	CStr* pStr1 = new CStr(pString);
-	CStr* pStr2 = new CStr(pString2);
-	pNewData->SetString(pStr1);
-	pNewData->SetString2(pStr2);
+	// Create new data item (owned until handed to the chain)
+	auto pNewData = std::make_unique<CDataTable>();
+	pNewData->SetString(std::make_unique<CStr>(pString).release());
+	pNewData->SetString2(std::make_unique<CStr>(pString2).release());
 
 	// Set index
 	pNewData->SetIndex(*dwIndex);
 
-	// Add to Data Table
-	Add(pNewData);
+	// Add to Data Table (chain takes ownership)
+	Add(pNewData.release());
 
 	// Complete
 	return true;
@@ -131,17 +128,16 @@ bool CDataTable::AddUniqueString(LPSTR pString, DWORD* dwIndex)
 		return false;
 	}
 
-	// Create new data item
-	CDataTable* pNewData = new CDataTable;
-	CStr* pStr = new CStr(pString);
-	pNewData->SetString(pStr);
+	// Create new data item (owned until handed to the chain)
+	auto pNewData = std::make_unique<CDataTable>();
+	pNewData->SetString(std::make_unique<CStr>(pString).release());
 	pNewData->SetString2(NULL);
 
 	// Set index
 	pNewData->SetIndex(*dwIndex);
 
-	// Add to Data Table
-	Add(pNewData);
+	// Add to Data Table (chain takes ownership)
+	Add(pNewData.release());
 
 	// Complete
 	return true;

@@ -151,14 +151,13 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 	m_bEncryptionState = bEncryptionState;
 
 	// Calculate name of PCK File
-	char destPCKfilename[_MAX_PATH];
-	GetPCKFileFromEXEFile(destPCKfilename, destEXEfilename);
+	std::string destPCKfilename = GetPCKFileFromEXEFile(destEXEfilename);
 
 	// EXE-Alone (now a seperate PCK file)
 	ConstructEXE(destEXEfilename);
 
 	// Start PCK File Creation
-	ConstructPCK(destPCKfilename);
+	ConstructPCK(destPCKfilename.data());
 
 	// Go Through Files in Table
 	float pBit = 30.0f/m_FileTable.size();
@@ -222,7 +221,7 @@ bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR p
 		// filebuffer auto-freed by vector going out of scope
 
 		// Create new PCK File (CompressDLL + PCKData)
-		ConstructPCK(destPCKfilename);
+		ConstructPCK(destPCKfilename.data());
 		AddFileToConstruct(pCompressDLL, "compress.dll");
 		AddDataToConstruct(pData, dwDataSize);
 		FinishPCK();
@@ -490,8 +489,9 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
 		LPVOID lpResReal = LockResource(hGlobal);
 
-		// Get Version Data in UNICODE
-		LPSTR pVersonData = new char[dwDataSize];
+		// Get Version Data in UNICODE (vector owns the buffer on all paths)
+		std::vector<char> versionData(dwDataSize);
+		LPSTR pVersonData = versionData.data();
 		memcpy(pVersonData, (LPSTR)lpResReal, dwDataSize);
 
 		// Construct WideCharacter
@@ -558,9 +558,6 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 
 		// Works for all Operating Systems - replace VersionBlock
 		ReplaceVersionInfoBlockInEXE ( ModuleName, pVersonData, dwOffsetToFirstEntry, dwDataSize );
-
-		// Free usages
-		SAFE_DELETE(pVersonData);
 	}
 
 	// Progress Reporting Tool
@@ -583,8 +580,9 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
 		LPVOID lpResReal = LockResource(hGlobal);
 
-		// Copy Icon Image Only
-		LPSTR pIconMem = new char[dwDataSize];
+		// Copy Icon Image Only (vector owns the buffer on all paths)
+		std::vector<char> iconMem(dwDataSize);
+		LPSTR pIconMem = iconMem.data();
 		memcpy(pIconMem, (LPSTR)lpResReal, dwDataSize);
 
 		// Finished with EXE-Reading
@@ -646,8 +644,10 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		DWORD dwBitsSize=(DWORD)((BitmapInfo.bmiHeader.biWidth*BitmapInfo.bmiHeader.biHeight)*fPerByte);
 
 		HDC hdc = CreateCompatibleDC(NULL);
-		LPSTR pColArray = new char[dwBitsSize];
-		LPSTR pMaskArray = new char[dwBitsSize];
+		std::vector<char> colArray(dwBitsSize);
+		std::vector<char> maskArray(dwBitsSize);
+		LPSTR pColArray = colArray.data();
+		LPSTR pMaskArray = maskArray.data();
 		if(icon==1) GetDIBits(hdc, hCol, 0, 32, pColArray, (BITMAPINFO*)&BitmapInfo, DIB_RGB_COLORS);
 		if(icon==2) GetDIBits(hdc, hCol, 0, 16, pColArray, (BITMAPINFO*)&BitmapInfo, DIB_RGB_COLORS);
 		if(icon==3) GetDIBits(hdc, hCol, 0, 32, pColArray, (BITMAPINFO*)&BitmapInfo, DIB_RGB_COLORS);
@@ -689,9 +689,6 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		DestroyIcon((HICON)hImage);
 
 		// Free usages
-		SAFE_DELETE(pMaskArray);
-		SAFE_DELETE(pColArray);
-		SAFE_DELETE(pIconMem);
 		DeleteDC(hdc);
 
 		// Close EXE
@@ -750,8 +747,9 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
 		LPVOID lpResReal = LockResource(hGlobal);
 
-		// Get Version Data in UNICODE
-		LPSTR pVersonData = new char[dwDataSize];
+		// Get Version Data in UNICODE (vector owns the buffer on all paths)
+		std::vector<char> versionData(dwDataSize);
+		LPSTR pVersonData = versionData.data();
 		memcpy(pVersonData, (LPSTR)lpResReal, dwDataSize);
 
 		// Construct WideCharacter
@@ -818,9 +816,6 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 
 		// Works for all Operating Systems - replace VersionBlock
 		ReplaceVersionInfoBlockInEXE ( ModuleName, pVersonData, dwOffsetToFirstEntry, dwDataSize );
-
-		// Free usages
-		SAFE_DELETE(pVersonData);
 	}
 
 	// Progress Reporting Tool
@@ -853,8 +848,9 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 			continue;
 		}
 
-		// Copy Icon Image Only
-		LPSTR pIconMem = new char[dwDataSize];
+		// Copy Icon Image Only (vector owns the buffer on all paths)
+		std::vector<char> iconMem(dwDataSize);
+		LPSTR pIconMem = iconMem.data();
 		memcpy(pIconMem, (LPSTR)lpResReal, dwDataSize);
 
 		// Finished with EXE-Reading
@@ -909,8 +905,10 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		DWORD dwBitsSize=(DWORD)((BitmapInfo.bmiHeader.biWidth*BitmapInfo.bmiHeader.biHeight)*fPerByte);
 
 		HDC hdc = CreateCompatibleDC(NULL);
-		LPSTR pColArray = new char[dwBitsSize];
-		LPSTR pMaskArray = new char[dwBitsSize];
+		std::vector<char> colArray(dwBitsSize);
+		std::vector<char> maskArray(dwBitsSize);
+		LPSTR pColArray = colArray.data();
+		LPSTR pMaskArray = maskArray.data();
 		if(icon==1) GetDIBits(hdc, hCol, 0, 32, pColArray, (BITMAPINFO*)&BitmapInfo, DIB_RGB_COLORS);
 		if(icon==2) GetDIBits(hdc, hCol, 0, 16, pColArray, (BITMAPINFO*)&BitmapInfo, DIB_RGB_COLORS);
 
@@ -958,9 +956,6 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		DestroyIcon((HICON)hImage);
 
 		// Free usages
-		SAFE_DELETE(pMaskArray);
-		SAFE_DELETE(pColArray);
-		SAFE_DELETE(pIconMem);
 		DeleteDC(hdc);
 
 		// Progress Reporting Tool
@@ -1128,7 +1123,7 @@ bool CFileBuilder::MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename)
 bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 {
 	// Get pre-build EXE (with modified icon/etc data)
-	LPSTR pEXEData = NULL;
+	std::vector<char> exeData;
 	DWORD dwSizeOfEXECode = 0;	
 	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
@@ -1136,8 +1131,8 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 		// Read pre-build EXE into memory
 		DWORD bytesread=0;
 		dwSizeOfEXECode = GetFileSize(hreadfile, NULL);	
-		pEXEData = new char[dwSizeOfEXECode];
-		ReadFile(hreadfile, pEXEData, dwSizeOfEXECode, &bytesread, NULL); 
+		exeData.resize(dwSizeOfEXECode);
+		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, NULL); 
 		CloseHandle(hreadfile);
 	}
 	else
@@ -1147,11 +1142,10 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	}
 
 	// Construct PCK File
-	char destPCKfilename[_MAX_PATH];
-	GetPCKFileFromEXEFile(destPCKfilename, EXEfilename);
+	std::string destPCKfilename = GetPCKFileFromEXEFile(EXEfilename);
 
 	// Get pre-build PCK file
-	LPSTR pPCKData = NULL;
+	std::vector<char> pckData;
 	DWORD dwSizeOfPCKData = 0;	
 	hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
@@ -1159,14 +1153,13 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 		// Read pre-build EXE into memory
 		DWORD bytesread=0;
 		dwSizeOfPCKData = GetFileSize(hreadfile, NULL);	
-		pPCKData = new char[dwSizeOfPCKData];
-		ReadFile(hreadfile, pPCKData, dwSizeOfPCKData, &bytesread, NULL); 
+		pckData.resize(dwSizeOfPCKData);
+		ReadFile(hreadfile, pckData.data(), dwSizeOfPCKData, &bytesread, NULL); 
 		CloseHandle(hreadfile);
 	}
 	else
 	{
 		g_pErrorReport->AddErrorString("Failed to 'AddPCKToEXE::ReadEXEBit'");
-		SAFE_DELETE(pEXEData);
 		return false;
 	}
 
@@ -1187,10 +1180,10 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 
 	// Write EXE Code first to launch core executable
 	DWORD byteswritten;
-	WriteFile(m_hfile, pEXEData, dwSizeOfEXECode, &byteswritten, NULL); 
+	WriteFile(m_hfile, exeData.data(), dwSizeOfEXECode, &byteswritten, NULL); 
 
 	// Write PCK File Packet Here
-	WriteFile(m_hfile, pPCKData, dwSizeOfPCKData, &byteswritten, NULL); 
+	WriteFile(m_hfile, pckData.data(), dwSizeOfPCKData, &byteswritten, NULL); 
 
 	// First DWORD of file-block is filename length header, so zero is quit
 	DWORD FilenameLength=0;
@@ -1207,10 +1200,6 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	CloseHandle(m_hfile);
 	m_hfile = NULL;
 
-	// Free usages
-	SAFE_DELETE(pEXEData);
-	SAFE_DELETE(pPCKData);
-
 	// Delete PCK File now redundant
 	DeleteFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str());
 
@@ -1218,31 +1207,32 @@ bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
 	return true;
 }
 
-void CFileBuilder::GetPCKFileFromEXEFile(LPSTR destPCKfilename, LPSTR destEXEfilename)
+std::string CFileBuilder::GetPCKFileFromEXEFile(LPSTR destEXEfilename)
 {
-	strcpy(destPCKfilename, destEXEfilename);
-	DWORD dwLength = strlen(destPCKfilename)-4;
-	destPCKfilename[dwLength]=0;
-	strcat(destPCKfilename, ".pck");
+	// Swap the trailing ".exe" extension for ".pck" (value semantics - no
+	// caller-supplied buffer to overflow)
+	std::string destPCKfilename(destEXEfilename);
+	destPCKfilename.resize(destPCKfilename.size()-4);
+	destPCKfilename += ".pck";
+	return destPCKfilename;
 }
 
 bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, LPSTR pDataBlock, DWORD dwBlockSize )
 {
 	// Simply scans the EXE and locates the pattern in the data, and replaces it
-	LPSTR pEXEData = NULL;
 	DWORD dwSizeOfEXECode = 0;	
 	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
-		// Read EXE into memory
+		// Read EXE into memory (vector owns the buffer on all paths)
 		DWORD bytesread=0;
 		dwSizeOfEXECode = GetFileSize(hreadfile, NULL);	
-		pEXEData = new char[dwSizeOfEXECode];
-		ReadFile(hreadfile, pEXEData, dwSizeOfEXECode, &bytesread, NULL); 
+		std::vector<char> exeData(dwSizeOfEXECode);
+		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, NULL); 
 		CloseHandle(hreadfile);
 
 		// Modify this data
-		LPSTR pPtr = pEXEData;
+		LPSTR pPtr = exeData.data();
 		LPSTR pPtrEnd = pPtr + dwSizeOfEXECode;
 		while (pPtr<pPtrEnd)
 		{
@@ -1281,12 +1271,9 @@ bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, L
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD byteswritten=0;
-			WriteFile(hwritefile, pEXEData, dwSizeOfEXECode, &byteswritten, NULL); 
+			WriteFile(hwritefile, exeData.data(), dwSizeOfEXECode, &byteswritten, NULL); 
 			CloseHandle(hwritefile);
 		}
-
-		// Free usages
-		SAFE_DELETE(pEXEData);
 	}
 
 	// complete
