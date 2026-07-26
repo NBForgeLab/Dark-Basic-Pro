@@ -10,6 +10,7 @@
 #include "MemoryPE.h"
 #include "CoreRuntimeApi.h"
 #include <filesystem>
+#include <memory>
 #include "direct.h"
 #include "..\DBPCompilerEXE\resource.h"
 #include ".\..\..\Dark Basic Public Shared\Dark basic Pro SDK\Shared\Core\globstruct.h"
@@ -205,24 +206,24 @@ CEXEBlock::~CEXEBlock()
 
 void CEXEBlock::Clear(void)
 {
-	// Release appname
-	SAFE_DELETE(m_pInitialAppName);
+	// Release appname (allocated with new char[])
+	SAFE_DELETE_ARRAY(m_pInitialAppName);
 
 	// Release exefile ptrs (RAII handles strings)
 	m_OriginalFolderName.clear();
 	m_UnpackFolderName.clear();
 	m_AbsoluteAppFile.clear();
 
-	// Release DLLs Data
+	// Release DLLs Data (arrays allocated with new[])
 	if ( m_pDLLFilenameArray ) DeleteArrayContents(m_pDLLFilenameArray,m_dwNumberOfDLLs);
-	SAFE_DELETE(m_pDLLFilenameArray);
-	SAFE_DELETE(m_pDLLIndexArray);
-	SAFE_DELETE(m_pDLLLoadedAlreadyArray);
+	SAFE_DELETE_ARRAY(m_pDLLFilenameArray);
+	SAFE_DELETE_ARRAY(m_pDLLIndexArray);
+	SAFE_DELETE_ARRAY(m_pDLLLoadedAlreadyArray);
 
 	// Release Ref Data
-	SAFE_DELETE(m_pRefArray);
-	SAFE_DELETE(m_pRefIndexArray);
-	SAFE_DELETE(m_pRefTypeArray);
+	SAFE_DELETE_ARRAY(m_pRefArray);
+	SAFE_DELETE_ARRAY(m_pRefIndexArray);
+	SAFE_DELETE_ARRAY(m_pRefTypeArray);
 
 	// Release MCB Data 9leeadd - 090305 - DEP release)
 	VirtualFree ( m_pMachineCodeBlock, 0, MEM_DECOMMIT | MEM_RELEASE );
@@ -230,36 +231,40 @@ void CEXEBlock::Clear(void)
 
 	// Release Runtime Error Strings Database
 	if ( m_pRuntimeErrorStringsArray ) DeleteArrayContents(m_pRuntimeErrorStringsArray,m_dwNumberOfRuntimeErrorStrings);
-	SAFE_DELETE(m_pRuntimeErrorStringsArray);
+	SAFE_DELETE_ARRAY(m_pRuntimeErrorStringsArray);
 
 	// Release Commands Data
 	if ( m_pCommandDLLCallArray ) DeleteArrayContents(m_pCommandDLLCallArray,m_dwNumberOfCommands);
-	SAFE_DELETE(m_pCommandDLLCallArray);
-	SAFE_DELETE(m_pCommandDLLIdArray);
+	SAFE_DELETE_ARRAY(m_pCommandDLLCallArray);
+	SAFE_DELETE_ARRAY(m_pCommandDLLIdArray);
 
 	// Release Strings Data
 	if ( m_pStringsArray ) DeleteArrayContents(m_pStringsArray,m_dwNumberOfStrings);
-	SAFE_DELETE(m_pStringsArray);
+	SAFE_DELETE_ARRAY(m_pStringsArray);
 
 	// Release Data Data
-	SAFE_DELETE(m_pDataArray);
+	SAFE_DELETE_ARRAY(m_pDataArray);
 	if ( m_pDataStringsArray) DeleteArrayContents(m_pDataStringsArray,m_dwNumberOfDataItems);
-	SAFE_DELETE(m_pDataStringsArray);
+	SAFE_DELETE_ARRAY(m_pDataStringsArray);
 
 	// Release Dynamic Variable Offset Array
-	SAFE_DELETE(m_pDynamicVarsArray);
-	SAFE_DELETE(m_pDynamicVarsArrayType);
+	SAFE_DELETE_ARRAY(m_pDynamicVarsArray);
+	SAFE_DELETE_ARRAY(m_pDynamicVarsArrayType);
 
 	// Release Structure Pattern Array
-	SAFE_DELETE(m_pUsertypeStringPatternArray);
+	SAFE_DELETE_ARRAY(m_pUsertypeStringPatternArray);
 
-	// Reset all values
+	// Reset all values so no consumer can walk a stale count over a null array
 	m_bEXEBlockPresent=false;
 	m_dwNumberOfDLLs=0;
 	m_dwNumberOfReferences=0;
 	m_dwSizeOfMCB=0;
 	m_dwNumberOfCommands=0;
 	m_dwNumberOfStrings=0;
+	m_dwNumberOfRuntimeErrorStrings=0;
+	m_dwNumberOfDataItems=0;
+	m_dwDynamicVarsQuantity=0;
+	m_dwUsertypeStringPatternQuantity=0;
 	m_dwVariableSpaceSize=0;
 	m_dwDataSpaceSize=0;
 }
@@ -856,8 +861,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 					else
 					{
-						// Module can be in several places
-						LPSTR pTryDLLName = new char[(strlen(pDLLName)*2)+256];
+						// Module can be in several places (RAII: freed on every exit path, including break/continue)
+						auto pTryDLLNameOwner = std::make_unique<char[]>((strlen(pDLLName)*2)+256);
+						LPSTR pTryDLLName = pTryDLLNameOwner.get();
 						strcpy(pTryDLLName, pDLLName);
 
 						// leeadd - 270308 - if DLL local to exe, switch to that folder for this DLL
@@ -892,7 +898,6 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							{
 								if(*pReturnError==NULL) *pReturnError = new char[1024];
 								sprintf_s(*pReturnError, 1024, "Failed to load DLL (%d: %s)", dllindex, pTryDLLName);
-								SAFE_DELETE(pTryDLLName);
 								bResult=false;
 								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
 								break;
@@ -937,9 +942,6 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						g_DLL_PassCoreData = ( DLL_PassCore ) GetProcAddress ( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
 						if (!g_DLL_PassCoreData)
 							g_DLL_PassCoreData = ( DLL_PassCore ) GetProcAddress ( hDLLMod[dllindex], "ReceiveCoreDataPtr" );
-
-						// Free usages
-						SAFE_DELETE(pTryDLLName);
 					}
 
 					// Flag if official DLL
@@ -1381,19 +1383,16 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		{
 			if(m_dwVariableSpaceSize>0)
 			{
-				// Local Copy of vars
-				LPSTR pTemp = new char[m_dwOldVariableSpaceSize];
-				memcpy(pTemp, m_pVariableSpace, m_dwOldVariableSpaceSize);
+				// Local Copy of vars (RAII scratch buffer)
+				auto pTemp = std::make_unique<char[]>(m_dwOldVariableSpaceSize);
+				memcpy(pTemp.get(), m_pVariableSpace, m_dwOldVariableSpaceSize);
 
 				// Increase Size of VarSpace
 				g_CORE_DeleteVarSpace();
 				LPSTR pNew = (LPSTR)g_CORE_CreateVarSpace(m_dwVariableSpaceSize);
-				memcpy(pNew, pTemp, m_dwOldVariableSpaceSize);
+				memcpy(pNew, pTemp.get(), m_dwOldVariableSpaceSize);
 				m_dwOldVariableSpaceSize=m_dwVariableSpaceSize;
 				m_pVariableSpace=pNew;
-
-				// Free usages
-				SAFE_DELETE(pTemp);
 			}
 		}
 
@@ -1402,14 +1401,14 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		{
 			if(m_dwDataSpaceSize>0)
 			{
-				// Local Copy of data
-				LPSTR pTemp = new char[m_dwOldDataSpaceSize];
-				memcpy(pTemp, m_pDataSpace, m_dwOldDataSpaceSize);
+				// Local Copy of data (RAII scratch buffer)
+				auto pTemp = std::make_unique<char[]>(m_dwOldDataSpaceSize);
+				memcpy(pTemp.get(), m_pDataSpace, m_dwOldDataSpaceSize);
 
 				// Increase Size of DataSpace
 				g_CORE_DeleteDataSpace();
 				LPSTR pNew = (LPSTR)g_CORE_CreateDataSpace(m_dwDataSpaceSize);
-				memcpy(pNew, pTemp, m_dwOldDataSpaceSize);
+				memcpy(pNew, pTemp.get(), m_dwOldDataSpaceSize);
 				m_dwOldDataSpaceSize=m_dwDataSpaceSize;
 				m_pDataSpace=pNew;
 
@@ -1426,18 +1425,17 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 				// Pass Updated DataSpace
 				g_CORE_PassDataPtrs(m_pDataSpace, m_pDataSpace+m_dwDataSpaceSize);
-
-				// Free usages
-				SAFE_DELETE(pTemp);
 			}
 		}
 	}
 
-	// [EXE] Replace all XXXX Pointers with Dynamic Creations
+	// [EXE] Replace all XXXX Pointers with Dynamic Creations (RAII owner + raw alias)
+	std::unique_ptr<DWORD[]> pProgramRefPtrOwner;
 	DWORD* pProgramRefPtr = NULL;
 	if(bResult==true)
 	{
-		pProgramRefPtr = new DWORD[m_dwNumberOfReferences];
+		pProgramRefPtrOwner = std::make_unique<DWORD[]>(m_dwNumberOfReferences);
+		pProgramRefPtr = pProgramRefPtrOwner.get();
 		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
 		{
 			int iRefType=(int)m_pRefTypeArray[ref];
@@ -1593,9 +1591,6 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	// leeadd - 221008 - u71 - extra info in globstruct for external debuggers
 	if ( g_pGlob ) g_pGlob->g_pMachineCodeBlock = (DWORD)m_pMachineCodeBlock;
 
-	// Free usage
-	SAFE_DELETE(pProgramRefPtr);
-
 	// [EXE] Switch out of TEMP Folder
 	_chdir(m_OriginalFolderName.c_str());
 
@@ -1676,8 +1671,8 @@ void CEXEBlock::FreeUptoDisplay(void)
 
 void CEXEBlock::Free(void)
 {
-	// [CORE] Close any memory created for glob
-	if ( g_pGlob ) if ( g_pGlob->pDynMemPtr ) SAFE_DELETE ( g_pGlob->pDynMemPtr );
+	// [CORE] Close any memory created for glob (allocated with new char[])
+	if ( g_pGlob ) if ( g_pGlob->pDynMemPtr ) SAFE_DELETE_ARRAY ( g_pGlob->pDynMemPtr );
 
 	// [EXE] Free Up Data Allocations (from Load)
 	Clear();
