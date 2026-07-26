@@ -1711,23 +1711,19 @@ bool CStatement::DoLabel(DWORD StatementLineNumber, DWORD TokenID)
 	// Get filedata pointer
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
 
-	// Label name
-	CStr* pLabelName = GetLabel(&pPointer);
-	CStr* pFullLabelName = new CStr("$label ");
-	pFullLabelName->AddText(pLabelName);
-	SAFE_DELETE(pLabelName);
-	if(pFullLabelName->CheckChar(pFullLabelName->Length()-1,':'))
-		pFullLabelName->SetChar(pFullLabelName->Length()-1,0);
+	// Label name (value semantics - freed automatically on every exit path)
+	std::string fullLabelName = "$label " + GetLabel(&pPointer);
+	if(fullLabelName.back()==':')
+		fullLabelName.pop_back();
 
 	// Which pass is it (pre or real)
 	DWORD dwDataIndex = g_pStatementList->GetDataIndexCounter();
 	if(g_pStatementList->GetImplementationParse()==false)
 	{
 		// Add label
-		if(g_pLabelTable->AddLabel(pFullLabelName->GetStr(), dwCodeIndex, dwDataIndex, this)==false)
+		if(g_pLabelTable->AddLabel(fullLabelName.data(), dwCodeIndex, dwDataIndex, this)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLabel::AddLabel'");
-			SAFE_DELETE(pFullLabelName);
 			return false;
 		}
 	}
@@ -1740,14 +1736,12 @@ bool CStatement::DoLabel(DWORD StatementLineNumber, DWORD TokenID)
 		pStatementAtLabel->Add(pBlankStatement);
 
 		// Update label location information
-		if(g_pLabelTable->UpdateLabel(pFullLabelName->GetStr(), dwCodeIndex, dwDataIndex, pBlankStatement)==false)
+		if(g_pLabelTable->UpdateLabel(fullLabelName.data(), dwCodeIndex, dwDataIndex, pBlankStatement)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLabel::UpdateLabel'");
-			SAFE_DELETE(pFullLabelName);
 			return false;
 		}
 	}
-	SAFE_DELETE(pFullLabelName);
 
 	// Update filedata pointer
 	g_pStatementList->SetFileDataPointer(pPointer);
@@ -2482,7 +2476,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Parameter Chain
 	CParameter* pFirstParameter = NULL;
-	CStr* pFullLabelName = NULL;
+	std::unique_ptr<CStr> pFullLabelName;
 
 	// Get Details of instruction
 	bool bOneParamPerRepeatedInstruction=false;
@@ -2787,8 +2781,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	// If User Function, create label
 	if(dwInstructionType==3)
 	{
-		// Construct full label name for function
-		pFullLabelName = new CStr("$label ");
+		// Construct full label name for function (owned until handed to the instruction)
+		pFullLabelName = std::make_unique<CStr>((LPSTR)"$label ");
 		pFullLabelName->AddText(pRef->GetName()->GetStr());
 	}
 
@@ -3010,7 +3004,9 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		pInstruction->SetLineNumber(StatementLineNumber);
 		pInstruction->SetInstructionRef(pRef);
 		pInstruction->SetReturnParameter(pReturnParameterToken);
-		pInstruction->SetLabelParam(pFullLabelName);
+		// SetLabelParam owns the CStr (unique_ptr member); release exactly once -
+		// repeated loop iterations hand over NULL instead of double-owning
+		pInstruction->SetLabelParam(pFullLabelName.release());
 
 		// Add The Object To This Statement
 		CStatement *TheObject = new CStatement();
@@ -5520,22 +5516,23 @@ DWORD CStatement::PeekLabel(LPSTR pPointer)
 	return dwToken;
 }
 
-CStr* CStatement::GetLabel(LPSTR* pPointer)
+std::string CStatement::GetLabel(LPSTR* pPointer)
 {
 	// Make string from line
 	LPSTR pEndPointer = SeekToSeperator(*pPointer, false, false);
 	DWORD length = pEndPointer-(*pPointer);
 
-	CStr* pStr = new CStr(length+1);
+	// Stack CStr keeps the legacy copy/trim semantics; result returned by value
+	CStr str(length+1);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-	pStr->CopyFromPtr(*pPointer, pPointerEnd, length);
-	pStr->SetChar(length,0);
+	str.CopyFromPtr(*pPointer, pPointerEnd, length);
+	str.SetChar(length,0);
 	(*pPointer)+=length;
 
 	// Clean up string
-	pStr->EatEdgeSpacesandTabs(NULL);
-	
-	return pStr;
+	str.EatEdgeSpacesandTabs(NULL);
+
+	return std::string(str.GetStr());
 }
 
 void CStatement::AdvancePastCRandSPACES(LPSTR* pPointerPtr)

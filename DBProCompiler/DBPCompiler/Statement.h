@@ -8,6 +8,7 @@
 // Common Includes
 #include "windows.h"
 #include <memory>
+#include <string>
 #include <variant>
 
 // Custom Includes
@@ -215,7 +216,7 @@ class CStatement
 
 		DWORD			PeekToken(LPSTR pPointer);
 		DWORD			PeekLabel(LPSTR pPointer);
-		CStr*			GetLabel(LPSTR* pPointer);
+		std::string		GetLabel(LPSTR* pPointer);
 		void			AdvancePastCRandSPACES(LPSTR* pPointerPtr);
 
 		bool			AddInternalLabel(CStr** pReturnString);
