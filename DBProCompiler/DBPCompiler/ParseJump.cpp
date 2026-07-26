@@ -55,15 +55,16 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_CONDITION, m_pParameter->GetMathItem()->FindResultData());
 
 			// Set the JE Instruction for the Condition
-			CStr* pJumpToLabel=GetBlockLabelB();
-			if(pJumpToLabel==NULL) pJumpToLabel=GetBlockLabelA();
+			std::string jumpToLabel = GetBlockLabelB();
+			if(jumpToLabel.empty()) jumpToLabel = GetBlockLabelA();
+			CStr pJumpToLabel(jumpToLabel.data());
 			if ( g_pASMWriter->GetCondToggle() )
 			{
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPNE, pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPNE, &pJumpToLabel, 10);
 				g_pASMWriter->SetCondToggle(false);
 			}
 			else
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPE, pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPE, &pJumpToLabel, 10);
 		}
 		if(GetBlockA())
 		{
@@ -74,8 +75,9 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			if(GetBlockB())
 			{
 				// Set the JMP Instruction for the Condition
-				CStr* pJumpToLabel=GetBlockLabelA();
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, pJumpToLabel, 10);
+				std::string jumpToLabel = GetBlockLabelA();
+				CStr pJumpToLabel(jumpToLabel.data());
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, &pJumpToLabel, 10);
 			}
 		}
 		if(GetBlockB())
@@ -193,8 +195,9 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 		}
 
 		// Set the JMP Instruction to skip all case code
-		CStr* pJumpToLabel=GetBlockLabelA();
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, pJumpToLabel, 10);
+		std::string skipToLabel = GetBlockLabelA();
+		CStr pSkipToLabel(skipToLabel.data());
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, &pSkipToLabel, 10);
 
 		// Write Out Case Blocks
 		CStatementChain* pStatementBlock = GetBlockChain();
@@ -207,8 +210,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			pStatementRef->WriteDBM();
 
 			// Set the JMP Instruction to skip all case code
-			CStr* pJumpToLabel=GetBlockLabelA();
-			g_pASMWriter->WriteASMTaskCoreP1(pStatementRef->GetLineNumber(), ASMTASK_JUMP, pJumpToLabel, 10);
+			g_pASMWriter->WriteASMTaskCoreP1(pStatementRef->GetLineNumber(), ASMTASK_JUMP, &pSkipToLabel, 10);
 
 			// Next in chain
 			pStatementBlock=pStatementBlock->GetNext();

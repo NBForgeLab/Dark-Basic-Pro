@@ -616,9 +616,9 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			// Complete Object Data
 			pJump->SetType(JUMPTYPE_GOTO);
 			pJump->SetBlockA(NULL);
-			pJump->SetBlockALabel(NULL);
+			pJump->SetBlockALabel(std::string());
 			pJump->SetBlockB(NULL);
-			pJump->SetBlockBLabel(NULL);
+			pJump->SetBlockBLabel(std::string());
 			pJump->SetBlockChain(NULL);
 			pJump->SetExitLabelRefParameterRef(pExitLabelRef);
 			pJump->SetConditionParameter(NULL);
@@ -997,11 +997,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	}
 
 	// Create Unique internal label TOP
-	CStr* pTopOfLoopInternalLabel=NULL;
-	if(pTopLabelStatement->AddInternalLabel(&pTopOfLoopInternalLabel)==false)
+	std::optional<std::string> topOfLoopInternalLabel = pTopLabelStatement->AddInternalLabel();
+	if(!topOfLoopInternalLabel)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' pTopOfLoopInternalLabel");
-		SAFE_DELETE(pTopOfLoopInternalLabel);
 		SAFE_DELETE(pTopLabelStatement);
 		SAFE_DELETE(TheLoopObject);
 		SAFE_DELETE(pConditionParameter);
@@ -1010,8 +1009,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		return false;
 	}
 	CParameter* pStartLabel = new CParameter;
-	pStartLabel->SetParamAsLabel(pTopOfLoopInternalLabel);
-	SAFE_DELETE(pTopOfLoopInternalLabel);
+	pStartLabel->SetParamAsLabel(*topOfLoopInternalLabel);
 
 	// Create Object
 	CParseLoop *pLoop = new CParseLoop();
@@ -1030,11 +1028,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	// Create Unique internal END label BOTTOM
 	CStatement* pBlankStatement = new CStatement();
 	pBlankStatement->SetLineAndCharPos(dwBottomOfLoopLine);
-	CStr* pBottomOfLoopInternalLabel=NULL;
-	if(pBlankStatement->AddInternalLabel(&pBottomOfLoopInternalLabel)==false)
+	std::optional<std::string> bottomOfLoopInternalLabel = pBlankStatement->AddInternalLabel();
+	if(!bottomOfLoopInternalLabel)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' pBottomOfLoopInternalLabel");
-		SAFE_DELETE(pBottomOfLoopInternalLabel);
 		SAFE_DELETE(pBlankStatement);
 		SAFE_DELETE(pLoop);
 		SAFE_DELETE(pStartLabel);
@@ -1047,9 +1044,8 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	}
 
 	// Exit Label prepared at top
-	pEndLabel->SetParamAsLabel(pBottomOfLoopInternalLabel);
+	pEndLabel->SetParamAsLabel(*bottomOfLoopInternalLabel);
 	pLoop->SetELabelParameter(pEndLabel);
-	SAFE_DELETE(pBottomOfLoopInternalLabel);
 
 	// Add The Main Loop Object To Statements
 	TheLoopObject->SetObject(pLoop);
@@ -1144,8 +1140,8 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	CStatement *pJumpBlockA = NULL;
 	CStatement* pJumpBlockB = NULL;
 	CStatementChain* pJumpBlockChain = NULL;
-	CStr* pInternalLabelStringA = NULL;
-	CStr* pInternalLabelStringB = NULL;
+	std::string internalLabelStringA;	// empty = no label (value semantics)
+	std::string internalLabelStringB;	// empty = no label (value semantics)
 	DWORD StatementElseLineNumber=0;
 	if(TokenID==IFTK)
 	{
@@ -1184,16 +1180,17 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			pJumpBlockB->SetLineAndCharPos(StatementLineNumber);
 
 			// Create Unique internal label for B (else default block)
-			if(pJumpBlockB->AddInternalLabel(&pInternalLabelStringB)==false)
+			std::optional<std::string> internalLabelB = pJumpBlockB->AddInternalLabel();
+			if(!internalLabelB)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' B");
-				SAFE_DELETE(pInternalLabelStringB);
 				SAFE_DELETE(pConditionParameter);
 				SAFE_DELETE(pJumpBlockA);
 				SAFE_DELETE(pJumpBlockB);
 				SAFE_DELETE(TheObject);
 				return false;
 			}
+			internalLabelStringB = std::move(*internalLabelB);
 
 			// Process code block for else
 			if(pJumpBlockB->DoBlock(dwEndToken,NULL)==false)
@@ -1212,7 +1209,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		// Make label from passed parameter
 		CStr* pParamStr = pConditionParameter->GetMathItem()->GetResultStringToken();
 		CParameter* pJumpToLabel = NULL;
-		CStr* pFullLabel = NULL;
+		std::string fullLabel;
 		LPSTR pLabel = NULL;
 		if ( pParamStr )
 		{
@@ -1221,13 +1218,13 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			if(*pLabel=='@') pLabel++;
 
 			// Construct into full label ($label +)
-			pFullLabel = new CStr("$label ");
-			pFullLabel->AddText(pLabel);
+			fullLabel = "$label ";
+			fullLabel += pLabel;
 			pJumpToLabel = new CParameter;
-			pJumpToLabel->SetParamAsLabel(pFullLabel);
-			if(g_pLabelTable->FindLabel(pFullLabel->GetStr())==NULL)
+			pJumpToLabel->SetParamAsLabel(fullLabel);
+			if(g_pLabelTable->FindLabel(fullLabel.data())==NULL)
 			{
-				SAFE_DELETE(pFullLabel);
+				fullLabel.clear();
 				SAFE_DELETE(pJumpToLabel);
 				pLabel=NULL;
 			}
@@ -1236,12 +1233,11 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		// Ensure label exists
 		if(pLabel==NULL)
 		{
-			if ( pFullLabel )
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+18, pFullLabel->GetStr());
+			if ( !fullLabel.empty() )
+				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+18, fullLabel.data());
 			else
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+18, "?");
 
-			SAFE_DELETE(pInternalLabelStringB);
 			SAFE_DELETE(pConditionParameter);
 			SAFE_DELETE(pJumpBlockA);
 			SAFE_DELETE(pJumpBlockB);
@@ -1249,7 +1245,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			return false;
 		}
 		SAFE_DELETE(pConditionParameter);
-		SAFE_DELETE(pFullLabel);
 
 		// Proceed to use valid label
 		TheObject->SetLineAndCharPos(StatementLineNumber,1);
@@ -1325,7 +1320,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 							SAFE_DELETE(pOneCaseLabelParam);
 							SAFE_DELETE(pOneCaseParam);
 							SAFE_DELETE(pJumpBlockChain);
-							SAFE_DELETE(pInternalLabelStringB);
 							SAFE_DELETE(pConditionParameter);
 							SAFE_DELETE(pJumpBlockA);
 							SAFE_DELETE(pJumpBlockB);
@@ -1372,7 +1366,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 						SAFE_DELETE(pCaseCondition);
 						SAFE_DELETE(pOneCaseLabelParam);
 						SAFE_DELETE(pJumpBlockChain);
-						SAFE_DELETE(pInternalLabelStringB);
 						SAFE_DELETE(pConditionParameter);
 						SAFE_DELETE(pJumpBlockA);
 						SAFE_DELETE(pJumpBlockB);
@@ -1391,7 +1384,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 						SAFE_DELETE(pCaseCondition);
 						SAFE_DELETE(pOneCaseLabelParam);
 						SAFE_DELETE(pJumpBlockChain);
-						SAFE_DELETE(pInternalLabelStringB);
 						SAFE_DELETE(pConditionParameter);
 						SAFE_DELETE(pJumpBlockA);
 						SAFE_DELETE(pJumpBlockB);
@@ -1410,17 +1402,15 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					}
 
 					// Create Unique internal label for endcase markers
-					CStr* pInternalLabelStringMarker=NULL;
 					pJumpBlockA->SetLineNumber(g_pStatementList->GetLineNumber());
-					if(pJumpBlockA->AddInternalLabel(&pInternalLabelStringMarker)==false)
+					std::optional<std::string> internalLabelMarker = pJumpBlockA->AddInternalLabel();
+					if(!internalLabelMarker)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' pInternalLabelStringMarker");
-						SAFE_DELETE(pInternalLabelStringMarker);
 						SAFE_DELETE(pCaseLabel);
 						SAFE_DELETE(pCaseCondition);
 						SAFE_DELETE(pOneCaseLabelParam);
 						SAFE_DELETE(pJumpBlockChain);
-						SAFE_DELETE(pInternalLabelStringB);
 						SAFE_DELETE(pConditionParameter);
 						SAFE_DELETE(pJumpBlockA);
 						SAFE_DELETE(pJumpBlockB);
@@ -1431,26 +1421,19 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					// Now property of statement chain!
 					pJumpBlockA=NULL;
 
-					// Write label name to parameter used to hold label to caseblock
-					if(pInternalLabelStringMarker)
+					// Fill param labels with actual label name
+					CParameter* pCurrent = pOneCaseLabelParam;
+					while(pCurrent)
 					{
-						// Fill param labels with actual label name
-						CParameter* pCurrent = pOneCaseLabelParam;
-						while(pCurrent)
-						{
-							pCurrent->SetParamAsLabel(pInternalLabelStringMarker);
-							pCurrent=pCurrent->GetNext();
-						}
-
-						// Add chain of labels onto main label chain
-						if(pCaseLabel==NULL)
-							pCaseLabel=pOneCaseLabelParam;
-						else
-							pCaseLabel->Add(pOneCaseLabelParam);
-
-						// Delete usage
-						SAFE_DELETE(pInternalLabelStringMarker);
+						pCurrent->SetParamAsLabel(*internalLabelMarker);
+						pCurrent=pCurrent->GetNext();
 					}
+
+					// Add chain of labels onto main label chain
+					if(pCaseLabel==NULL)
+						pCaseLabel=pOneCaseLabelParam;
+					else
+						pCaseLabel->Add(pOneCaseLabelParam);
 
 					// New token after block
 					dwToken=dwlastToken;
@@ -1497,7 +1480,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				SAFE_DELETE(pCaseLabel);
 				SAFE_DELETE(pCaseCondition);
 				SAFE_DELETE(pJumpBlockChain);
-				SAFE_DELETE(pInternalLabelStringB);
 				SAFE_DELETE(pConditionParameter);
 				SAFE_DELETE(pJumpBlockA);
 				SAFE_DELETE(TheObject);
@@ -1517,7 +1499,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				SAFE_DELETE(pCaseLabel);
 				SAFE_DELETE(pCaseCondition);
 				SAFE_DELETE(pJumpBlockChain);
-				SAFE_DELETE(pInternalLabelStringB);
 				SAFE_DELETE(pConditionParameter);
 				SAFE_DELETE(pJumpBlockA);
 				SAFE_DELETE(pJumpBlockB);
@@ -1568,7 +1549,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			SAFE_DELETE(pCaseLabel);
 			SAFE_DELETE(pCaseCondition);
 			SAFE_DELETE(pJumpBlockChain);
-			SAFE_DELETE(pInternalLabelStringB);
 			SAFE_DELETE(pConditionParameter);
 			SAFE_DELETE(pJumpBlockA);
 			SAFE_DELETE(pJumpBlockB);
@@ -1590,19 +1570,19 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		pBlankStatementForEndMarker->SetLineNumber(g_pStatementList->GetLineNumber());
 
 		// Add the label
-		if(pBlankStatementForEndMarker->AddInternalLabel(&pInternalLabelStringA)==false)
+		std::optional<std::string> internalLabelA = pBlankStatementForEndMarker->AddInternalLabel();
+		if(!internalLabelA)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' A");
 			SAFE_DELETE(pBlankStatementForEndMarker);
-			SAFE_DELETE(pInternalLabelStringA);
 			SAFE_DELETE(pJumpBlockChain);
-			SAFE_DELETE(pInternalLabelStringB);
 			SAFE_DELETE(pConditionParameter);
 			SAFE_DELETE(pJumpBlockA);
 			SAFE_DELETE(pJumpBlockB);
 			SAFE_DELETE(TheObject);
 			return false;
 		}
+		internalLabelStringA = std::move(*internalLabelA);
 	}
 
 	// Create Object
@@ -1611,9 +1591,9 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	// Complete Object Data
 	pJump->SetType(dwJumpType);
 	pJump->SetBlockA(pJumpBlockA);
-	pJump->SetBlockALabel(pInternalLabelStringA);
+	pJump->SetBlockALabel(std::move(internalLabelStringA));
 	pJump->SetBlockB(pJumpBlockB);
-	pJump->SetBlockBLabel(pInternalLabelStringB);
+	pJump->SetBlockBLabel(std::move(internalLabelStringB));
 	pJump->SetBlockChain(pJumpBlockChain);
 	pJump->SetConditionParameter(pConditionParameter);
 	pJump->SetConditionCaseParameter(pConditionCaseParameter);
@@ -5569,29 +5549,27 @@ void CStatement::AdvancePastCRandSPACES(LPSTR* pPointerPtr)
 }
 
 
-bool CStatement::AddInternalLabel(CStr** pReturnString)
+std::optional<std::string> CStatement::AddInternalLabel(void)
 {
-	// Create string and keep for usage later on
+	// Compose unique label name (value semantics - freed automatically)
 	DWORD dwCodeIndex = m_dwLineNumber;
-	CStr* pLabelName = new CStr("$label");
-	pLabelName->AddNumericText(g_pStatementList->GetLabelIndexCounter());
-	pLabelName->AddText("[");
-	pLabelName->AddNumericText(dwCodeIndex);
-	pLabelName->AddText("]");
+	std::string labelName = "$label";
+	labelName += std::to_string(g_pStatementList->GetLabelIndexCounter());
+	labelName += "[";
+	labelName += std::to_string(dwCodeIndex);
+	labelName += "]";
 	g_pStatementList->IncLabelIndexCounter(1);
-	*pReturnString = pLabelName;
 
-	// Add Label to Table
+	// Add Label to Table (table takes its own copy of the name)
 	DWORD dwDataIndex = g_pStatementList->GetDataIndexCounter();
-	if(g_pLabelTable->AddLabel(pLabelName->GetStr(), dwCodeIndex, dwDataIndex, this)==false)
+	if(g_pLabelTable->AddLabel(labelName.data(), dwCodeIndex, dwDataIndex, this)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel::AddLabel'");
-		SAFE_DELETE(pLabelName);
-		return false;
+		return std::nullopt;
 	}
 
 	// Complete
-	return true;
+	return labelName;
 }
 
 bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParameter* pFirstParameter, DWORD dwOrigValue, DWORD dwOrigType, DWORD dwOrigParamMax, DWORD* pdwValidInstructionToUse, bool* pbIfFindTypeA)

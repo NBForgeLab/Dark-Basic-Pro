@@ -6,6 +6,7 @@
 #define AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_
 #include "ParserHeader.h"
 #include <memory>
+#include <string>
 
 // Custom Includes
 #include "Statement.h"
@@ -26,9 +27,9 @@ class CParseJump
 	public:
 		void			SetType(DWORD dwType) { m_dwJumpType = dwType; }
 		void			SetBlockA(CStatement *pStatement) { m_pCodeBlockA = pStatement; }
-		void			SetBlockALabel(CStr* pLabelNameA) { m_pCodeBlockLabelA.reset(pLabelNameA); }
+		void			SetBlockALabel(std::string labelNameA) { m_sCodeBlockLabelA = std::move(labelNameA); }
 		void			SetBlockB(CStatement *pStatement) { m_pCodeBlockB = pStatement; }
-		void			SetBlockBLabel(CStr* pLabelNameB) { m_pCodeBlockLabelB.reset(pLabelNameB); }
+		void			SetBlockBLabel(std::string labelNameB) { m_sCodeBlockLabelB = std::move(labelNameB); }
 		void			SetBlockChain(CStatementChain* pStatementChain) { m_pCodeBlockChain.reset(pStatementChain); }
 		void			SetConditionParameter(CParameter *pParam) { m_pParameter.reset(pParam); }
 		void			SetConditionCaseParameter(CParameter *pParam) { m_pCaseParameter.reset(pParam); }
@@ -37,9 +38,9 @@ class CParseJump
 		
 		DWORD			GetJumpType(void) { return m_dwJumpType; }
 		CStatement*		GetBlockA(void) { return m_pCodeBlockA; }
-		CStr*			GetBlockLabelA(void) { return m_pCodeBlockLabelA.get(); }
+		const std::string&	GetBlockLabelA(void) { return m_sCodeBlockLabelA; }
 		CStatement*		GetBlockB(void) { return m_pCodeBlockB; }
-		CStr*			GetBlockLabelB(void) { return m_pCodeBlockLabelB.get(); }
+		const std::string&	GetBlockLabelB(void) { return m_sCodeBlockLabelB; }
 		CStatementChain* GetBlockChain(void) { return m_pCodeBlockChain.get(); }
 		CParameter*		GetConditionParameter(void) { return m_pParameter.get(); }
 		CParameter*		GetConditionCaseParameter(void) { return m_pCaseParameter.get(); }
@@ -66,9 +67,9 @@ class CParseJump
 		// Loop Data
 		DWORD				m_dwJumpType;
 		CStatement*			m_pCodeBlockA;
-		std::unique_ptr<CStr>	m_pCodeBlockLabelA;
+		std::string			m_sCodeBlockLabelA;	// empty = no label
 		CStatement*			m_pCodeBlockB;
-		std::unique_ptr<CStr>	m_pCodeBlockLabelB;
+		std::string			m_sCodeBlockLabelB;	// empty = no label
 		std::unique_ptr<CParameter>	m_pParameter;
 		std::unique_ptr<CParameter>	m_pCaseParameter;
 		std::unique_ptr<CParameter>	m_pLabelParameter;

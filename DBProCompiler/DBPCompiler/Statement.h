@@ -8,6 +8,7 @@
 // Common Includes
 #include "windows.h"
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 
@@ -219,7 +220,7 @@ class CStatement
 		std::string		GetLabel(LPSTR* pPointer);
 		void			AdvancePastCRandSPACES(LPSTR* pPointerPtr);
 
-		bool			AddInternalLabel(CStr** pReturnString);
+		std::optional<std::string>	AddInternalLabel(void);
 		bool			FindCorrectInstruction(CInstructionTableEntry** pRef, CParameter* pFirstParameter, DWORD dwOrigValue, DWORD dwOrigType, DWORD dwOrigParamMax, DWORD* pdwValidInstructionToUse, bool* pbIfFindTypeA);
 	
 		DWORD			GetObjectLineNumber(void) { return m_dwLineNumber; }
@@ -263,7 +264,7 @@ class CParameter
 		bool ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore, DWORD dwInternalCode);
 		bool CastAllParametersToInstruction(CInstructionTableEntry* pRef);
 
-		bool SetParamAsLabel(CStr* pStr);
+		bool SetParamAsLabel(std::string labelName);
 		DWORD Count(void);
 
 		bool WriteDBM(void);

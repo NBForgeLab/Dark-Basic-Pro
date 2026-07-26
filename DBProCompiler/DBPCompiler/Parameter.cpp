@@ -464,16 +464,11 @@ CParameter* CParameter::GetLast(void)
 	return this;
 }
 
-bool CParameter::SetParamAsLabel(CStr* pInternalLabelName)
+bool CParameter::SetParamAsLabel(std::string labelName)
 {
-	// Prepare string
-	CStr pStr("");
-	if(pInternalLabelName!=NULL)
-		pStr.SetText(pInternalLabelName->GetStr());
-
-	// Create math object to hold param lebel
+	// Create math object holding its own copy of the label name
 	CMathOp* pMathOp = new CMathOp;
-	pMathOp->SetResult(pStr.GetStr(), 10, 0);
+	pMathOp->SetResult(labelName.data(), 10, 0);
 	SetMathItem(pMathOp);
 
 	// Complete	
