@@ -81,25 +81,21 @@ bool CDeclaration::GetNumberOfDecsInChain(DWORD* pdwCount)
 	return true;
 }
 
-bool CDeclaration::GetTypeStringOfDecsInChain(LPSTR* pTypeString)
+std::string CDeclaration::GetTypeStringOfDecsInChain(void)
 {
 	// Collect characters rep. types that make up dec chain
-	CStr pStr("");
+	std::string typeString;
 	CDeclaration* pEntry = this;
 	while(pEntry)
 	{
 		LPSTR pTypeNameString = pEntry->GetType()->GetStr();
 		DWORD dwTypeValue = g_pVarTable->GetBasicTypeValue(pTypeNameString);
-		pStr.AddChar(g_pVarTable->GetCharOfType(dwTypeValue));
+		typeString += g_pVarTable->GetCharOfType(dwTypeValue);
 		pEntry=pEntry->GetNext();
 	}
 
-	// Create Type String
-	*pTypeString = new char[pStr.Length()+1];
-	strcpy(*pTypeString, pStr.GetStr());
-
 	// Complete
-	return true;
+	return typeString;
 }
 
 bool CDeclaration::WriteDBM(void)

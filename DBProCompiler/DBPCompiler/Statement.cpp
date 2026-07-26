@@ -5,6 +5,8 @@
 #pragma warning(disable : 4996)
 #include "ParserHeader.h"
 #include <type_traits>
+#include <memory>
+#include <string>
 
 // Custom Includes
 #include "VarTable.h"
@@ -3504,32 +3506,28 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		}
 	}
 
-	// Read off name of UserFunction
-	LPSTR pUserFunctionName = ProduceNextToken(&pPointer, true, false, false);
+	// Read off name of UserFunction (token buffer is new[]-allocated; owner frees it on every exit path)
+	std::unique_ptr<char[]> pUserFunctionNameOwner(ProduceNextToken(&pPointer, true, false, false));
+	LPSTR pUserFunctionName = pUserFunctionNameOwner.get();
 
 	// Is function name alphanumeric?
 	DWORD dwPos = 0;
-	CStr* pStr = new CStr(pUserFunctionName);
-	if ( !pStr->IsAlphaNumericLabel(dwPos) )
+	CStr nameCheck(pUserFunctionName);
+	if ( !nameCheck.IsAlphaNumericLabel(dwPos) )
 	{
 		// Function declaration error
 		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
-		SAFE_DELETE(pUserFunctionName);
-		SAFE_DELETE(pStr);
 		return false;
 	}
 	// is first character numeric, if so, canot be function name
-	if ( pStr->GetChar(0)>='0' && pStr->GetChar(0)<='9' )
+	if ( nameCheck.GetChar(0)>='0' && nameCheck.GetChar(0)<='9' )
 	{
 		// Function declaration error
 		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
-		SAFE_DELETE(pUserFunctionName);
-		SAFE_DELETE(pStr);
 		return false;
 	}
-	SAFE_DELETE(pStr);
 
 	// Advance past any nullspaces
 	LPSTR pPointerEnd = g_pStatementList->GetFileDataEnd();
@@ -3552,7 +3550,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 			// Function declaration error
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
-			SAFE_DELETE(pUserFunctionName);
 			return false;
 		}
 	}
@@ -3561,17 +3558,15 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 	g_pStatementList->SetFileDataPointer(pPointer);
 
 	// Create Full Label Name
-	CStr* pFullLabelName = new CStr("$label ");
-	pFullLabelName->AddText(pUserFunctionName);
+	CStr fullLabelName("$label ");
+	fullLabelName.AddText(pUserFunctionName);
 
 	// Ensure user function name is unique at PRESCAN
 	if(g_pStatementList->GetImplementationParse()==false)
 	{
-		if(g_pLabelTable->FindLabel(pFullLabelName->GetStr())!=NULL)
+		if(g_pLabelTable->FindLabel(fullLabelName.GetStr())!=NULL)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+53, pUserFunctionName);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
 			return false;
 		}
 	}
@@ -3582,8 +3577,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		// Already defining a function
 		DWORD StatementLineNumber = g_pStatementList->GetLineNumber();
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+65);
-		SAFE_DELETE(pUserFunctionName);
-		SAFE_DELETE(pFullLabelName);
 		return false;
 	}
 
@@ -3591,72 +3584,57 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 	if(g_pStatementList->GetImplementationParse()==false)
 	{
 		// Create Blank Declaration to start Chain
-		CDeclaration* pDecChain = new CDeclaration;
+		auto pDecChainOwner = std::make_unique<CDeclaration>();
+		CDeclaration* pDecChain = pDecChainOwner.get();
 		pDecChain->SetDecData(0,"","returnvalue","integer","",StatementLineNumber);
 		g_pStatementList->SetUserFunctionDecChain(pDecChain);
 		g_pStatementList->SetUserFunctionName(pUserFunctionName);
 
 		// Now Parse Declaration from File Data
 		DWORD dwNumberOfUFParams=0;
-		LPSTR pParamTypeString=NULL;
-		CStatement* pDecBlock = NULL;
+		std::string paramTypeString;
 		if(bDecsInFunctionDef==false)
 		{
-			pParamTypeString = new char[2];
-			strcpy(pParamTypeString, "0");
+			paramTypeString = "0";
 		}
 		else
 		{
-			pDecBlock = new CStatement(); // user function params are local, not global
+			auto pDecBlock = std::make_unique<CStatement>(); // user function params are local, not global
 			if(pDecBlock->DoDeclaration(false, CRTK, &pDecChain, false, false, false, false)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::Do Declaration'");
-				SAFE_DELETE(pUserFunctionName);
-				SAFE_DELETE(pDecBlock);
-				SAFE_DELETE(pDecChain);
-				SAFE_DELETE(pFullLabelName);
 				return false;
 			}
-			SAFE_DELETE(pDecBlock);
+			pDecBlock.reset();
 
 			// Count Number of Parameters for this UserFunction
 			if(pDecChain) pDecChain->GetNumberOfDecsInChain(&dwNumberOfUFParams);
-			if(pDecChain) pDecChain->GetTypeStringOfDecsInChain(&pParamTypeString);
+			if(pDecChain) paramTypeString = pDecChain->GetTypeStringOfDecsInChain();
 		}
 
 		// Now Parse Block from File Data
 		DWORD dwEndToken = ENDUSERFUNCTIONTK;
-		CStatement *pCodeBlock = new CStatement();
+		auto pCodeBlock = std::make_unique<CStatement>();
 		if(pCodeBlock->DoLocalScanBlock(dwEndToken)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::DoLocalScanBlock'");
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pCodeBlock);
 			return false;
 		}
-		SAFE_DELETE(pCodeBlock);
+		pCodeBlock.reset();
 
 		// LEEFIX - 210703 - situation where prescan is declaring a return param
 		// at the end of ENDFUNCTION can hold a global var, but it would normally
 		// be parsed by the next code as local (as its part of the function dec).
 		g_pStatementList->SetLocalVarUsageAsGlobal(true);
 
-		// Create Parameter Object
+		// Create Parameter Object (adopt ownership immediately, even when the parse fails)
 		bool bMoreParams=false;
-		CParameter* pReturnParameter = NULL;
-		if(DoExpressionList(&pReturnParameter,&bMoreParams)==false)
+		CParameter* pReturnParameterRaw = NULL;
+		bool bExpressionListOk = DoExpressionList(&pReturnParameterRaw,&bMoreParams);
+		std::unique_ptr<CParameter> pReturnParameter(pReturnParameterRaw);
+		if(bExpressionListOk==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::Do ExpressionList'");
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pReturnParameter);
 			return false;
 		}
 
@@ -3668,12 +3646,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+30);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pReturnParameter);
 			return false;
 		}
 
@@ -3698,10 +3670,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
-				SAFE_DELETE(pParamTypeString);
-				SAFE_DELETE(pUserFunctionName);
-				SAFE_DELETE(pFullLabelName);
-				SAFE_DELETE(pDecChain);
 				return false;
 			}
 			else
@@ -3715,10 +3683,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 						{
 							DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 							g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
-							SAFE_DELETE(pParamTypeString);
-							SAFE_DELETE(pUserFunctionName);
-							SAFE_DELETE(pFullLabelName);
-							SAFE_DELETE(pDecChain);
 							return false;
 						}
 						break;
@@ -3727,36 +3691,25 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 				dwUserFunctionReturnType = pReturnParameter->GetMathItem()->FindResultTypeValueForDBM();
 			}
 		}
-		SAFE_DELETE(pReturnParameter);
+		pReturnParameter.reset();
 
 		// LEEFIX - 111002 - Cannot have array return-types. They return in the data type they represent
 		if(dwUserFunctionReturnType>=100 && dwUserFunctionReturnType<=199) dwUserFunctionReturnType-=100;
 
-		// Add User Function to database
+		// Add User Function to database (the instruction table entry owns the dec chain from here on)
 		if(dwNumberOfUFParams>0) dwNumberOfUFParams-=1;
-		if(g_pInstructionTable->AddUserFunction(pUserFunctionName, dwUserFunctionReturnType, pParamTypeString+1, dwNumberOfUFParams, pDecChain)==false)
+		if(g_pInstructionTable->AddUserFunction(pUserFunctionName, dwUserFunctionReturnType, paramTypeString.data()+1, dwNumberOfUFParams, pDecChainOwner.release())==false)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+24, pUserFunctionName);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(pDecChain);
 			return false;
 		}
 
 		// Add label to go with user function (for jump call)
-		if(g_pLabelTable->AddLabel(pFullLabelName->GetStr(), 0, 0, NULL)==false)
+		if(g_pLabelTable->AddLabel(fullLabelName.GetStr(), 0, 0, NULL)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::AddLabel'");
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(pDecChain);
 			return false;
 		}
-
-		// Free usages
-		SAFE_DELETE(pParamTypeString);
 	}
 	else
 	{
@@ -3764,91 +3717,66 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		if ( g_pStatementList->m_iNestCount > 0 )
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+56, pUserFunctionName);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
 			return false;
 		}
 
 		// Create Blank Declaration to start Chain
-		CDeclaration* pDecChain = new CDeclaration;
+		auto pDecChainOwner = std::make_unique<CDeclaration>();
+		CDeclaration* pDecChain = pDecChainOwner.get();
 		pDecChain->SetDecData(0,"","returnvalue","integer","",StatementLineNumber);
 		g_pStatementList->SetUserFunctionDecChain(pDecChain);
 		g_pStatementList->SetUserFunctionName(pUserFunctionName);
 
 		// Now Parse Declaration from File Data
 		DWORD dwNumberOfUFParams=0;
-		LPSTR pParamTypeString=NULL;
-		CStatement* pDecBlock = NULL;
+		std::string paramTypeString;
 		if(bDecsInFunctionDef==false)
 		{
-			pParamTypeString = new char[2];
-			strcpy(pParamTypeString, "0");
+			paramTypeString = "0";
 		}
 		else
 		{
-			pDecBlock = new CStatement(); //as above, params in user function are local not global
+			auto pDecBlock = std::make_unique<CStatement>(); //as above, params in user function are local not global
 			if(pDecBlock->DoDeclaration(false, CRTK, &pDecChain, false, false, false, false)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::Do Declaration'");
-				SAFE_DELETE(pDecChain);
-				SAFE_DELETE(pDecBlock);
-				SAFE_DELETE(pUserFunctionName);
-				SAFE_DELETE(pFullLabelName);
 				return false;
 			}
-			SAFE_DELETE(pDecBlock);
+			pDecBlock.reset();
 
 			// Count Number of Parameters for this UserFunction
 			if(pDecChain) pDecChain->GetNumberOfDecsInChain(&dwNumberOfUFParams);
-			if(pDecChain) pDecChain->GetTypeStringOfDecsInChain(&pParamTypeString);
+			if(pDecChain) paramTypeString = pDecChain->GetTypeStringOfDecsInChain();
 		}
 
 		// Create BLOCK Object for nested code
-		CStatement *TheUserFunctionObject = new CStatement();
-		CStatement *pCodeBlock = new CStatement();
+		auto TheUserFunctionObjectOwner = std::make_unique<CStatement>();
+		CStatement* TheUserFunctionObject = TheUserFunctionObjectOwner.get();
+		auto pCodeBlockOwner = std::make_unique<CStatement>();
 
 		// Update label for User-Function-Call
-		if(g_pLabelTable->UpdateLabel(pFullLabelName->GetStr(), StatementLineNumber, 0, TheUserFunctionObject)==false)
+		if(g_pLabelTable->UpdateLabel(fullLabelName.GetStr(), StatementLineNumber, 0, TheUserFunctionObject)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' in CStatement::DoUserFunction");
-			SAFE_DELETE(pCodeBlock);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(TheUserFunctionObject);
 			return false;
 		}
 
 		// Now Parse Block from File Data
 		DWORD dwEndToken = ENDUSERFUNCTIONTK;
-		if(pCodeBlock->DoBlock(dwEndToken,NULL)==false)
+		if(pCodeBlockOwner->DoBlock(dwEndToken,NULL)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::DoBlock'");
-			SAFE_DELETE(pCodeBlock);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(TheUserFunctionObject);
 			return false;
 		}
 
-		// Create Parameter Object
+		// Create Parameter Object (adopt ownership immediately, even when the parse fails)
 		bool bMoreParams=false;
-		CParameter* pReturnParameter = NULL;
-		if(DoExpressionList(&pReturnParameter,&bMoreParams)==false)
+		CParameter* pReturnParameterRaw = NULL;
+		bool bExpressionListOk = DoExpressionList(&pReturnParameterRaw,&bMoreParams);
+		std::unique_ptr<CParameter> pReturnParameter(pReturnParameterRaw);
+		if(bExpressionListOk==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::Do ExpressionList'");
-			SAFE_DELETE(pCodeBlock);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(TheUserFunctionObject);
 			return false;
 		}
 
@@ -3857,13 +3785,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+30);
-			SAFE_DELETE(pCodeBlock);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pDecChain);
-			SAFE_DELETE(pDecBlock);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
-			SAFE_DELETE(TheUserFunctionObject);
 			return false;
 		}
 
@@ -3874,13 +3795,6 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
-				SAFE_DELETE(pCodeBlock);
-				SAFE_DELETE(pParamTypeString);
-				SAFE_DELETE(pDecChain);
-				SAFE_DELETE(pDecBlock);
-				SAFE_DELETE(pUserFunctionName);
-				SAFE_DELETE(pFullLabelName);
-				SAFE_DELETE(TheUserFunctionObject);
 				return false;
 			}
 		}
@@ -3892,15 +3806,15 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		// Create Object
 		CParseUserFunction *pUserFunction = new CParseUserFunction();
 
-		// Add New "UserFunctionDataType" To Table
+		// Add New "UserFunctionDataType" To Table (the struct table owns the dec chain from here on)
 		bool bReportError = false;
-		g_pStructTable->AddStructUserType(0, pUserFunctionName, 'U', pDecChain, pDecBlock, 2, &bReportError, dwNumberOfUFParams);
+		g_pStructTable->AddStructUserType(0, pUserFunctionName, 'U', pDecChainOwner.release(), NULL, 2, &bReportError, dwNumberOfUFParams);
 
 		// Complete Object Data
 		CStr* pStrName = new CStr(pUserFunctionName);
 		pUserFunction->SetName(pStrName);
-		pUserFunction->SetBlock(pCodeBlock);
-		pUserFunction->SetResultParameter(pReturnParameter);
+		pUserFunction->SetBlock(pCodeBlockOwner.release());
+		pUserFunction->SetResultParameter(pReturnParameter.release());
 		pUserFunction->SetStartLineNumber(StatementLineNumber);
 		pUserFunction->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
 
@@ -3916,26 +3830,16 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		TheUserFunctionObject->SetObject(pUserFunction);
 		TheUserFunctionObject->m_pParameters = NULL;
 		TheUserFunctionObject->SetLineAndCharPos(StatementLineNumber);
-		this->Add(TheUserFunctionObject);
+		this->Add(TheUserFunctionObjectOwner.release());
 
 		// Add User Function to database
 		if(dwNumberOfUFParams>0) dwNumberOfUFParams-=1;
-		if(g_pInstructionTable->AddUserFunction(pUserFunctionName, 1, pParamTypeString, dwNumberOfUFParams, NULL)==false)
+		if(g_pInstructionTable->AddUserFunction(pUserFunctionName, 1, paramTypeString.data(), dwNumberOfUFParams, NULL)==false)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+24, pUserFunctionName);
-			SAFE_DELETE(pParamTypeString);
-			SAFE_DELETE(pUserFunctionName);
-			SAFE_DELETE(pFullLabelName);
 			return false;
 		}
-
-		// Free usages
-		SAFE_DELETE(pParamTypeString);
 	}
-
-	// Free usages
-	SAFE_DELETE(pUserFunctionName);
-	SAFE_DELETE(pFullLabelName);
 
 	// Restore MYFUNC dec  -> MYFUNC(dec) (replace brackets)
 	if(SPos>0)

@@ -10,6 +10,7 @@
 #include "macros.h"
 #include "Str.h"
 #include <memory>
+#include <string>
 
 class CDeclaration  
 {
@@ -34,7 +35,7 @@ class CDeclaration
 		void SetDecData(DWORD dwDecArr, LPSTR pDecArrValue, LPSTR pDecName, LPSTR pDecType, LPSTR pDecInit, DWORD LineNumberRef);
 
 		bool GetNumberOfDecsInChain(DWORD* pdwCount);
-		bool GetTypeStringOfDecsInChain(LPSTR* pTypeString);
+		std::string GetTypeStringOfDecsInChain(void);
 
 		CStr* GetName(void) { return m_pName.get(); }
 		CStr* GetType(void) { return m_pType.get(); }
