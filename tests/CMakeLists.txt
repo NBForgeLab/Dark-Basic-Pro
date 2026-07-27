@@ -22,6 +22,7 @@ add_executable(dbp_tests
     test_x64_pointer_safety.cpp
     test_modern_cpp_safety.cpp
     test_exeblock_memory.cpp
+    test_exeblock_arrays.cpp
     test_declaration.cpp
     test_filebuilder.cpp
     test_statement_label.cpp

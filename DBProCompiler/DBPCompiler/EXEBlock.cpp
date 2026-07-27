@@ -280,10 +280,10 @@ DWORD* CEXEBlock::CreateArray(DWORD dwCount,DWORD dwType)
 	}
 	else
 	{
-		// regular data block
-		pArray = new DWORD[dwCount];
-		for(DWORD i=0; i<dwCount; i++)
-			pArray[i]=0;
+		// regular data block (make_unique<T[]> value-initialises to zero,
+		// matching the legacy hand-rolled clear loop; ownership is released
+		// back to the raw-pointer member contract expected by callers)
+		pArray = std::make_unique<DWORD[]>(dwCount).release();
 	}
 
 	// return ptr
@@ -297,40 +297,27 @@ DWORD* CEXEBlock::CreateArray(DWORD dwCount)
 
 uintptr_t* CEXEBlock::CreatePtrArray(DWORD dwCount)
 {
-	uintptr_t* pArray = new uintptr_t[dwCount];
-	for(DWORD i=0; i<dwCount; i++)
-		*(pArray+i)=0;
-	return pArray;
+	// make_unique<T[]> value-initialises every slot to zero; release the
+	// ownership to honour the raw-pointer member contract of callers
+	return std::make_unique<uintptr_t[]>(dwCount).release();
 }
 
 bool CEXEBlock::RecreateArray(uintptr_t** pArray, DWORD dwCount, DWORD NewCount)
 {
 	if(pArray)
 	{
-		uintptr_t* pTempArray = new uintptr_t[NewCount];
-		if(pTempArray)
-		{
-			// Clear New
-			for(DWORD i=0; i<NewCount; i++)
-				*(pTempArray+i)=0;
+		// New buffer is value-initialised (zeroed) by make_unique<T[]>
+		auto pNewOwner = std::make_unique<uintptr_t[]>(NewCount);
 
-			// Copy Old to New
-			if(*pArray && dwCount > 0)
-				memcpy(pTempArray, *pArray, dwCount*sizeof(uintptr_t));
+		// Copy Old to New
+		if(*pArray && dwCount > 0)
+			memcpy(pNewOwner.get(), *pArray, dwCount*sizeof(uintptr_t));
 
-			// Delete Old (pointer array only)
-			delete[] *pArray;
+		// Delete Old (pointer array only) via RAII, then switch pointers
+		std::unique_ptr<uintptr_t[]> pOldOwner(*pArray);
+		*pArray=pNewOwner.release();
 
-			// Switch Pointers
-			*pArray=pTempArray;
-
-			return true;
-		}
-		else
-		{
-			// EXEBlock shared - silent fail
-			return false;
-		}
+		return true;
 	}
 
 	// Soft fail
@@ -341,29 +328,17 @@ bool CEXEBlock::RecreateArray(DWORD** pArray, DWORD dwCount, DWORD NewCount)
 {
 	if(pArray)
 	{
-		DWORD* pTempArray = new DWORD[NewCount];
-		if(pTempArray)
-		{
-			// Clear New
-			for(DWORD i=0; i<NewCount; i++)
-				*(pTempArray+i)=NULL;
+		// New buffer is value-initialised (zeroed) by make_unique<T[]>
+		auto pNewOwner = std::make_unique<DWORD[]>(NewCount);
 
-			// Copy Old to New
-			memcpy(pTempArray, *pArray, dwCount*sizeof(DWORD));
+		// Copy Old to New
+		memcpy(pNewOwner.get(), *pArray, dwCount*sizeof(DWORD));
 
-			// Delete Old (pointer array only)
-			delete[] *pArray;
+		// Delete Old (pointer array only) via RAII, then switch pointers
+		std::unique_ptr<DWORD[]> pOldOwner(*pArray);
+		*pArray=pNewOwner.release();
 
-			// Switch Pointers
-			*pArray=pTempArray;
-
-			return true;
-		}
-		else
-		{
-			// EXEBlock shared - silent fail
-			return false;
-		}
+		return true;
 	}
 
 	// Soft fail
@@ -668,7 +643,9 @@ bool CEXEBlock::LoadValue(HANDLE hFile, DWORD* Value)
 bool CEXEBlock::LoadBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize)
 {
 	DWORD bytes=0;
-	*pMem = new char[dwSize+1];
+	// Allocate via make_unique<char[]> then release into the raw-pointer
+	// out-param owned/freed by the caller (Clear via SAFE_DELETE_ARRAY)
+	*pMem = std::make_unique<char[]>(dwSize+1).release();
 	ReadFile(hFile, *pMem, dwSize, &bytes, NULL);
 	if(bytes==0)
 	{
@@ -738,7 +715,7 @@ bool CEXEBlock::LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 			// Read length of string
 			DWORD length = 0;
 			ReadFile(hFile, &length, 4, &bytes, NULL);
-			char* pStr = new char[length+1];
+			char* pStr = std::make_unique<char[]>(length+1).release();
 			if(length>0)
 			{
 				ReadFile(hFile, pStr, length, &bytes, NULL);
@@ -781,13 +758,13 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	{
 		// Make Core Entry
 		m_dwNumberOfDLLs=1;
-		m_pDLLIndexArray = new DWORD[1];
+		m_pDLLIndexArray = CreateArray(1);
 		m_pDLLIndexArray[0]=1;
-		m_pDLLLoadedAlreadyArray = new DWORD[1];
+		m_pDLLLoadedAlreadyArray = CreateArray(1);
 		m_pDLLLoadedAlreadyArray[0] = 0;
 
-		m_pDLLFilenameArray = new uintptr_t[1];
-		m_pDLLFilenameArray[0] = (uintptr_t)new char[strlen(pCoreName)+1];
+		m_pDLLFilenameArray = CreatePtrArray(1);
+		m_pDLLFilenameArray[0] = (uintptr_t)std::make_unique<char[]>(strlen(pCoreName)+1).release();
 		strcpy((char*)m_pDLLFilenameArray[0], pCoreName);
 	}
 
