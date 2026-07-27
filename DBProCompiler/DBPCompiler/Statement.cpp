@@ -1503,12 +1503,12 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 
 bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 {
-	// Create BLOCK Object for nested code
-	CStatement *pTypeBlock = new CStatement();
+	// Create BLOCK Object for nested code (RAII: owned until handed to the struct table)
+	std::unique_ptr<CStatement> pTypeBlock(new CStatement());
 
-	// Read off name of Type
+	// Read off name of Type (token buffer is new[]-allocated; owner frees it on every exit path)
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
-	LPSTR pTypeName = ProduceNextToken(&pPointer, true, false, false);
+	std::unique_ptr<char[]> pTypeName(ProduceNextToken(&pPointer, true, false, false));
 	g_pStatementList->SetFileDataPointer(pPointer);
 
 	// leefix - 040803 - type name can be missing, cause error
@@ -1523,49 +1523,43 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 	g_pStatementList->SetVariableAddParse(false);
 
 	// Now Parse Declaration from File Data
-	CDeclaration* pDecChain = NULL;
-	if(pTypeBlock->DoDeclaration(false, ENDTYPETK, &pDecChain, false, true, true, true)==false)
+	CDeclaration* pDecChainRaw = NULL;
+	if(pTypeBlock->DoDeclaration(false, ENDTYPETK, &pDecChainRaw, false, true, true, true)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'pTypeBlock->Do Declaration(ENDTYPETK)'");
-		SAFE_DELETE(pDecChain);
-		SAFE_DELETE(pTypeBlock);
-		SAFE_DELETE(pTypeName);
+		delete pDecChainRaw;
 		return false;
 	}
+	std::unique_ptr<CDeclaration> pDecChain(pDecChainRaw);
 
 	// if no declaration chain declared, this type has no details
 	if ( pDecChain==NULL )
 	{
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+54);
-		SAFE_DELETE(pDecChain);
-		SAFE_DELETE(pTypeBlock);
-		SAFE_DELETE(pTypeName);
 		return false;
 	}
 
 	// Activate ability add variables again
 	g_pStatementList->SetVariableAddParse(true);
 
-	// Create Object
-	CParseType *pType = new CParseType();
-
-	// Add New Type To Table
+	// Add New Type To Table (the table owns the dec chain and type block on success only)
 	bool bReportErrorInStructureDec = false;
-	if(g_pStructTable->AddStructUserType(0, pTypeName, 'U', pDecChain, pTypeBlock, 1, &bReportErrorInStructureDec)==false)
+	if(g_pStructTable->AddStructUserType(0, pTypeName.get(), 'U', pDecChain.get(), pTypeBlock.get(), 1, &bReportErrorInStructureDec)==false)
 	{
 		if ( bReportErrorInStructureDec ) g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+54);
-		SAFE_DELETE(pTypeName);
-		SAFE_DELETE(pTypeBlock);
-		SAFE_DELETE(pType);
 		return true;
 	}
-	SAFE_DELETE(pTypeName);
+	pDecChain.release();
+	CStatement* pTypeBlockRef = pTypeBlock.release();
+
+	// Create Object
+	CParseType *pType = new CParseType();
 
 	// Complete Object Data
 	pType->SetStartLineNumber(StatementLineNumber);
 	pType->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
-	pTypeBlock->SetLineAndCharPos(StatementLineNumber);
-	pTypeBlock->SetObject(pType);
+	pTypeBlockRef->SetLineAndCharPos(StatementLineNumber);
+	pTypeBlockRef->SetObject(pType);
 	return true;
 }
 
@@ -3081,84 +3075,67 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 {
-	// Create Object
-	CParseInstruction *pInstruction = new CParseInstruction();
+	// Create Object (RAII: owned until handed to the statement)
+	std::unique_ptr<CParseInstruction> pInstruction(new CParseInstruction());
 
-	// Parameter Chain
-	CParameter* pFirstParameter = NULL;
-
-	// Create String for array name
+	// Create String for array name (token buffer is new[]-allocated; owner frees it on every exit path)
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
-	LPSTR pArrayName = ProduceNextArrayToken(&pPointer);
+	std::unique_ptr<char[]> pArrayName(ProduceNextArrayToken(&pPointer));
 
-	// Ensure leading/trailing spaces removed
-	CStr* pStr2 = new CStr(pArrayName);
-	pStr2->EatEdgeSpacesandTabs(NULL);
-	SAFE_DELETE(pArrayName);
+	// Ensure leading/trailing spaces removed (value semantics - freed automatically)
+	CStr str2(pArrayName.get());
+	str2.EatEdgeSpacesandTabs(NULL);
 
 	// compare with void
-	if(pStr2->Length()==0)
+	if(str2.Length()==0)
 	{
 		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+43);
-		SAFE_DELETE(pInstruction);
-		SAFE_DELETE(pStr2);
 		return false;
 	}
 	g_pStatementList->SetFileDataPointer(pPointer);
-	CStr* pStr = new CStr("&");
-	pStr->AddText(pStr2->GetStr());
+	CStr addressString("&");
+	addressString.AddText(str2.GetStr());
 
 	// Cut off all but the array name
-	DWORD dwPos = pStr->FindFirstChar('(');
-	pStr->SetChar(dwPos,0);
+	DWORD dwPos = addressString.FindFirstChar('(');
+	addressString.SetChar(dwPos,0);
 
 	// Create pArrayParameter Object
-	CParameter* pArrayParameter = new CParameter;
-	if(DoExpression(pStr, pArrayParameter)==false)
+	std::unique_ptr<CParameter> pArrayParameter(new CParameter);
+	if(DoExpression(&addressString, pArrayParameter.get())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoDeAllocation::pArrayParameter::DoExpression'");
-		SAFE_DELETE(pArrayParameter);
-		SAFE_DELETE(pInstruction);
-		SAFE_DELETE(pStr);
 		return false;
 	}
 
 	// Create Parameter Object
-	CParameter* pReturnParameter = new CParameter;
-	if(DoExpression(pStr, pReturnParameter)==false)
+	std::unique_ptr<CParameter> pReturnParameter(new CParameter);
+	if(DoExpression(&addressString, pReturnParameter.get())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoDeAllocation::pReturnParameter::DoExpression'");
-		SAFE_DELETE(pReturnParameter);
-		SAFE_DELETE(pArrayParameter);
-		SAFE_DELETE(pInstruction);
-		SAFE_DELETE(pStr);
 		return false;
 	}
-	SAFE_DELETE(pStr);
 
 	// Ensure return param and dealloc address uses POINTER MATHS (actual address, not relative address(as in array use))
 	pReturnParameter->GetMathItem()->SetResultType(7);
 	pArrayParameter->GetMathItem()->SetResultType(7);
 
-	// First param set
-	pFirstParameter=pReturnParameter;
-
-	// Add Actual first param
-	pFirstParameter->Add(pArrayParameter);
+	// First param is the return param, then the actual dealloc address
+	pReturnParameter->Add(pArrayParameter.release());
 
 	// Complete Object Data
 	pInstruction->SetType(2);
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_FREE));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_FREE));
 	pInstruction->SetParamMax(2);
-	pInstruction->SetReturnParameter(pStr);
-	pInstruction->SetParameter(pFirstParameter);
+	pInstruction->SetReturnParameter(NULL); // legacy contract: the return token was already freed here, so NULL is pinned
+	pInstruction->SetParameter(pReturnParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
-	TheObject->SetObject(pInstruction);
+	TheObject->SetObject(pInstruction.release());
 	TheObject->m_pParameters = NULL;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
