@@ -86,3 +86,15 @@ TEST_F(StatementUserFunctionTest, ExitFunctionMismatchedReturnTypeFailsCleanly) 
         "endfunction 7\r\n";
     EXPECT_FALSE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
+
+// Contract: a function defined and called WITH a bracketed argument compiles -
+// this drives RemoveEdgeBracketFromSegment through the branch that actually
+// erases a non-empty '(' .. ')' pair (both the definition and call sites),
+// unlike the empty-bracket pins above.
+TEST_F(StatementUserFunctionTest, UserFunctionWithArgumentCompiles) {
+    char prog[] =
+        "myfunc(5)\r\n"
+        "function myfunc(n)\r\n"
+        "endfunction n\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}

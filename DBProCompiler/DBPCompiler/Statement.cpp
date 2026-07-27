@@ -4487,15 +4487,16 @@ bool CStatement::RemoveEdgeBracketFromSegment(LPSTR pPointer, DWORD *pdwSPos, DW
 	// Find initial bracket
 	LPSTR pEndPointer = SeekToSeperator(pPointer, false, false);
 
-	// Create String upto seperator
+	// Create String upto seperator (stack CStr: RAII on every exit path,
+	// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
 	DWORD length = pEndPointer-pPointer;
-	CStr* pStr = new CStr(length+1);
+	CStr str(length+1);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-	pStr->CopyFromPtr(pPointer, pPointerEnd, length);
+	str.CopyFromPtr(pPointer, pPointerEnd, length);
 
 	// Find first and last bracket
-	DWORD dwSPos = pStr->FindFirstChar('(');
-	DWORD dwEPos = pStr->FindLastChar(')');
+	DWORD dwSPos = str.FindFirstChar('(');
+	DWORD dwEPos = str.FindLastChar(')');
 
 	// Validate brackets
 	if(dwSPos<length && dwEPos>0 && dwEPos<length)
@@ -4509,10 +4510,7 @@ bool CStatement::RemoveEdgeBracketFromSegment(LPSTR pPointer, DWORD *pdwSPos, DW
 		if(pdwEPos) *pdwEPos=dwEPos;
 	}
 
-	// Free memory
-	SAFE_DELETE(pStr);
-
-	// Complete
+	// Complete (working string freed automatically here - stack RAII)
 	return true;
 }
 
@@ -4526,53 +4524,51 @@ bool CStatement::ExtractDetailsFromForNext(CStr* pVar, CStr* pInit, CStr* pEnd, 
 	// Transform stage
 	DWORD dwStage=0;
 
-	// Make extraction string
+	// Make extraction string (stack CStr: RAII on every exit path below,
+	// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
 	DWORD length = pEndPointer-pPointer;
-	CStr* pStr = new CStr(length);
+	CStr str(length);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-	pStr->CopyFromPtr(pPointer, pPointerEnd, length);
-	pStr->SetChar(length-1,0);
+	str.CopyFromPtr(pPointer, pPointerEnd, length);
+	str.SetChar(length-1,0);
 
 	// Find Equals
 	DWORD p=0;
 	while(p<length)
 	{
 		// Find Equals
-		if(dwStage==0 && pStr->CheckChar(p,'='))
+		if(dwStage==0 && str.CheckChar(p,'='))
 		{
 			dwStage=1;
 			p+=1;
 		}
 		else
-			if(dwStage==0) pVar->AddChar(pStr->GetChar(p));
+			if(dwStage==0) pVar->AddChar(str.GetChar(p));
 
 		// Find _TO_
-		if(dwStage==1 && pStr->CheckChars(p,4," TO "))
+		if(dwStage==1 && str.CheckChars(p,4," TO "))
 		{
 			dwStage=2;
 			p+=4;
 		}
 		else
-			if(dwStage==1) pInit->AddChar(pStr->GetChar(p));
+			if(dwStage==1) pInit->AddChar(str.GetChar(p));
 
 		// Find STEP
-		if(dwStage==2 && pStr->CheckChars(p,6," STEP "))
+		if(dwStage==2 && str.CheckChars(p,6," STEP "))
 		{
 			dwStage=3;
 			p+=6;
 		}
 		else
-			if(dwStage==2) pEnd->AddChar(pStr->GetChar(p));
+			if(dwStage==2) pEnd->AddChar(str.GetChar(p));
 
 		// Rest is step
-		if(dwStage==3) pStep->AddChar(pStr->GetChar(p));
+		if(dwStage==3) pStep->AddChar(str.GetChar(p));
 
 		// Next symbol
 		p++;
 	}
-
-	// Free usage
-	SAFE_DELETE(pStr);
 
 	if(dwStage<2)
 	{

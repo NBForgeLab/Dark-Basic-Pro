@@ -82,3 +82,14 @@ TEST_F(StatementLoopTest, DoLoopBalancesNestCountWhenLoopParseFails) {
 
     EXPECT_EQ(g_pStatementList->m_iNestCount, 0);
 }
+
+// Characterization: a FOR/NEXT with an explicit STEP compiles - this drives
+// ExtractDetailsFromForNext all the way to its final STEP stage (dwStage==3),
+// the accumulation path the other loop pins never reach.
+TEST_F(StatementLoopTest, DoLoopCompilesForNextWithStep) {
+    char prog[] = "FOR t = 1 TO 10 STEP 2\r\nNEXT t\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+
+    EXPECT_EQ(g_pStatementList->GetLatestLoopExitLabel(), nullptr);
+    EXPECT_EQ(g_pStatementList->m_iNestCount, 0);
+}
