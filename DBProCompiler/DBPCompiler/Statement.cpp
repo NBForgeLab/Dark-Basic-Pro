@@ -4610,20 +4610,21 @@ bool CStatement::ReplaceTHENandELSEwithSep(void)
 	// Transform stage
 	DWORD dwStage=0;
 
-	// Make extraction string
+	// Make extraction string (stack CStr: RAII on every exit path below,
+	// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
 	DWORD length = pEndPointer-pPointer;
-	CStr* pStr = new CStr(length);
+	CStr str(length);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-	pStr->CopyFromPtr(pPointer, pPointerEnd, length);
+	str.CopyFromPtr(pPointer, pPointerEnd, length);
 
 	// leefix - 250604 - u54 - remove trailing CRs and colons
 	for ( DWORD c=length-1; c>0; c-- )
 	{
-		if ( pStr->GetChar(c)<=32 || pStr->GetChar(c)==':' )
+		if ( str.GetChar(c)<=32 || str.GetChar(c)==':' )
 		{
 			// mirror change in actual parse data
-			if ( pStr->GetChar(c)==':' ) *(pPointer+c)=32;
-			pStr->SetChar(c,0);
+			if ( str.GetChar(c)==':' ) *(pPointer+c)=32;
+			str.SetChar(c,0);
 		}
 		else
 			break;
@@ -4634,14 +4635,14 @@ bool CStatement::ReplaceTHENandELSEwithSep(void)
 	DWORD dwSpeechMark=0;
 	while(p<length)
 	{
-		if(pStr->CheckChar(p,'"')) dwSpeechMark=1-dwSpeechMark;
+		if(str.CheckChar(p,'"')) dwSpeechMark=1-dwSpeechMark;
 		if(dwSpeechMark==0)
 		{
 			// leefix - 220604 - u54 - detect termination here
-			if(pStr->CheckChar(p,':')) break;
+			if(str.CheckChar(p,':')) break;
 
 			// Find THEN
-			if(dwStage==0 && pStr->CheckChars(p,4,"THEN"))
+			if(dwStage==0 && str.CheckChars(p,4,"THEN"))
 			{
 				pPointer[p]=':';
 				pPointer[p+1]=' ';
@@ -4652,7 +4653,7 @@ bool CStatement::ReplaceTHENandELSEwithSep(void)
 			}
 
 			// Find THEN
-			if(dwStage==1 && pStr->CheckChars(p,4,"ELSE"))
+			if(dwStage==1 && str.CheckChars(p,4,"ELSE"))
 			{
 				pPointer[p-1]=':';
 				pPointer[p+4]=':';
@@ -4664,9 +4665,6 @@ bool CStatement::ReplaceTHENandELSEwithSep(void)
 		// Next symbol
 		p++;
 	}
-
-	// Free usage
-	SAFE_DELETE(pStr);
 
 	if(dwStage==0)
 	{
@@ -4764,27 +4762,25 @@ DWORD CStatement::GetMainToken(void)
 						pEndOfLinePtr++;
 					}
 
-					// Produce string for rest of this line
+					// Produce string for rest of this line (stack CStr: RAII on
+					// every exit path, replacing the heap new/SAFE_DELETE pair)
 					DWORD dwLengthOfRestOfLine = pEndOfLinePtr-pPointer;
-					CStr* pLineStr = new CStr(dwLengthOfRestOfLine+1);
+					CStr lineStr(dwLengthOfRestOfLine+1);
 					LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-					pLineStr->CopyFromPtr(pPointer, pPointerEnd, dwLengthOfRestOfLine);
+					lineStr.CopyFromPtr(pPointer, pPointerEnd, dwLengthOfRestOfLine);
 
 					// Check if it qualifies as a variable declaration or assignment
-					if(ContainsAssignmentOperator(pLineStr))
+					if(ContainsAssignmentOperator(&lineStr))
 					{
 						dwToken=ASSIGNMENTTK;
 					}
 					if(dwToken==0)
 					{
-						if(pLineStr->ContainsASOperator())
+						if(lineStr.ContainsASOperator())
 						{
 							dwToken=LOCALTK;
 						}
 					}
-
-					// Free memory usage
-					SAFE_DELETE(pLineStr);
 				}
 				if(dwToken==0)
 				{

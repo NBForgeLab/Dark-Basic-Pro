@@ -103,3 +103,12 @@ TEST_F(StatementTokenTest, PeekTokenAtBufferEndReturnsEndTk) {
 
     EXPECT_EQ(statement.PeekToken(nearEnd), (DWORD)ENDTK);
 }
+
+// Contract: a leading identifier that is neither an instruction nor a reserved
+// word is classified through GetMainToken's end-of-line fallback, which builds
+// a CStr of the rest of the line and calls ContainsAssignmentOperator; an
+// assignment line therefore compiles (ASSIGNMENTTK path).
+TEST_F(StatementTokenTest, GetMainTokenClassifiesAssignmentLine) {
+    char prog[] = "counter = 7\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}

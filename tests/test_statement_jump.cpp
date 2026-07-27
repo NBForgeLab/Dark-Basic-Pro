@@ -83,3 +83,20 @@ TEST_F(StatementJumpTest, DoJumpRestoresLabelAsValueWhenExpressionFails) {
 
     EXPECT_FALSE(g_pStatementList->GetAllowLabelAsValue());
 }
+
+// Characterization: a one-line IF ... THEN <stmt> compiles - DoJump calls
+// ReplaceTHENandELSEwithSep which rewrites the THEN keyword into a ':'
+// separator (dwStage==1, the success path the multi-line IF pin never
+// reaches) so the statement becomes a single-line conditional.
+TEST_F(StatementJumpTest, DoJumpCompilesOneLineIfThen) {
+    char prog[] = "mylabel:\r\nIF 1 THEN GOTO mylabel\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
+// Characterization: a one-line IF ... THEN <stmt> ELSE <stmt> compiles -
+// ReplaceTHENandELSEwithSep also rewrites the ELSE keyword into ':'
+// separators (dwStage==2), the deepest branch of the helper.
+TEST_F(StatementJumpTest, DoJumpCompilesOneLineIfThenElse) {
+    char prog[] = "mylabel:\r\nIF 1 THEN GOTO mylabel ELSE GOTO mylabel\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
