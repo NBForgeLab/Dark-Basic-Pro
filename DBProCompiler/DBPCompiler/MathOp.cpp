@@ -1030,7 +1030,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	if(pRef) dwTypeValue=pRef->GetReturnParam();
 
 	// Create temp symbol and use as return data store for function
-	CStr* pResultStr = new CStr("");
+	auto pResultStr = std::make_unique<CStr>();
 	if(dwTypeValue>0)
 	{
 		CStr TempVarToken(1);
@@ -1044,20 +1044,21 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	SetResultStruct(NULL);
 
 	// Construct full label name for function
-	CStr* pFullLabelName = new CStr("$label ");
+	auto pFullLabelName = std::make_unique<CStr>();
+	pFullLabelName->SetText("$label ");
 	pFullLabelName->AddText(pFunctionNameString->GetStr());
 
 	// Complete Object Data
-	CParseInstruction *pInstruction = new CParseInstruction();
+	auto pInstruction = std::make_unique<CParseInstruction>();
 	pInstruction->SetType(dwInstructionType);
 	pInstruction->SetValue(dwInstructionValue);
 	pInstruction->SetParamMax(dwInstructionParamMax);
 	pInstruction->SetParameter(pFirstParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
-	pInstruction->SetReturnParameter(pResultStr);
-	pInstruction->SetLabelParam(pFullLabelName);
+	pInstruction->SetReturnParameter(pResultStr.release());
+	pInstruction->SetLabelParam(pFullLabelName.release());
 	pInstruction->SetInstructionRef(pRef);
-	m_pStatement->SetData(StatementLineNumber, std::unique_ptr<CParseInstruction>(pInstruction));
+	m_pStatement->SetData(StatementLineNumber, std::move(pInstruction));
 
 	// Clear memory usage
 	pFunctionNameString.reset();
@@ -1216,7 +1217,8 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 
 	// Assign Value as Array or Variable(with/without type)
-	CStr* pName = new CStr(pExpressionValue->GetStr());
+	CStr nameStorage(pExpressionValue->GetStr());
+	CStr* pName = &nameStorage;
 
 	// Before processing DataType, crop spaces, tabs and equal brackets
 	do { pName->EatEdgeSpacesandTabs(NULL);
@@ -1232,20 +1234,22 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	// Determine seperation between var and field specifiers
 	DWORD dwTypeFieldSep = pName->FindFirstCharAtBracketLevel('.');
 	DWORD dwSepPos = dwTypeFieldSep;
-	CStr* pFixedDataOffset = NULL;
+	CStr fixedDataOffsetStorage;
+	CStr* pFixedDataOffset = &fixedDataOffsetStorage;
 	if(dwSepPos==0)
 	{
 		// No datatype field part
 		dwSepPos = pName->Length();
-		pFixedDataOffset = new CStr("");
+		pFixedDataOffset->SetText("");
 	}
 	else
 	{
 		// Seperate Dynamic and Fixed Components
-		pFixedDataOffset = new CStr(pName->GetStr()+dwSepPos+1);
+		pFixedDataOffset->SetText(pName->GetStr()+dwSepPos+1);
 	}
 
 	// Check if array-subscript provided for var
+	std::unique_ptr<CStr> pSubscriptStringOwner;
 	CStr* pSubscriptString = NULL;
 	int iGrabSubscriptString=-1;
 	DWORD n = 0;
@@ -1262,7 +1266,8 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 		if(n==dwSepPos-1)
 		{
 			// Subscript String Value
-			pSubscriptString = new CStr("");
+			pSubscriptStringOwner = std::make_unique<CStr>();
+			pSubscriptString = pSubscriptStringOwner.get();
 			pSubscriptString->SetText(pName->GetStr()+iGrabSubscriptString+1);
 			pSubscriptString->SetChar((dwSepPos-iGrabSubscriptString)-2,0);
 
@@ -1285,9 +1290,6 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			// ensure error responds only if something for user to see, else use a higher error report
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+7, pName->GetStr());
 		}
-		SAFE_DELETE(pFixedDataOffset);
-		SAFE_DELETE(pSubscriptString);
-		SAFE_DELETE(pName);
 		return false;
 	}
 
@@ -1301,9 +1303,6 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 		if(CalculateDataOffsetAndTypeFromFieldString(pName, dwArrayType, pFixedDataOffset, &dwDataOffset, &dwLValueType, &dwSizeOfWholeType, &pStruct)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'Calculate DataOffsetAndTypeFromFieldString'");
-			SAFE_DELETE(pFixedDataOffset);
-			SAFE_DELETE(pSubscriptString);
-			SAFE_DELETE(pName);
 			return false;
 		}
 	}
@@ -1313,9 +1312,6 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 		if(dwTypeFieldSep>0)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+38, "", pName->GetStr());
-			SAFE_DELETE(pFixedDataOffset);
-			SAFE_DELETE(pSubscriptString);
-			SAFE_DELETE(pName);
 			return false;
 		}
 	}
@@ -1328,7 +1324,8 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 
 	// Check if name already exists as a global
 	bool bNameAlreadyExistsAsAGlobal=false;
-	CStr* pFindName = new CStr("");
+	CStr findNameStorage("");
+	CStr* pFindName = &findNameStorage;
 	if(dwArrayType==1) pFindName->SetText("&");
 	pFindName->AddText(pName->GetStr());
 	CVarTable* pVarTest;
@@ -1382,14 +1379,14 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			}
 		}
 	}
-	SAFE_DELETE(pFindName);
 
 	// Get UDT of var if not got
 	if ( pStruct==NULL && pVarTest )
 		pStruct = pVarTest->GetVarStruct();
 
 	// Produce result name
-	CStr* pResultName = new CStr("");
+	CStr resultNameStorage("");
+	CStr* pResultName = &resultNameStorage;
 	CDeclaration* pGlobalDecChain = g_pStatementList->GetUserFunctionDecChain();
 	if(pGlobalDecChain && bNameAlreadyExistsAsAGlobal==false)
 	{
@@ -1430,7 +1427,8 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 		while(iIndex>=0)
 		{
 			// Get result of subscript calc
-			CStr* pOneSubscript = new CStr("");
+			CStr oneSubscriptStorage("");
+			CStr* pOneSubscript = &oneSubscriptStorage;
 
 			// Find subscript
 			int iSpeechmark=0;
@@ -1448,17 +1446,13 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			iIndex--;
 
 			// calculate result subscript
-			CMathOp* pSubscriptResult = new CMathOp;
+			auto pSubscriptResultOwner = std::make_unique<CMathOp>();
+			CMathOp* pSubscriptResult = pSubscriptResultOwner.get();
 			if(pSubscriptResult->DoValue(pOneSubscript)==false)
 			{
-				SAFE_DELETE(pFixedDataOffset);
-				SAFE_DELETE(pSubscriptString);
-				SAFE_DELETE(pName);
-				SAFE_DELETE(pSubscriptResult);
-				SAFE_DELETE(pOneSubscript);
 				return false;
 			}
-			Add(pSubscriptResult);
+			Add(pSubscriptResultOwner.release());
 
 			// Subscript must be INTEGER or DWORD
 			if ( pSubscriptResult->FindResultTypeValueForDBM()%100!=1
@@ -1473,7 +1467,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			if(pSubscriptResult->GetMathSymbol()!=0 || pSubscriptResult->GetNext())
 			{
 				// Need new math for stack instruction
-				CMathOp* pAddSubscript = new CMathOp;
+				auto pAddSubscript = std::make_unique<CMathOp>();
 				CResultData* pResultFromSubscript = pSubscriptResult->FindResultData();
 				pAddSubscript->SetResult(pResultFromSubscript->m_pStringToken->GetStr(), pResultFromSubscript->m_dwType, pResultFromSubscript->m_dwDataOffset );
 				pAddSubscript->SetResultStruct(NULL);
@@ -1482,7 +1476,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 					pAddSubscript->SetArrayOffsetResult(pResultFromSubscript->m_pAdditionalOffset->GetStr());
 				}
 				pAddSubscript->SetMathSymbol(10002);
-				Add(pAddSubscript);
+				Add(pAddSubscript.release());
 			}
 			else
 			{
@@ -1491,57 +1485,48 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			}
 
 			// Prev subscript (reverse order)
-			SAFE_DELETE(pOneSubscript);
 		}
 
 		// If subscript count is zero, array must use internal index
 		if(dwSubscriptCount==0)
 		{
 			// Extracts internal index and pushes it to stack (similar to passing calculated params to stack)
-			CMathOp* pSubscriptResult = new CMathOp;
+			auto pSubscriptResult = std::make_unique<CMathOp>();
 			pSubscriptResult->SetLineNumber(StatementLineNumber);
 			pSubscriptResult->SetResult(pResultName->GetStr(), 107, 0);
 			pSubscriptResult->SetResultStruct(NULL);
 			pSubscriptResult->SetMathSymbol(10004);
-			Add(pSubscriptResult);
+			Add(pSubscriptResult.release());
 		}
 
 		// Create temp-token to hold final offset
-		CStr* pTempTokenOffset = new CStr("");
+		CStr tempTokenOffsetStorage("");
+		CStr* pTempTokenOffset = &tempTokenOffsetStorage;
 		ProduceNewTempToken(pTempTokenOffset, 7);
 
 		// Array-passed-in-for-offset-calculation
-		CMathOp* pPassArrayForOffsetCalc = new CMathOp;
+		auto pPassArrayForOffsetCalc = std::make_unique<CMathOp>();
 		pPassArrayForOffsetCalc->SetLineNumber(StatementLineNumber);
 		pPassArrayForOffsetCalc->SetResult(pResultName->GetStr(), 107, 0);
 		pPassArrayForOffsetCalc->SetResultStruct(NULL);
 
 		// Math to calculate offset for array
-		CMathOp* pCalculateArrayOffset = new CMathOp;
+		auto pCalculateArrayOffset = std::make_unique<CMathOp>();
 		pCalculateArrayOffset->SetLineNumber(StatementLineNumber);
 		pCalculateArrayOffset->SetResult(pTempTokenOffset->GetStr(), 7, dwSubscriptCount);
 		pCalculateArrayOffset->SetResultStruct(NULL);
 		pCalculateArrayOffset->SetMathSymbol(10003);
-		pCalculateArrayOffset->m_pLeftMathOp.reset(pPassArrayForOffsetCalc);
-		Add(pCalculateArrayOffset);
+		pCalculateArrayOffset->m_pLeftMathOp = std::move(pPassArrayForOffsetCalc);
+		Add(pCalculateArrayOffset.release());
 
 		// Make math for [Array Name, Dynamic Offset and Data Offset]
-		CMathOp* pArrayAccess = new CMathOp;
+		auto pArrayAccess = std::make_unique<CMathOp>();
 		pArrayAccess->SetLineNumber(StatementLineNumber);
 		pArrayAccess->SetResult(pResultName->GetStr(), 100+dwLValueType, dwDataOffset);
 		pArrayAccess->SetResultStruct(pStruct);
 		pArrayAccess->SetArrayOffsetResult(pTempTokenOffset->GetStr());
-		SAFE_DELETE(pTempTokenOffset);
-		Add(pArrayAccess);
-
-		// Free usages
-		SAFE_DELETE(pSubscriptString);
+		Add(pArrayAccess.release());
 	}
-
-	// Clear memory
-	SAFE_DELETE(pName);
-	SAFE_DELETE(pResultName);
-	SAFE_DELETE(pFixedDataOffset);
 
 	// Complete
 	return true;
@@ -1552,14 +1537,13 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 	// Resolve STRUCT and FUNCTIONSTRUCT values to a result
 	bool bIsStructItem=false;
 	bool bIsStructFunction=false;
-	CStr* pString = new CStr(pExpressionValue->GetStr());
+	CStr structValue(pExpressionValue->GetStr());
 
 	// Is it a struct from a userfunction
-	if(pString->CheckChars(0,3,"FS@")==true)
+	if(structValue.CheckChars(0,3,"FS@")==true)
 	{
-		LPSTR pRest = pString->GetRightOfPosition(3);
-		pString->SetText(pRest);
-		SAFE_DELETE(pRest);
+		std::unique_ptr<char[]> pRest(structValue.GetRightOfPosition(3));
+		structValue.SetText(pRest.get());
 		bIsStructItem=true;
 		bIsStructFunction=true;
 	}
@@ -1568,21 +1552,21 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 	if(bIsStructItem)
 	{
 		// Is it a type or field speciier
-		DWORD dwPos = pString->FindFirstChar('@');
+		DWORD dwPos = structValue.FindFirstChar('@');
 		if(dwPos>0)
 		{
 			// Find subtype name
-			LPSTR pSubtypename = pString->GetLeftOfPosition(dwPos);
+			std::unique_ptr<char[]> pSubtypename(structValue.GetLeftOfPosition(dwPos));
 
 			// Determine if field is array
 			DWORD dwArrayType = 0;
-			if(pString->GetChar(dwPos+1)=='&') dwArrayType=1;
-			LPSTR pFieldname = pString->GetRightOfPosition(dwPos+1);
+			if(structValue.GetChar(dwPos+1)=='&') dwArrayType=1;
+			std::unique_ptr<char[]> pFieldname(structValue.GetRightOfPosition(dwPos+1));
 
 			// Use correct L-Value for later resolution to reading/writing
 			DWORD dwLValueType = 0;
 			CStructTable* pStructRef = NULL;
-			CDeclaration* pDec=g_pStructTable->FindDecInType(pSubtypename, pFieldname);
+			CDeclaration* pDec=g_pStructTable->FindDecInType(pSubtypename.get(), pFieldname.get());
 			if(pDec)
 			{
 				// Use Structure To Get LValue Type
@@ -1592,7 +1576,7 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 			else
 			{
 				// Struct not found, so try looking in var table (instantly updated)
-				CVarTable* pVar = g_pVarTable->FindVariable(pSubtypename, pFieldname, dwArrayType);
+				CVarTable* pVar = g_pVarTable->FindVariable(pSubtypename.get(), pFieldname.get(), dwArrayType);
 				if(pVar)
 				{
 					dwLValueType = pVar->GetVarTypeValue();
@@ -1606,25 +1590,17 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 			// Set Result Data
 			SetResult(pExpressionValue->GetStr(), dwLValueType, GetResultDataOffset());
 			SetResultStruct(pStructRef);
-
-			// Free memory used
-			SAFE_DELETE(pSubtypename);
-			SAFE_DELETE(pFieldname);
 		}
 		else
 		{
 			// Type Specifier - Use Size of Type Structure
-			DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pString->GetStr());
-			CStr* pStr = new CStr(1);
-			pStr->SetNumericText(dwTypeSize);
-			SetResult(pStr->GetStr(), 7, 0);
+			DWORD dwTypeSize=g_pStructTable->GetSizeOfType(structValue.GetStr());
+			CStr sizeStr(1);
+			sizeStr.SetNumericText(dwTypeSize);
+			SetResult(sizeStr.GetStr(), 7, 0);
 			SetResultStruct(NULL);
-			SAFE_DELETE(pStr);
 		}
 	}
-
-	// Free temp string
-	SAFE_DELETE(pString);
 
 	// Complete
 	return true;
@@ -1647,9 +1623,8 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 		// Strip expression of @ symbol if prev. added
 		if(pExpressionValue->CheckChar(0, '@'))
 		{
-			LPSTR pStr = pExpressionValue->GetRightOfPosition(1);
-			pExpressionValue->SetText(pStr);
-			SAFE_DELETE(pStr);
+			std::unique_ptr<char[]> pRight(pExpressionValue->GetRightOfPosition(1));
+			pExpressionValue->SetText(pRight.get());
 		}
 
 		// Determine Array Marker from name
@@ -1685,17 +1660,16 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 		if(bVariableIsLocal)
 		{
 			// LOCAL VARIABLE
-			CStr* pLocalVar = new CStr("");
-			pLocalVar->SetText("FS@");
-			pLocalVar->AddText(g_pStatementList->GetUserFunctionName());
-			pLocalVar->AddText("@");
-			pLocalVar->AddText(pExpressionValue);
+			CStr localVar;
+			localVar.SetText("FS@");
+			localVar.AddText(g_pStatementList->GetUserFunctionName());
+			localVar.AddText("@");
+			localVar.AddText(pExpressionValue);
 
 			// Parse function immediate
-			if(DoValue(pLocalVar)==false)
+			if(DoValue(&localVar)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::DoValue'");
-				SAFE_DELETE(pLocalVar);
 				return false;
 			}
 
@@ -1706,15 +1680,16 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			if(pExpressionValue->CheckChar(0,'&')) dwArr=1;
 
 			// Find Type Of Variable
-			LPSTR pTypeName=NULL;
-			if(g_pVarTable->FindTypeOfVariable(pExpressionValue->GetStr(), dwArr, &pTypeName)==false)
+			LPSTR pTypeNameRaw=NULL;
+			if(g_pVarTable->FindTypeOfVariable(pExpressionValue->GetStr(), dwArr, &pTypeNameRaw)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::FindTypeOfVariable'");
 				return false;
 			}
+			std::unique_ptr<char[]> pTypeName(pTypeNameRaw);
 
 			// Amend result for whether local array or not
-			DWORD dwType = g_pVarTable->GetBasicTypeValue(pTypeName);
+			DWORD dwType = g_pVarTable->GetBasicTypeValue(pTypeName.get());
 			if(dwArr==1) dwType+=100;
 
 			// is variable 'indirect' specified by * symbol
@@ -1726,11 +1701,7 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 
 			// finally set result
 			SetResultType(dwType);
-			SetResultStruct(g_pVarTable->GetStruct(pTypeName));
-
-			// Free usages
-			SAFE_DELETE(pTypeName);
-			SAFE_DELETE(pLocalVar);
+			SetResultStruct(g_pVarTable->GetStruct(pTypeName.get()));
 		}
 		else
 		{
@@ -1739,24 +1710,21 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			if(pExpressionValue->CheckChar(0,'&')) dwArr=1;
 
 			// Find Type Of Variable
-			LPSTR pTypeName=NULL;
-			if(g_pVarTable->FindTypeOfVariable(pExpressionValue->GetStr(), dwArr, &pTypeName)==false)
+			LPSTR pTypeNameRaw=NULL;
+			if(g_pVarTable->FindTypeOfVariable(pExpressionValue->GetStr(), dwArr, &pTypeNameRaw)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::FindTypeOfVariable'");
 				return false;
 			}
+			std::unique_ptr<char[]> pTypeName(pTypeNameRaw);
 
 			// Create result (array or not)
-			CStr* pStr = new CStr("@");
-			pStr->AddText(pExpressionValue);
-			DWORD dwType = g_pVarTable->GetBasicTypeValue(pTypeName);
+			CStr str("@");
+			str.AddText(pExpressionValue);
+			DWORD dwType = g_pVarTable->GetBasicTypeValue(pTypeName.get());
 			if(dwArr==1) dwType+=100;
-			SetResult(pStr->GetStr(), dwType, 0);
-			SetResultStruct(g_pVarTable->GetStruct(pTypeName));
-
-			// Free usages
-			SAFE_DELETE(pTypeName);
-			SAFE_DELETE(pStr);
+			SetResult(str.GetStr(), dwType, 0);
+			SetResultStruct(g_pVarTable->GetStruct(pTypeName.get()));
 		}
 
 		// If pointer to this var, make direct ref indirect
@@ -1777,10 +1745,9 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 bool CMathOp::DoValueLabel(CStr* pExpressionValue)
 {
 	// Assign Value as Label
-	CStr* pStr = new CStr(pExpressionValue->GetStr());
-	SetResult(pStr->GetStr(), 10, 0);
+	CStr str(pExpressionValue->GetStr());
+	SetResult(str.GetStr(), 10, 0);
 	SetResultStruct(NULL);
-	SAFE_DELETE(pStr);
 
 	// Complete
 	return true;
@@ -1789,16 +1756,16 @@ bool CMathOp::DoValueLabel(CStr* pExpressionValue)
 bool CMathOp::DoValueLiteral(CStr* pExpressionValue, DWORD dwTypeValue)
 {
 	// Assign Value as Literal
-	CStr* pStr = new CStr(pExpressionValue->GetStr());
+	CStr str(pExpressionValue->GetStr());
 
 	// leeadd - handle scientific notation
-	if ( pStr->IsSciNot() ) { pStr->ResolveSciNot(); dwTypeValue=8; }
+	if ( str.IsSciNot() ) { str.ResolveSciNot(); dwTypeValue=8; }
 
 	// Ensure literal has no leading zero (hex and oct and bin are type=7)
 	if ( dwTypeValue!=7 && dwTypeValue!=3 )
 	{
 		// non DWORD types can remove the leading zeros
-		LPSTR pString = pStr->GetStr();
+		LPSTR pString = str.GetStr();
 		DWORD dwLen = strlen(pString);
 		if ( pString[0]=='0' )
 		{
@@ -1811,7 +1778,7 @@ bool CMathOp::DoValueLiteral(CStr* pExpressionValue, DWORD dwTypeValue)
 					if ( pString[c-1]=='0' )
 					{
 						if ( c>0 && pString[c]=='.' ) c-=1;
-						pStr->SetText ( pString+c );
+						str.SetText ( pString+c );
 						break;
 					}
 				}
@@ -1820,9 +1787,8 @@ bool CMathOp::DoValueLiteral(CStr* pExpressionValue, DWORD dwTypeValue)
 	}
 
 	// Confirm data result
-	SetResult(pStr->GetStr(), dwTypeValue, 0);
+	SetResult(str.GetStr(), dwTypeValue, 0);
 	SetResultStruct(NULL);
-	SAFE_DELETE(pStr);
 
 	// Complete
 	return true;
@@ -2052,9 +2018,9 @@ bool CMathOp::CheckForSymbol(CStr* pString, DWORD dwSP, DWORD *dwMathType, DWORD
 bool CMathOp::ProduceNewTempToken(CStr* pTempVarToken, DWORD dwTypeMode)
 {
 	// Create temp name
-	CStr* pTempName = new CStr("$");
-	pTempName->AddChar(g_pVarTable->GetCharOfType(dwTypeMode));
-	pTempName->AddNumericText(g_pStatementList->GetTempVarIndex());
+	CStr tempName("$");
+	tempName.AddChar(g_pVarTable->GetCharOfType(dwTypeMode));
+	tempName.AddNumericText(g_pStatementList->GetTempVarIndex());
 
 	// Produce temp var based on parse location
 	CDeclaration* pGlobalDecChain = g_pStatementList->GetUserFunctionDecChain();
@@ -2064,29 +2030,24 @@ bool CMathOp::ProduceNewTempToken(CStr* pTempVarToken, DWORD dwTypeMode)
 		pTempVarToken->SetText("FS@");
 		pTempVarToken->AddText(g_pStatementList->GetUserFunctionName());
 		pTempVarToken->AddText("@");
-		pTempVarToken->AddText(pTempName);
+		pTempVarToken->AddText(&tempName);
 	}
 	else
 	{
 		// Main program temp var
 		pTempVarToken->SetText("@");
-		pTempVarToken->AddText(pTempName);
+		pTempVarToken->AddText(&tempName);
 	}
 	g_pStatementList->IncTempVarIndex();
 
 	// Any temporary variables created must be added to variable table space
-	LPSTR pDecName = pTempName->GetStr();
-	LPSTR pDecType = g_pVarTable->MakeTypeNameOfTypeValue(dwTypeMode);
-	if(g_pVarTable->AddVariable(pDecName, pDecType, 0, 0, true, NULL, false)==false)
+	LPSTR pDecName = tempName.GetStr();
+	std::unique_ptr<char[]> pDecType(g_pVarTable->MakeTypeNameOfTypeValue(dwTypeMode));
+	if(g_pVarTable->AddVariable(pDecName, pDecType.get(), 0, 0, true, NULL, false)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'Produce NewTempToken::AddVariable'");
-		SAFE_DELETE(pDecType);
 		return false;
 	}
-
-	// Free usages
-	SAFE_DELETE(pDecType);
-	SAFE_DELETE(pTempName);
 
 	return true;
 }
@@ -2154,13 +2115,10 @@ bool CMathOp::IsFunction(CStr* pExpressionValue)
 	if(IsItLabelFollowedByBracket(pExpressionValue, &dwLabelLength))
 	{
 		// If function exists
-		CStr* pPossibleName = new CStr(pExpressionValue->GetStr());
-		pPossibleName->Shorten(dwLabelLength);
-		if(SearchForFunction(pPossibleName))
+		CStr possibleName(pExpressionValue->GetStr());
+		possibleName.Shorten(dwLabelLength);
+		if(SearchForFunction(&possibleName))
 			bFound=true;
-
-		// Free usage
-		SAFE_DELETE(pPossibleName);
 	}
 	return bFound;
 }
