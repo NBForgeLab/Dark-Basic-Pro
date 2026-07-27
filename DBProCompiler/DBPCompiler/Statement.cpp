@@ -5128,17 +5128,16 @@ DWORD CStatement::FindToken(LPSTR pPointer, bool bIncrementLineNumber)
 {
 	DWORD dwToken=0;
 
-	// Get Token FileData
-	LPSTR pToken = ProduceNextToken(&pPointer, bIncrementLineNumber, false, false);
+	// Get Token FileData (ProduceNextToken hands back a new char[]; adopt it
+	// with unique_ptr<char[]> so it is released with delete[] - the legacy
+	// scalar SAFE_DELETE was an array-new/scalar-delete mismatch)
+	std::unique_ptr<char[]> pToken(ProduceNextToken(&pPointer, bIncrementLineNumber, false, false));
 
 	// Determine ID from token string
-	dwToken=DetermineToken(pToken);
+	dwToken=DetermineToken(pToken.get());
 
 	// Set Updated Pointer
 	if(dwToken>0) g_pStatementList->SetFileDataPointer(pPointer);
-
-	// Free Token created
-	SAFE_DELETE(pToken);
 
 	return dwToken;
 }
@@ -5147,14 +5146,13 @@ DWORD CStatement::PeekToken(LPSTR pPointer)
 {
 	DWORD dwToken=0;
 
-	// Get Token FileData
-	LPSTR pToken = ProduceNextToken(&pPointer, false, false, false);
+	// Get Token FileData (ProduceNextToken hands back a new char[]; adopt it
+	// with unique_ptr<char[]> so it is released with delete[] - the legacy
+	// scalar SAFE_DELETE was an array-new/scalar-delete mismatch)
+	std::unique_ptr<char[]> pToken(ProduceNextToken(&pPointer, false, false, false));
 
 	// Determine ID from token string
-	dwToken=DetermineToken(pToken);
-
-	// Free Token created
-	SAFE_DELETE(pToken);
+	dwToken=DetermineToken(pToken.get());
 
 	return dwToken;
 }
