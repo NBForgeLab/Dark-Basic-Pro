@@ -2246,8 +2246,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	// This is INSTRUCTION Type 11
 	DWORD dwStatementType=11;
 
-	// Parameter Chain
-	CParameter* pFirstParameter = NULL;
+	// Parameter Chain (RAII: owned until handed to the instruction)
+	std::unique_ptr<CParameter> pFirstParameter;
 	std::unique_ptr<CStr> pFullLabelName;
 
 	// Get Details of instruction
@@ -2269,8 +2269,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		if(DoExpressionList(&pReturnParameter,&bMoreParams)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoInstruction::Do ExpressionList'");
-			SAFE_DELETE(pReturnParameter);
-			SAFE_DELETE(pFirstParameter);
+			delete pReturnParameter;
 			return false;
 		}
 
@@ -2282,7 +2281,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 			// Add Param to Parameter Chain
 			if(pFirstParameter==NULL)
-				pFirstParameter=pReturnParameter;
+				pFirstParameter.reset(pReturnParameter);
 			else
 				pFirstParameter->Add(pReturnParameter);
 		}
@@ -2301,7 +2300,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// just too many parameters for this instruction
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+29, "=");
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 
@@ -2311,7 +2309,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		if(pLValue==NULL)
 		{
 			g_pErrorReport->AddErrorString("Failed to DoInstruction::'pLValue==NULL'");
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 
@@ -2325,7 +2322,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		if(dwLValueTypeValue==0)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+28);
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 
@@ -2370,7 +2366,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// Not implemented yet!
 			g_pErrorReport->AddErrorString("Failed to DoInstruction::'dwUseNewInstruction==0'");
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 
@@ -2380,7 +2375,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// Not implemented yet!
 			g_pErrorReport->AddErrorString("Failed to DoInstruction::'pRef==NULL'");
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 		dwValidInstructionToUse=dwInstructionValue;
@@ -2389,7 +2383,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		if(pFirstParameter->GetNext()==NULL)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+42);
-			SAFE_DELETE(pFirstParameter);
 			return false;
 		}
 
@@ -2398,8 +2391,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// same-flag - leefix - 170403 - new way to check for type names ( lee, lee.fred lee(5), lee(5).fred, etc)
 			bool bTypesSame=false;
-			CStr* pLocalLeftTypeName = new CStr("");
-			CStr* pLocalRightTypeName = new CStr("");
 			CStr* pLeftTypeName = NULL;
 			CStr* pRightTypeName = NULL;
 
@@ -2429,32 +2420,24 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 				{
 					// UDT assigns have an extra parameter to store type size
 					DWORD dwSize = g_pStructTable->GetSizeOfType(pLeftTypeName->GetStr());
-					CMathOp* pSizeMathOp = new CMathOp;
-					CStr* pSizeString = new CStr("");
-					pSizeString->SetNumericText(dwSize);
-					pSizeMathOp->SetResult(pSizeString->GetStr(), 7, 0);
-					SAFE_DELETE(pSizeString);
+					std::unique_ptr<CMathOp> pSizeMathOp(new CMathOp);
+					CStr sizeString("");
+					sizeString.SetNumericText(dwSize);
+					pSizeMathOp->SetResult(sizeString.GetStr(), 7, 0);
 
-					// Copy temp var into input-param (cast maybe required)
+					// Copy temp var into input-param (chain owns param, param owns mathop)
 					CParameter* pSizeParam = new CParameter;
-					pSizeParam->SetMathItem(pSizeMathOp);
+					pSizeParam->SetMathItem(pSizeMathOp.release());
 					pFirstParameter->Add(pSizeParam);
 
 					// Error if not same
 					if(bTypesSame==false)
 					{
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+47);
-						SAFE_DELETE(pFirstParameter);
-						SAFE_DELETE(pLocalLeftTypeName);
-						SAFE_DELETE(pLocalRightTypeName);
 						return false;
 					}
 				}
 			}
-
-			// Free usages
-			SAFE_DELETE(pLocalLeftTypeName);
-			SAFE_DELETE(pLocalRightTypeName);
 		}
 
 		// If Assign instruction uses indirect(*), no casting!
@@ -2467,7 +2450,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	else
 	{
 		// Scan Each Matching Instruction and find match with parameters used, else error
-		if(FindCorrectInstruction(&pRef, pFirstParameter, dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwValidInstructionToUse, &bOneParamPerRepeatedInstruction)==false)
+		if(FindCorrectInstruction(&pRef, pFirstParameter.get(), dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwValidInstructionToUse, &bOneParamPerRepeatedInstruction)==false)
 		{
 			dwValidInstructionToUse=0;
 			DB3_CRASH();
@@ -2512,7 +2495,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+42);
 		}
 
-		SAFE_DELETE(pFirstParameter);
 		return false;
 	}
 
@@ -2524,19 +2506,19 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			if(pFirstParameter)
 			{
-				// Get label name
-				CStr* pTemp = new CStr(pFirstParameter->GetMathItem()->GetResultStringToken()->GetStr());
+				// Get label name (stack CStr: RAII on every exit path)
+				CStr labelName(pFirstParameter->GetMathItem()->GetResultStringToken()->GetStr());
 
 				// LEEFIX - 141102 - Ensure any localisation of label is stripped out
-				if(pTemp->CheckChars(0, 3, "FS@"))
+				if(labelName.CheckChars(0, 3, "FS@"))
 				{
 					// Strip out FS premarker
-					LPSTR lpStr = pTemp->GetStr();
+					LPSTR lpStr = labelName.GetStr();
 					for(DWORD i=strlen(lpStr); i>0; i--)
 					{
 						if(lpStr[i]=='@')
 						{
-							pTemp->SetText(lpStr+i+1);
+							labelName.SetText(lpStr+i+1);
 							break;
 						}
 					}
@@ -2544,8 +2526,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 				// Set param with full label string
 				pFirstParameter->GetMathItem()->GetResultStringToken()->SetText("$dabel ");
-				pFirstParameter->GetMathItem()->GetResultStringToken()->AddText(pTemp);
-				SAFE_DELETE(pTemp);
+				pFirstParameter->GetMathItem()->GetResultStringToken()->AddText(&labelName);
 			}
 		}
 	}
@@ -2559,8 +2540,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	}
 
 	// If instruction is not typeA seperated, check casting
-	CStr* pReturnParameterToken=NULL;
-	CStatement* pInputAsOutputAssignment = NULL;
+	std::unique_ptr<CStr> pReturnParameterToken;
+	std::unique_ptr<CStatement> pInputAsOutputAssignment;
 	if(pRef && bOneParamPerRepeatedInstruction==false)
 	{
 		if(pFirstParameter && bMustNotCastIntoAssignment==false)
@@ -2569,7 +2550,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 			if(pFirstParameter->CastAllParametersToInstruction(pRef)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoInstruction::CastAllParametersToInstruction'");
-				SAFE_DELETE(pFirstParameter);
 				return false;
 			}
 		}
@@ -2628,8 +2608,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	}
 
 	// Create instructions
-	CParameter* pUseParameter=pFirstParameter;
-	CParameter* pCurrentParameter=pFirstParameter;
+	CParameter* pUseParameter=pFirstParameter.get();
+	CParameter* pCurrentParameter=pFirstParameter.get();
 	while(iMultipleInstructions)
 	{
 		// During Last Instruction in multi-instruction, restore if concat used
@@ -2639,28 +2619,27 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 			dwResumeNonConcatInstruction=0;
 		}
 
-		// Create Object
+		// Create Object (RAII: owned until handed to TheObject)
 		DWORD dwCorrectInstructionValue=dwValidInstructionValue;
-		CParseInstruction *pInstruction = new CParseInstruction();
+		std::unique_ptr<CParseInstruction> pInstruction(new CParseInstruction());
 
 		// Determine parameter to use
+		std::unique_ptr<CParameter> pNewTempParam;
 		if(bOneParamPerRepeatedInstruction==true)
 		{
 			// Create param from one of the chain params
-			CParameter* pNewTempParam = new CParameter;
+			pNewTempParam.reset(new CParameter);
 			if ( pCurrentParameter )
 			{
 				pNewTempParam->SetMathItem(pCurrentParameter->ReleaseMathItem());
-				pUseParameter=pNewTempParam;
+				pUseParameter=pNewTempParam.get();
 			}
 
 			// Determine the correct instruction for the param string submitted
 			DWORD dwValidParamMaxToUse=0;
-			if(FindCorrectInstruction(&pRef, pNewTempParam, dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwCorrectInstructionValue, NULL)==false)
+			if(FindCorrectInstruction(&pRef, pNewTempParam.get(), dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwCorrectInstructionValue, NULL)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoInstruction::FindCorrectInstruction'");
-				SAFE_DELETE(pNewTempParam);
-				SAFE_DELETE(pFirstParameter);
 				return false;
 			}
 
@@ -2679,39 +2658,33 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 					// String or same-type result does not need casting
 // LEEFIX - 121002 - Sometimes arrays are used as params, and have a deep nest
 //					pReturnParameterToken = new CStr(pUseParameter->GetMathItem()->GetResultStringToken()->GetStr());
-					pReturnParameterToken = new CStr(pUseParameter->GetMathItem()->FindResultStringTokenForDBM()->GetStr());
+					pReturnParameterToken = std::make_unique<CStr>(pUseParameter->GetMathItem()->FindResultStringTokenForDBM()->GetStr());
 				}
 				else
 				{
 					// Return into temp var of function return type
-					pReturnParameterToken = new CStr("");
+					pReturnParameterToken = std::make_unique<CStr>((LPSTR)"");
 					CStr TempVarToken(1);
 					pUseParameter->GetMathItem()->ProduceNewTempToken(&TempVarToken, dwSourceTypeValue);
 					pReturnParameterToken->SetText("");
 					pReturnParameterToken->AddText(&TempVarToken);
 
-					// Create Math Op to hold source variable
-					CMathOp* pMathOp = new CMathOp;
-					CStr* pSourceString = new CStr(pReturnParameterToken->GetStr());
-					pMathOp->SetResult(pSourceString->GetStr(), dwSourceTypeValue, 0);
-					SAFE_DELETE(pSourceString);
+					// Create Math Op to hold source variable (stack CStr: RAII)
+					std::unique_ptr<CMathOp> pMathOpOwner(new CMathOp);
+					CStr sourceString(pReturnParameterToken->GetStr());
+					pMathOpOwner->SetResult(sourceString.GetStr(), dwSourceTypeValue, 0);
 
 					// leefix-050803-I would assume any cast would never to be an array (as there are no temp arrays)
 					if ( dwRequiredTypeValue>100 && dwRequiredTypeValue<200 )
 						dwRequiredTypeValue-=100;
 
 					// Copy temp var into input-param (cast maybe required)
-					pInputAsOutputAssignment = new CStatement;
-					CParameter* pInputAsOutputParam = new CParameter;
-					std::unique_ptr<CMathOp> pMathOpOwner(pMathOp);
+					pInputAsOutputAssignment.reset(new CStatement);
+					std::unique_ptr<CParameter> pInputAsOutputParam(new CParameter);
 					CMathOp* pCastCaller = pMathOpOwner.get();
 					if(pCastCaller->DoCastOnMathOp(pMathOpOwner, dwRequiredTypeValue)==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'DoInstruction::DoCastOnMathOp'");
-						SAFE_DELETE(pReturnParameterToken);
-						SAFE_DELETE(pInputAsOutputParam);
-						SAFE_DELETE(pInputAsOutputAssignment);
-						SAFE_DELETE(pFirstParameter);
 						return false;
 					}
 
@@ -2723,8 +2696,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 //					pMathOp->GetResultStringToken()->SetText(pFinalVar->GetStr());
 					CResultData* pFinalVar = pUseParameter->GetMathItem()->FindResultDataForDBM();
 					if ( pFinalVar ) pMathOpOwner->SetResultData(*pFinalVar);
-					pInputAsOutputAssignment->SetParameter(pInputAsOutputParam);
 					pInputAsOutputParam->SetMathItem(pMathOpOwner.release());
+					pInputAsOutputAssignment->SetParameter(pInputAsOutputParam.release());
 				}
 			}
 			else
@@ -2734,8 +2707,6 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 					if(pUseParameter->CastAllParametersToInstruction(pRef)==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'DoInstruction::CastAllParametersToInstruction'");
-						SAFE_DELETE(pNewTempParam);
-						SAFE_DELETE(pFirstParameter);
 						return false;
 					}
 				}
@@ -2748,7 +2719,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// Not a multi-instruction command, so normal..
 			dwCorrectInstructionValue=dwValidInstructionValue;
-			pUseParameter=pFirstParameter;
+			pUseParameter=pFirstParameter.get();
 
 			// If instruction shows a return type (and is not multi-instruction like INPUT, READ), setup a return param string
 			if(pRef->GetReturnParam()>=11 && pRef->GetReturnParam()<=19)
@@ -2772,37 +2743,34 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		pInstruction->SetType(dwInstructionType);
 		pInstruction->SetValue(dwCorrectInstructionValue);
 		pInstruction->SetParamMax(dwValidParamMax);
-		pInstruction->SetParameter(pUseParameter);
+		// SetParameter owns: single-shot params hand over the per-iteration temp,
+		// otherwise the whole chain transfers to the instruction
+		if(bOneParamPerRepeatedInstruction==true)
+			pInstruction->SetParameter(pNewTempParam.release());
+		else
+			pInstruction->SetParameter(pFirstParameter.release());
 		pInstruction->SetLineNumber(StatementLineNumber);
 		pInstruction->SetInstructionRef(pRef);
-		pInstruction->SetReturnParameter(pReturnParameterToken);
+		// SetReturnParameter owns; release nulls the owner so repeated loop
+		// iterations hand over NULL instead of double-owning the same CStr
+		pInstruction->SetReturnParameter(pReturnParameterToken.release());
 		// SetLabelParam owns the CStr (unique_ptr member); release exactly once -
 		// repeated loop iterations hand over NULL instead of double-owning
 		pInstruction->SetLabelParam(pFullLabelName.release());
 
 		// Add The Object To This Statement
 		CStatement *TheObject = new CStatement();
-		TheObject->SetObject(pInstruction);
+		TheObject->SetObject(pInstruction.release());
 		TheObject->m_pParameters = NULL;
 		TheObject->SetLineAndCharPos(StatementLineNumber);
 		this->Add(TheObject);
 
 		// Add Optional Result Assignment (for instructions whole input params where output (input a))
 		if(pInputAsOutputAssignment)
-		{
-			this->Add(pInputAsOutputAssignment);
-			pInputAsOutputAssignment=NULL;
-		}
+			this->Add(pInputAsOutputAssignment.release());
 
 		// Done one more
 		iMultipleInstructions--;
-	}
-
-	// Free temp allocations
-	if(bOneParamPerRepeatedInstruction==true)
-	{
-		// As we used locally created single params
-		SAFE_DELETE(pFirstParameter);
 	}
 
 	// Complete
