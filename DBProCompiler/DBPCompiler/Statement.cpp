@@ -2923,31 +2923,24 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 
 bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR pValue)
 {
-	// Create Object
-	CParseInstruction *pInstruction = new CParseInstruction();
+	// Create Object (RAII: owned until handed to TheObject)
+	std::unique_ptr<CParseInstruction> pInstruction(new CParseInstruction());
 
-	// Parameter Chain
-	CParameter* pFirstParameter = NULL;
-
-	// Create String for array name
-	CStr* pStr = new CStr("&");
-	pStr->AddText(pVarName);
+	// Create String for array name (stack CStr: RAII on every exit path)
+	CStr arrName("&");
+	arrName.AddText(pVarName);
 
 	// Create Parameter Object to hold Array Name
-	pFirstParameter = new CParameter;
-	if(DoExpression(pStr, pFirstParameter)==false)
+	std::unique_ptr<CParameter> pFirstParameter(new CParameter);
+	if(DoExpression(&arrName, pFirstParameter.get())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression'");
-		SAFE_DELETE(pFirstParameter);
-		SAFE_DELETE(pInstruction);
-		SAFE_DELETE(pStr);
 		return false;
 	}
 
-	// Clear D1=D9 parameter ptrs
-	CParameter* pSizeParameter[10];
+	// D1-D9 parameter owners (RAII: freed automatically on all paths)
+	std::unique_ptr<CParameter> pSizeParameter[10];
 	DWORD d = 0;
-	for(d=0; d<=9; d++) pSizeParameter[d]=NULL;
 
 	// lee - 150206 - u60 - brackets in array-based-subscript causes wrong comma to be picked up
 	int iBracketCount = 0;
@@ -2971,41 +2964,26 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 				{
 					// Too many dimensions
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+40);
-					SAFE_DELETE(pInstruction);
-					SAFE_DELETE(pStr);
-					SAFE_DELETE(pFirstParameter);
-					for(DWORD r=0; r<=9; r++) SAFE_DELETE(pSizeParameter[r]);
 					return false;
 				}
 
-				// Get dimension size entry
+				// Get dimension size entry (unique_ptr owns the new[] buffer)
 				LPSTR pPtr = pValueStr + d;
 				DWORD dwLength = pPtr - pLastNum;
-				LPSTR pNum = new char[dwLength+1];
-				CStr* pNumStr = new CStr("");
-				memcpy(pNum, pLastNum, dwLength);
+				std::unique_ptr<char[]> pNum(new char[dwLength+1]);
+				memcpy(pNum.get(), pLastNum, dwLength);
 				pNum[dwLength]=0;
-				pNumStr->SetText(pNum);
-				SAFE_DELETE(pNum);
+				CStr numStr(pNum.get());
 
 				// Parse param string as ARRAY SIZE for this dimension
-				CParameter* pSizeParameterOne = new CParameter;
-				if(DoExpression(pNumStr, pSizeParameterOne)==false)
+				std::unique_ptr<CParameter> pSizeParameterOne(new CParameter);
+				if(DoExpression(&numStr, pSizeParameterOne.get())==false)
 				{
 					g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression'");
-					SAFE_DELETE(pInstruction);
-					SAFE_DELETE(pStr);
-					SAFE_DELETE(pFirstParameter);
-					SAFE_DELETE(pNumStr);
-					SAFE_DELETE(pSizeParameterOne);
-					for(DWORD r=0; r<=9; r++) SAFE_DELETE(pSizeParameter[r]);
 					return false;
 				}
-				pSizeParameter[dwSizeIndex] = pSizeParameterOne;
+				pSizeParameter[dwSizeIndex] = std::move(pSizeParameterOne);
 				dwSizeIndex++;
-
-				// Free and next
-				SAFE_DELETE(pNumStr);
 				pLastNum=pPtr+1;
 			}
 		}
@@ -3014,39 +2992,29 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 	// Rest must be zero is param form (for DIM input)
 	while(dwSizeIndex<9)
 	{
-		CStr* pNumStr = new CStr("0");
-		CParameter* pSizeParameterOne = new CParameter;
-		if(DoExpression(pNumStr, pSizeParameterOne)==false)
+		CStr zeroStr("0");
+		std::unique_ptr<CParameter> pSizeParameterOne(new CParameter);
+		if(DoExpression(&zeroStr, pSizeParameterOne.get())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression2'");
-			SAFE_DELETE(pInstruction);
-			SAFE_DELETE(pStr);
-			SAFE_DELETE(pFirstParameter);
-			SAFE_DELETE(pNumStr);
-			SAFE_DELETE(pSizeParameterOne);
-			for(DWORD r=0; r<=9; r++) SAFE_DELETE(pSizeParameter[r]);
 			return false;
 		}
-		SAFE_DELETE(pNumStr);
-		pSizeParameter[dwSizeIndex] = pSizeParameterOne;
+		pSizeParameter[dwSizeIndex] = std::move(pSizeParameterOne);
 		dwSizeIndex++;
 	}
 
-	// Find out type of array element
+	// Find out type of array element (FindTypeOfVariable returns a new[] buffer)
 	DWORD dwArrType=1;
-	LPSTR pVarType=NULL;
-	g_pVarTable->FindTypeOfVariable(pStr->GetStr(),dwArrType,&pVarType);
-	DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pVarType);
+	LPSTR pVarTypeRaw=NULL;
+	g_pVarTable->FindTypeOfVariable(arrName.GetStr(),dwArrType,&pVarTypeRaw);
+	std::unique_ptr<char[]> pVarType(pVarTypeRaw);
+	DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pVarType.get());
 
 	// LEEFIX - 151101 - Can produce an error if type does not exist
-	CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pVarType);
+	CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pVarType.get());
 	if(pStruct==NULL)
 	{
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+35, pVarType);
-		SAFE_DELETE(pInstruction);
-		SAFE_DELETE(pStr);
-		SAFE_DELETE(pFirstParameter);
-		for(DWORD r=0; r<=9; r++) SAFE_DELETE(pSizeParameter[r]);
+		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+35, pVarType.get());
 		return false;
 	}
 	DWORD dwTypeValue=pStruct->GetTypeValue();
@@ -3070,7 +3038,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 		else
 		{
 			// was just 9, but now reflects the user type used
-			int iTypeIndexInStructTable = g_pStructTable->FindIndex(pVarType);
+			int iTypeIndexInStructTable = g_pStructTable->FindIndex(pVarType.get());
 			if ( iTypeIndexInStructTable <= 4095 )
 				dwTypeSize+=iTypeIndexInStructTable; // holds up to 4095 type value
 			else
@@ -3078,27 +3046,16 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 		}
 	}
 
-	CStr* pDataTypeSize = new CStr("");
-	pDataTypeSize->AddNumericText(dwTypeSize);
-	SAFE_DELETE(pVarType);
+	CStr dataTypeSize("");
+	dataTypeSize.AddNumericText(dwTypeSize);
 
 	// Parse third param string as TYPE SIZE
-	CParameter* pTypeSizeParameter = new CParameter;
-	if(DoExpression(pDataTypeSize, pTypeSizeParameter)==false)
+	std::unique_ptr<CParameter> pTypeSizeParameter(new CParameter);
+	if(DoExpression(&dataTypeSize, pTypeSizeParameter.get())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression'");
-		SAFE_DELETE(pFirstParameter);
-		SAFE_DELETE(pInstruction);
-		SAFE_DELETE(pStr);
-		SAFE_DELETE(pDataTypeSize);
-		SAFE_DELETE(pTypeSizeParameter);
-		for(DWORD r=0; r<=9; r++) SAFE_DELETE(pSizeParameter[r]);
 		return false;
 	}
-
-	// Free usages
-	SAFE_DELETE(pDataTypeSize);
-	SAFE_DELETE(pStr);
 
 	// Make sure array size is cast to DWORD
 	for(d=0; d<=8; d++)
@@ -3126,13 +3083,13 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 		pTypeSizeParameter->SetMathItem(pValueToCast.release());
 	}
 
-	// Add second param
-	pFirstParameter->Add(pTypeSizeParameter);
+	// Add second param (ownership transfers into the parameter chain)
+	pFirstParameter->Add(pTypeSizeParameter.release());
 
-	// Add D1 to D9 params
+	// Add D1 to D9 params (ownership transfers into the parameter chain)
 	for(d=0; d<=8; d++)
 		if(pSizeParameter[d])
-			pFirstParameter->Add(pSizeParameter[d]);
+			pFirstParameter->Add(pSizeParameter[d].release());
 
 	// Make Sure First Param is DWORD (so actual alloc address goes into array ptr var)
 	pFirstParameter->GetMathItem()->GetResultData()->m_dwType=7;
@@ -3142,12 +3099,12 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_ALLOC));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_ALLOC));
 	pInstruction->SetParamMax(10);
-	pInstruction->SetParameter(pFirstParameter);
+	pInstruction->SetParameter(pFirstParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 
-	// Add The Object To This Statement
+	// Add The Object To This Statement (ownership of pInstruction transfers)
 	CStatement *TheObject = new CStatement();
-	TheObject->SetObject(pInstruction);
+	TheObject->SetObject(pInstruction.release());
 	TheObject->m_pParameters = NULL;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
