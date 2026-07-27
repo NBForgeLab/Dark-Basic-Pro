@@ -3926,23 +3926,14 @@ bool CStatement::DoExpressionListString(CParameter** ppParameter, CStr* pExpress
 
 bool CStatement::DoExpression(CStr* pStr, CParameter* pParameter)
 {
-	CMathOp* pMathOp = new CMathOp;
-	if(pMathOp)
-	{
-		if(pMathOp->DoValue(pStr)==false)
-		{
-			SAFE_DELETE(pMathOp);
-			return false;
-		}
-	}
-	else
-	{
-		// soft fail
+	// Owned locally until parsed; ownership passes to the parameter on success
+	// (the dead null-check on operator new is dropped - it never returns null).
+	std::unique_ptr<CMathOp> pMathOp = std::make_unique<CMathOp>();
+	if(pMathOp->DoValue(pStr)==false)
 		return false;
-	}
 
-	// Place in param obj
-	pParameter->SetMathItem(pMathOp);
+	// Place in param obj (ownership passes to the parameter)
+	pParameter->SetMathItem(pMathOp.release());
 
 	// Complete
 	return true;
