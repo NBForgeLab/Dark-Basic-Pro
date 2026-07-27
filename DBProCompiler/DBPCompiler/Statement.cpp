@@ -3543,8 +3543,10 @@ bool CStatement::DoUserFunctionCall(DWORD StatementLineNumber, DWORD TokenID)
 
 bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 {
-	// Create Object
-	CParseInstruction *pInstruction = new CParseInstruction();
+	// Create Object (owned locally; released to the emitted statement only on
+	// the success path, so every early error return frees it via RAII - the
+	// legacy raw new leaked this instruction on all four error returns)
+	auto pInstruction = std::make_unique<CParseInstruction>();
 
 	// Create Parameter Object
 	bool bMoreParams=false;
@@ -3607,7 +3609,7 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
-	TheObject->SetObject(pInstruction);
+	TheObject->SetObject(pInstruction.release());
 	TheObject->m_pParameters = NULL;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
