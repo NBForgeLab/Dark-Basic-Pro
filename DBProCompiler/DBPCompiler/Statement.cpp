@@ -596,7 +596,9 @@ bool CStatement::DoStatement(DWORD TokenID)
 bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 {
 	// Each time step into LOOP, increment nest count
+	// Scope guard keeps the count balanced on every exit path (success or error)
 	g_pStatementList->m_iNestCount++;
+	DB_SCOPE_GUARD({ g_pStatementList->m_iNestCount--; });
 
 	// This is LOOP Type 1
 	DWORD dwStatementType=1;
@@ -635,17 +637,17 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			this->Add(TheObject);
 		}
 
-		// Each time step out of LOOP, decrement nest count
-		g_pStatementList->m_iNestCount--;
-
-		// complete early
+		// complete early (scope guard decrements nest count)
 		return true;
 	}
 
 	// Prepare Exit Param now (in case of EXIT statement ref)
+	// pEndLabel is owned locally until transferred to the loop object; the global
+	// exit-label reference is restored on every exit path by the scope guard
 	CParameter* pHoldOldLabel = g_pStatementList->GetLatestLoopExitLabel();
-	CParameter* pEndLabel = new CParameter;
-	g_pStatementList->SetLatestLoopExitLabel(pEndLabel);
+	auto pEndLabel = std::make_unique<CParameter>();
+	g_pStatementList->SetLatestLoopExitLabel(pEndLabel.get());
+	DB_SCOPE_GUARD({ g_pStatementList->SetLatestLoopExitLabel(pHoldOldLabel); });
 
 	// Determine Type Of Loop
 	DWORD dwLoopType=0, dwEndToken=0;
@@ -655,11 +657,11 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	if(TokenID==FORTK)		{ dwLoopType=LOOPTYPE_FORNEXT;	dwEndToken=NEXTTK;		}
 
 	// Parse off any trailing parameters of loop starter (WHILE xxxx)
-	CStatement* pSkipInitLabelStatement = NULL;
-	CParameter* pConditionParameter = NULL;
-	CParameter* pForNextInitParameter = NULL;
-	CParameter* pForNextIncParameter = NULL;
-	CParameter* pForNextCheckParameter = NULL;
+	// RAII owners: freed automatically on error paths, released at ownership transfer
+	std::unique_ptr<CParameter> pConditionParameter;
+	std::unique_ptr<CParameter> pForNextInitParameter;
+	std::unique_ptr<CParameter> pForNextIncParameter;
+	std::unique_ptr<CParameter> pForNextCheckParameter;
 	if(TokenID==FORTK) 
 	{
 		// Gather fornext details (stack CStr: RAII on every exit path)
@@ -748,12 +750,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		initStr.AddText("(");
 		initStr.AddText(&stepValue);
 		initStr.AddText(")");
-		pForNextInitParameter = new CParameter;
-		if(DoExpression(&initStr, pForNextInitParameter)==false)
+		pForNextInitParameter = std::make_unique<CParameter>();
+		if(DoExpression(&initStr, pForNextInitParameter.get())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
-			SAFE_DELETE(pForNextInitParameter);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 		CStr* pResult = pForNextInitParameter->GetMathItem()->FindResultStringTokenForDBM();
@@ -771,8 +771,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// Value type must match variable type
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+49);
-			SAFE_DELETE(pForNextInitParameter);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 			
@@ -785,13 +783,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		incStr.AddText("+");
 		incStr.AddText(&stepValue);
 
-		pForNextIncParameter = new CParameter;
-		if(DoExpression(&incStr, pForNextIncParameter)==false)
+		pForNextIncParameter = std::make_unique<CParameter>();
+		if(DoExpression(&incStr, pForNextIncParameter.get())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
-			SAFE_DELETE(pForNextIncParameter);
-			SAFE_DELETE(pForNextInitParameter);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 
@@ -853,14 +848,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			compareStr.AddText(&endValue);
 			compareStr.AddText(")");
 		}
-		pForNextCheckParameter = new CParameter;
-		if(DoExpression(&compareStr, pForNextCheckParameter)==false)
+		pForNextCheckParameter = std::make_unique<CParameter>();
+		if(DoExpression(&compareStr, pForNextCheckParameter.get())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
-			SAFE_DELETE(pForNextCheckParameter);
-			SAFE_DELETE(pForNextIncParameter);
-			SAFE_DELETE(pForNextInitParameter);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 
@@ -877,14 +868,14 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		if(TokenID==WHILETK) 
 		{
-			// Create Parameter Object
+			// Create Parameter Object (adopt allocation immediately so it is never leaked)
 			bool bMoreParams=false;
-			SAFE_DELETE(pConditionParameter);
-			if(DoExpressionList(&pConditionParameter,&bMoreParams)==false)
+			CParameter* pRawCondition = NULL;
+			bool bListOK = DoExpressionList(&pRawCondition,&bMoreParams);
+			pConditionParameter.reset(pRawCondition);
+			if(bListOK==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'WHILETK::Do ExpressionList'");
-				SAFE_DELETE(pConditionParameter);
-				SAFE_DELETE(pEndLabel);
 				return false;
 			}
 			// Not one param, fail
@@ -892,8 +883,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+14);
-				SAFE_DELETE(pConditionParameter);
-				SAFE_DELETE(pEndLabel);
 				return false;
 			}
 		}
@@ -903,11 +892,11 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	DWORD dwTopOfLoopLine = g_pStatementList->GetTokenLineNumber();
 
 	// Create Statement object for Main Loop Object
-	CStatement* TheLoopObject = new CStatement();
+	auto TheLoopObject = std::make_unique<CStatement>();
 	TheLoopObject->SetLineAndCharPos(dwTopOfLoopLine);
 
 	// Create BLOCK Object for nested code
-	CStatement *pLoopBlock = new CStatement();
+	auto pLoopBlock = std::make_unique<CStatement>();
 	pLoopBlock->SetLineAndCharPos(dwTopOfLoopLine);
 
 	// Now Parse Block from File Data
@@ -915,9 +904,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	if(pLoopBlock->DoBlock(dwEndToken,&dwReturnToken)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'pLoopBlock->DoBlock()'");
-		SAFE_DELETE(pConditionParameter);
-		SAFE_DELETE(pLoopBlock);
-		SAFE_DELETE(pEndLabel);
 		return false;
 	}
 
@@ -927,38 +913,33 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	// Parse off any trailing parameters of loop terminator (UNTIL xxxx)
 	if(dwEndToken==UNTILTK) 
 	{
-		// Create Parameter Object
+		// Create Parameter Object (adopt allocation immediately so it is never leaked)
 		bool bMoreParams=false;
-		SAFE_DELETE(pConditionParameter);
-		if(DoExpressionList(&pConditionParameter,&bMoreParams)==false)
+		CParameter* pRawCondition = NULL;
+		bool bListOK = DoExpressionList(&pRawCondition,&bMoreParams);
+		pConditionParameter.reset(pRawCondition);
+		if(bListOK==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'UNTILTK::Do ExpressionList'");
-			SAFE_DELETE(pConditionParameter);
-			SAFE_DELETE(pLoopBlock);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 		// If Not one param, fail
 		if(bMoreParams==true || pConditionParameter==NULL)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+15);
-			SAFE_DELETE(pConditionParameter);
-			SAFE_DELETE(pLoopBlock);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 	}
 	if(dwEndToken==NEXTTK) 
 	{
-		// Parse off variable
+		// Parse off variable (owned locally, always discarded)
 		bool bMoreParams=false;
-		CParameter* pNextVarParameter = NULL;
-		if(DoExpressionList(&pNextVarParameter,&bMoreParams)==false)
+		CParameter* pRawNextVar = NULL;
+		bool bListOK = DoExpressionList(&pRawNextVar,&bMoreParams);
+		std::unique_ptr<CParameter> pNextVarParameter(pRawNextVar);
+		if(bListOK==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'NEXTTK::Do ExpressionList'");
-			SAFE_DELETE(pNextVarParameter);
-			SAFE_DELETE(pLoopBlock);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
 		// If Not one param, fail
@@ -966,32 +947,29 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		if(bMoreParams==true)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+16);
-			SAFE_DELETE(pNextVarParameter);
-			SAFE_DELETE(pLoopBlock);
-			SAFE_DELETE(pEndLabel);
 			return false;
 		}
-		SAFE_DELETE(pNextVarParameter);
 	}
 
 	// Add Empty Statement To Mark LoopMiddle Label
 	if(pForNextInitParameter)
 	{
 		CStatement* pSkipInitLabelStatement = new CStatement;
-		pSkipInitLabelStatement->SetParameter(pForNextInitParameter);
+		pSkipInitLabelStatement->SetParameter(pForNextInitParameter.release());
 		pSkipInitLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pSkipInitLabelStatement);
 	}
 
 	// This is an internal label between fornext init code and inc code
+	// (non-owning alias: points into pLoopBlock/TheLoopObject or the 'this' chain)
 	CStatement* pTopLabelStatement = NULL;
-	if(dwLoopType==LOOPTYPE_DO) pTopLabelStatement = pLoopBlock;
-	if(dwLoopType==LOOPTYPE_WHILE) pTopLabelStatement = TheLoopObject;
-	if(dwLoopType==LOOPTYPE_REPEAT) pTopLabelStatement = pLoopBlock;
+	if(dwLoopType==LOOPTYPE_DO) pTopLabelStatement = pLoopBlock.get();
+	if(dwLoopType==LOOPTYPE_WHILE) pTopLabelStatement = TheLoopObject.get();
+	if(dwLoopType==LOOPTYPE_REPEAT) pTopLabelStatement = pLoopBlock.get();
 	if(dwLoopType==LOOPTYPE_FORNEXT)
 	{
 		pTopLabelStatement = new CStatement;
-		pTopLabelStatement->SetParameter(pForNextIncParameter);
+		pTopLabelStatement->SetParameter(pForNextIncParameter.release());
 		pTopLabelStatement->SetLine(dwTopOfLoopLine);
 		this->Add(pTopLabelStatement);
 	}
@@ -1001,68 +979,49 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	if(!topOfLoopInternalLabel)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' pTopOfLoopInternalLabel");
-		SAFE_DELETE(pTopLabelStatement);
-		SAFE_DELETE(TheLoopObject);
-		SAFE_DELETE(pConditionParameter);
-		SAFE_DELETE(pLoopBlock);
-		SAFE_DELETE(pEndLabel);
 		return false;
 	}
-	CParameter* pStartLabel = new CParameter;
+	auto pStartLabel = std::make_unique<CParameter>();
 	pStartLabel->SetParamAsLabel(*topOfLoopInternalLabel);
 
 	// Create Object
-	CParseLoop *pLoop = new CParseLoop();
+	auto pLoop = std::make_unique<CParseLoop>();
 
-	// Complete Object Data
+	// Complete Object Data (setters take ownership)
 	pLoop->SetType(dwLoopType);
-	pLoop->SetBlock(pLoopBlock);
-	pLoop->SetSLabelParameter(pStartLabel);
-	pLoop->SetConditionParameter(pConditionParameter);
+	pLoop->SetBlock(pLoopBlock.release());
+	pLoop->SetSLabelParameter(pStartLabel.release());
+	pLoop->SetConditionParameter(pConditionParameter.release());
 	pLoop->SetForNextInitParameter(NULL);
 	pLoop->SetForNextIncParameter(NULL);
-	pLoop->SetForNextCheckParameter(pForNextCheckParameter);
+	pLoop->SetForNextCheckParameter(pForNextCheckParameter.release());
 	pLoop->SetStartLineNumber(dwTopOfLoopLine);
 	pLoop->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
 
 	// Create Unique internal END label BOTTOM
-	CStatement* pBlankStatement = new CStatement();
+	auto pBlankStatement = std::make_unique<CStatement>();
 	pBlankStatement->SetLineAndCharPos(dwBottomOfLoopLine);
 	std::optional<std::string> bottomOfLoopInternalLabel = pBlankStatement->AddInternalLabel();
 	if(!bottomOfLoopInternalLabel)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' pBottomOfLoopInternalLabel");
-		SAFE_DELETE(pBlankStatement);
-		SAFE_DELETE(pLoop);
-		SAFE_DELETE(pStartLabel);
-		SAFE_DELETE(pTopLabelStatement);
-		SAFE_DELETE(TheLoopObject);
-		SAFE_DELETE(pConditionParameter);
-		SAFE_DELETE(pLoopBlock);
-		SAFE_DELETE(pEndLabel);
 		return false;
 	}
 
 	// Exit Label prepared at top
 	pEndLabel->SetParamAsLabel(*bottomOfLoopInternalLabel);
-	pLoop->SetELabelParameter(pEndLabel);
+	pLoop->SetELabelParameter(pEndLabel.release());
 
 	// Add The Main Loop Object To Statements
-	TheLoopObject->SetObject(pLoop);
-	this->Add(TheLoopObject);
+	TheLoopObject->SetObject(pLoop.release());
+	this->Add(TheLoopObject.release());
 
 	// Add Empty Statement To Mark LoopEnd Label
 	pBlankStatement->m_pParameters = NULL;
 	pBlankStatement->SetLineAndCharPos(dwBottomOfLoopLine);
-	this->Add(pBlankStatement);
+	this->Add(pBlankStatement.release());
 
-	// Restore old exit loop label reference (for deep nests)
-	g_pStatementList->SetLatestLoopExitLabel(pHoldOldLabel);
-
-	// Each time step out of LOOP, decrement nest count
-	g_pStatementList->m_iNestCount--;
-
-	// complete
+	// Scope guards restore the exit-label reference and rebalance the nest count
 	return true;
 }
 

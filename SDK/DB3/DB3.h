@@ -71,9 +71,9 @@ static_assert(sizeof(sint)==sizeof(void *), "sint != pointer");
 #define DB_CONCAT(x,y) __DB_CONCAT(x,y)
 
 #ifdef __COUNTER__
-# define DB_ANONVAR(x) __DB_CONCAT(x,__COUNTER__)
+# define DB_ANONVAR(x) DB_CONCAT(x,__COUNTER__)
 #else
-# define DB_ANONVAR(x) __DB_CONCAT(x,__LINE__)
+# define DB_ANONVAR(x) DB_CONCAT(x,__LINE__)
 #endif
 
 template<class _Functor>
