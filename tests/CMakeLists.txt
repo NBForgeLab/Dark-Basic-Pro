@@ -26,6 +26,7 @@ add_executable(dbp_tests
     test_filebuilder.cpp
     test_statement_label.cpp
     test_statement_loop.cpp
+    test_statement_jump.cpp
     test_debugger.cpp
     test_statement_object.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"

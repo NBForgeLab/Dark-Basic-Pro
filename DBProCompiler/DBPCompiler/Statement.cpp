@@ -1031,7 +1031,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	DWORD dwStatementType=8;
 
 	// Create main statement now at start of jump declaration
-	CStatement* TheObject = new CStatement();
+	auto TheObject = std::make_unique<CStatement>();
 	g_pStatementList->SetLastStampedCharInDataPosition();
 
 	// Determine Type Of Jump
@@ -1056,29 +1056,29 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		g_pStatementList->SetAllowLabelAsValue(true);
 	}
 
-	// Create Parameter Object
+	// Create Parameter Object (adopt allocation immediately so it is never leaked)
 	bool bMoreParams=false;
-	CParameter* pConditionParameter = NULL;
-	CParameter* pConditionCaseParameter = NULL;
-	CParameter* pConditionLabelParameter = NULL;
-	if(DoExpressionList(&pConditionParameter,&bMoreParams)==false)
+	std::unique_ptr<CParameter> pConditionCaseParameter;
+	std::unique_ptr<CParameter> pConditionLabelParameter;
+	CParameter* pRawCondition = NULL;
+	bool bListOK = DoExpressionList(&pRawCondition,&bMoreParams);
+	std::unique_ptr<CParameter> pConditionParameter(pRawCondition);
+
+	// Only GOTO and GOSUB can use Labels as Values - always switch the mode
+	// back off, even when the expression list failed to parse
+	g_pStatementList->SetAllowLabelAsValue(false);
+
+	if(bListOK==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoJump::Do ExpressionList'");
-		SAFE_DELETE(pConditionParameter);
-		SAFE_DELETE(TheObject);
 		return false;
 	}
-
-	// Only GOTO and GOSUB can use Labels as Values
-	g_pStatementList->SetAllowLabelAsValue(false);
 
 	// If Not one param, fail
 	if(bMoreParams==true || pConditionParameter==NULL)
 	{
 		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+17);
-		SAFE_DELETE(pConditionParameter);
-		SAFE_DELETE(TheObject);
 		return false;
 	}
 
@@ -1096,16 +1096,17 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		}
 	}
 
-	CStatement *pJumpBlockA = NULL;
-	CStatement* pJumpBlockB = NULL;
-	CStatementChain* pJumpBlockChain = NULL;
+	// RAII owners: freed automatically on error paths, released at ownership transfer
+	std::unique_ptr<CStatement> pJumpBlockA;
+	std::unique_ptr<CStatement> pJumpBlockB;
+	std::unique_ptr<CStatementChain> pJumpBlockChain;
 	std::string internalLabelStringA;	// empty = no label (value semantics)
 	std::string internalLabelStringB;	// empty = no label (value semantics)
 	DWORD StatementElseLineNumber=0;
 	if(TokenID==IFTK)
 	{
 		// Create BLOCK Object for A Block
-		pJumpBlockA = new CStatement();
+		pJumpBlockA = std::make_unique<CStatement>();
 
 		// Parse A Block
 		DWORD dwlastToken=0;
@@ -1119,9 +1120,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		if(pJumpBlockA->DoBlock(dwEndToken,&dwlastToken)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'pJumpBlockA->DoBlock'");
-			SAFE_DELETE(pConditionParameter);
-			SAFE_DELETE(pJumpBlockA);
-			SAFE_DELETE(TheObject);
 			return false;
 		}
 
@@ -1134,7 +1132,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				dwEndToken=ENDIFTK;
 
 			// BlockB statement is else marker for jump
-			pJumpBlockB = new CStatement();
+			pJumpBlockB = std::make_unique<CStatement>();
 			pJumpBlockB->SetLineNumber(g_pStatementList->GetLineNumber());
 			pJumpBlockB->SetLineAndCharPos(StatementLineNumber);
 
@@ -1143,10 +1141,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			if(!internalLabelB)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' B");
-				SAFE_DELETE(pConditionParameter);
-				SAFE_DELETE(pJumpBlockA);
-				SAFE_DELETE(pJumpBlockB);
-				SAFE_DELETE(TheObject);
 				return false;
 			}
 			internalLabelStringB = std::move(*internalLabelB);
@@ -1155,10 +1149,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			if(pJumpBlockB->DoBlock(dwEndToken,NULL)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'pJumpBlockB->DoBlock()'");
-				SAFE_DELETE(pConditionParameter);
-				SAFE_DELETE(pJumpBlockA);
-				SAFE_DELETE(pJumpBlockB);
-				SAFE_DELETE(TheObject);
 				return false;
 			}
 		}
@@ -1167,7 +1157,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		// Make label from passed parameter
 		CStr* pParamStr = pConditionParameter->GetMathItem()->GetResultStringToken();
-		CParameter* pJumpToLabel = NULL;
+		std::unique_ptr<CParameter> pJumpToLabel;
 		std::string fullLabel;
 		LPSTR pLabel = NULL;
 		if ( pParamStr )
@@ -1179,12 +1169,12 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			// Construct into full label ($label +)
 			fullLabel = "$label ";
 			fullLabel += pLabel;
-			pJumpToLabel = new CParameter;
+			pJumpToLabel = std::make_unique<CParameter>();
 			pJumpToLabel->SetParamAsLabel(fullLabel);
 			if(g_pLabelTable->FindLabel(fullLabel.data())==NULL)
 			{
 				fullLabel.clear();
-				SAFE_DELETE(pJumpToLabel);
+				pJumpToLabel.reset();
 				pLabel=NULL;
 			}
 		}
@@ -1197,17 +1187,12 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			else
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+18, "?");
 
-			SAFE_DELETE(pConditionParameter);
-			SAFE_DELETE(pJumpBlockA);
-			SAFE_DELETE(pJumpBlockB);
-			SAFE_DELETE(TheObject);
 			return false;
 		}
-		SAFE_DELETE(pConditionParameter);
 
-		// Proceed to use valid label
+		// Proceed to use valid label (replaces the parsed condition parameter)
 		TheObject->SetLineAndCharPos(StatementLineNumber,1);
-		pConditionParameter=pJumpToLabel;
+		pConditionParameter = std::move(pJumpToLabel);
 	}
 	if(TokenID==SELECTTK)
 	{
@@ -1216,8 +1201,8 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		DWORD dwToken=0;
 
 		// Parameter Chains to hold:
-		CParameter* pCaseCondition = NULL;
-		CParameter* pCaseLabel = NULL;
+		std::unique_ptr<CParameter> pCaseCondition;
+		std::unique_ptr<CParameter> pCaseLabel;
 
 		// Create BLOCK Object for Main Case Run
 		TheObject->SetLineAndCharPos(StatementLineNumber,1);
@@ -1262,7 +1247,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				else
 				{
 					// Create a Label for this case block
-					CParameter* pOneCaseLabelParam = NULL;
+					std::unique_ptr<CParameter> pOneCaseLabelParam;
 
 					// Run through all items in CASE statement
 					bool bAtLeastOne=false;
@@ -1270,19 +1255,12 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					while(bMoreParams)
 					{
 						bMoreParams=false;
-						CParameter* pOneCaseParam=NULL;
-						if(DoExpressionList(&pOneCaseParam,&bMoreParams)==false)
+						CParameter* pRawCaseParam=NULL;
+						bool bCaseListOK = DoExpressionList(&pRawCaseParam,&bMoreParams);
+						std::unique_ptr<CParameter> pOneCaseParam(pRawCaseParam);
+						if(bCaseListOK==false)
 						{
 							g_pErrorReport->AddErrorString("Failed to 'DoJump::Case::Do ExpressionList'");
-							SAFE_DELETE(pCaseLabel);
-							SAFE_DELETE(pCaseCondition);
-							SAFE_DELETE(pOneCaseLabelParam);
-							SAFE_DELETE(pOneCaseParam);
-							SAFE_DELETE(pJumpBlockChain);
-							SAFE_DELETE(pConditionParameter);
-							SAFE_DELETE(pJumpBlockA);
-							SAFE_DELETE(pJumpBlockB);
-							SAFE_DELETE(TheObject);
 							return false;
 						}
 
@@ -1299,19 +1277,19 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 							}
 							else
 							{
-								// Add condition to chain
+								// Add condition to chain (chain owns appended nodes)
 								bAtLeastOne=true;
 								if(pCaseCondition==NULL)
-									pCaseCondition=pOneCaseParam;
+									pCaseCondition = std::move(pOneCaseParam);
 								else
-									pCaseCondition->Add(pOneCaseParam);
+									pCaseCondition->Add(pOneCaseParam.release());
 
 								// Add Label for conditional jump
-								CParameter* pAnotherLabel = new CParameter;
+								auto pAnotherLabel = std::make_unique<CParameter>();
 								if(pOneCaseLabelParam==NULL)
-									pOneCaseLabelParam = pAnotherLabel;
+									pOneCaseLabelParam = std::move(pAnotherLabel);
 								else
-									pOneCaseLabelParam->Add(pAnotherLabel);
+									pOneCaseLabelParam->Add(pAnotherLabel.release());
 							}
 						}
 					}
@@ -1321,67 +1299,42 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					{
 						DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+19);
-						SAFE_DELETE(pCaseLabel);
-						SAFE_DELETE(pCaseCondition);
-						SAFE_DELETE(pOneCaseLabelParam);
-						SAFE_DELETE(pJumpBlockChain);
-						SAFE_DELETE(pConditionParameter);
-						SAFE_DELETE(pJumpBlockA);
-						SAFE_DELETE(pJumpBlockB);
-						SAFE_DELETE(TheObject);
 						return false;
 					}
 				
 					// Get Case Code
 					dwEndToken=ENDCASETK;
-					pJumpBlockA = new CStatement();
+					pJumpBlockA = std::make_unique<CStatement>();
 					pJumpBlockA->SetLineAndCharPos(StatementLineNumber);
 					if(pJumpBlockA->DoBlock(dwEndToken,&dwlastToken)==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'pJumpBlockA->DoBlock'");
-						SAFE_DELETE(pCaseLabel);
-						SAFE_DELETE(pCaseCondition);
-						SAFE_DELETE(pOneCaseLabelParam);
-						SAFE_DELETE(pJumpBlockChain);
-						SAFE_DELETE(pConditionParameter);
-						SAFE_DELETE(pJumpBlockA);
-						SAFE_DELETE(pJumpBlockB);
-						SAFE_DELETE(TheObject);
 						return false;
 					}
 
-					if(pJumpBlockA)
-					{
-						CStatementChain* pNewStatements = new CStatementChain;
-						pNewStatements->SetStatementBlock(pJumpBlockA);
-						if(pJumpBlockChain==NULL)
-							pJumpBlockChain=pNewStatements;
-						else
-							pJumpBlockChain->Add(pNewStatements);
-					}
-
 					// Create Unique internal label for endcase markers
+					// (label is added while the block is still owned locally so a
+					// failure can never double-free block and chain)
 					pJumpBlockA->SetLineNumber(g_pStatementList->GetLineNumber());
 					std::optional<std::string> internalLabelMarker = pJumpBlockA->AddInternalLabel();
 					if(!internalLabelMarker)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' pInternalLabelStringMarker");
-						SAFE_DELETE(pCaseLabel);
-						SAFE_DELETE(pCaseCondition);
-						SAFE_DELETE(pOneCaseLabelParam);
-						SAFE_DELETE(pJumpBlockChain);
-						SAFE_DELETE(pConditionParameter);
-						SAFE_DELETE(pJumpBlockA);
-						SAFE_DELETE(pJumpBlockB);
-						SAFE_DELETE(TheObject);
 						return false;
 					}
 
 					// Now property of statement chain!
-					pJumpBlockA=NULL;
+					{
+						CStatementChain* pNewStatements = new CStatementChain;
+						pNewStatements->SetStatementBlock(pJumpBlockA.release());
+						if(pJumpBlockChain==NULL)
+							pJumpBlockChain.reset(pNewStatements);
+						else
+							pJumpBlockChain->Add(pNewStatements);
+					}
 
 					// Fill param labels with actual label name
-					CParameter* pCurrent = pOneCaseLabelParam;
+					CParameter* pCurrent = pOneCaseLabelParam.get();
 					while(pCurrent)
 					{
 						pCurrent->SetParamAsLabel(*internalLabelMarker);
@@ -1390,9 +1343,9 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 
 					// Add chain of labels onto main label chain
 					if(pCaseLabel==NULL)
-						pCaseLabel=pOneCaseLabelParam;
+						pCaseLabel = std::move(pOneCaseLabelParam);
 					else
-						pCaseLabel->Add(pOneCaseLabelParam);
+						pCaseLabel->Add(pOneCaseLabelParam.release());
 
 					// New token after block
 					dwToken=dwlastToken;
@@ -1436,12 +1389,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+20);
-				SAFE_DELETE(pCaseLabel);
-				SAFE_DELETE(pCaseCondition);
-				SAFE_DELETE(pJumpBlockChain);
-				SAFE_DELETE(pConditionParameter);
-				SAFE_DELETE(pJumpBlockA);
-				SAFE_DELETE(TheObject);
 				return false;
 			}
 		}
@@ -1450,18 +1397,11 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		if(bCaseDefaultProcessed==true)
 		{
 			dwEndToken=ENDCASETK;
-			pJumpBlockB = new CStatement();
+			pJumpBlockB = std::make_unique<CStatement>();
 			pJumpBlockB->SetLineAndCharPos(StatementLineNumber);
 			if(pJumpBlockB->DoBlock(dwEndToken, &dwlastToken)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'pJumpBlockB->DoBlock()'");
-				SAFE_DELETE(pCaseLabel);
-				SAFE_DELETE(pCaseCondition);
-				SAFE_DELETE(pJumpBlockChain);
-				SAFE_DELETE(pConditionParameter);
-				SAFE_DELETE(pJumpBlockA);
-				SAFE_DELETE(pJumpBlockB);
-				SAFE_DELETE(TheObject);
 				return false;
 			}
 
@@ -1505,27 +1445,20 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+22);
 			}
-			SAFE_DELETE(pCaseLabel);
-			SAFE_DELETE(pCaseCondition);
-			SAFE_DELETE(pJumpBlockChain);
-			SAFE_DELETE(pConditionParameter);
-			SAFE_DELETE(pJumpBlockA);
-			SAFE_DELETE(pJumpBlockB);
-			SAFE_DELETE(TheObject);
 			return false;
 		}
 
 		// Transfer chains to condition params for actual use
-		pConditionCaseParameter=pCaseCondition;
-		pConditionLabelParameter=pCaseLabel;
+		pConditionCaseParameter = std::move(pCaseCondition);
+		pConditionLabelParameter = std::move(pCaseLabel);
 	}
 
 	// Create Unique internal label for A (end of jumpblocks)
-	CStatement* pBlankStatementForEndMarker = NULL;
+	std::unique_ptr<CStatement> pBlankStatementForEndMarker;
 	if(dwJumpType==JUMPTYPE_IF || dwJumpType==JUMPTYPE_SELECT)
 	{
 		// Create blank statement for jump end marker
-		pBlankStatementForEndMarker = new CStatement;
+		pBlankStatementForEndMarker = std::make_unique<CStatement>();
 		pBlankStatementForEndMarker->SetLineNumber(g_pStatementList->GetLineNumber());
 
 		// Add the label
@@ -1533,42 +1466,36 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		if(!internalLabelA)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'AddInternalLabel' A");
-			SAFE_DELETE(pBlankStatementForEndMarker);
-			SAFE_DELETE(pJumpBlockChain);
-			SAFE_DELETE(pConditionParameter);
-			SAFE_DELETE(pJumpBlockA);
-			SAFE_DELETE(pJumpBlockB);
-			SAFE_DELETE(TheObject);
 			return false;
 		}
 		internalLabelStringA = std::move(*internalLabelA);
 	}
 
 	// Create Object
-	CParseJump *pJump = new CParseJump();
+	auto pJump = std::make_unique<CParseJump>();
 
-	// Complete Object Data
+	// Complete Object Data (setters take ownership)
 	pJump->SetType(dwJumpType);
-	pJump->SetBlockA(pJumpBlockA);
+	pJump->SetBlockA(pJumpBlockA.release());
 	pJump->SetBlockALabel(std::move(internalLabelStringA));
-	pJump->SetBlockB(pJumpBlockB);
+	pJump->SetBlockB(pJumpBlockB.release());
 	pJump->SetBlockBLabel(std::move(internalLabelStringB));
-	pJump->SetBlockChain(pJumpBlockChain);
-	pJump->SetConditionParameter(pConditionParameter);
-	pJump->SetConditionCaseParameter(pConditionCaseParameter);
-	pJump->SetConditionLabelParameter(pConditionLabelParameter);
+	pJump->SetBlockChain(pJumpBlockChain.release());
+	pJump->SetConditionParameter(pConditionParameter.release());
+	pJump->SetConditionCaseParameter(pConditionCaseParameter.release());
+	pJump->SetConditionLabelParameter(pConditionLabelParameter.release());
 	pJump->SetStartLineNumber(StatementLineNumber);
 	pJump->SetMiddleLineNumber(StatementElseLineNumber);
 	pJump->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
 
 	// Add The Object To This Statement
-	TheObject->SetObject(pJump);
-	this->Add(TheObject);
+	TheObject->SetObject(pJump.release());
+	this->Add(TheObject.release());
 
 	// End marker is last
 	if(pBlankStatementForEndMarker)
 	{
-		this->Add(pBlankStatementForEndMarker);
+		this->Add(pBlankStatementForEndMarker.release());
 	}
 
 	return true;
