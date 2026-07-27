@@ -4383,27 +4383,27 @@ LPSTR CStatement::GetStringToEndOfLine(void)
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
 	LPSTR pEndPointer = SeekToCRReadOnly(pPointer)-1;
 
-	// Extract string to end of line
-	CStr* pStringStr = new CStr("");
+	// Extract string to end of line (stack CStr: RAII on every exit path)
+	CStr stringStr("");
 	while(pPointer<pEndPointer)
 	{
-		pStringStr->AddChar(*pPointer);
+		stringStr.AddChar(*pPointer);
 		pPointer++;
 	}
 
 	// Remove redundant spaces
-	pStringStr->EatEdgeSpacesandTabs(NULL);
+	stringStr.EatEdgeSpacesandTabs(NULL);
 
-	// Create string
-	LPSTR pString = new char[pStringStr->Length()+1];
-	strcpy(pString, pStringStr->GetStr());
-	SAFE_DELETE(pStringStr);
+	// Create string (hand a heap char[] back to the caller-owned raw contract;
+	// the caller frees it with delete[] via std::unique_ptr<char[]>)
+	auto pResult = std::make_unique<char[]>(stringStr.Length()+1);
+	strcpy(pResult.get(), stringStr.GetStr());
 
 	// Update pointer to end of line
 	g_pStatementList->SetFileDataPointer(pPointer);
 
 	// return string
-	return pString;
+	return pResult.release();
 }
 
 bool CStatement::SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrValue, bool bMustBeLiteralDim)

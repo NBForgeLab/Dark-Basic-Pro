@@ -70,6 +70,15 @@ TEST_F(StatementDeclarationTest, DoDeclarationCompilesGlobalWithInit) {
     ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
 
+// Characterization: an init value with internal spaces and multiple tokens
+// exercises GetStringToEndOfLine's char-accumulation loop plus its edge-space
+// trimming (which must preserve the internal spaces of the expression) before
+// the captured string is parsed as a parameter/expression list.
+TEST_F(StatementDeclarationTest, DoDeclarationCompilesGlobalWithExpressionInit) {
+    char prog[] = "GLOBAL g AS INTEGER = 1 + 2\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
 // Contract: END inside a TYPE body must fail with a clean diagnostic - this
 // walks the ENDTK error path that hand-frees the token buffer before return.
 TEST_F(StatementDeclarationTest, DoDeclarationFailsCleanlyOnEndInsideType) {
