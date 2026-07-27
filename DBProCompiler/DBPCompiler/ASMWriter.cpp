@@ -1953,12 +1953,13 @@ bool CASMWriter::UpdateStringData(void)
 
 			// Get Data
 			LPSTR pStringData=NULL;
+			CStr noSpeechMarks;
 			if(pStringEntry)
 			{
-				// Ensure no speech marks wrap literal string data
-				CStr* pNoSpeechMarks = new CStr(pStringEntry->GetString()->GetStr());
-				pNoSpeechMarks->EatSpeechMarks();
-				pStringData = pNoSpeechMarks->GetStr();
+				// Ensure no speech marks wrap literal string data (stack-owned, RAII)
+				noSpeechMarks.SetText(pStringEntry->GetString()->GetStr());
+				noSpeechMarks.EatSpeechMarks();
+				pStringData = noSpeechMarks.GetStr();
 			}
 			else
 				pStringData = "???";
@@ -2658,9 +2659,11 @@ void CASMWriter::WriteASMARRtoEAX(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 	DWORD dwCorrectASMCode2=0;
 
 	// Create offset strings
-	CStr* pOffset1Str = new CStr("");
+	CStr offset1Str("");
+	CStr* pOffset1Str = &offset1Str;
 	pOffset1Str->SetNumericText( dwPOffset );
-	CStr* pOffset2Str = new CStr("");
+	CStr offset2Str("");
+	CStr* pOffset2Str = &offset2Str;
 	pOffset2Str->SetNumericText( dwPOffset + 4 );
 
 	// If Array Check Active
@@ -2736,26 +2739,25 @@ void CASMWriter::WriteASMARRtoEAX(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 		// leefix - 300305 - ensure array errors reported immediately
 		WriteASMTaskCoreP2(m_dwLineNumber, ASMTASK_RUNTIMEERRORHOOK, NULL, 0, NULL, 0);
 	}
-
-	// Free offset strings
-	SAFE_DELETE(pOffset1Str);
-	SAFE_DELETE(pOffset2Str);
 }
 
 void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset)
 {
 	DWORD dwCorrectASMCode = 0;
-	CStr* pDoubleStr = NULL;
 	int iOffset = 0;
 	DWORD dwDWORDRep=0;
 	DWORD dwExtraDWORD=0;
-	CStr* pDWORD1Str=NULL;
-	CStr* pDWORD2Str=NULL;
-	CStr* pOffset1Str=NULL;
-	CStr* pOffset2Str=NULL;
-	CStr* pTemp1Str=NULL;
-	CStr* pTemp2Str=NULL;
 	DWORD dwIMMSize=0;
+
+	// Stack-owned formatting temporaries (RAII); non-owning pointers alias them
+	CStr doubleStr, dword1Str, dword2Str, offset1Str, offset2Str, temp1Str, temp2Str;
+	CStr* pDoubleStr = &doubleStr;
+	CStr* pDWORD1Str = &dword1Str;
+	CStr* pDWORD2Str = &dword2Str;
+	CStr* pOffset1Str = &offset1Str;
+	CStr* pOffset2Str = &offset2Str;
+	CStr* pTemp1Str = &temp1Str;
+	CStr* pTemp2Str = &temp2Str;
 
 	switch(dwMode)
 	{
@@ -2763,20 +2765,16 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 
 			dwExtraDWORD=0;
 			dwDWORDRep = pP->GetDWORDRepresentation(dwPType, &dwExtraDWORD);
-			pDWORD1Str = new CStr("");
-			pDWORD2Str = new CStr("");
 			pDWORD1Str->SetDWORDNumericText(dwDWORDRep);
 			pDWORD2Str->SetDWORDNumericText(dwExtraDWORD);
 			switch(dwPType)
 			{
 				case 8:		// IMM to ST08
-							pTemp1Str = new CStr("@$_TEMPA_");
-							pTemp2Str = new CStr("@$_TEMPB_");
+							pTemp1Str->SetText("@$_TEMPA_");
+							pTemp2Str->SetText("@$_TEMPB_");
 							WriteASMLine2IMM(ASM_MOVMEMIMM4, pTemp1Str->GetStr(), pDWORD1Str->GetStr(),2);
 							WriteASMLine2IMM(ASM_MOVMEMIMM4, pTemp2Str->GetStr(), pDWORD2Str->GetStr(),2);
 							WriteASMLine(ASM_MOVST0MEM8, pTemp1Str->GetStr());
-							SAFE_DELETE(pTemp1Str);
-							SAFE_DELETE(pTemp2Str);
 							break;
 
 				case 9:		// IMM to EAX/EDX
@@ -2798,13 +2796,11 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine2IMM(dwCorrectASMCode, NULL, pDWORD1Str->GetStr(), dwIMMSize);
 							break;
 			}
-			SAFE_DELETE(pDWORD1Str);
-			SAFE_DELETE(pDWORD2Str);
 			break;
 			
 		case PMODE_MEM:	// MEM to EAX
 
-			pDoubleStr = new CStr("+");
+			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
@@ -2823,13 +2819,10 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, pP->GetStr());
 							break;
 			}
-			SAFE_DELETE(pDoubleStr);
 			break;
 
 		case PMODE_MEMOFF:	// MEMOFF to EAX
 
-			pOffset1Str = new CStr("");
-			pOffset2Str = new CStr("");
 			pOffset1Str->SetDWORDNumericText(dwPOffset);
 			pOffset2Str->SetDWORDNumericText(dwPOffset+4);
 			WriteASMLine(ASM_MOVECXIMM4, pP->GetStr());
@@ -2850,13 +2843,11 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 							break;
 			}
-			SAFE_DELETE(pOffset1Str);
-			SAFE_DELETE(pOffset2Str);
 			break;
 
 		case PMODE_EBP:	// EBP to EAX
 
-			pDoubleStr = new CStr((pP->GetStr()+2));
+			pDoubleStr->SetText((pP->GetStr()+2));
 			iOffset=(int)pDoubleStr->GetValue();
 			//if(iOffset<0) iOffset+=4;
 			iOffset+=4;//leefix-230603-double must +4!
@@ -2878,14 +2869,12 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));	
 							break;
 			}
-			SAFE_DELETE(pDoubleStr);
 			break;
 
 		case PMODE_EBPOFF:	// EBP-OFFSET to EAX
 
-			pOffset2Str = new CStr((pP->GetStr()+2));
+			pOffset2Str->SetText((pP->GetStr()+2));
 			iOffset=(int)pOffset2Str->GetValue();
-			pOffset1Str = new CStr("");
 			pOffset1Str->SetNumericText( iOffset + dwPOffset );
 			//if(iOffset<0) iOffset+=4;
 			iOffset+=4;//leefix-230603-double must +4!
@@ -2907,8 +2896,6 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());	
 							break;
 			}
-			SAFE_DELETE(pOffset1Str);
-			SAFE_DELETE(pOffset2Str);
 			break;
 
 		case PMODE_MEMARR:	// MEMARR to EAX
@@ -2933,7 +2920,7 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 
 		case PMODE_MEMREL:	// [MEM] to EAX
 
-			pDoubleStr = new CStr("+");
+			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
@@ -2952,7 +2939,6 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
-			SAFE_DELETE(pDoubleStr);
 			break;
 
 		case PMODE_EBPREL:	// [MEM] to EAX (that is, value pointed by EBP+x to EAX)
@@ -2983,9 +2969,11 @@ void CASMWriter::WriteASMEAXtoARR(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 	DWORD dwCorrectASMCode=0;
 
 	// Calculate Offset Strings
-	CStr* pOffset1Str = new CStr("");
+	CStr offset1Str("");
+	CStr* pOffset1Str = &offset1Str;
 	pOffset1Str->SetNumericText( dwPOffset );
-	CStr* pOffset2Str = new CStr("");
+	CStr offset2Str("");
+	CStr* pOffset2Str = &offset2Str;
 	pOffset2Str->SetNumericText( dwPOffset+4 );
 
 	// If Array Check Active
@@ -3055,26 +3043,25 @@ void CASMWriter::WriteASMEAXtoARR(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 		// leefix - 300305 - ensure array errors reported immediately
 		WriteASMTaskCoreP2(m_dwLineNumber, ASMTASK_RUNTIMEERRORHOOK, NULL, 0, NULL, 0);
 	}
-
-	// Free offset strings
-	SAFE_DELETE(pOffset1Str);
-	SAFE_DELETE(pOffset2Str);
 }
 
 void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset)
 {
 	DWORD dwCorrectASMCode=0;
-	CStr* pDoubleStr=NULL;
-	CStr* pOffset1Str=NULL;
-	CStr* pOffset2Str=NULL;
-	CStr* pTemp1Str=NULL;
-	CStr* pTemp2Str=NULL;
 	int iOffset=0;
+
+	// Stack-owned formatting temporaries (RAII); non-owning pointers alias them
+	CStr doubleStr, offset1Str, offset2Str, temp1Str, temp2Str;
+	CStr* pDoubleStr = &doubleStr;
+	CStr* pOffset1Str = &offset1Str;
+	CStr* pOffset2Str = &offset2Str;
+	CStr* pTemp1Str = &temp1Str;
+	CStr* pTemp2Str = &temp2Str;
 
 	switch(dwMode)
 	{
 		case PMODE_MEM:		// EAX to MEM
-			pDoubleStr = new CStr("+");
+			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
@@ -3093,12 +3080,9 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, pP->GetStr());
 							break;
 			}
-			SAFE_DELETE(pDoubleStr);
 			break;
 
 		case PMODE_MEMOFF:	// EAX to MEM-OFFSET
-			pOffset1Str = new CStr("");
-			pOffset2Str = new CStr("");
 			pOffset1Str->SetDWORDNumericText(dwPOffset);
 			pOffset2Str->SetDWORDNumericText(dwPOffset+4);
 			WriteASMLine(ASM_MOVECXIMM4, pP->GetStr());
@@ -3119,13 +3103,11 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 							break;
 			}
-			SAFE_DELETE(pOffset1Str);
-			SAFE_DELETE(pOffset2Str);
 			break;
 
 		case PMODE_EBP:		// EAX to EBP
 
-			pDoubleStr = new CStr((pP->GetStr()+2));
+			pDoubleStr->SetText((pP->GetStr()+2));
 			iOffset=(int)pDoubleStr->GetValue();
 			//if(iOffset<0) iOffset+=4;
 			iOffset+=4;//leefix-230603-double must +4!
@@ -3147,14 +3129,12 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
 							break;
 			}
-			SAFE_DELETE(pDoubleStr);
 			break;
 
 		case PMODE_EBPOFF:	// EAX to EBP-OFFSET
 
-			pOffset2Str = new CStr((pP->GetStr()+2));
+			pOffset2Str->SetText((pP->GetStr()+2));
 			iOffset=(int)pOffset2Str->GetValue();
-			pOffset1Str = new CStr("");
 			pOffset1Str->SetNumericText( iOffset + dwPOffset );
 			//if(iOffset<0) iOffset+=4;
 			iOffset+=4;//leefix-230603-double must +4!
@@ -3176,8 +3156,6 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 							break;
 			}
-			SAFE_DELETE(pOffset1Str);
-			SAFE_DELETE(pOffset2Str);
 			break;
 
 		case PMODE_MEMARR:	// EAX to MEMARR
@@ -3212,15 +3190,13 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 			{
 				case 8:		
 				case 108:	// ST08 to STACK
-							pTemp1Str = new CStr("@$_TEMPA_");
-							pTemp2Str = new CStr("@$_TEMPB_");
+							pTemp1Str->SetText("@$_TEMPA_");
+							pTemp2Str->SetText("@$_TEMPB_");
 							WriteASMLine(ASM_MOVMEMST08, pTemp1Str->GetStr());
 							WriteASMLine(ASM_MOVEAXMEM4, pTemp2Str->GetStr());
 							WriteASMLine(ASM_PUSHEAX, "");
 							WriteASMLine(ASM_MOVEAXMEM4, pTemp1Str->GetStr());
 							WriteASMLine(ASM_PUSHEAX, "");
-							SAFE_DELETE(pTemp1Str);
-							SAFE_DELETE(pTemp2Str);
 							break;
 
 				case 9:		
@@ -3240,7 +3216,7 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 			// Store EAX (as using EAX to get seg-memaddress)
 			WriteASMLine(ASM_MOVECXEAX4, "");
 
-			pDoubleStr = new CStr("+");
+			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
@@ -3261,7 +3237,6 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
-			SAFE_DELETE(pDoubleStr);
 			break;
 
 		case PMODE_EBPREL: 	// EAX to [MEM] (that is, the memory pointed to by EBP+x)
@@ -3451,10 +3426,9 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		}
 		if ( dwP1Offset>0 )
 		{
-			CStr* pNum = new CStr("");
-			pNum->SetNumericText(dwP1Offset);
-			WriteASMLine(ASM_ADDEAX4, pNum->GetStr());
-			SAFE_DELETE(pNum);
+			CStr num("");
+			num.SetNumericText(dwP1Offset);
+			WriteASMLine(ASM_ADDEAX4, num.GetStr());
 		}
 		WriteASMLine(ASM_PUSHEAX, NULL);
 		WriteASMComment("PUSH ADDRESS TO STACK", "", "", "");
@@ -3462,16 +3436,17 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	if(dwTask==ASMTASK_CALL)
 	{
 		// Cut Full Param into DLL and COMMAND Strings#
+		// GetLeft/RightOfPosition return new[] buffers; own them with unique_ptr<char[]>
 		DWORD dwPos = pP1->FindFirstChar(',');
-		LPSTR pDLLString = pP1->GetLeftOfPosition(dwPos);
-		LPSTR pCommandString = pP1->GetRightOfPosition(dwPos);
+		std::unique_ptr<char[]> pDLLString(pP1->GetLeftOfPosition(dwPos));
+		std::unique_ptr<char[]> pCommandString(pP1->GetRightOfPosition(dwPos));
 
 		// Add To DLL&Command Table
-		DWORD dwIndex = AddCommandToTable(pDLLString, pCommandString);
+		DWORD dwIndex = AddCommandToTable(pDLLString.get(), pCommandString.get());
 
 		// Write current ESP into ErrorLineDWORD if third party DLLs to check that they have not been tampered with
 		bool bProtectedByESPDetection = false;
-		if ( AddProtectionToSelectedDLLs ( pDLLString ) ) 
+		if ( AddProtectionToSelectedDLLs ( pDLLString.get() ) ) 
 		{
 			WriteASMLine(ASM_MOVEBXMEM4, "@$_SLN_");
 			WriteASMLine(ASM_MOVMEMEBX4, "@$_TEMPA_");
@@ -3480,13 +3455,13 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		}
 
 		// Produce token Command Call token
-		CStr* pTokenCommandStr = new CStr("[");
-		pTokenCommandStr->AddNumericText(dwIndex);
-		WriteASMLine(ASM_MOVEBXIMM4, pTokenCommandStr->GetStr());
+		CStr tokenCommandStr("[");
+		tokenCommandStr.AddNumericText(dwIndex);
+		WriteASMLine(ASM_MOVEBXIMM4, tokenCommandStr.GetStr());
 		WriteASMLine(ASM_CALLEBX, "");
 
 		// Comment Details
-		WriteASMComment("CALL", pDLLString, pCommandString, "");
+		WriteASMComment("CALL", pDLLString.get(), pCommandString.get(), "");
 
 		// Restore SLN after CALL for RTE tracing
 		if ( bProtectedByESPDetection ) 
@@ -3494,12 +3469,6 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			WriteASMLine(ASM_MOVEBXMEM4, "@$_TEMPA_");
 			WriteASMLine(ASM_MOVMEMEBX4, "@$_SLN_");
 		}
-
-		// Free usage
-		SAFE_DELETE(pDLLString);
-		SAFE_DELETE(pCommandString);
-		SAFE_DELETE(pTokenCommandStr);
-
 	}
 	if(dwTask==ASMTASK_POPEAX)
 	{
@@ -3554,16 +3523,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 				// Create DWORD String for IMM
 				DWORD dwDWORDRep=0;
 				DWORD dwExtraDWORD=0;
-				CStr* pDWORD1Str=NULL;
 				dwDWORDRep = pP1->GetDWORDRepresentation(dwP1Type, &dwExtraDWORD);
-				pDWORD1Str = new CStr("");
-				pDWORD1Str->SetDWORDNumericText(dwDWORDRep);			
+				CStr dword1Str("");
+				dword1Str.SetDWORDNumericText(dwDWORDRep);			
 
 				// IMM
-				WriteASMLine(ASM_CMPEAX4, pDWORD1Str->GetStr());
-
-				// Delete DWORD String
-				SAFE_DELETE(pDWORD1Str);
+				WriteASMLine(ASM_CMPEAX4, dword1Str.GetStr());
 			}
 		}
 		WriteASMComment("CONDITION COMPARE", "", "", "");
@@ -3687,41 +3652,36 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		DWORD dwDWORDLeft = dwTotalToClear-(dwDWORDSteps*4);
 		if(dwDWORDSteps>0)
 		{
-			CStr* pIterations = new CStr();
-			pIterations->SetNumericText(dwDWORDSteps);
+			CStr iterations;
+			iterations.SetNumericText(dwDWORDSteps);
 
 			// SET ECX max
-			WriteASMLine(ASM_MOVECXIMM4, pIterations->GetStr());
+			WriteASMLine(ASM_MOVECXIMM4, iterations.GetStr());
 
 			// MOV SIB[EAX:ECX*4], 0
 			WriteASMLine2IMM(ASM_MOVSIB4IMM4, NULL, "0", 2);
 
 			// LOOP BACK
 			WriteASMLine2IMM(ASM_LOOP, NULL, "-9", 0);
-
-			SAFE_DELETE(pIterations);
 		}
 		if(dwDWORDLeft>0)
 		{
 			// Advance EAX base to skip zero'd batch areas
-			CStr* pAdvance = new CStr();
-			pAdvance->SetNumericText(((dwDWORDSteps+1)*4)-1);
-			WriteASMLine(ASM_ADDEAX4, pAdvance->GetStr());
-			SAFE_DELETE(pAdvance);
+			CStr advance;
+			advance.SetNumericText(((dwDWORDSteps+1)*4)-1);
+			WriteASMLine(ASM_ADDEAX4, advance.GetStr());
 
-			CStr* pIterations = new CStr();
-			pIterations->SetNumericText(dwDWORDLeft);
+			CStr iterations;
+			iterations.SetNumericText(dwDWORDLeft);
 
 			// SET ECX max
-			WriteASMLine(ASM_MOVECXIMM4, pIterations->GetStr());
+			WriteASMLine(ASM_MOVECXIMM4, iterations.GetStr());
 
 			// MOV SIB[EAX:ECX*4], 0
 			WriteASMLine2IMM(ASM_MOVSIB4IMM1, NULL, "0", 0);
 
 			// LOOP BACK
 			WriteASMLine2IMM(ASM_LOOP, NULL, "-6", 0);
-
-			SAFE_DELETE(pIterations);
 		}
 
 		// Comment
@@ -3758,22 +3718,18 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			DWORD iLineNum = dwLine;
 			DWORD iStartChar = dwP1Type;
 			DWORD iEndChar = dwP2Type;
-			CStr* pProgStr = new CStr("");
-			CStr* pLineStr = new CStr("");
-			CStr* pStartStr = new CStr("");
-			CStr* pEndStr = new CStr("");
-			pProgStr->SetDWORDNumericText(iProgID);
-			pLineStr->SetDWORDNumericText(iLineNum);
-			pStartStr->SetDWORDNumericText(iStartChar);
-			pEndStr->SetDWORDNumericText(iEndChar);
-			WriteASMLine1IMM(ASM_PUSHIMM4, pEndStr->GetStr(), 2);
-			WriteASMLine1IMM(ASM_PUSHIMM4, pStartStr->GetStr(), 2);
-			WriteASMLine1IMM(ASM_PUSHIMM4, pLineStr->GetStr(), 2);
-			WriteASMLine1IMM(ASM_PUSHIMM4, pProgStr->GetStr(), 2);
-			SAFE_DELETE(pProgStr);
-			SAFE_DELETE(pLineStr);
-			SAFE_DELETE(pStartStr);
-			SAFE_DELETE(pEndStr);
+			CStr progStr("");
+			CStr lineStr("");
+			CStr startStr("");
+			CStr endStr("");
+			progStr.SetDWORDNumericText(iProgID);
+			lineStr.SetDWORDNumericText(iLineNum);
+			startStr.SetDWORDNumericText(iStartChar);
+			endStr.SetDWORDNumericText(iEndChar);
+			WriteASMLine1IMM(ASM_PUSHIMM4, endStr.GetStr(), 2);
+			WriteASMLine1IMM(ASM_PUSHIMM4, startStr.GetStr(), 2);
+			WriteASMLine1IMM(ASM_PUSHIMM4, lineStr.GetStr(), 2);
+			WriteASMLine1IMM(ASM_PUSHIMM4, progStr.GetStr(), 2);
 		}
 
 		// Produce token Command Call token
@@ -3797,12 +3753,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	if(dwTask==ASMTASK_RUNTIMEERRORHOOK)
 	{
 		// Move Line Number to register for RTE trace
-		CStr* pLineStr = new CStr("");
+		CStr lineStr("");
 		DWORD dwNeverZero = dwLine;
 		if ( dwLine>0 )
 		{
-			pLineStr->SetNumericText(dwNeverZero);
-			WriteASMLine2(ASM_MOVMEMIMM4, "@$_SLN_", pLineStr->GetStr());
+			lineStr.SetNumericText(dwNeverZero);
+			WriteASMLine2(ASM_MOVMEMIMM4, "@$_SLN_", lineStr.GetStr());
 		}
 		else
 		{
@@ -3810,7 +3766,6 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			// but STILL NEED to fill in an instruction here to preserve jump distances
 			WriteASMLine2(ASM_MOVMEMIMM4, "@$_ESC_", "1");
 		}
-		SAFE_DELETE(pLineStr);
 
 		// Debug Mode requires break, not quit..
 		if(g_DebugInfo.DebugModeOn())
@@ -3821,11 +3776,10 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			WriteASMLine(ASM_JE, "25");
 
 			// Work out BREAK Position
-			CStr* pData = new CStr("");
+			CStr data("");
 			DWORD dwPosition=g_DebugInfo.GetLastBreakPoint();
-			pData->SetNumericText(dwPosition);
-			WriteASMLine2(ASM_MOVMEMIMM4, "@$_REK_", pData->GetStr());
-			SAFE_DELETE(pData);
+			data.SetNumericText(dwPosition);
+			WriteASMLine2(ASM_MOVMEMIMM4, "@$_REK_", data.GetStr());
 
 			// Set Escape value so Debugger is entered
 			WriteASMLine2(ASM_MOVMEMIMM4, "@$_ESC_", "1");
@@ -3853,7 +3807,8 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	//
 
 	// If INC uses non-memory, must use ADD instead
-	CStr* pLocalStrForSwitch=NULL;
+	// Stack-owned IMM value (RAII); aliased into pP2 and consumed by the ASM section below
+	CStr localStrForSwitch;
 	if((dwTask==ASMTASK_INCVAR && dwP1Mode!=PMODE_MEM)
 	|| (dwTask==ASMTASK_DECVAR && dwP1Mode!=PMODE_MEM))
 	{
@@ -3862,8 +3817,8 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 
 		// P2 becomes an IMM=1 value
 		dwP2Mode=PMODE_IMM;
-		pLocalStrForSwitch = new CStr("1");
-		pP2=pLocalStrForSwitch;
+		localStrForSwitch.SetText("1");
+		pP2=&localStrForSwitch;
 		pP2Off=NULL;
 		dwP2Type=7;
 		dwP2Offset=0;
@@ -4416,13 +4371,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		int iCountMax = (DWORD)dwP1Offset-1;
 		while(iCount<iCountMax)
 		{
-			CStr* pValue = new CStr("");
+			CStr value;
 			int iHeaderOffset = (-56)+(iCount*4);
-			pValue->SetNumericText(iHeaderOffset);
+			value.SetNumericText(iHeaderOffset);
 			WriteASMLine(ASM_POPEDX, "");
-			WriteASMLine(ASM_MULEDXEAXOFF4, pValue->GetStr());
+			WriteASMLine(ASM_MULEDXEAXOFF4, value.GetStr());
 			WriteASMLine(ASM_ADDEBXEDX4, "");
-			SAFE_DELETE(pValue);
 			iCount++;
 		}
 
@@ -4457,10 +4411,9 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		}
 		if ( dwP1Offset>0 )
 		{
-			CStr* pNum = new CStr("");
-			pNum->SetNumericText(dwP1Offset);
-			WriteASMLine(ASM_ADDEAX4, pNum->GetStr());
-			SAFE_DELETE(pNum);
+			CStr num;
+			num.SetNumericText(dwP1Offset);
+			WriteASMLine(ASM_ADDEAX4, num.GetStr());
 		}
 
 		// Advance EAX to end of UDT data (UDT Size)
@@ -4479,9 +4432,6 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		// Comment on this task
 		WriteASMComment("PUSH UDT TO STACK", "", "", "");
 	}
-
-	// Free usages
-	SAFE_DELETE(pLocalStrForSwitch);
 
 	return true;
 }
@@ -4622,10 +4572,9 @@ bool CASMWriter::WriteASMLineLeapToTop(DWORD dwOp)
 	int iOffset=(m_pRecordTopBytePosition-m_pMachineBlock)-6;
 
 	// ASM Code
-	CStr* pOffsetStr = new CStr();
-	pOffsetStr->SetNumericText(iOffset);
-	CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], pOffsetStr->GetStr());
-	SAFE_DELETE(pOffsetStr);
+	CStr offsetStr;
+	offsetStr.SetNumericText(iOffset);
+	CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], offsetStr.GetStr());
 
 	// Complete
 	return true;
@@ -4705,13 +4654,12 @@ bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 		// Calculate Leap Offset 
 		DWORD dwLeapOffset = m_pMachineBlock-m_pRecordBytePosition[di];
 
-		// Create NEW ref-string from offset value
-		CStr* pTempStr = new CStr("");
-		pTempStr->SetNumericText(dwLeapOffset);
-		pRefStr = new char[strlen(pTempStr->GetStr())+1];
-		strcpy(pRefStr, pTempStr->GetStr());
+		// Create NEW ref-string from offset value (tempStr is stack-owned; pRefStr keeps new[] ownership)
+		CStr tempStr;
+		tempStr.SetNumericText(dwLeapOffset);
+		pRefStr = new char[strlen(tempStr.GetStr())+1];
+		strcpy(pRefStr, tempStr.GetStr());
 		m_ProgramRefLabels[m_pRecordRefPosition[di]]=(uintptr_t)pRefStr;
-		SAFE_DELETE(pTempStr);
 
 		// Clear leap flag
 		m_pRecordRefPosition[di]=0;
@@ -4759,16 +4707,13 @@ DWORD CASMWriter::AddCommandToTable(LPSTR pDLLString, LPSTR pCommandString)
 		g_pStatementList->IncDLLIndexCounter(1);
 
 	// Record Command As Actually Being Used
-	CStr* pRawCommandString = new CStr("");
-	pRawCommandString->SetNumericText(dwIndex);
-	pRawCommandString->AddText(",");
-	pRawCommandString->AddText(pCommandString+1);
+	CStr rawCommandString;
+	rawCommandString.SetNumericText(dwIndex);
+	rawCommandString.AddText(",");
+	rawCommandString.AddText(pCommandString+1);
 	dwIndex = g_pStatementList->GetCommandIndexCounter() + 1;
-	if(g_pCommandTable->AddUniqueString(pRawCommandString->GetStr(), &dwIndex))
+	if(g_pCommandTable->AddUniqueString(rawCommandString.GetStr(), &dwIndex))
 		g_pStatementList->IncCommandIndexCounter(1);
-
-	// Free usgaes
-	SAFE_DELETE(pRawCommandString);
 
 	return dwIndex;
 }
