@@ -639,30 +639,20 @@ bool CInstructionTable::AddCommandCore(LPSTR pName, LPSTR pDLL, LPSTR pDecorated
 
 bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr )
 {
-	// Make Entry
-	CInstructionTableEntry* pEntry = new CInstructionTableEntry;
-	CStr* pStr = new CStr(pName);
-	CStr* pStrDLL = new CStr(pDLL);
-	CStr* pStrDecName = new CStr(pDecoratedName);
-	CStr* pStrParamTypes = new CStr(pParamTypesString);
-
-	if (!pEntry || !pStr || !pStrDLL || !pStrDecName || !pStrParamTypes)
-	{
-		// NOTE: Yes, it's okay to delete a nullptr. They're ignored by delete.
-		delete pEntry;
-		delete pStr;
-		delete pStrDLL;
-		delete pStrDecName;
-		delete pStrParamTypes;
-
-		return false;
-	}
+	// Make Entry (RAII-owned until inserted into the table)
+	auto pEntryOwner = std::make_unique<CInstructionTableEntry>();
+	CInstructionTableEntry* pEntry = pEntryOwner.get();
+	auto pStr = std::make_unique<CStr>(pName);
+	auto pStrDLL = std::make_unique<CStr>(pDLL);
+	auto pStrDecName = std::make_unique<CStr>(pDecoratedName);
+	auto pStrParamTypes = std::make_unique<CStr>(pParamTypesString);
 
 	DWORD dwCurrentID;
 
 	dwCurrentID = static_cast<DWORD>(db3::atomic_inc(reinterpret_cast<db3::u32 *>(&m_dwCurrentInternalID)));
 
-	pEntry->SetData(dwCurrentID, pStr, pStrDLL, pStrDecName, pStrParamTypes, resultp, pmax, dwInternalValueIndex, dwBuildID);
+	// Ownership of the four CStr buffers transfers into the entry.
+	pEntry->SetData(dwCurrentID, pStr.release(), pStrDLL.release(), pStrDecName.release(), pStrParamTypes.release(), resultp, pmax, dwInternalValueIndex, dwBuildID);
 	pEntry->SetSpecialArrayParam(bPassArrayAsInput);
 
 	// Set param full desc if available
@@ -746,9 +736,9 @@ bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecorate
 			return false;
 
 		if (pFirst->P != nullptr)
-			pFirst->P->Add(pEntry);
+			pFirst->P->Add(pEntryOwner.release());
 		else
-			pFirst->P = pEntry;
+			pFirst->P = pEntryOwner.release();
 
 		//
 		//	NOTE: Checks for duplicate commands will be performed after all of the other commands have been loaded. This
@@ -788,24 +778,16 @@ bool CInstructionTable::AddUserFunction(LPSTR pName, DWORD resultp, LPSTR pParam
 	// Increment ID
 	DWORD dwCurrentID = static_cast<DWORD>(db3::atomic_inc(reinterpret_cast<db3::u32 *>(&m_dwCurrentInternalID)));
 
-	// Make Entry
-	CInstructionTableEntry* pEntry = new CInstructionTableEntry;
-	CStr* pStr = new CStr(pName);
-	CStr* pStrID = new CStr(1);
-	CStr* pStrParamTypes = new CStr(pParamTypesString);
-
-	if (!pEntry || !pStr || !pStrID || !pStrParamTypes)
-	{
-		delete pEntry;
-		delete pStr;
-		delete pStrID;
-		delete pStrParamTypes;
-
-		return false;
-	}
+	// Make Entry (RAII-owned until inserted into the table)
+	auto pEntryOwner = std::make_unique<CInstructionTableEntry>();
+	CInstructionTableEntry* pEntry = pEntryOwner.get();
+	auto pStr = std::make_unique<CStr>(pName);
+	auto pStrID = std::make_unique<CStr>((DWORD)1);
+	auto pStrParamTypes = std::make_unique<CStr>(pParamTypesString);
 
 	pStrID->SetNumericText(dwCurrentID);
-	pEntry->SetData(dwCurrentID, pStr, NULL, pStrID, pStrParamTypes, resultp, pmax, 0, 0);
+	// Ownership of the three CStr buffers transfers into the entry.
+	pEntry->SetData(dwCurrentID, pStr.release(), NULL, pStrID.release(), pStrParamTypes.release(), resultp, pmax, 0, 0);
 
 	// Ensure all user functions know about their userfunction structure
 	if ( pDecChain ) pEntry->SetDecChain(pDecChain);
@@ -819,9 +801,9 @@ bool CInstructionTable::AddUserFunction(LPSTR pName, DWORD resultp, LPSTR pParam
 			return false;
 
 		if (entry->P != nullptr)
-			entry->P->Add(pEntry);
+			entry->P->Add(pEntryOwner.release());
 		else
-			entry->P = pEntry;
+			entry->P = pEntryOwner.release();
 	}
 
 	if (!m_EntryArray.CheckSlot(static_cast<db3::uint>(dwCurrentID)))
@@ -1437,10 +1419,10 @@ CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPSTR pFriendNam
 
 // DLL Scanning and Database Building
 
-LPSTR CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwDataSize )
+std::unique_ptr<char[]> CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwDataSize )
 {
 	// raw string table data retutned
-	LPSTR pReturnData = NULL;
+	std::unique_ptr<char[]> pReturnData;
 
 	// Simply scans the EXE and locates the pattern in the data, and replaces it
 	DWORD dwSizeOfEXECode = 0;	
@@ -1484,8 +1466,8 @@ LPSTR CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwData
 			LPVOID lpResReal = LockResource(hGlobal);
 
 			// get string table data
-			pReturnData = new char [ dwOverallDataSize ];
-			memcpy(pReturnData, (LPSTR)lpResReal, dwOverallDataSize);
+			pReturnData = std::make_unique<char[]>(dwOverallDataSize);
+			memcpy(pReturnData.get(), (LPSTR)lpResReal, dwOverallDataSize);
 		}
 
 		// free usages
@@ -1495,7 +1477,7 @@ LPSTR CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwData
 	// erase again if first character is NOT a space(32)
 	if ( pReturnData )
 		if ( pReturnData [ 0 ]!=32 )
-			SAFE_DELETE ( pReturnData );
+			pReturnData.reset();
 
 	// return data size
 	if ( pdwDataSize ) *pdwDataSize = dwOverallDataSize;
@@ -1580,13 +1562,13 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 	DWORD dwDataSize = 0;
 	HMODULE hModule = NULL;
 	DWORD dwCountProtectedCommands=0;
-	LPSTR pProtectedData = ReadRawStringTable ( pFilename, &dwDataSize );
+	std::unique_ptr<char[]> pProtectedData = ReadRawStringTable ( pFilename, &dwDataSize );
 	if ( pProtectedData )
 	{
 		// if a protected plugin, obtain string data in sequential stream
-		LPSTR pPtr=pProtectedData;
-		LPSTR pPtrLineStart=pProtectedData;
-		LPSTR pPtrEnd=pProtectedData+dwDataSize;
+		LPSTR pPtr=pProtectedData.get();
+		LPSTR pPtrLineStart=pProtectedData.get();
+		LPSTR pPtrEnd=pProtectedData.get()+dwDataSize;
 		while ( pPtr<pPtrEnd )
 		{
 			// find end of line
@@ -1612,8 +1594,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 						// make silent INI report
 						WritePrivateProfileString("VERIFICATION REPORT", pFilename, "NOT VALID", pDirINI);
 
-						// free usages
-						SAFE_DELETE ( pProtectedData );
+						// free usages (pProtectedData released automatically)
 						return true;
 					}
 
@@ -1660,8 +1641,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 			pPtr++;
 		}
 
-		// Free usages
-		SAFE_DELETE ( pProtectedData );
+		// Free usages (pProtectedData released automatically)
 	}
 	else
 	{
@@ -1714,27 +1694,27 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, LPSTR pRawCommandString)
 {
 	// Parse Sections of string
-	CStr* pStr = new CStr(pRawCommandString);
+	CStr strStorage(pRawCommandString);
+	CStr* pStr = &strStorage;
 	DWORD dwParamPos = pStr->FindFirstChar('%');
-	CStr* pStrPart2 = new CStr(pRawCommandString+dwParamPos+1);
-	DWORD dwDecPos = pStrPart2->FindFirstChar('%') + dwParamPos + 2;
-	SAFE_DELETE(pStrPart2);
+	DWORD dwDecPos;
+	{
+		CStr strPart2(pRawCommandString+dwParamPos+1);
+		dwDecPos = strPart2.FindFirstChar('%') + dwParamPos + 2;
+	}
 
 	// Ensure we have TWO of them
 	if(dwParamPos>0)
 	{
-		CStr* pCheckForTwo = new CStr(pStr->GetStr()+dwParamPos+1);
-		DWORD dwSecondPos = pCheckForTwo->FindFirstChar('%');
-		SAFE_DELETE(pCheckForTwo);
+		CStr checkForTwo(pStr->GetStr()+dwParamPos+1);
+		DWORD dwSecondPos = checkForTwo.FindFirstChar('%');
 		if(dwSecondPos==0)
 		{
-			SAFE_DELETE(pStr);
 			return false;
 		}
 	}
 	else
 	{
-		SAFE_DELETE(pStr);
 		return false;
 	}
 
@@ -1742,11 +1722,13 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 	if(dwParamPos>0 && dwDecPos>0 && dwDecPos>dwParamPos)
 	{
 		// Command Name Part
-		CStr* pName = new CStr(pRawCommandString);
+		CStr nameStorage(pRawCommandString);
+		CStr* pName = &nameStorage;
 		pName->SetChar(dwParamPos, 0);
 
 		// Command Params Part
-		CStr* pParam = new CStr(pRawCommandString+dwParamPos+1);
+		CStr paramStorage(pRawCommandString+dwParamPos+1);
+		CStr* pParam = &paramStorage;
 		pParam->SetChar(dwDecPos-dwParamPos-2, 0);
 		unsigned char cFirstParamChar=0;
 		if(pName->GetChar(pName->Length()-1)=='[')
@@ -1813,10 +1795,11 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 		}
 
 		// Decorated Name Part
-		CStr* pDecorated = new CStr(pRawCommandString+dwDecPos);
+		CStr decoratedStorage(pRawCommandString+dwDecPos);
+		CStr* pDecorated = &decoratedStorage;
 
-		// Get Param Desc string out of decorated name
-		CStr* pParamDesc = new CStr("");
+		// Get Param Desc string out of decorated name (ownership passes to AddCommandCore2)
+		std::unique_ptr<CStr> pParamDesc = std::make_unique<CStr>();
 		pParamDesc->SetText(pDecorated->GetStr());
 		DWORD dwPDPos = pDecorated->FindFirstChar('%');
 		if(dwPDPos>0)
@@ -1828,14 +1811,15 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 			pParamDesc->SetText("");
 
 		// released locally
-		CStr* pParamDescForHelp = new CStr("");
+		CStr paramDescForHelpStorage("");
+		CStr* pParamDescForHelp = &paramDescForHelpStorage;
 		pParamDescForHelp->SetText(pParamDesc->GetStr());
 
 		// Add Command To Database
 		if(strcmp(pDecorated->GetStr(), "??")!=NULL)
 		{
 			LPSTR lpConflictingDLLName = NULL;
-			if(AddCommandCore2(pName->GetStr(), pDLLName, pDecorated->GetStr(), pParam->GetStr(), dwReturnParam, pParam->Length(), 0, 0, dwStarPos, bPassArrayPtrAsInput, pParamDesc, &lpConflictingDLLName)==false)
+			if(AddCommandCore2(pName->GetStr(), pDLLName, pDecorated->GetStr(), pParam->GetStr(), dwReturnParam, pParam->Length(), 0, 0, dwStarPos, bPassArrayPtrAsInput, pParamDesc.release(), &lpConflictingDLLName)==false)
 			{
 				// Could not add command as it was identically duplicated!
 				char err[512];
@@ -1843,32 +1827,19 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 				wsprintf(err, "Duplicate %s in %s and %s!", pName->GetStr(), pDLLName, lpConflictingDLLName);
 				g_pErrorReport->AddErrorString(err);
 				SAFE_DELETE(lpConflictingDLLName);
-				SAFE_DELETE(pParamDescForHelp);
-				SAFE_DELETE(pName);
-				SAFE_DELETE(pStr);
 				return false;
 			}
-			pParamDesc=NULL;//used inside
 		}
 
 		// If active, add Command To HelpText Folder
-		if(g_pDBPCompiler->GetGenerateHelpTxtMode())
+		if(g_pDBPCompiler && g_pDBPCompiler->GetGenerateHelpTxtMode())
 		{
 			if(dwStarPos>0) dwReturnParam=0; //so visible sign of return value in help!
 			AddCommandToHelpTxt(pCategory, pName->GetStr(), pParam->GetStr(), dwReturnParam, pParam->Length(), pParamDescForHelp->GetStr());
 		}
-
-		// Free usages
-		SAFE_DELETE(pName);
-		SAFE_DELETE(pParam);
-		SAFE_DELETE(pDecorated);
-		SAFE_DELETE(pParamDescForHelp);
-		SAFE_DELETE(pParamDesc);
-		SAFE_DELETE(pStr);
 	}
 	else
 	{
-		SAFE_DELETE(pStr);
 		return false;
 	}
 

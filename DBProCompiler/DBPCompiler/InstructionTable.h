@@ -8,6 +8,7 @@
 #define __AARON_INSTRPERF__ 1
 
 // Includes
+#include <memory>
 #include "ParserHeader.h"
 #include "InstructionTableEntry.h"
 #include "Task.h"
@@ -327,7 +328,7 @@ class CInstructionTable
 		void		ScanEnd(void);
 
 		bool		VerifyCertificateForPlugin ( LPSTR pDLLName, LPSTR pProductName );
-		LPSTR		ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwDataSize  );
+		std::unique_ptr<char[]>	ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwDataSize  );
 		bool		LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename);
 		bool		TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, LPSTR pRawCommandString);
 		void		AddCommandToHelpTxt(LPSTR pCategory, LPSTR pDLLName, LPSTR pParamStr, DWORD dwReturnParam, DWORD dwParamCount, LPSTR pParamDesc);
