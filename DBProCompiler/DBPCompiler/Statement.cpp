@@ -4334,17 +4334,18 @@ LPSTR CStatement::SeperateInitFromType(LPSTR pPossibleTypeAndInit)
 				// Modify string so it only shows type name
 				pPossibleTypeAndInit[n++]=0;
 
-				// Extract init value
-				CStr* pInitValue = new CStr("");
+				// Extract init value (stack CStr: RAII on every exit path)
+				CStr initValue("");
 				for(; n<length; n++)
 				{
-					pInitValue->AddChar(pPossibleTypeAndInit[n]);
+					initValue.AddChar(pPossibleTypeAndInit[n]);
 				}
-				pInitValue->EatEdgeSpacesandTabs(NULL);
-				LPSTR pInitString = new char[pInitValue->Length()+1];
-				strcpy(pInitString, pInitValue->GetStr());
-				SAFE_DELETE(pInitValue);
-				return pInitString;
+				initValue.EatEdgeSpacesandTabs(NULL);
+
+				// Hand a heap char[] back to the caller-owned raw contract
+				auto pInitString = std::make_unique<char[]>(initValue.Length()+1);
+				strcpy(pInitString.get(), initValue.GetStr());
+				return pInitString.release();
 			}
 		}
 	}
@@ -4476,15 +4477,13 @@ bool CStatement::ContainsAssignmentOperator(CStr* pString)
 	DWORD dwPos = pString->FindFirstChar('=');
 	if(dwPos>0)
 	{
-		LPSTR pLeft = pString->GetLeftOfPosition(dwPos);
-		LPSTR pRight = pString->GetRightOfPosition(dwPos+1);
-		CStr* pLStr = new CStr(pLeft);
-		CStr* pRStr = new CStr(pRight);
-		if(pLStr->IsTextLValue()) bResult=true;
-		SAFE_DELETE(pLStr);
-		SAFE_DELETE(pRStr);
-		SAFE_DELETE(pLeft);
-		SAFE_DELETE(pRight);
+		// GetLeftOfPosition hands back a new char[]; adopt it with
+		// unique_ptr<char[]> so it is released with delete[] (the legacy
+		// scalar SAFE_DELETE was an array-new/scalar-delete mismatch). Only
+		// the left side is inspected, so the unused right segment is dropped.
+		std::unique_ptr<char[]> pLeft(pString->GetLeftOfPosition(dwPos));
+		CStr lStr(pLeft.get());
+		if(lStr.IsTextLValue()) bResult=true;
 	}
 	return bResult;
 }
