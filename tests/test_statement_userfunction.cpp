@@ -74,3 +74,15 @@ TEST_F(StatementUserFunctionTest, ExitFunctionMultipleReturnValuesFailsCleanly) 
         "endfunction 7\r\n";
     EXPECT_FALSE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
+
+// Contract: an EXITFUNCTION whose return value type does not match the declared
+// integer return type must fail with a clean diagnostic (ERR_SYNTAX+57) - the
+// second historic pParameter free path.
+TEST_F(StatementUserFunctionTest, ExitFunctionMismatchedReturnTypeFailsCleanly) {
+    char prog[] =
+        "myfunc()\r\n"
+        "function myfunc()\r\n"
+        "exitfunction \"hello\"\r\n"
+        "endfunction 7\r\n";
+    EXPECT_FALSE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}

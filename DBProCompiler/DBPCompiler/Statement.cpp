@@ -3546,13 +3546,15 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 	// legacy raw new leaked this instruction on all four error returns)
 	auto pInstruction = std::make_unique<CParseInstruction>();
 
-	// Create Parameter Object
+	// Create Parameter Object (RAII owner: freed on every error path, released
+	// to the emitted instruction only on the success path)
 	bool bMoreParams=false;
-	CParameter* pParameter = NULL;
-	if(DoExpressionList(&pParameter,&bMoreParams)==false)
+	CParameter* pRawParameter = NULL;
+	bool bListOK = DoExpressionList(&pRawParameter,&bMoreParams);
+	std::unique_ptr<CParameter> pParameter(pRawParameter);
+	if(bListOK==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoUserFunctionExit::ExpressionList'");
-		SAFE_DELETE(pParameter);
 		return false;
 	}
 
@@ -3561,7 +3563,6 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+31);
-		SAFE_DELETE(pParameter);
 		return false;
 	}
 
@@ -3583,7 +3584,6 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 				// Types not the same
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+57);
-				SAFE_DELETE(pParameter);
 				return false;
 			}
 		}
@@ -3592,7 +3592,6 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 			// Cannot have expressions as a return value - single var or value
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
-			SAFE_DELETE(pParameter);
 			return false;
 		}
 	}
@@ -3602,7 +3601,7 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_USERFUNCTIONEXIT));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_USERFUNCTIONEXIT));
 	pInstruction->SetParamMax(2);
-	pInstruction->SetParameter(pParameter);
+	pInstruction->SetParameter(pParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 
 	// Add The Object To This Statement
