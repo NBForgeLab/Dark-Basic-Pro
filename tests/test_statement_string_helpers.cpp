@@ -52,3 +52,50 @@ TEST(StatementStringHelpersTest, ContainsAssignmentOperatorFalseWithoutEquals) {
     CStr expr("myvar");
     EXPECT_FALSE(statement.ContainsAssignmentOperator(&expr));
 }
+
+// Characterization pins for CStatement::SeperateValueFromArrayString - another
+// global-free helper. On success it extracts the value inside the first
+// (...) into a fresh heap char[] (*pArrValue), frees the caller-owned name
+// buffer (allocated with new char[]) and replaces it with a fresh heap char[]
+// holding just the trimmed name. The legacy body frees the incoming buffer
+// with scalar SAFE_DELETE - an array-new/scalar-delete mismatch a RAII
+// refactor must fix while preserving these observable results. The caller
+// (DoDeclaration) owns both output buffers as unique_ptr<char[]>, so the pins
+// allocate the input with new[] and release the outputs with delete[].
+
+TEST(StatementStringHelpersTest, SeperateValueFromArrayStringExtractsValueAndName) {
+    CStatement statement;
+    LPSTR pName = new char[16];
+    strcpy(pName, "myarr(5)");
+    LPSTR pValue = nullptr;
+    EXPECT_TRUE(statement.SeperateValueFromArrayString(&pName, &pValue, false));
+    ASSERT_NE(pValue, nullptr);
+    EXPECT_STREQ(pValue, "5");
+    EXPECT_STREQ(pName, "myarr");
+    delete[] pValue;
+    delete[] pName;
+}
+
+TEST(StatementStringHelpersTest, SeperateValueFromArrayStringExtractsMultiCharValue) {
+    CStatement statement;
+    LPSTR pName = new char[16];
+    strcpy(pName, "arr(42)");
+    LPSTR pValue = nullptr;
+    EXPECT_TRUE(statement.SeperateValueFromArrayString(&pName, &pValue, false));
+    ASSERT_NE(pValue, nullptr);
+    EXPECT_STREQ(pValue, "42");
+    EXPECT_STREQ(pName, "arr");
+    delete[] pValue;
+    delete[] pName;
+}
+
+TEST(StatementStringHelpersTest, SeperateValueFromArrayStringReturnsFalseWithoutBracket) {
+    CStatement statement;
+    LPSTR pName = new char[16];
+    strcpy(pName, "myarr");
+    LPSTR pValue = nullptr;
+    EXPECT_FALSE(statement.SeperateValueFromArrayString(&pName, &pValue, false));
+    EXPECT_EQ(pValue, nullptr);
+    EXPECT_STREQ(pName, "myarr");
+    delete[] pName;
+}

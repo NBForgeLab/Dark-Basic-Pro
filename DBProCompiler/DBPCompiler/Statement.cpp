@@ -4445,21 +4445,26 @@ bool CStatement::SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrVa
 		// if length less than position, array (..) format incomplete
 		if ( dwPos <= length )
 		{
-			// Extract out value
-			*pArrValue = new char[(length-dwPos)+1];
+			// Extract out value (hand a heap char[] back to the caller-owned raw contract)
+			auto pValueBuffer = std::make_unique<char[]>((length-dwPos)+1);
 			DWORD n = 0;
 			for(n=0; n<length-dwPos; n++)
-				*(*pArrValue+n)=pString.GetChar(dwPos+n);
-			*(*pArrValue+n)=0;
+				pValueBuffer[n]=pString.GetChar(dwPos+n);
+			pValueBuffer[n]=0;
+			*pArrValue = pValueBuffer.release();
 
 			// Shorten array string so just name is showing
 			pString.SetChar(dwPos-1, 0);
 			pString.EatEdgeSpacesandTabs(NULL);
 
-			// Make new shortened array name
-			SAFE_DELETE(*pArrayString);
-			*pArrayString = new char[pString.Length()+1];
-			strcpy(*pArrayString, pString.GetStr());
+			// Replace the incoming name buffer: adopt the old one with
+			// unique_ptr<char[]> so it is released with delete[] (the legacy
+			// scalar SAFE_DELETE was an array-new/scalar-delete mismatch), then
+			// hand a fresh heap char[] back to the caller-owned raw contract.
+			std::unique_ptr<char[]> pOldName(*pArrayString);
+			auto pNewName = std::make_unique<char[]>(pString.Length()+1);
+			strcpy(pNewName.get(), pString.GetStr());
+			*pArrayString = pNewName.release();
 
 			// Success
 			bResult=true;
