@@ -2806,13 +2806,17 @@ static bool IsSimpleNumeric(const std::string& val)
 bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 {
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
-	LPSTR pAlternateFullString = ProduceFullSegment(&pPointer);
-	CStr* pAltString = new CStr(pAlternateFullString);
-	DWORD dwPos = pAltString->FindFirstChar('=');
+	// ProduceFullSegment hands back a new char[]; adopt it with
+	// unique_ptr<char[]> so it is released with delete[] (the legacy scalar
+	// SAFE_DELETE was an array-new/scalar-delete mismatch). The CStr view is a
+	// stack temporary, replacing the heap new/SAFE_DELETE pair.
+	std::unique_ptr<char[]> pAlternateFullString(ProduceFullSegment(&pPointer));
+	CStr altString(pAlternateFullString.get());
+	DWORD dwPos = altString.FindFirstChar('=');
 
 	if (dwPos != 0xFFFFFFFF)
 	{
-		std::string fullStr(pAlternateFullString);
+		std::string fullStr(pAlternateFullString.get());
 		std::string varName = fullStr.substr(0, dwPos);
 		std::string valStr = fullStr.substr(dwPos + 1);
 
@@ -2862,8 +2866,7 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 		}
 	}
 
-	SAFE_DELETE(pAlternateFullString);
-	SAFE_DELETE(pAltString);
+	// pAlternateFullString / altString released automatically (RAII)
 
 	// Substitute assignment symbol for comma
 	pPointer = g_pStatementList->GetFileDataPointer();
