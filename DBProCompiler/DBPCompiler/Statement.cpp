@@ -1619,27 +1619,29 @@ bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
 	LPSTR pEndPointer = SeekToSeperator(pPointer, false, true);
 	DWORD length = pEndPointer-pPointer;
 
-	// Make string from line
-	CStr* pStrData = new CStr(length+1);
+	// Make string from line (stack CStr, released by RAII)
+	CStr strData(length+1);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-	pStrData->CopyFromPtr(pPointer, pPointerEnd, length);
-	pStrData->SetChar(length,0);
+	strData.CopyFromPtr(pPointer, pPointerEnd, length);
+	strData.SetChar(length,0);
 
 	// Clean up string
-	pStrData->EatEdgeSpacesandTabs(NULL);
+	strData.EatEdgeSpacesandTabs(NULL);
 
-	// Can be initialised by a string of parameters
-	CParameter* pFirstParameter = NULL;
-	if(DoParameterListString(pStrData, &pFirstParameter)==false)
+	// Can be initialised by a string of parameters. The parameter chain is
+	// adopted by a unique_ptr so it is released on every exit path (the
+	// CParameter destructor chains through its unique_ptr m_pNext).
+	CParameter* pRawFirstParameter = NULL;
+	bool bParsed = DoParameterListString(&strData, &pRawFirstParameter);
+	std::unique_ptr<CParameter> pFirstParameter(pRawFirstParameter);
+	if(bParsed==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoDataStatement::DoParameterListString'");
-		SAFE_DELETE(pFirstParameter);
-		SAFE_DELETE(pStrData);
 		return false;
 	}
 
 	// Parse data in parameters to data table
-	CParameter* pCurrent = pFirstParameter;
+	CParameter* pCurrent = pFirstParameter.get();
 	while(pCurrent)
 	{
 		// Get data item from parameter
@@ -1675,14 +1677,13 @@ bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
 			{
 				if(pItemStr->IsTextSpeechMarked()==true)
 				{
-					// Add String to datatable
-					CStr* pNoSpeechMarks = new CStr();
-					pNoSpeechMarks->SetText(pItemStr->GetStr());
-					pNoSpeechMarks->EatSpeechMarks();
-					if(g_pDataTable->AddString(pNoSpeechMarks->GetStr(), dwIndex))
+					// Add String to datatable (stack CStr, released by RAII)
+					CStr noSpeechMarks;
+					noSpeechMarks.SetText(pItemStr->GetStr());
+					noSpeechMarks.EatSpeechMarks();
+					if(g_pDataTable->AddString(noSpeechMarks.GetStr(), dwIndex))
 						g_pStatementList->IncDataIndexCounter(1);
 
-					SAFE_DELETE(pNoSpeechMarks);
 					bUnderstood=true;
 				}
 			}
@@ -1691,8 +1692,6 @@ bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+23, pItemStr->GetStr());
-			SAFE_DELETE(pFirstParameter);
-			SAFE_DELETE(pStrData);
 			return false;
 		}
 		pCurrent=pCurrent->GetNext();
@@ -1705,11 +1704,7 @@ bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
 	// Data items always exist on a per line basis
 	g_pStatementList->IncLineNumber();
 
-	// Free usage
-	SAFE_DELETE(pFirstParameter);
-	SAFE_DELETE(pStrData);
-
-	// Complete
+	// Complete (RAII releases strData and the parameter chain)
 	return true;
 }
 
