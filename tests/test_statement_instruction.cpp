@@ -100,3 +100,12 @@ TEST_F(StatementInstructionTest, DoInstructionFailsCleanlyOnMissingRValue) {
     char prog[] = "a =\r\nEND\r\n";
     EXPECT_FALSE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
+
+// Contract: a malformed R-value expression (dangling binary operator) must
+// fail cleanly - this drives DoExpressionList's length>0 branch, which builds
+// the pUptoSeperator working string and walks DoExpressionListString; the
+// parse failure is the branch that hand-freed pUptoSeperator before return.
+TEST_F(StatementInstructionTest, DoInstructionFailsCleanlyOnMalformedRValueExpression) {
+    char prog[] = "a = 1 +\r\nEND\r\n";
+    EXPECT_FALSE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}

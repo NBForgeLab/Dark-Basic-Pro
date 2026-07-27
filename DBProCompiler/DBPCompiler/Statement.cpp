@@ -3723,15 +3723,16 @@ bool CStatement::DoExpressionList(CParameter** ppParameter, bool* bNoMoreParams)
 	bool bEndOfExpressionsReached=false;
 	if(length>0)
 	{
-		// Make a string of just the expression
-		CStr* pUptoSeperator = new CStr(length);
+		// Make a string of just the expression (stack CStr: RAII on every exit path,
+		// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
+		CStr uptoSeperator(length);
 		LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-		pUptoSeperator->CopyFromPtr(pStringPointer, pPointerEnd, length);
+		uptoSeperator.CopyFromPtr(pStringPointer, pPointerEnd, length);
 
 		// Convert all non-speechmark semicolons to commas
 		DWORD dwEatenDistance=0;
-		pUptoSeperator->EatEdgeSpacesandTabs(&dwEatenDistance);
-		bool bLastCharIsConcat = pUptoSeperator->ReplaceSemicolons();
+		uptoSeperator.EatEdgeSpacesandTabs(&dwEatenDistance);
+		bool bLastCharIsConcat = uptoSeperator.ReplaceSemicolons();
 		if ( length==1 && bLastCharIsConcat )
 		{
 			// leefix - 230604 - u54 - one a concat as param means end of expression
@@ -3741,10 +3742,9 @@ bool CStatement::DoExpressionList(CParameter** ppParameter, bool* bNoMoreParams)
 		{
 			// Perform expression traversal
 			DWORD ReturnDistance=0;
-			if(DoExpressionListString(ppParameter, pUptoSeperator, &ReturnDistance, &bEndOfExpressionsReached)==false)
+			if(DoExpressionListString(ppParameter, &uptoSeperator, &ReturnDistance, &bEndOfExpressionsReached)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoExpressionList::DoExpressionListString'");
-				SAFE_DELETE(pUptoSeperator);
 				return false;
 			}
 
@@ -3763,8 +3763,7 @@ bool CStatement::DoExpressionList(CParameter** ppParameter, bool* bNoMoreParams)
 			g_pStatementList->SetFileDataPointer(pStringPointer);
 		}
 
-		// Cleam memory usage
-		SAFE_DELETE(pUptoSeperator);
+		// Working string freed automatically here (stack RAII)
 	}
 	else
 	{
