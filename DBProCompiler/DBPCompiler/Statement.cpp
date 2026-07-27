@@ -553,7 +553,7 @@ bool CStatement::DoStatement(DWORD TokenID)
 						// Process declaration of variable/array name
 						bool bDoneDim=false;
 						if(dwStatementType==4) bDoneDim=true;
-						CDeclaration* pDecChain = NULL;
+						CDeclaration* pRawDecChain = NULL;
 						bool bIsGlobal=false;
 						if(dwStatementTypeData==1) bIsGlobal=true;
 						if(dwStatementTypeData==0 && dwStatementType==4)
@@ -561,13 +561,16 @@ bool CStatement::DoStatement(DWORD TokenID)
 							// leefix - 290703 - a DIM in a userfunction is GLOBAL unless otherwise regarded
 							bIsGlobal=true;
 						}
-						if(DoDeclaration(true, CRTK, &pDecChain, bDoneDim, true, bIsGlobal, false)==false)
+						bool bDecOK = DoDeclaration(true, CRTK, &pRawDecChain, bDoneDim, true, bIsGlobal, false);
+						// RAII owner: this temporary declaration chain is freed on both the
+						// success and error return paths (the declarations themselves are
+						// copied into the persistent chain inside DoDeclaration).
+						std::unique_ptr<CDeclaration> pDecChain(pRawDecChain);
+						if(bDecOK==false)
 						{
 							g_pErrorReport->AddErrorString("Failed to 'DoStatement::DoDeclaration'");
-							SAFE_DELETE(pDecChain);
 							return false;
 						}
-						SAFE_DELETE(pDecChain);
 						return true;
 					}
 		case 5 :	return DoAssignment(StatementLineNumber, TokenID);
