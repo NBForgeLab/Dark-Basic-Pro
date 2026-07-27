@@ -3618,8 +3618,8 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 
 bool CStatement::DoParameterListString(CStr* pOrigParamString, CParameter** ppFirstParameter)
 {
-	// Work pParamString String
-	CStr* pParamString = new CStr(pOrigParamString->GetStr());
+	// Work string (unique_ptr owner; reseated as items are chopped off)
+	std::unique_ptr<CStr> pParamString = std::make_unique<CStr>(pOrigParamString->GetStr());
 
 	// Before processing function params, crop spaces, tabs and equal brackets
 	do { pParamString->EatEdgeSpacesandTabs(NULL);
@@ -3629,48 +3629,39 @@ bool CStatement::DoParameterListString(CStr* pOrigParamString, CParameter** ppFi
 	bool bEndOfExpressionsReached=false;
 	while(bEndOfExpressionsReached==false)
 	{
-		// Create Parameter Object
-		CParameter* pReturnParameter = NULL;
-
-		// Create temp string for exp list parsing
-		CStr* pUptoSeperator = new CStr(pParamString->GetStr());
+		// Temp string for exp list parsing (stack, released each iteration)
+		CStr uptoSeperator(pParamString->GetStr());
 
 		// Chop one item off string
+		CParameter* pRawReturnParameter = NULL;
 		DWORD ReturnDistance=0;
-		if(DoExpressionListString(&pReturnParameter, pUptoSeperator, &ReturnDistance, &bEndOfExpressionsReached)==false)
+		if(DoExpressionListString(&pRawReturnParameter, &uptoSeperator, &ReturnDistance, &bEndOfExpressionsReached)==false)
 		{
-			SAFE_DELETE(pUptoSeperator);
-			SAFE_DELETE(pParamString);
-			SAFE_DELETE(pReturnParameter);
+			delete pRawReturnParameter;
 			return false;
 		}
-		SAFE_DELETE(pUptoSeperator);
 
-		// Create new string using rest of it
+		// Adopt the produced parameter so it is released on every exit path
+		std::unique_ptr<CParameter> pReturnParameter(pRawReturnParameter);
+
+		// Create new string using rest of it (old string freed on move-assign)
 		if(bEndOfExpressionsReached==false)
-		{
-			CStr* pNewStr = new CStr(pParamString->GetStr()+ReturnDistance);
-			SAFE_DELETE(pParamString);
-			pParamString=pNewStr;
-		}
+			pParamString = std::make_unique<CStr>(pParamString->GetStr()+ReturnDistance);
 
 		// If param made..
 		if(pReturnParameter)
 		{
-			// Add Param to Parameter Chain
+			// Add Param to Parameter Chain (ownership passes to the chain)
 			if((*ppFirstParameter)==NULL)
-				(*ppFirstParameter)=pReturnParameter;
+				(*ppFirstParameter)=pReturnParameter.release();
 			else
-				(*ppFirstParameter)->Add(pReturnParameter);
+				(*ppFirstParameter)->Add(pReturnParameter.release());
 		}
 		else
 			break;
 	}
 
-	// Clear memory
-	SAFE_DELETE(pParamString);
-
-	// Complete
+	// Complete (RAII releases the working string)
 	return true;
 }
 

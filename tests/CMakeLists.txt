@@ -37,6 +37,7 @@ add_executable(dbp_tests
         test_statement_assignment.cpp
         test_statement_token.cpp
         test_statement_data.cpp
+        test_statement_paramlist.cpp
     test_asmwriter_emission.cpp
     test_mathop_expression.cpp
     test_instruction_table.cpp
