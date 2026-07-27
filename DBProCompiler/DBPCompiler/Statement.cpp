@@ -5166,33 +5166,29 @@ DWORD CStatement::PeekLabel(LPSTR pPointer)
 	LPSTR pEndPointer = SeekToSeperator(pPointer, false, false);
 	DWORD length = pEndPointer-pPointer;
 
-	CStr* pStr = new CStr(length+1);
+	// Stack CStr keeps the legacy copy/trim semantics; the heap new/SAFE_DELETE
+	// pair is replaced by RAII (mirrors the adjacent GetLabel refactor).
+	CStr str(length+1);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
-	pStr->CopyFromPtr(pPointer, pPointerEnd, length);
-	pStr->SetChar(length,0);
+	str.CopyFromPtr(pPointer, pPointerEnd, length);
+	str.SetChar(length,0);
 
 	// Clean up string
-	pStr->EatEdgeSpacesandTabs(NULL);
+	str.EatEdgeSpacesandTabs(NULL);
 	
 	// Determine if label
-	if(pStr->IsTextALabel())
+	if(str.IsTextALabel())
 	{
-		// Must not be a token word
-		CStr* pCheckWord = new CStr(pStr->GetStr());
-		pCheckWord->SetChar(pCheckWord->Length()-1,0);
-		if(DetermineToken(pCheckWord->GetStr())==0)
+		// Must not be a token word (stack CStr, released by RAII)
+		CStr checkWord(str.GetStr());
+		checkWord.SetChar(checkWord.Length()-1,0);
+		if(DetermineToken(checkWord.GetStr())==0)
 		{
 			// must not be a reserved word
-			if ( !DetermineIfReservedWord ( pCheckWord->GetStr() ) )
+			if ( !DetermineIfReservedWord ( checkWord.GetStr() ) )
 				dwToken=LABELTK;
 		}
-
-		// free usages
-		SAFE_DELETE(pCheckWord);
 	}
-
-	// Free usage
-	SAFE_DELETE(pStr);
 
 	return dwToken;
 }

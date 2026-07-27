@@ -131,3 +131,45 @@ TEST_F(StatementLabelTest, ParseJumpOwnsBlockLabelsByValue) {
     jump.SetBlockALabel("$label3[9]");
     EXPECT_EQ(jump.GetBlockLabelA(), "$label3[9]");
 }
+
+// PeekLabel classifies a "<name>:" token as a label (LABELTK) without
+// consuming it. The label branch exercises both heap CStr allocations the
+// legacy implementation used (the segment string and the reserved-word
+// check copy), so this pins the behaviour before the RAII conversion.
+TEST_F(StatementLabelTest, PeekLabelClassifiesLabelToken) {
+    char prog[] = "mylabel:\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+
+    LPSTR pStart = g_pStatementList->GetFileDataStart();
+    g_pStatementList->SetFileDataPointer(pStart);
+
+    CStatement statement;
+    EXPECT_EQ(statement.PeekLabel(pStart), (DWORD)LABELTK);
+}
+
+// A reserved word without a trailing colon is not a label: the IsTextALabel
+// gate rejects it before the inner allocation, so PeekLabel returns 0.
+TEST_F(StatementLabelTest, PeekLabelRejectsNonLabel) {
+    char prog[] = "do\r\nloop\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+
+    LPSTR pStart = g_pStatementList->GetFileDataStart();
+    g_pStatementList->SetFileDataPointer(pStart);
+
+    CStatement statement;
+    EXPECT_EQ(statement.PeekLabel(pStart), (DWORD)0);
+}
+
+// PeekLabel is a peek: it classifies without moving the global file-data
+// pointer.
+TEST_F(StatementLabelTest, PeekLabelDoesNotAdvancePointer) {
+    char prog[] = "mylabel:\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+
+    LPSTR pStart = g_pStatementList->GetFileDataStart();
+    g_pStatementList->SetFileDataPointer(pStart);
+
+    CStatement statement;
+    statement.PeekLabel(pStart);
+    EXPECT_EQ(g_pStatementList->GetFileDataPointer(), pStart);
+}
