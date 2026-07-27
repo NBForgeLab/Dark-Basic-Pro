@@ -2127,25 +2127,31 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			
 			// Can be initialised by a string of parameters
 			std::unique_ptr<CStatement> pStatement(new CStatement);
-			CParameter* pFirstParameter = NULL;
+			CParameter* pRawFirstParameter = NULL;
 			CStr varInitData(pDecInit.get());
+			bool bParamListOK = true;
 			if(varInitData.Length()>0)
 			{
-				if(pStatement->DoParameterListString(&varInitData, &pFirstParameter)==false)
-				{
-					g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoParameterListString'");
-					SAFE_DELETE(pFirstParameter);
-					return false;
-				}
+				bParamListOK = pStatement->DoParameterListString(&varInitData, &pRawFirstParameter);
+			}
+			// RAII owner: the parsed parameter chain is freed here on the error path
+			// below, and released to the init object on success (which then owns it
+			// for every later exit path via its unique_ptr member).
+			std::unique_ptr<CParameter> pFirstParameter(pRawFirstParameter);
+			if(bParamListOK==false)
+			{
+				g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoParameterListString'");
+				return false;
 			}
 			pStatement.reset();
 
-			// Assign param chain to init object
-			pInit->SetVariableParamList(pFirstParameter);
+			// Assign param chain to init object (ownership transfers to the init object)
+			CParameter* pParamListHead = pFirstParameter.get();
+			pInit->SetVariableParamList(pFirstParameter.release());
 
 			// Ensure all init data items are compatable with var type
 			DWORD dwVarType=g_pVarTable->GetBasicTypeValue(pDecType.get());
-			CParameter* pCurrent = pFirstParameter;
+			CParameter* pCurrent = pParamListHead;
 			while(pCurrent)
 			{
 				bool bDataItemTypeIsOk=false;
