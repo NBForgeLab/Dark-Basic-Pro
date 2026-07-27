@@ -1729,7 +1729,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	if(dwTerminatorType==CRTK) bTerminatorIsCRTK=true;
 
 	// Get token string from filedata (if not already from a DIKTK)
-	LPSTR pString = NULL;
+	// RAII owner for the current token buffer (token producers return new char[])
+	std::unique_ptr<char[]> pString;
 	DWORD dwToken = 0;
 	bool bMustBeLiteralDim=true;
 	if(bDoneDim)
@@ -1744,8 +1745,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		bool bIgnoreSpacesAroundEquateSymbol=true;
 
 		// Get initial token
-		pString = ProduceNextTokenEx(&pPointer, true, bTerminatorIsCRTK, true, bIgnoreSpacesAroundEquateSymbol);
-		dwToken = DetermineToken(pString);
+		pString.reset(ProduceNextTokenEx(&pPointer, true, bTerminatorIsCRTK, true, bIgnoreSpacesAroundEquateSymbol));
+		dwToken = DetermineToken(pString.get());
 
 		// leeadd - 210604 - bypass all line remarks
 		while(dwToken==REMLINETK || dwToken==CRTK)
@@ -1755,9 +1756,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 
 			// Find string from next line
 			pPointer = g_pStatementList->GetFileDataPointer();
-			SAFE_DELETE(pString);
-			pString = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-			dwToken = DetermineToken(pString);
+			pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+			dwToken = DetermineToken(pString.get());
 			g_pStatementList->SetFileDataPointer(pPointer);
 		}
 
@@ -1765,8 +1765,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		if(bVariableDeclaration==true && dwToken>0 && dwToken!=DIMTK)
 		{
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+24, pString);
-			SAFE_DELETE(pString);
+			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+24, pString.get());
 			return false;
 		}
 		g_pStatementList->SetFileDataPointer(pPointer);
@@ -1782,48 +1781,47 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	// If params in declatation, parse them...
 	while(dwToken!=dwTerminatorType && dwToken!=ENDTK)
 	{
-		// Declaration Data required
+		// Declaration Data required (RAII owners: freed automatically on all paths)
 		DWORD dwDecArr=0;
-		LPSTR pDecArrValue=NULL;
-		LPSTR pDecName=NULL;
-		LPSTR pDecType=NULL;
-		LPSTR pDecInit=NULL;
+		std::unique_ptr<char[]> pDecArrValue;
+		std::unique_ptr<char[]> pDecName;
+		std::unique_ptr<char[]> pDecType;
+		std::unique_ptr<char[]> pDecInit;
 		DWORD LineNumberRef=0;
 
 		// Handle declaration token (ie DIM)
 		if(dwToken==DIMTK)
 		{
 			// Array Name (ie MYARR(5))
-			SAFE_DELETE(pString);
-			LPSTR pArrayName = ProduceNextArrayToken(&pPointer);
-			LPSTR pInitValue = SeperateInitFromType(pArrayName);
+			pString.reset();
+			std::unique_ptr<char[]> pArrayName(ProduceNextArrayToken(&pPointer));
+			std::unique_ptr<char[]> pInitValue(SeperateInitFromType(pArrayName.get()));
 
-			// Extract array value from string
-			if(SeperateValueFromArrayString(&pArrayName, &pDecArrValue, bMustBeLiteralDim)==false)
+			// Extract array value from string (helper may reallocate the name buffer)
+			LPSTR pRawArrayName = pArrayName.release();
+			LPSTR pRawArrValue = NULL;
+			bool bSeperateOK = SeperateValueFromArrayString(&pRawArrayName, &pRawArrValue, bMustBeLiteralDim);
+			pArrayName.reset(pRawArrayName);
+			pDecArrValue.reset(pRawArrValue);
+			if(bSeperateOK==false)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+43);
-				SAFE_DELETE(pString);
-				SAFE_DELETE(pInitValue);
-				SAFE_DELETE(pDecArrValue);
-				SAFE_DELETE(pArrayName);
-				SAFE_DELETE(pDecInit);
 				return false;
 			}
 
 			dwDecArr=1;
-			pDecName=pArrayName;
-			pDecInit=pInitValue;
+			pDecName=std::move(pArrayName);
+			pDecInit=std::move(pInitValue);
 		}
 		else
 		{
 			// Ensure more to process, else leave
-			if(stricmp(pString,"")!=NULL)
+			if(stricmp(pString.get(),"")!=NULL)
 			{
 				// Variable Name (ie MYVAR [=x])
-				LPSTR pInitValue = SeperateInitFromType(pString);
-				pDecName=pString;
-				pDecInit=pInitValue;
+				pDecInit.reset(SeperateInitFromType(pString.get()));
+				pDecName=std::move(pString);
 				dwDecArr=0;
 			}
 			else
@@ -1836,52 +1834,44 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// lee - 270-306 - u6b5 - if type saturate with REM CRTK, skip over them
 		if(dwToken!=CRTK)
 		{
-			// Ensure dec name is valid
-			CStr* pTempNameStr = new CStr(pDecName);
-			pTempNameStr->EatEdgeSpacesandTabs(NULL);
-			strcpy(pDecName, pTempNameStr->GetStr() );
-			if(pTempNameStr->IsTextASingleVariable()==false)
+			// Ensure dec name is valid (stack CStr: RAII on every exit path)
+			CStr tempNameStr(pDecName.get());
+			tempNameStr.EatEdgeSpacesandTabs(NULL);
+			strcpy(pDecName.get(), tempNameStr.GetStr());
+			if(tempNameStr.IsTextASingleVariable()==false)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+25, pTempNameStr->GetStr());
-				SAFE_DELETE(pTempNameStr);
-				SAFE_DELETE(pString);
-				SAFE_DELETE(pDecArrValue);
-				SAFE_DELETE(pDecInit);
+				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+25, tempNameStr.GetStr());
 				return false;
 			}
-			SAFE_DELETE(pTempNameStr);
 		}
 
 		// Record position of declaration line
 		LineNumberRef = g_pStatementList->GetTokenLineNumber();
 
 		// Optional datatype specifier (ie AS)
-		LPSTR pTypeSpecifier = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-		dwToken = DetermineToken(pTypeSpecifier);
+		std::unique_ptr<char[]> pTypeSpecifier(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+		dwToken = DetermineToken(pTypeSpecifier.get());
 		g_pStatementList->SetFileDataPointer(pPointer);
 		if(dwToken==ASTK)
 		{
 			// Type (ie INTEGER)
-			SAFE_DELETE(pTypeSpecifier);
-			LPSTR pWhatType = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-			dwToken = DetermineToken(pWhatType);
+			pTypeSpecifier.reset();
+			std::unique_ptr<char[]> pWhatType(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+			dwToken = DetermineToken(pWhatType.get());
 			g_pStatementList->SetFileDataPointer(pPointer);
 			if(dwToken==DOUBLETK)
 			{
 				// Pre-Declaration Token (ie DOUBLE INTEGER)
-				LPSTR pWhatTypeMore = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-				dwToken = DetermineToken(pWhatTypeMore);
+				std::unique_ptr<char[]> pWhatTypeMore(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+				dwToken = DetermineToken(pWhatTypeMore.get());
 				g_pStatementList->SetFileDataPointer(pPointer);
-				CStr* pAddTypes = new CStr(pWhatType);
-				pAddTypes->AddText(" ");
-				pAddTypes->AddText(pWhatTypeMore);
-				LPSTR pNewTypeString = new char[pAddTypes->Length()+1];
-				strcpy(pNewTypeString,pAddTypes->GetStr());
-				SAFE_DELETE(pWhatTypeMore);
-				SAFE_DELETE(pWhatType);
-				pWhatType=pNewTypeString;
-				SAFE_DELETE(pAddTypes);
+				CStr addTypes(pWhatType.get());
+				addTypes.AddText(" ");
+				addTypes.AddText(pWhatTypeMore.get());
+				std::unique_ptr<char[]> pNewTypeString(new char[addTypes.Length()+1]);
+				strcpy(pNewTypeString.get(), addTypes.GetStr());
+				pWhatType = std::move(pNewTypeString);
 			}
 			else
 			{
@@ -1889,7 +1879,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			}
 
 			// Do we have an initialisation value
-			LPSTR pInitValue = SeperateInitFromType(pWhatType);
+			std::unique_ptr<char[]> pInitValue(SeperateInitFromType(pWhatType.get()));
 			if(pInitValue)
 			{
 				// Backtrack pointer to exclude '=' symbol (see next code)
@@ -1900,7 +1890,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					// Set new position before the '=' symbol
 					g_pStatementList->SetFileDataPointer(pPointer+iBacktrak);
 				}
-				SAFE_DELETE(pInitValue);
+				pInitValue.reset();
 			}
 
 			// leefix - 250604 - u54 - no Init if seperator located as next character
@@ -1918,21 +1908,22 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 					pPointer = g_pStatementList->GetFileDataPointer()+1;
 					g_pStatementList->SetFileDataPointer(pPointer+dwAdvance);
 					pPointer = g_pStatementList->GetFileDataPointer();
-					pInitValue = GetStringToEndOfLine();
+					pInitValue.reset(GetStringToEndOfLine());
 
 					// leeadd - 310305 - handle seperator after delcarations
 					// lee - 270306 - u6b5 - also handle speech marks to exclude seperator ':'
 					DWORD dwSpeechMark=0;
-					LPSTR pMarkSep = pInitValue;
+					LPSTR pInitRaw = pInitValue.get();
+					LPSTR pMarkSep = pInitRaw;
 					bool bIfFoundColonSep=false;
-					for ( DWORD c=0; c<strlen(pInitValue); c++ )
+					for ( DWORD c=0; c<strlen(pInitRaw); c++ )
 					{
-						if ( pInitValue [ c ]=='"' ) dwSpeechMark=1-dwSpeechMark;
-						if ( pInitValue [ c ]==':' && dwSpeechMark==0 )
+						if ( pInitRaw [ c ]=='"' ) dwSpeechMark=1-dwSpeechMark;
+						if ( pInitRaw [ c ]==':' && dwSpeechMark==0 )
 						{
 							// found seperator within initvalue string
 							bIfFoundColonSep=true;
-							pMarkSep = pInitValue + c;
+							pMarkSep = pInitRaw + c;
 
 							// lee - 130206 - u60 - before we leave, we must ensure the pointer carries on from
 							// the seperator, NOT from the end of the grabbed initvalue string
@@ -1942,19 +1933,19 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 							break;
 						}
 					}
-					if ( bIfFoundColonSep ) pInitValue [ pMarkSep-pInitValue ] = 0;
+					if ( bIfFoundColonSep ) pInitRaw [ pMarkSep-pInitRaw ] = 0;
 					pPointer = g_pStatementList->GetFileDataPointer();
 					if(*(unsigned char*)(pPointer-1)==13) pPointer--;
 				}
 			}
 
 			// Record type and init data
-			pDecType=pWhatType;
-			pDecInit=pInitValue;
+			pDecType=std::move(pWhatType);
+			pDecInit=std::move(pInitValue);
 
 			// Next Item Of Data - until no more (token may produce CRTK)
-			pString = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-			dwToken = DetermineToken(pString);
+			pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+			dwToken = DetermineToken(pString.get());
 
 			// If reached end of program duing dec parse, leave gracefully
 			if(pPointer>=g_pStatementList->GetFileDataEnd()-2)
@@ -1975,8 +1966,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			}
 			else
 			{
-				// Actually the Next Item, so rename it
-				pString = pTypeSpecifier;
+				// Actually the Next Item, so rename it (ownership moves)
+				pString = std::move(pTypeSpecifier);
 			}
 		}
 
@@ -1986,9 +1977,9 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			// LEEFIX-REMARK HANDLER MOVED HERE TO HANDLE BOTH (field `comment and field as integer `comment)
 			if(dwToken==CRTK)
 			{
-				// Next Item Of Data, either next type field or remark
-				pString = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-				dwToken = DetermineToken(pString);
+				// Next Item Of Data, either next type field or remark (reset frees the CRTK token)
+				pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+				dwToken = DetermineToken(pString.get());
 			}
 		}
 
@@ -1996,46 +1987,41 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		if(dwToken==REMLINETK)
 		{
 			// Bypass all line remarks (can be muiltiple lines (210604 - added dwToken==CRTK)
-			LPSTR pNextString = NULL;
 			while(dwToken==REMLINETK || dwToken==CRTK)
 			{
 				// Ignore rest of line and find next dec string
 				SkipToCR();
 
-				// Find string from next line
+				// Find string from next line (reset frees the previous remark token)
 				pPointer = g_pStatementList->GetFileDataPointer();
-				pNextString = ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true);
-				dwToken = DetermineToken(pNextString);
+				pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+				dwToken = DetermineToken(pString.get());
 				g_pStatementList->SetFileDataPointer(pPointer);
 			}
-
-			// Non remark string..continue.
-			pString = pNextString;
 		}
 
 		// Default declaration settings
 		if(pDecType==NULL)
 		{
 			// Use default type (owned copy: this function's pDecType is always a new[] buffer)
-			std::string defaultType = g_pVarTable->MakeDefaultVarType(pDecName);
-			pDecType = new char[defaultType.size()+1];
-			strcpy(pDecType, defaultType.c_str());
+			std::string defaultType = g_pVarTable->MakeDefaultVarType(pDecName.get());
+			pDecType.reset(new char[defaultType.size()+1]);
+			strcpy(pDecType.get(), defaultType.c_str());
 		}
 		if(pDecInit==NULL && bAutoInitialiseData==true)
 		{
 			// Use default init
-			pDecInit = new char[8];
-			strcpy(pDecInit,"0");
+			pDecInit.reset(new char[8]);
+			strcpy(pDecInit.get(),"0");
 		}
 
 		// leefix - 230604 - u54 - If using DIM and no init value, means DIM arr(), so use -1 to make an EMPTY array!
 		if ( pDecArrValue )
 		{
-			if ( strcmp( pDecArrValue, "")==NULL )
+			if ( strcmp( pDecArrValue.get(), "")==NULL )
 			{
-				SAFE_DELETE(pDecArrValue);
-				pDecArrValue = new char[8];
-				strcpy(pDecArrValue,"-1");
+				pDecArrValue.reset(new char[8]);
+				strcpy(pDecArrValue.get(),"-1");
 			}
 		}
 
@@ -2044,34 +2030,20 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		if(pGlobalDecChain==NULL)
 		{
 			// For Array Variables Only
-			CStr* pArrFullname = NULL;
-			if(dwDecArr==1)
+			if(dwDecArr==1 && bDefineOnly==true)
 			{
-				if(bDefineOnly==true)
-				{
-					DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+26);
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pDecName);
-					SAFE_DELETE_ARRAY(pDecType);
-					SAFE_DELETE(pDecInit);
-					SAFE_DELETE(pString);
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pArrFullname);
-					return false;
-				}
-
-				// Array name has prefix
-				pArrFullname = new CStr("&");
-				pArrFullname->AddText(pDecName);
+				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+26);
+				return false;
 			}
-			else
-				pArrFullname = new CStr(pDecName);
 
-			// Create Declaration
+			// Array name has prefix (stack CStr: RAII on every exit path)
+			CStr arrFullname(dwDecArr==1 ? "&" : "");
+			arrFullname.AddText(pDecName.get());
+
+			// Create Declaration (SetDecData copies its string arguments)
 			CDeclaration* pNewDec = new CDeclaration;
-			pNewDec->SetDecData(dwDecArr, pDecArrValue, pArrFullname->GetStr(), pDecType, pDecInit, LineNumberRef);
-			SAFE_DELETE(pArrFullname);
+			pNewDec->SetDecData(dwDecArr, pDecArrValue.get(), arrFullname.GetStr(), pDecType.get(), pDecInit.get(), LineNumberRef);
 
 			// Add to chain GLOBAL
 			if((*ppDecChain)==NULL)
@@ -2093,15 +2065,9 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// Create Variable Entry for table (not for variable declarations in typedefs)
 		if(bVariableDeclaration==true || pGlobalDecChain )
 		{
-			// For Array vars
-			CStr* pArrFullname = NULL;
-			if(dwDecArr==1)
-			{
-				pArrFullname = new CStr("&");
-				pArrFullname->AddText(pDecName);
-			}
-			else
-				pArrFullname = new CStr(pDecName);
+			// For Array vars (stack CStr: RAII on every exit path)
+			CStr arrVarFullname(dwDecArr==1 ? "&" : "");
+			arrVarFullname.AddText(pDecName.get());
 
 			// lee - 270206 - u60 - if local, ensure we have not already declared same name var
 			/* lee - 200306 - u6b4 - however, DIM, UNDIM and DIM would fail - have to remove this fix
@@ -2125,35 +2091,21 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			}
 			*/
 
-			// Admin adding var to table
+			// Admin adding var to table (AddVariable copies its string arguments)
 			DWORD dwAction=0;
-			if(g_pVarTable->AddVariable(pArrFullname->GetStr(), pDecType, dwDecArr, LineNumberRef, false, &dwAction, bIsGlobal)==false)
+			if(g_pVarTable->AddVariable(arrVarFullname.GetStr(), pDecType.get(), dwDecArr, LineNumberRef, false, &dwAction, bIsGlobal)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::Add Variable'");
-				SAFE_DELETE(pDecArrValue);
-				SAFE_DELETE(pDecName);
-				SAFE_DELETE_ARRAY(pDecType);
-				SAFE_DELETE(pDecInit);
-				SAFE_DELETE(pString);
-				SAFE_DELETE(pDecArrValue);
-				SAFE_DELETE(pArrFullname);
 				return false;
 			}
-			SAFE_DELETE(pArrFullname);
 
 			// If variable is also array, dynamically create
 			if(dwDecArr==1 && bGenerateImpCode)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				if(DoAllocation(StatementLineNumber, pDecName, pDecArrValue)==false)
+				if(DoAllocation(StatementLineNumber, pDecName.get(), pDecArrValue.get())==false)
 				{
 					g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoAllocation'");
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pDecName);
-					SAFE_DELETE_ARRAY(pDecType);
-					SAFE_DELETE(pDecInit);
-					SAFE_DELETE(pString);
-					SAFE_DELETE(pDecArrValue);
 					return false;
 				}
 			}
@@ -2162,73 +2114,45 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// If Init Code present, add to code part, only if not typedef
 		if(pDecInit && bGenerateImpCode && bDefineOnly==false)
 		{
-			// Create New Init Object
-			CParseInit* pInit = new CParseInit;
+			// Create New Init Object (RAII: owned until handed to TheObject)
+			std::unique_ptr<CParseInit> pInit(new CParseInit);
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			pInit->SetLineNumber(StatementLineNumber);
 
 			// Math Name is actual (as it can be userfunction local var)
-			CMathOp* pMathOp = new CMathOp;
+			std::unique_ptr<CMathOp> pMathOp(new CMathOp);
 
-			// Var name
-			CStr* pVarInitName = NULL;
-			if(dwDecArr==1)
-			{
-				pVarInitName = new CStr("&");
-				pVarInitName->AddText(pDecName);
-			}
-			else
-				pVarInitName = new CStr(pDecName);
+			// Var name (stack CStr: RAII on every exit path)
+			CStr varInitName(dwDecArr==1 ? "&" : "");
+			varInitName.AddText(pDecName.get());
 
-			if(pMathOp->DoValue(pVarInitName)==false)
+			if(pMathOp->DoValue(&varInitName)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoValue(pVarInitName)'");
-				SAFE_DELETE(pInit);
-				SAFE_DELETE(pMathOp);
-				SAFE_DELETE(pVarInitName);
-				SAFE_DELETE(pDecArrValue);
-				SAFE_DELETE(pDecName);
-				SAFE_DELETE_ARRAY(pDecType);
-				SAFE_DELETE(pDecInit);
-				SAFE_DELETE(pString);
-				SAFE_DELETE(pDecArrValue);
 				return false;
 			}
-			pInit->SetVariableNameMathOp(pMathOp);
-			SAFE_DELETE(pVarInitName);
+			pInit->SetVariableNameMathOp(pMathOp.release());
 			
 			// Can be initialised by a string of parameters
-			CStatement* pStatement = new CStatement;
+			std::unique_ptr<CStatement> pStatement(new CStatement);
 			CParameter* pFirstParameter = NULL;
-			CStr* pVarInitData = new CStr(pDecInit);
-			if(pVarInitData->Length()>0)
+			CStr varInitData(pDecInit.get());
+			if(varInitData.Length()>0)
 			{
-				if(pStatement->DoParameterListString(pVarInitData, &pFirstParameter)==false)
+				if(pStatement->DoParameterListString(&varInitData, &pFirstParameter)==false)
 				{
 					g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoParameterListString'");
-					SAFE_DELETE(pVarInitData);
 					SAFE_DELETE(pFirstParameter);
-					SAFE_DELETE(pStatement);
-					SAFE_DELETE(pInit);
-//					SAFE_DELETE(pMathOp); crashed
-					SAFE_DELETE(pVarInitName);
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pDecName);
-					SAFE_DELETE_ARRAY(pDecType);
-					SAFE_DELETE(pDecInit);
-					SAFE_DELETE(pString);
-					SAFE_DELETE(pDecArrValue);
 					return false;
 				}
 			}
-			SAFE_DELETE(pStatement);
-			SAFE_DELETE(pVarInitData);
+			pStatement.reset();
 
 			// Assign param chain to init object
 			pInit->SetVariableParamList(pFirstParameter);
 
 			// Ensure all init data items are compatable with var type
-			DWORD dwVarType=g_pVarTable->GetBasicTypeValue(pDecType);
+			DWORD dwVarType=g_pVarTable->GetBasicTypeValue(pDecType.get());
 			CParameter* pCurrent = pFirstParameter;
 			while(pCurrent)
 			{
@@ -2271,40 +2195,26 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 				if(bDataItemTypeIsOk)
 				{
 					// Even if correct category, init data must be forced to type of variable
-					CStr* pStr = new CStr(pItemString);
-					pCurrent->GetMathItem()->SetResult(pStr->GetStr(), dwVarType, 0);
-					SAFE_DELETE(pStr);
+					CStr resultStr(pItemString);
+					pCurrent->GetMathItem()->SetResult(resultStr.GetStr(), dwVarType, 0);
 				}
 				else
 				{
 					DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+27, pItemString);
-					SAFE_DELETE(pVarInitData);
-					SAFE_DELETE(pInit);
-					SAFE_DELETE(pVarInitName);
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pDecName);
-					SAFE_DELETE_ARRAY(pDecType);
-					SAFE_DELETE(pDecInit);
-					SAFE_DELETE(pString);
-					SAFE_DELETE(pDecArrValue);
 					return false;
 				}
 				pCurrent=pCurrent->GetNext();
 			}
 
-			// Add The Object To This Statement
+			// Add The Object To This Statement (ownership of pInit transfers)
 			CStatement *TheObject = new CStatement();
-			TheObject->SetObject(pInit);
+			TheObject->SetObject(pInit.release());
 			TheObject->SetLineAndCharPos(StatementLineNumber);
 			this->Add(TheObject);
 		}
 
-		// Release memory usage
-		SAFE_DELETE(pDecArrValue);
-		SAFE_DELETE(pDecName);
-		SAFE_DELETE_ARRAY(pDecType);
-		SAFE_DELETE(pDecInit);
+		// Per-iteration RAII owners release automatically here
 	}
 
 	// leefix - 240604 - u54 - END in TYPE struct, invalid!
@@ -2315,13 +2225,9 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		{
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+61);
-			SAFE_DELETE(pString);
 			return false;
 		}
 	}
-
-	// Free memory usage
-	SAFE_DELETE(pString);
 
 	// lee - 270206 - u60 - Check for ENDTYPE
 	if ( dwTerminatorType==ENDTYPETK && dwToken!=ENDTYPETK )
