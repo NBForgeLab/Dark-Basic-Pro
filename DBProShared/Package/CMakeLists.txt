@@ -3,6 +3,7 @@ add_library(dbp_package STATIC
     src/ByteCodec.cpp
     src/CngCryptoProvider.cpp
     src/KeyProvider.cpp
+    src/LegacyPckReader.cpp
     src/PackageFormat.cpp
     src/PackagePath.cpp
     src/PackageReader.cpp

@@ -53,6 +53,7 @@ add_executable(dbp_tests
     test_package_keys.cpp
     test_package_writer.cpp
     test_package_reader.cpp
+    test_legacy_pck_reader.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
@@ -73,7 +74,10 @@ target_link_libraries(dbp_tests PRIVATE
     xinput
 )
 
-target_compile_definitions(dbp_tests PRIVATE DBP_TESTS_COMPILATION)
+target_compile_definitions(dbp_tests PRIVATE
+    DBP_TESTS_COMPILATION
+    DBP_TEST_SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
+)
 
 target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompiler"
