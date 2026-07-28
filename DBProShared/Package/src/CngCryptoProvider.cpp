@@ -21,6 +21,7 @@ namespace {
 constexpr std::size_t sha256Size = 32;
 constexpr std::size_t aes256KeySize = 32;
 constexpr std::size_t gcmTagSize = 16;
+constexpr std::size_t streamBufferSize = 1024U * 1024U;
 
 bool NtSucceeded(const NTSTATUS status) noexcept {
     return status >= 0;
@@ -50,6 +51,14 @@ PackageError AuthenticationError() {
 PackageError CryptoInputError(std::string message) {
     return {
         PackageErrorCode::CryptographyFailed,
+        std::move(message),
+        std::nullopt,
+    };
+}
+
+PackageError CryptoStreamError(std::string message) {
+    return {
+        PackageErrorCode::IoFailed,
         std::move(message),
         std::nullopt,
     };
@@ -241,6 +250,107 @@ PackageResult<Sha256Digest> ComputeSha256(
     return PackageResult<Sha256Digest>::Success(digest);
 }
 
+PackageResult<HashStreamResult> ComputeSha256Stream(
+    std::istream& input,
+    const std::uint64_t expectedSize) {
+    AlgorithmHandle algorithm;
+    NTSTATUS status = BCryptOpenAlgorithmProvider(
+        algorithm.out(),
+        BCRYPT_SHA256_ALGORITHM,
+        nullptr,
+        0);
+    if (!NtSucceeded(status)) {
+        return PackageResult<HashStreamResult>::Failure(
+            CryptoError("BCryptOpenAlgorithmProvider(SHA-256)", status));
+    }
+
+    const auto objectSize =
+        GetDwordProperty(algorithm.get(), BCRYPT_OBJECT_LENGTH);
+    if (!objectSize) {
+        return PackageResult<HashStreamResult>::Failure(
+            objectSize.error());
+    }
+    const auto hashSize =
+        GetDwordProperty(algorithm.get(), BCRYPT_HASH_LENGTH);
+    if (!hashSize) {
+        return PackageResult<HashStreamResult>::Failure(
+            hashSize.error());
+    }
+    if (hashSize.value() != sha256Size) {
+        return PackageResult<HashStreamResult>::Failure(
+            CryptoInputError(
+                "CNG SHA-256 provider returned an invalid digest size."));
+    }
+
+    auto hashObject = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(objectSize.value()));
+    HashHandle hash;
+    status = BCryptCreateHash(
+        algorithm.get(),
+        hash.out(),
+        hashObject.data(),
+        static_cast<ULONG>(hashObject.size()),
+        nullptr,
+        0,
+        0);
+    if (!NtSucceeded(status)) {
+        return PackageResult<HashStreamResult>::Failure(
+            CryptoError("BCryptCreateHash", status));
+    }
+
+    auto inputBuffer = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(streamBufferSize));
+    HashStreamResult result;
+    while (true) {
+        input.read(
+            reinterpret_cast<char*>(inputBuffer.data()),
+            static_cast<std::streamsize>(inputBuffer.size()));
+        const auto bytesRead = input.gcount();
+        if (bytesRead < 0 || input.bad() ||
+            (input.fail() && !input.eof())) {
+            return PackageResult<HashStreamResult>::Failure(
+                CryptoStreamError("Reading SHA-256 input failed."));
+        }
+        if (bytesRead == 0) {
+            break;
+        }
+
+        const auto count = static_cast<std::uint64_t>(bytesRead);
+        if (result.inputSize > expectedSize ||
+            count > expectedSize - result.inputSize) {
+            return PackageResult<HashStreamResult>::Failure(
+                CryptoStreamError(
+                    "SHA-256 input size does not match its declaration."));
+        }
+        status = BCryptHashData(
+            hash.get(),
+            inputBuffer.data(),
+            static_cast<ULONG>(bytesRead),
+            0);
+        if (!NtSucceeded(status)) {
+            return PackageResult<HashStreamResult>::Failure(
+                CryptoError("BCryptHashData", status));
+        }
+        result.inputSize += count;
+    }
+    if (!input.eof() || result.inputSize != expectedSize) {
+        return PackageResult<HashStreamResult>::Failure(
+            CryptoStreamError(
+                "SHA-256 input size does not match its declaration."));
+    }
+
+    status = BCryptFinishHash(
+        hash.get(),
+        result.digest.data(),
+        static_cast<ULONG>(result.digest.size()),
+        0);
+    if (!NtSucceeded(status)) {
+        return PackageResult<HashStreamResult>::Failure(
+            CryptoError("BCryptFinishHash", status));
+    }
+    return PackageResult<HashStreamResult>::Success(result);
+}
+
 PackageResult<KeyHandle> CreateAesKey(
     AlgorithmHandle& algorithm,
     SecureBuffer& keyObject,
@@ -332,6 +442,12 @@ PackageResult<void*> ValidateAeadInputSizes(
 PackageResult<Sha256Digest> CngCryptoProvider::Sha256(
     const std::vector<std::uint8_t>& input) const {
     return ComputeSha256(input, nullptr);
+}
+
+PackageResult<HashStreamResult> CngCryptoProvider::Sha256Stream(
+    std::istream& input,
+    const std::uint64_t expectedSize) const {
+    return ComputeSha256Stream(input, expectedSize);
 }
 
 PackageResult<Sha256Digest> CngCryptoProvider::HmacSha256(
@@ -459,6 +575,184 @@ PackageResult<AeadCiphertext> CngCryptoProvider::Aes256GcmEncrypt(
             CryptoError("BCryptEncrypt(AES-256-GCM)", status));
     }
     return PackageResult<AeadCiphertext>::Success(std::move(output));
+}
+
+PackageResult<AeadEncryptStreamResult>
+CngCryptoProvider::Aes256GcmEncryptStream(
+    const SecureBuffer& key,
+    const AesGcmNonce& nonce,
+    std::istream& input,
+    std::ostream& output,
+    const std::vector<std::uint8_t>& additionalData,
+    const std::uint64_t expectedPlaintextSize) const {
+    if (!FitsCngSize(additionalData.size())) {
+        return PackageResult<AeadEncryptStreamResult>::Failure(
+            CryptoInputError(
+                "AES-GCM additional data exceeds the CNG size limit."));
+    }
+
+    AlgorithmHandle algorithm;
+    SecureBuffer keyObject;
+    auto generatedKey = CreateAesKey(algorithm, keyObject, key);
+    if (!generatedKey) {
+        return PackageResult<AeadEncryptStreamResult>::Failure(
+            generatedKey.error());
+    }
+
+    AeadEncryptStreamResult result;
+    auto macContext = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(gcmTagSize));
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authenticationInfo;
+    BCRYPT_INIT_AUTH_MODE_INFO(authenticationInfo);
+    authenticationInfo.pbNonce =
+        const_cast<PUCHAR>(nonce.data());
+    authenticationInfo.cbNonce =
+        static_cast<ULONG>(nonce.size());
+    authenticationInfo.pbAuthData = MutableBytes(additionalData);
+    authenticationInfo.cbAuthData =
+        static_cast<ULONG>(additionalData.size());
+    authenticationInfo.pbTag = result.tag.data();
+    authenticationInfo.cbTag =
+        static_cast<ULONG>(result.tag.size());
+    authenticationInfo.pbMacContext = macContext.data();
+    authenticationInfo.cbMacContext =
+        static_cast<ULONG>(macContext.size());
+
+    if (expectedPlaintextSize == 0) {
+        char unexpected = 0;
+        input.read(&unexpected, 1);
+        if (input.gcount() != 0 || !input.eof()) {
+            return PackageResult<AeadEncryptStreamResult>::Failure(
+                CryptoStreamError(
+                    "AES-GCM input size does not match its declaration."));
+        }
+        authenticationInfo.pbMacContext = nullptr;
+        authenticationInfo.cbMacContext = 0;
+        ULONG bytesWritten = 0;
+        const NTSTATUS status = BCryptEncrypt(
+            generatedKey.value().get(),
+            nullptr,
+            0,
+            &authenticationInfo,
+            nullptr,
+            0,
+            nullptr,
+            0,
+            &bytesWritten,
+            0);
+        if (!NtSucceeded(status) || bytesWritten != 0) {
+            return PackageResult<AeadEncryptStreamResult>::Failure(
+                CryptoError("BCryptEncrypt(AES-256-GCM)", status));
+        }
+        return PackageResult<AeadEncryptStreamResult>::Success(result);
+    }
+
+    auto inputBuffer = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(streamBufferSize));
+    std::vector<std::uint8_t> outputBuffer(streamBufferSize);
+    const auto blockSize =
+        GetDwordProperty(algorithm.get(), BCRYPT_BLOCK_LENGTH);
+    if (!blockSize || blockSize.value() == 0) {
+        return PackageResult<AeadEncryptStreamResult>::Failure(
+            blockSize
+                ? CryptoInputError(
+                    "CNG AES provider returned an invalid block size.")
+                : blockSize.error());
+    }
+    auto chainingIv = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(blockSize.value()));
+    bool hasChainedCall = false;
+    while (true) {
+        input.read(
+            reinterpret_cast<char*>(inputBuffer.data()),
+            static_cast<std::streamsize>(inputBuffer.size()));
+        const auto bytesRead = input.gcount();
+        if (bytesRead < 0 || input.bad() ||
+            (input.fail() && !input.eof())) {
+            return PackageResult<AeadEncryptStreamResult>::Failure(
+                CryptoStreamError("Reading AES-GCM input failed."));
+        }
+        if (bytesRead == 0) {
+            break;
+        }
+
+        const auto count = static_cast<std::uint64_t>(bytesRead);
+        if (result.inputSize > expectedPlaintextSize ||
+            count > expectedPlaintextSize - result.inputSize) {
+            return PackageResult<AeadEncryptStreamResult>::Failure(
+                CryptoStreamError(
+                    "AES-GCM input size does not match its declaration."));
+        }
+        const bool isFinalChunk =
+            count == expectedPlaintextSize - result.inputSize;
+        if (isFinalChunk) {
+            const auto next = input.peek();
+            if (next != std::char_traits<char>::eof()) {
+                return PackageResult<AeadEncryptStreamResult>::Failure(
+                    CryptoStreamError(
+                        "AES-GCM input size does not match its declaration."));
+            }
+            if (!input.eof()) {
+                return PackageResult<AeadEncryptStreamResult>::Failure(
+                    CryptoStreamError("Reading AES-GCM input failed."));
+            }
+            authenticationInfo.dwFlags &=
+                ~BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG;
+            if (!hasChainedCall) {
+                authenticationInfo.pbMacContext = nullptr;
+                authenticationInfo.cbMacContext = 0;
+            }
+        } else {
+            authenticationInfo.dwFlags |=
+                BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG;
+        }
+
+        ULONG bytesWritten = 0;
+        const NTSTATUS status = BCryptEncrypt(
+            generatedKey.value().get(),
+            inputBuffer.data(),
+            static_cast<ULONG>(bytesRead),
+            &authenticationInfo,
+            chainingIv.data(),
+            static_cast<ULONG>(chainingIv.size()),
+            outputBuffer.data(),
+            static_cast<ULONG>(outputBuffer.size()),
+            &bytesWritten,
+            0);
+        if (!NtSucceeded(status) ||
+            bytesWritten != static_cast<ULONG>(bytesRead)) {
+            return PackageResult<AeadEncryptStreamResult>::Failure(
+                CryptoError(
+                    isFinalChunk
+                        ? "BCryptEncrypt(AES-256-GCM final chunk)"
+                        : "BCryptEncrypt(AES-256-GCM chained chunk)",
+                    status));
+        }
+        output.write(
+            reinterpret_cast<const char*>(outputBuffer.data()),
+            static_cast<std::streamsize>(bytesWritten));
+        if (!output) {
+            return PackageResult<AeadEncryptStreamResult>::Failure(
+                CryptoStreamError("Writing AES-GCM output failed."));
+        }
+
+        result.inputSize += count;
+        result.outputSize += bytesWritten;
+        authenticationInfo.pbAuthData = nullptr;
+        authenticationInfo.cbAuthData = 0;
+        if (isFinalChunk) {
+            output.flush();
+            if (!output) {
+                return PackageResult<AeadEncryptStreamResult>::Failure(
+                    CryptoStreamError("Flushing AES-GCM output failed."));
+            }
+            return PackageResult<AeadEncryptStreamResult>::Success(result);
+        }
+        hasChainedCall = true;
+    }
+    return PackageResult<AeadEncryptStreamResult>::Failure(
+        CryptoStreamError(
+            "AES-GCM input size does not match its declaration."));
 }
 
 PackageResult<std::vector<std::uint8_t>>

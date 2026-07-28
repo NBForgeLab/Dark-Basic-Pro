@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -13,6 +14,7 @@
 namespace {
 
 using dbp::package::AeadCiphertext;
+using dbp::package::AesGcmNonce;
 using dbp::package::CngCryptoProvider;
 using dbp::package::SecureBuffer;
 
@@ -156,6 +158,122 @@ void ObservingSecureErase(void* memory, const std::size_t size) noexcept {
         std::all_of(bytes, bytes + size, [](const std::uint8_t byte) {
             return byte == 0;
         });
+}
+
+TEST(PackageCryptoTest, StreamsSha256AcrossBoundedBuffers) {
+    CngCryptoProvider crypto;
+    std::string inputBytes;
+    inputBytes.reserve(3 * 1024 * 1024);
+    for (std::size_t index = 0; index < 3 * 1024 * 1024; ++index) {
+        inputBytes.push_back(static_cast<char>(index % 251));
+    }
+    std::istringstream input(
+        inputBytes,
+        std::ios::in | std::ios::binary);
+    const auto expected = crypto.Sha256(std::vector<std::uint8_t>(
+        inputBytes.begin(),
+        inputBytes.end()));
+    ASSERT_TRUE(expected);
+
+    const auto streamed =
+        crypto.Sha256Stream(input, inputBytes.size());
+
+    ASSERT_TRUE(streamed) << streamed.error().message;
+    EXPECT_EQ(streamed.value().digest, expected.value());
+    EXPECT_EQ(streamed.value().inputSize, inputBytes.size());
+}
+
+TEST(PackageCryptoTest, StreamingAesGcmMatchesOneShotEncryption) {
+    CngCryptoProvider crypto;
+    const auto key = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(32, 0x5C));
+    const auto nonce = ArrayFromHex<12>(
+        "000102030405060708090a0b");
+    const std::vector<std::uint8_t> additionalData{
+        's', 't', 'r', 'e', 'a', 'm', '-', 'a', 'a', 'd',
+    };
+    std::string plaintext;
+    plaintext.reserve(2 * 1024 * 1024 + 17);
+    for (std::size_t index = 0; index < 2 * 1024 * 1024 + 17; ++index) {
+        plaintext.push_back(static_cast<char>(index % 239));
+    }
+    const std::vector<std::uint8_t> plaintextBytes(
+        plaintext.begin(),
+        plaintext.end());
+    const auto expected = crypto.Aes256GcmEncrypt(
+        key,
+        nonce,
+        plaintextBytes,
+        additionalData);
+    ASSERT_TRUE(expected);
+
+    std::istringstream input(
+        plaintext,
+        std::ios::in | std::ios::binary);
+    std::ostringstream output(
+        std::ios::out | std::ios::binary);
+    const auto streamed = crypto.Aes256GcmEncryptStream(
+        key,
+        nonce,
+        input,
+        output,
+        additionalData,
+        plaintext.size());
+
+    ASSERT_TRUE(streamed) << streamed.error().message;
+    const auto ciphertext = output.str();
+    EXPECT_EQ(
+        std::vector<std::uint8_t>(
+            ciphertext.begin(),
+            ciphertext.end()),
+        expected.value().ciphertext);
+    EXPECT_EQ(streamed.value().tag, expected.value().tag);
+    EXPECT_EQ(streamed.value().inputSize, plaintext.size());
+    EXPECT_EQ(streamed.value().outputSize, plaintext.size());
+}
+
+TEST(PackageCryptoTest, StreamingAesGcmHandlesEmptyInputAndSizeMismatch) {
+    CngCryptoProvider crypto;
+    const auto key = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(32, 0x17));
+    const AesGcmNonce nonce{};
+    const std::vector<std::uint8_t> additionalData{'a', 'a', 'd'};
+    std::istringstream emptyInput(
+        std::string{},
+        std::ios::in | std::ios::binary);
+    std::ostringstream output(
+        std::ios::out | std::ios::binary);
+
+    const auto empty = crypto.Aes256GcmEncryptStream(
+        key,
+        nonce,
+        emptyInput,
+        output,
+        additionalData,
+        0);
+
+    ASSERT_TRUE(empty) << empty.error().message;
+    const auto expected = crypto.Aes256GcmEncrypt(
+        key,
+        nonce,
+        {},
+        additionalData);
+    ASSERT_TRUE(expected);
+    EXPECT_EQ(empty.value().tag, expected.value().tag);
+    EXPECT_TRUE(output.str().empty());
+
+    std::istringstream shortInput(
+        std::string{"short"},
+        std::ios::in | std::ios::binary);
+    std::ostringstream ignored(
+        std::ios::out | std::ios::binary);
+    EXPECT_FALSE(crypto.Aes256GcmEncryptStream(
+        key,
+        nonce,
+        shortInput,
+        ignored,
+        additionalData,
+        6));
 }
 
 TEST(PackageCryptoTest, SecureBufferIsMoveOnlyAndErasesOwnedBytes) {
