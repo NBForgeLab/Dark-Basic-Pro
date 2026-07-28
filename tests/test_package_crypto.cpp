@@ -16,6 +16,7 @@ namespace {
 using dbp::package::AeadCiphertext;
 using dbp::package::AesGcmNonce;
 using dbp::package::CngCryptoProvider;
+using dbp::package::PackageErrorCode;
 using dbp::package::SecureBuffer;
 
 std::vector<std::uint8_t> Hex(const std::string& text) {
@@ -274,6 +275,72 @@ TEST(PackageCryptoTest, StreamingAesGcmHandlesEmptyInputAndSizeMismatch) {
         ignored,
         additionalData,
         6));
+}
+
+TEST(PackageCryptoTest, StreamingAesGcmDecryptsAndAuthenticatesAtFinalChunk) {
+    CngCryptoProvider crypto;
+    const auto key = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(32, 0xA7));
+    const auto nonce = ArrayFromHex<12>(
+        "101112131415161718191a1b");
+    const std::vector<std::uint8_t> additionalData{
+        'd', 'e', 'c', 'r', 'y', 'p', 't', '-', 'a', 'a', 'd',
+    };
+    std::string plaintext;
+    plaintext.reserve(2 * 1024 * 1024 + 29);
+    for (std::size_t index = 0; index < 2 * 1024 * 1024 + 29; ++index) {
+        plaintext.push_back(static_cast<char>(index % 233));
+    }
+    const auto encrypted = crypto.Aes256GcmEncrypt(
+        key,
+        nonce,
+        std::vector<std::uint8_t>(
+            plaintext.begin(),
+            plaintext.end()),
+        additionalData);
+    ASSERT_TRUE(encrypted);
+    const std::string ciphertext(
+        encrypted.value().ciphertext.begin(),
+        encrypted.value().ciphertext.end());
+    std::istringstream input(
+        ciphertext,
+        std::ios::in | std::ios::binary);
+    std::ostringstream output(
+        std::ios::out | std::ios::binary);
+
+    const auto decrypted = crypto.Aes256GcmDecryptStream(
+        key,
+        nonce,
+        input,
+        output,
+        additionalData,
+        encrypted.value().tag,
+        ciphertext.size());
+
+    ASSERT_TRUE(decrypted) << decrypted.error().message;
+    EXPECT_EQ(output.str(), plaintext);
+    EXPECT_EQ(decrypted.value().inputSize, ciphertext.size());
+    EXPECT_EQ(decrypted.value().outputSize, plaintext.size());
+
+    auto wrongTag = encrypted.value().tag;
+    wrongTag.back() ^= 1;
+    std::istringstream tamperedInput(
+        ciphertext,
+        std::ios::in | std::ios::binary);
+    std::ostringstream privateOutput(
+        std::ios::out | std::ios::binary);
+    const auto rejected = crypto.Aes256GcmDecryptStream(
+        key,
+        nonce,
+        tamperedInput,
+        privateOutput,
+        additionalData,
+        wrongTag,
+        ciphertext.size());
+    ASSERT_FALSE(rejected);
+    EXPECT_EQ(
+        rejected.error().code,
+        PackageErrorCode::AuthenticationFailed);
 }
 
 TEST(PackageCryptoTest, SecureBufferIsMoveOnlyAndErasesOwnedBytes) {

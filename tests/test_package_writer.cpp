@@ -154,6 +154,23 @@ public:
             additionalData,
             tag);
     }
+    PackageResult<AeadDecryptStreamResult> Aes256GcmDecryptStream(
+        const SecureBuffer& key,
+        const AesGcmNonce& nonce,
+        std::istream& input,
+        std::ostream& privateOutput,
+        const std::vector<std::uint8_t>& additionalData,
+        const AesGcmTag& tag,
+        const std::uint64_t expectedCiphertextSize) const override {
+        return delegate_.Aes256GcmDecryptStream(
+            key,
+            nonce,
+            input,
+            privateOutput,
+            additionalData,
+            tag,
+            expectedCiphertextSize);
+    }
     PackageResult<std::vector<std::uint8_t>> RandomBytes(
         const std::size_t size) const override {
         if (nextRandom_ >= randomValues_.size() ||

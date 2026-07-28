@@ -32,6 +32,11 @@ struct AeadEncryptStreamResult {
     std::uint64_t outputSize = 0;
 };
 
+struct AeadDecryptStreamResult {
+    std::uint64_t inputSize = 0;
+    std::uint64_t outputSize = 0;
+};
+
 class CryptoProvider {
 public:
     virtual ~CryptoProvider() = default;
@@ -67,6 +72,14 @@ public:
         const std::vector<std::uint8_t>& ciphertext,
         const std::vector<std::uint8_t>& additionalData,
         const AesGcmTag& tag) const = 0;
+    virtual PackageResult<AeadDecryptStreamResult> Aes256GcmDecryptStream(
+        const SecureBuffer& key,
+        const AesGcmNonce& nonce,
+        std::istream& input,
+        std::ostream& privateOutput,
+        const std::vector<std::uint8_t>& additionalData,
+        const AesGcmTag& tag,
+        std::uint64_t expectedCiphertextSize) const = 0;
     virtual PackageResult<std::vector<std::uint8_t>> RandomBytes(
         std::size_t size) const = 0;
 };
@@ -104,6 +117,14 @@ public:
         const std::vector<std::uint8_t>& ciphertext,
         const std::vector<std::uint8_t>& additionalData,
         const AesGcmTag& tag) const override;
+    PackageResult<AeadDecryptStreamResult> Aes256GcmDecryptStream(
+        const SecureBuffer& key,
+        const AesGcmNonce& nonce,
+        std::istream& input,
+        std::ostream& privateOutput,
+        const std::vector<std::uint8_t>& additionalData,
+        const AesGcmTag& tag,
+        std::uint64_t expectedCiphertextSize) const override;
     PackageResult<std::vector<std::uint8_t>> RandomBytes(
         std::size_t size) const override;
 };

@@ -5,6 +5,7 @@ add_library(dbp_package STATIC
     src/KeyProvider.cpp
     src/PackageFormat.cpp
     src/PackagePath.cpp
+    src/PackageReader.cpp
     src/PackageWriter.cpp
     src/SecureBuffer.cpp
     src/ZstdCompressionCodec.cpp

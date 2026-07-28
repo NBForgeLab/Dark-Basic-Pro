@@ -815,6 +815,175 @@ CngCryptoProvider::Aes256GcmDecrypt(
         std::move(plaintext));
 }
 
+PackageResult<AeadDecryptStreamResult>
+CngCryptoProvider::Aes256GcmDecryptStream(
+    const SecureBuffer& key,
+    const AesGcmNonce& nonce,
+    std::istream& input,
+    std::ostream& privateOutput,
+    const std::vector<std::uint8_t>& additionalData,
+    const AesGcmTag& tag,
+    const std::uint64_t expectedCiphertextSize) const {
+    if (!FitsCngSize(additionalData.size())) {
+        return PackageResult<AeadDecryptStreamResult>::Failure(
+            AuthenticationError());
+    }
+
+    AlgorithmHandle algorithm;
+    SecureBuffer keyObject;
+    auto generatedKey = CreateAesKey(algorithm, keyObject, key);
+    if (!generatedKey) {
+        return PackageResult<AeadDecryptStreamResult>::Failure(
+            generatedKey.error());
+    }
+
+    AeadDecryptStreamResult result;
+    auto mutableTag = tag;
+    auto macContext = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(gcmTagSize));
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authenticationInfo;
+    BCRYPT_INIT_AUTH_MODE_INFO(authenticationInfo);
+    authenticationInfo.pbNonce =
+        const_cast<PUCHAR>(nonce.data());
+    authenticationInfo.cbNonce =
+        static_cast<ULONG>(nonce.size());
+    authenticationInfo.pbAuthData = MutableBytes(additionalData);
+    authenticationInfo.cbAuthData =
+        static_cast<ULONG>(additionalData.size());
+    authenticationInfo.pbTag = mutableTag.data();
+    authenticationInfo.cbTag =
+        static_cast<ULONG>(mutableTag.size());
+    authenticationInfo.pbMacContext = macContext.data();
+    authenticationInfo.cbMacContext =
+        static_cast<ULONG>(macContext.size());
+
+    if (expectedCiphertextSize == 0) {
+        char unexpected = 0;
+        input.read(&unexpected, 1);
+        if (input.gcount() != 0 || !input.eof()) {
+            return PackageResult<AeadDecryptStreamResult>::Failure(
+                AuthenticationError());
+        }
+        authenticationInfo.pbMacContext = nullptr;
+        authenticationInfo.cbMacContext = 0;
+        ULONG bytesWritten = 0;
+        const NTSTATUS status = BCryptDecrypt(
+            generatedKey.value().get(),
+            nullptr,
+            0,
+            &authenticationInfo,
+            nullptr,
+            0,
+            nullptr,
+            0,
+            &bytesWritten,
+            0);
+        if (!NtSucceeded(status) || bytesWritten != 0) {
+            return PackageResult<AeadDecryptStreamResult>::Failure(
+                AuthenticationError());
+        }
+        return PackageResult<AeadDecryptStreamResult>::Success(result);
+    }
+
+    std::vector<std::uint8_t> inputBuffer(streamBufferSize);
+    auto outputBuffer = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(streamBufferSize));
+    const auto blockSize =
+        GetDwordProperty(algorithm.get(), BCRYPT_BLOCK_LENGTH);
+    if (!blockSize || blockSize.value() == 0) {
+        return PackageResult<AeadDecryptStreamResult>::Failure(
+            blockSize
+                ? AuthenticationError()
+                : blockSize.error());
+    }
+    auto chainingIv = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(blockSize.value()));
+    bool hasChainedCall = false;
+    while (true) {
+        input.read(
+            reinterpret_cast<char*>(inputBuffer.data()),
+            static_cast<std::streamsize>(inputBuffer.size()));
+        const auto bytesRead = input.gcount();
+        if (bytesRead < 0 || input.bad() ||
+            (input.fail() && !input.eof())) {
+            return PackageResult<AeadDecryptStreamResult>::Failure(
+                CryptoStreamError("Reading AES-GCM ciphertext failed."));
+        }
+        if (bytesRead == 0) {
+            break;
+        }
+
+        const auto count = static_cast<std::uint64_t>(bytesRead);
+        if (result.inputSize > expectedCiphertextSize ||
+            count > expectedCiphertextSize - result.inputSize) {
+            return PackageResult<AeadDecryptStreamResult>::Failure(
+                AuthenticationError());
+        }
+        const bool isFinalChunk =
+            count == expectedCiphertextSize - result.inputSize;
+        if (isFinalChunk) {
+            const auto next = input.peek();
+            if (next != std::char_traits<char>::eof() ||
+                !input.eof()) {
+                return PackageResult<AeadDecryptStreamResult>::Failure(
+                    AuthenticationError());
+            }
+            authenticationInfo.dwFlags &=
+                ~BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG;
+            if (!hasChainedCall) {
+                authenticationInfo.pbMacContext = nullptr;
+                authenticationInfo.cbMacContext = 0;
+            }
+        } else {
+            authenticationInfo.dwFlags |=
+                BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG;
+        }
+
+        ULONG bytesWritten = 0;
+        const NTSTATUS status = BCryptDecrypt(
+            generatedKey.value().get(),
+            inputBuffer.data(),
+            static_cast<ULONG>(bytesRead),
+            &authenticationInfo,
+            chainingIv.data(),
+            static_cast<ULONG>(chainingIv.size()),
+            outputBuffer.data(),
+            static_cast<ULONG>(outputBuffer.size()),
+            &bytesWritten,
+            0);
+        if (!NtSucceeded(status) ||
+            bytesWritten != static_cast<ULONG>(bytesRead)) {
+            return PackageResult<AeadDecryptStreamResult>::Failure(
+                AuthenticationError());
+        }
+        privateOutput.write(
+            reinterpret_cast<const char*>(outputBuffer.data()),
+            static_cast<std::streamsize>(bytesWritten));
+        if (!privateOutput) {
+            return PackageResult<AeadDecryptStreamResult>::Failure(
+                CryptoStreamError(
+                    "Writing private AES-GCM plaintext failed."));
+        }
+
+        result.inputSize += count;
+        result.outputSize += bytesWritten;
+        authenticationInfo.pbAuthData = nullptr;
+        authenticationInfo.cbAuthData = 0;
+        if (isFinalChunk) {
+            privateOutput.flush();
+            if (!privateOutput) {
+                return PackageResult<AeadDecryptStreamResult>::Failure(
+                    CryptoStreamError(
+                        "Flushing private AES-GCM plaintext failed."));
+            }
+            return PackageResult<AeadDecryptStreamResult>::Success(result);
+        }
+        hasChainedCall = true;
+    }
+    return PackageResult<AeadDecryptStreamResult>::Failure(
+        AuthenticationError());
+}
+
 PackageResult<std::vector<std::uint8_t>> CngCryptoProvider::RandomBytes(
     const std::size_t size) const {
     if (!FitsCngSize(size)) {
