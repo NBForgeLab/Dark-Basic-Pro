@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 namespace dbp::package {
 
@@ -37,6 +38,8 @@ public:
     PackageResult<bool> ExtractEntry(
         std::string_view packagePath,
         const std::filesystem::path& destination) const;
+    PackageResult<std::shared_ptr<const std::vector<std::uint8_t>>>
+    ReadEntry(std::string_view packagePath) const;
 
 private:
     PackageReader(

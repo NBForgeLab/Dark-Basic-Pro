@@ -55,6 +55,7 @@ add_executable(dbp_tests
     test_package_reader.cpp
     test_legacy_pck_reader.cpp
     test_package_runtime_metadata.cpp
+    test_package_mount.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"

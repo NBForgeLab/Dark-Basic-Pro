@@ -6,7 +6,9 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #pragma warning(disable : 4996)
 #include "FileReader.h"
+#include <cstdint>
 #include <filesystem>
+#include <vector>
 #include "../DBPCompiler/TextConvert.h"
 #include "../DBPCompiler/VFSHooks.h"
 #include "direct.h"
@@ -214,7 +216,11 @@ bool CFileReader::CreateVirtualFileTable(LPSTR pPCKFilename)
 		else
 		{
 			// Executable PCK unpacked files can go different places
-			VFSRegistry::Register(filename, pPtr, DataSize);
+			VFSRegistry::RegisterOwned(
+				filename,
+				std::vector<std::uint8_t>(
+					reinterpret_cast<const std::uint8_t*>(pPtr),
+					reinterpret_cast<const std::uint8_t*>(pPtr) + DataSize));
 			pPtr+=DataSize;
 		}
 

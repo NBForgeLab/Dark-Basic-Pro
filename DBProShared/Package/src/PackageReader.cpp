@@ -557,4 +557,122 @@ PackageResult<bool> PackageReader::ExtractEntry(
     return PackageResult<bool>::Success(true);
 }
 
+PackageResult<std::shared_ptr<const std::vector<std::uint8_t>>>
+PackageReader::ReadEntry(const std::string_view packagePath) const {
+    const auto normalized =
+        NormalizePackageInputPath(packagePath);
+    if (!normalized) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                normalized.error());
+    }
+    const auto record = std::lower_bound(
+        manifest_.records.begin(),
+        manifest_.records.end(),
+        normalized.value(),
+        [](const ManifestRecord& candidate,
+           const std::string& path) {
+            return candidate.path < path;
+        });
+    if (record == manifest_.records.end() ||
+        record->path != normalized.value()) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                FormatError(
+                    "The requested package entry does not exist."));
+    }
+    if (record->storedSize >
+            (std::numeric_limits<std::size_t>::max)() ||
+        record->plaintextSize >
+            (std::numeric_limits<std::size_t>::max)()) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                ReaderError(
+                    PackageErrorCode::LimitExceeded,
+                    "The package entry is too large for an in-memory "
+                    "read on this process architecture."));
+    }
+
+    std::ifstream input(packagePath_, std::ios::binary);
+    if (!input) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                IoError("Opening the package payload failed."));
+    }
+    const auto ciphertext = ReadExtent(
+        input,
+        header_.payloadOffset + record->payloadOffset,
+        static_cast<std::size_t>(record->storedSize));
+    if (!ciphertext) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                ciphertext.error());
+    }
+    PackageKeyDeriver deriver(crypto_);
+    const auto entryKey = deriver.DeriveEntryKey(
+        masterKey_,
+        header_.packageId,
+        record->path);
+    if (!entryKey) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                entryKey.error());
+    }
+    auto stored = crypto_.Aes256GcmDecrypt(
+        entryKey.value(),
+        record->nonce,
+        ciphertext.value(),
+        BuildEntryAdditionalData(header_.packageId, *record),
+        record->tag);
+    if (!stored) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                stored.error());
+    }
+
+    std::vector<std::uint8_t> plaintext;
+    if (record->compression == CompressionAlgorithm::Zstandard) {
+        CompressedBuffer compressed{
+            CompressionAlgorithm::Zstandard,
+            std::move(stored.value()),
+        };
+        auto decompressed = compression_.Decompress(
+            compressed,
+            record->plaintextSize,
+            (std::min)(
+                limits_.maximumEntryPlaintextSize,
+                record->plaintextSize));
+        if (!decompressed) {
+            return PackageResult<
+                std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                    decompressed.error());
+        }
+        plaintext = std::move(decompressed.value());
+    } else {
+        plaintext = std::move(stored.value());
+    }
+    if (plaintext.size() != record->plaintextSize) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                ReaderError(
+                    PackageErrorCode::IntegrityFailed,
+                    "The package entry plaintext size is invalid."));
+    }
+    const auto digest = crypto_.Sha256(plaintext);
+    if (!digest ||
+        digest.value() != record->plaintextSha256) {
+        return PackageResult<
+            std::shared_ptr<const std::vector<std::uint8_t>>>::Failure(
+                digest
+                    ? ReaderError(
+                        PackageErrorCode::IntegrityFailed,
+                        "The package entry plaintext hash is invalid.")
+                    : digest.error());
+    }
+    return PackageResult<
+        std::shared_ptr<const std::vector<std::uint8_t>>>::Success(
+            std::make_shared<const std::vector<std::uint8_t>>(
+                std::move(plaintext)));
+}
+
 } // namespace dbp::package

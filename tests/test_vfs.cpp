@@ -2,20 +2,54 @@
 #include "VFSHooks.h"
 #include "MemoryPE.h"
 #include <windows.h>
+#include <array>
+#include <atomic>
+#include <cstdint>
+#include <filesystem>
 #include <fstream>
+#include <future>
+#include <iterator>
+#include <memory>
+#include <string>
+#include <vector>
 
-TEST(VFSRegistryTest, RegisterAndLookup) {
+namespace {
+
+std::string ReadHandle(HANDLE handle, const DWORD count) {
+    std::string result(count, '\0');
+    DWORD bytesRead = 0;
+    EXPECT_TRUE(Hook_ReadFile(
+        handle,
+        result.data(),
+        count,
+        &bytesRead,
+        nullptr));
+    result.resize(bytesRead);
+    return result;
+}
+
+} // namespace
+
+TEST(VFSRegistryTest, OwnsRegisteredBytesAfterCallerIsDestroyed) {
     VFSRegistry::Clear();
-    std::string testData = "VFS Test Content";
-    VFSRegistry::Register("test.txt", testData.c_str(), testData.size());
+    {
+        std::vector<std::uint8_t> temporary{
+            'V', 'F', 'S', ' ', 'o', 'w', 'n', 'e', 'd',
+        };
+        ASSERT_TRUE(VFSRegistry::RegisterOwned(
+            "test.txt",
+            std::move(temporary)));
+    }
 
     EXPECT_TRUE(VFSRegistry::Exists("test.txt"));
     EXPECT_FALSE(VFSRegistry::Exists("nonexistent.txt"));
 
-    const VFSFile* f = VFSRegistry::Get("test.txt");
-    ASSERT_NE(f, nullptr);
-    EXPECT_EQ(f->size, testData.size());
-    EXPECT_EQ(std::string(f->dataPtr, f->size), testData);
+    const auto opened = VFSRegistry::Open("test.txt");
+    ASSERT_TRUE(opened) << opened.error().message;
+    std::array<char, 32> bytes{};
+    const auto read = opened.value()->Read(bytes.data(), bytes.size());
+    ASSERT_TRUE(read) << read.error().message;
+    EXPECT_EQ(std::string(bytes.data(), read.value()), "VFS owned");
     
     VFSRegistry::Clear();
     EXPECT_FALSE(VFSRegistry::Exists("test.txt"));
@@ -24,7 +58,11 @@ TEST(VFSRegistryTest, RegisterAndLookup) {
 TEST(VFSHooksTest, InterceptFileOperations) {
     VFSRegistry::Clear();
     std::string testData = "In-memory file data";
-    VFSRegistry::Register("virtual_file.txt", testData.c_str(), testData.size());
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        "virtual_file.txt",
+        std::vector<std::uint8_t>(
+            testData.begin(),
+            testData.end())));
 
     // Initialize hooks
     ASSERT_TRUE(VFSHooks::Initialize());
@@ -51,6 +89,141 @@ TEST(VFSHooksTest, InterceptFileOperations) {
 
     // Shutdown hooks
     VFSHooks::Shutdown();
+    VFSRegistry::Clear();
+}
+
+TEST(VFSHooksTest, UsesExactPathsWithoutImplicitBasenameAliases) {
+    VFSRegistry::Clear();
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        "media/same.dat",
+        std::vector<std::uint8_t>{'v', 'f', 's'}));
+
+    const auto root =
+        std::filesystem::temp_directory_path() / "dbp-vfs-exact-path";
+    std::filesystem::create_directories(root);
+    const auto diskPath = root / "same.dat";
+    {
+        std::ofstream output(diskPath, std::ios::binary | std::ios::trunc);
+        output << "disk";
+    }
+
+    const auto diskHandle = Hook_CreateFileW(
+        diskPath.c_str(),
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+    ASSERT_NE(diskHandle, INVALID_HANDLE_VALUE);
+    EXPECT_EQ(ReadHandle(diskHandle, 4), "disk");
+    EXPECT_TRUE(Hook_CloseHandle(diskHandle));
+
+    const auto virtualHandle = Hook_CreateFileA(
+        "media\\same.dat",
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+    ASSERT_NE(virtualHandle, INVALID_HANDLE_VALUE);
+    EXPECT_EQ(ReadHandle(virtualHandle, 3), "vfs");
+    EXPECT_TRUE(Hook_CloseHandle(virtualHandle));
+
+    VFSRegistry::Clear();
+    std::error_code ignored;
+    std::filesystem::remove_all(root, ignored);
+}
+
+TEST(VFSHooksTest, MaintainsIndependentCursorsAndLifetimeAcrossClear) {
+    VFSRegistry::Clear();
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        "cursor.bin",
+        std::vector<std::uint8_t>{'a', 'b', 'c', 'd'}));
+    const auto first = Hook_CreateFileA(
+        "cursor.bin", GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    const auto second = Hook_CreateFileA(
+        "cursor.bin", GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    ASSERT_NE(first, INVALID_HANDLE_VALUE);
+    ASSERT_NE(second, INVALID_HANDLE_VALUE);
+
+    EXPECT_EQ(ReadHandle(first, 2), "ab");
+    EXPECT_EQ(ReadHandle(second, 3), "abc");
+    EXPECT_EQ(
+        Hook_SetFilePointer(first, 0, nullptr, FILE_BEGIN),
+        0U);
+    VFSRegistry::Clear();
+    EXPECT_EQ(ReadHandle(first, 4), "abcd");
+    EXPECT_EQ(ReadHandle(second, 1), "d");
+    EXPECT_TRUE(Hook_CloseHandle(first));
+    EXPECT_TRUE(Hook_CloseHandle(second));
+}
+
+TEST(VFSHooksTest, NeverFallsBackToDiskForMountedWriteRequests) {
+    VFSRegistry::Clear();
+    const auto diskPath =
+        std::filesystem::path("vfs-mounted-write-test.dat");
+    {
+        std::ofstream output(
+            diskPath,
+            std::ios::binary | std::ios::trunc);
+        output << "disk";
+    }
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        diskPath.string(),
+        std::vector<std::uint8_t>{'v', 'f', 's'}));
+
+    const auto handle = Hook_CreateFileA(
+        diskPath.string().c_str(),
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+
+    EXPECT_EQ(handle, INVALID_HANDLE_VALUE);
+    EXPECT_EQ(GetLastError(), ERROR_ACCESS_DENIED);
+    std::ifstream input(diskPath, std::ios::binary);
+    std::string contents{
+        std::istreambuf_iterator<char>(input),
+        std::istreambuf_iterator<char>(),
+    };
+    input.close();
+    EXPECT_EQ(contents, "disk");
+    VFSRegistry::Clear();
+    std::error_code ignored;
+    std::filesystem::remove(diskPath, ignored);
+}
+
+TEST(VFSHooksTest, SupportsConcurrentOpenReadAndClose) {
+    VFSRegistry::Clear();
+    const std::string expected(4096, 'q');
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        "concurrent.bin",
+        std::vector<std::uint8_t>(expected.begin(), expected.end())));
+
+    std::vector<std::future<bool>> operations;
+    for (std::size_t index = 0; index < 16; ++index) {
+        operations.push_back(std::async(std::launch::async, [&expected] {
+            const auto handle = Hook_CreateFileA(
+                "concurrent.bin", GENERIC_READ, FILE_SHARE_READ, nullptr,
+                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+            if (handle == INVALID_HANDLE_VALUE) {
+                return false;
+            }
+            const auto contents =
+                ReadHandle(handle, static_cast<DWORD>(expected.size()));
+            return Hook_CloseHandle(handle) &&
+                contents == expected;
+        }));
+    }
+    for (auto& operation : operations) {
+        EXPECT_TRUE(operation.get());
+    }
     VFSRegistry::Clear();
 }
 
@@ -81,19 +254,19 @@ TEST(VFSHooksTest, FallbackToRealFile) {
 }
 
 TEST(MemoryPETest, LoadModuleAndResolveExports) {
-    std::string dllPath = "Install/Compiler/plugins/DBProTransformsDebug.dll";
+    std::string dllPath =
+        (std::filesystem::path(DBP_TEST_SOURCE_ROOT) /
+         "Install/Compiler/plugins/DBProTransformsDebug.dll").string();
     std::ifstream in(dllPath, std::ios::binary);
-    if (!in.is_open()) {
-        dllPath = "d:/GitHub-repo/Dark-Basic-Pro/Install/Compiler/plugins/DBProTransformsDebug.dll";
-        in.open(dllPath, std::ios::binary);
-    }
     ASSERT_TRUE(in.is_open()) << "Failed to find DBProTransformsDebug.dll for testing";
 
     std::vector<char> buffer((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
 
     VFSRegistry::Clear();
-    VFSRegistry::Register("DBProTransformsDebug.dll", buffer.data(), buffer.size());
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        "DBProTransformsDebug.dll",
+        std::vector<std::uint8_t>(buffer.begin(), buffer.end())));
 
     ASSERT_TRUE(VFSHooks::Initialize());
 

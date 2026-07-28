@@ -29,6 +29,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/CoreRuntimeApi.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/EXEBlock.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/VFSHooks.cpp
+    ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/PackageMount.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/MemoryPE.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/CrashHandler.cpp
     dbproexe.rc
@@ -40,6 +41,7 @@ dbp_apply_legacy_cpp_options(DarkEXE)
 
 # Target libraries
 target_link_libraries(DarkEXE PRIVATE
+    dbp_package
     winmm
     Version
     dxguid

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iostream>
+#include <limits>
 #include <memory>
 
 struct MemoryModuleInfo {
@@ -15,11 +16,29 @@ struct MemoryModuleInfo {
 static std::unordered_map<HMODULE, std::unique_ptr<MemoryModuleInfo>> g_memoryModules;
 
 HMODULE MemoryPE::LoadFromVFS(const std::string& filename) {
-    if (!VFSRegistry::Exists(filename)) {
+    const auto opened = VFSRegistry::Open(filename);
+    if (!opened) {
         return nullptr;
     }
-    const VFSFile* f = VFSRegistry::Get(filename);
-    return LoadFromMemory(f->dataPtr, f->size, filename);
+    const auto size = opened.value()->Size();
+    if (size > (std::numeric_limits<std::size_t>::max)()) {
+        return nullptr;
+    }
+    std::vector<std::uint8_t> bytes(static_cast<std::size_t>(size));
+    std::size_t totalRead = 0;
+    while (totalRead < bytes.size()) {
+        const auto read = opened.value()->Read(
+            bytes.data() + totalRead,
+            bytes.size() - totalRead);
+        if (!read || read.value() == 0) {
+            return nullptr;
+        }
+        totalRead += read.value();
+    }
+    return LoadFromMemory(
+        reinterpret_cast<const char*>(bytes.data()),
+        bytes.size(),
+        filename);
 }
 
 HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::string& name) {
