@@ -1,5 +1,6 @@
 add_library(dbp_package STATIC
     src/ByteCodec.cpp
+    src/PackagePath.cpp
 )
 
 dbp_apply_modern_cpp_options(dbp_package)
