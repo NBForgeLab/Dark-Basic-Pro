@@ -17,6 +17,7 @@ enum class PackageErrorCode {
     LimitExceeded,
     UnsafePath,
     MissingKey,
+    CryptographyFailed,
     AuthenticationFailed,
     IntegrityFailed,
     CompressionFailed,
