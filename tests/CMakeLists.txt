@@ -45,6 +45,7 @@ add_executable(dbp_tests
     test_statement_string_helpers.cpp
     test_debugger.cpp
     test_statement_object.cpp
+    test_package_byte_codec.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
@@ -53,6 +54,7 @@ add_executable(dbp_tests
 dbp_apply_modern_cpp_options(dbp_tests)
 
 target_link_libraries(dbp_tests PRIVATE
+    dbp_package
     dbp_compiler_lib
     GTest::gtest
     spdlog::spdlog

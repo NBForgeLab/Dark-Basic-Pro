@@ -102,6 +102,7 @@ link_directories(
 )
 
 # إضافة المشاريع الفرعية للترجمة والمشغل والمصحح
+add_subdirectory(DBProShared/Package)
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 add_subdirectory(DBProCompiler/DBPDebugger)

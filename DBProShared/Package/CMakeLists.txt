@@ -1,0 +1,10 @@
+add_library(dbp_package STATIC
+    src/ByteCodec.cpp
+)
+
+dbp_apply_modern_cpp_options(dbp_package)
+
+target_include_directories(dbp_package
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
