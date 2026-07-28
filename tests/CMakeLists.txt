@@ -49,9 +49,15 @@ add_executable(dbp_tests
     test_package_path.cpp
     test_package_crypto.cpp
     test_package_format.cpp
+    test_package_compression.cpp
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
+)
+
+set_source_files_properties(
+    "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
+    PROPERTIES LANGUAGE ASM_MASM
 )
 
 dbp_apply_modern_cpp_options(dbp_tests)

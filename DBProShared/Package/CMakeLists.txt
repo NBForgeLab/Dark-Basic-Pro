@@ -4,6 +4,7 @@ add_library(dbp_package STATIC
     src/PackageFormat.cpp
     src/PackagePath.cpp
     src/SecureBuffer.cpp
+    src/ZstdCompressionCodec.cpp
 )
 
 dbp_apply_modern_cpp_options(dbp_package)
@@ -16,4 +17,5 @@ target_include_directories(dbp_package
 target_link_libraries(dbp_package
     PRIVATE
         bcrypt
+        libzstd_static
 )

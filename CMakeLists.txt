@@ -39,6 +39,31 @@ FetchContent_MakeAvailable(spdlog)
 dbp_enable_parallel_msvc(spdlog)
 dbp_enable_sanitizers(spdlog)
 
+# Zstandard v1.5.7 fixes a rare long-session corruption issue in 32-bit mode.
+# Pin the signed upstream release commit and build only the static library.
+set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_DICTBUILDER OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_DEPRECATED OFF CACHE BOOL "" FORCE)
+set(ZSTD_MULTITHREAD_SUPPORT OFF CACHE BOOL "" FORCE)
+set(ZSTD_LEGACY_SUPPORT OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    zstd
+    GIT_REPOSITORY https://github.com/facebook/zstd.git
+    GIT_TAG f8745da6ff1ad1e7bab384bd1f9d742439278e99
+    GIT_SHALLOW FALSE
+    GIT_PROGRESS TRUE
+    SOURCE_SUBDIR build/cmake
+)
+FetchContent_MakeAvailable(zstd)
+if(TARGET libzstd_static)
+    dbp_enable_parallel_msvc(libzstd_static)
+    dbp_enable_sanitizers(libzstd_static)
+endif()
+
 # مسارات مخرجات البناء الموحدة
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
