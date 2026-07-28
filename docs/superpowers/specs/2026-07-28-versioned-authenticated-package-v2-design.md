@@ -311,6 +311,17 @@ Runtime distribution of the master key is a deployment policy. If a product
 chooses to ship a recoverable client-side key, documentation must describe the
 result as tamper detection and extraction resistance, not absolute secrecy.
 
+The reference offline deployment generates a fresh master key per build unless
+the compiler receives an owner-readable key file. Before executable signing,
+the compiler writes a versioned `RT_RCDATA` resource containing `key_id` and
+the 32-byte key into that build's PE by using the documented Windows resource
+update API. The runtime reference provider reads and validates only that
+resource. This keeps keys out of source code, command-line values, package
+bytes, and descriptors, while remaining honest that a determined local user
+can extract the resource. Deployments that require a stronger boundary replace
+this provider with a launcher, credential service, or platform entitlement
+provider; the package format and `KeyProvider` interface do not change.
+
 ### 8.3 Nonces and authenticated data
 
 `package_id`, the manifest nonce, and every entry nonce are generated from the
@@ -431,7 +442,8 @@ The compiler emits:
 - the normal executable;
 - an immutable `data-<package-id>.dbpak`;
 - a small versioned runtime descriptor naming the package, expected package
-  identifier, and opaque key identifier.
+  identifier, opaque key identifier, and runtime mode (`application` or
+  `installer`).
 
 The descriptor path is resolved relative to the executable, not the process
 working directory. It never contains a key. The package is written, flushed,
