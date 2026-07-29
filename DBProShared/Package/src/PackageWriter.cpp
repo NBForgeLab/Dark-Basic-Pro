@@ -1,4 +1,5 @@
 #include "dbp/package/PackageWriter.h"
+#include "dbp/package/PackageReader.h"
 
 #include "dbp/package/ByteCodec.h"
 #include "dbp/package/PackagePath.h"
@@ -167,7 +168,9 @@ PackageResult<std::vector<ValidatedEntry>> ValidateRequest(
             std::filesystem::is_symlink(sourceStatus)) {
             return PackageResult<std::vector<ValidatedEntry>>::Failure(
                 IoError(
-                    "A package source is unavailable or unsafe."));
+                    "The package source for '" +
+                    packagePath.value() +
+                    "' is unavailable or unsafe."));
         }
         std::error_code sizeError;
         const auto sourceSize =
@@ -350,7 +353,9 @@ PackageResult<bool> VerifyWrittenPackage(
     const PackageHeader& expectedHeader,
     const SecureBuffer& masterKey,
     const PackageLimits& limits,
-    const CryptoProvider& crypto) {
+    const CryptoProvider& crypto,
+    const ZstdCompressionCodec& compression,
+    const AtomicFilePublisher& publisher) {
     std::error_code sizeError;
     const auto fileSize =
         std::filesystem::file_size(path, sizeError);
@@ -450,6 +455,39 @@ PackageResult<bool> VerifyWrittenPackage(
             WriterError(
                 PackageErrorCode::IntegrityFailed,
                 "The completed package padding failed verification."));
+    }
+
+    MemoryKeyProvider keys(
+        expectedHeader.keyId,
+        SecureBuffer::FromBytes(masterKey.CopyBytes()));
+    const auto verifiedReader = PackageReader::Open(
+        path,
+        keys,
+        crypto,
+        compression,
+        publisher,
+        limits);
+    if (!verifiedReader ||
+        verifiedReader.value()->header().packageId !=
+            expectedHeader.packageId ||
+        verifiedReader.value()->header().keyId !=
+            expectedHeader.keyId) {
+        return PackageResult<bool>::Failure(
+            verifiedReader
+                ? WriterError(
+                    PackageErrorCode::IntegrityFailed,
+                    "The production reader rejected the completed "
+                    "package identity.")
+                : verifiedReader.error());
+    }
+    for (const auto& record :
+         verifiedReader.value()->manifest().records) {
+        const auto plaintext =
+            verifiedReader.value()->ReadEntry(record.path);
+        if (!plaintext) {
+            return PackageResult<bool>::Failure(
+                plaintext.error());
+        }
     }
     return PackageResult<bool>::Success(true);
 }
@@ -838,7 +876,9 @@ PackageResult<PackageWriteResult> PackageWriter::Write(
         header,
         masterKey.value(),
         request.limits,
-        crypto_);
+        crypto_,
+        compression_,
+        publisher_);
     if (!verified) {
         return PackageResult<PackageWriteResult>::Failure(
             verified.error());

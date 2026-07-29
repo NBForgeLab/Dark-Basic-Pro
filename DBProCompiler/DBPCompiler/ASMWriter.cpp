@@ -977,17 +977,21 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			return false;
 		}
 		auto effectsRoot = runtimeBundle->effectsDirectory.string() + "\\";
+		auto pluginsRoot = runtimeBundle->pluginsDirectory.string() + "\\";
+		auto userPluginsRoot =
+			runtimeBundle->userPluginsDirectory.string() + "\\";
+		auto licensedPluginsRoot =
+			runtimeBundle->licensedPluginsDirectory.string() + "\\";
 		strcpy_s(pEffectsRoot, effectsRoot.c_str());
-		strcpy_s(pPluginsRoot,
-			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
+		strcpy_s(pPluginsRoot, pluginsRoot.c_str());
 
 		// Extra Plugins Folders
 		char pUserPluginsRoot[_MAX_PATH];
 		char pLicensedPluginsRoot[_MAX_PATH];
-		strcpy_s(pUserPluginsRoot,
-			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER));
-		strcpy_s(pLicensedPluginsRoot,
-			g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
+		strcpy_s(pUserPluginsRoot, userPluginsRoot.c_str());
+		strcpy_s(
+			pLicensedPluginsRoot,
+			licensedPluginsRoot.c_str());
 
 		// Media Root Folder
 		std::unique_ptr<char[]> pMediaRootOwner(g_pDBPCompiler->GetProjectMediaRoot());
@@ -1002,6 +1006,8 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 
 		// Create EXECUTABLE Here
 		CFileBuilder CFBuilder;
+		CFBuilder.SetPackageKeyFile(
+			g_pDBPCompiler->GetPackageKeyFile());
 
 		// Pass All Filenames for System Files & Media
 		CFBuilder.NewFileTable();
@@ -1298,29 +1304,24 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			}
 		}
 
-		// If EXEAlone (for safecast type stuff, also cannot encrypt files)
-		if(g_pDBPCompiler->GetEXEAloneState()==true)
-		{
-			// Cannot add unique key to exe stub, so it disables encryption
-			g_pDBPCompiler->m_bEncryptionState=false;
-		}
-
-		// If Compression Set
-		LPSTR pCompressDLL=NULL;
-		if(g_pDBPCompiler->m_bCompressPCKState)
-			pCompressDLL = g_pDBPCompiler->GetInternalFile(PATH_COMPRESSDLLFILE);
-
 		// Progress Reporting Tool
 		g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc(10));
 
 		// Make The EXE
-		CFBuilder.MakeEXE(pEXEFilename, g_pDBPCompiler->m_bEncryptionState, pCompressDLL);
+		if(!CFBuilder.MakeEXE(
+				pEXEFilename,
+				g_pDBPCompiler->m_bEncryptionState,
+				NULL))
+		{
+			FreeMachineBlock();
+			return false;
+		}
 
 		// Progress Reporting Tool
 		g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc(50));
 
 		// Ensure EXE created okay
-		if(g_pDBPCompiler->FileExists(pEXEFilename))
+		if(CFBuilder.HasStagedExecutable())
 		{
 			// Produce Absolute Paths to replacement-files resources
 			char pAbsResourceFile[_MAX_PATH];
@@ -1473,27 +1474,30 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc(60));
 
 			// Change The EXE with new resources
-			CFBuilder.ChangeEXE(pEXEFilename, pPluginsRoot);
-
-			// Exe is alone or packed with PCK file
-			bool bKeepEXEAlone=g_pDBPCompiler->GetEXEAloneState();
+			if(!CFBuilder.ChangeEXE(pEXEFilename, pPluginsRoot))
+			{
+				FreeMachineBlock();
+				return false;
+			}
 
 			// Kind Of Executable Determines if(installer or not)
 			DWORD KindOfExecutable=0;
 			if(g_pDBPCompiler->GetEXEInstallerState())
 			{
-				// Installer is a single EXE that unpacks EXErunner+EXEmedia to CWD
-				bKeepEXEAlone=false;
 				KindOfExecutable=1;
 			}
 
 			// Progress Reporting Tool
 			g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc(100));
 
-			// Add PCK file onto end of executable if required
-			if(bKeepEXEAlone==false)
+			// Publish the authenticated sidecar and descriptor only after all
+			// PE resource customization has completed.
+			if(!CFBuilder.FinalizePackage(
+					pEXEFilename,
+					KindOfExecutable))
 			{
-				CFBuilder.AddPCKToEXE(pEXEFilename, KindOfExecutable);
+				FreeMachineBlock();
+				return false;
 			}
 		}
 		else

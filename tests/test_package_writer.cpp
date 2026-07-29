@@ -87,8 +87,10 @@ public:
 class ScriptedRandomCrypto final : public CryptoProvider {
 public:
     explicit ScriptedRandomCrypto(
-        std::vector<std::vector<std::uint8_t>> randomValues)
-        : randomValues_(std::move(randomValues)) {}
+        std::vector<std::vector<std::uint8_t>> randomValues,
+        const bool corruptPayload = false)
+        : randomValues_(std::move(randomValues)),
+          corruptPayload_(corruptPayload) {}
 
     PackageResult<Sha256Digest> Sha256(
         const std::vector<std::uint8_t>& input) const override {
@@ -133,13 +135,23 @@ public:
         std::ostream& output,
         const std::vector<std::uint8_t>& additionalData,
         const std::uint64_t expectedPlaintextSize) const override {
-        return delegate_.Aes256GcmEncryptStream(
+        auto result = delegate_.Aes256GcmEncryptStream(
             key,
             nonce,
             input,
             output,
             additionalData,
             expectedPlaintextSize);
+        if (result && corruptPayload_ &&
+            result.value().outputSize != 0) {
+            output.seekp(
+                -static_cast<std::streamoff>(
+                    result.value().outputSize),
+                std::ios::cur);
+            output.put(static_cast<char>(0xFF));
+            output.seekp(0, std::ios::end);
+        }
+        return result;
     }
     PackageResult<std::vector<std::uint8_t>> Aes256GcmDecrypt(
         const SecureBuffer& key,
@@ -189,6 +201,7 @@ private:
     CngCryptoProvider delegate_;
     std::vector<std::vector<std::uint8_t>> randomValues_;
     mutable std::size_t nextRandom_ = 0;
+    bool corruptPayload_ = false;
 };
 
 std::vector<std::uint8_t> ReadBytes(
@@ -459,6 +472,37 @@ TEST(PackageWriterTest, CleansTemporaryFilesWhenPublicationFails) {
     EXPECT_EQ(
         result.error().code,
         PackageErrorCode::PublicationFailed);
+    EXPECT_EQ(directory.Files(), std::vector<std::filesystem::path>{source});
+}
+
+TEST(PackageWriterTest, AuthenticatesEveryPayloadBeforePublication) {
+    TemporaryWriterDirectory directory;
+    const auto source = directory.Write(
+        "source.bin",
+        std::vector<std::uint8_t>(4096, 0x44));
+    PackageWriteRequest request{
+        directory.path(),
+        TestKeyId(),
+        {{source, "media/source.bin", false}},
+    };
+    ScriptedRandomCrypto crypto({
+        std::vector<std::uint8_t>(16, 0x11),
+        std::vector<std::uint8_t>(12, 0x22),
+        std::vector<std::uint8_t>(12, 0x33),
+    }, true);
+    ZstdCompressionCodec compression;
+    Win32AtomicFilePublisher publisher;
+    PackageWriter writer(crypto, compression, publisher);
+    MemoryKeyProvider keys(
+        request.keyId,
+        SecureBuffer::FromBytes(TestMasterKey()));
+
+    const auto result = writer.Write(request, keys);
+
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error().code,
+        PackageErrorCode::AuthenticationFailed);
     EXPECT_EQ(directory.Files(), std::vector<std::filesystem::path>{source});
 }
 

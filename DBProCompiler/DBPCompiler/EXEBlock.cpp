@@ -552,7 +552,7 @@ bool CEXEBlock::StartInfo(LPSTR pUnpackFolderName, DWORD dwEncryptionKey)
 bool CEXEBlock::Load(char* lpFilename)
 {
 	// Load EXE Filedata
-	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = Hook_CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Settings
@@ -617,7 +617,7 @@ bool CEXEBlock::Load(char* lpFilename)
 		LoadBlock(hFile, &m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity);
 
 		// Close file
-		CloseHandle(hFile);
+		Hook_CloseHandle(hFile);
 		return true;
 	}
 	else
@@ -630,7 +630,7 @@ bool CEXEBlock::Load(char* lpFilename)
 bool CEXEBlock::LoadValue(HANDLE hFile, DWORD* Value)
 {
 	DWORD bytes=0;
-	ReadFile(hFile, Value, 4, &bytes, NULL);
+	Hook_ReadFile(hFile, Value, 4, &bytes, NULL);
 	if(bytes==0)
 	{
 		// EXEBlock shared - silent fail
@@ -646,7 +646,7 @@ bool CEXEBlock::LoadBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize)
 	// Allocate via make_unique<char[]> then release into the raw-pointer
 	// out-param owned/freed by the caller (Clear via SAFE_DELETE_ARRAY)
 	*pMem = std::make_unique<char[]>(dwSize+1).release();
-	ReadFile(hFile, *pMem, dwSize, &bytes, NULL);
+	Hook_ReadFile(hFile, *pMem, dwSize, &bytes, NULL);
 	if(bytes==0)
 	{
 		// EXEBlock shared - silent fail
@@ -666,7 +666,7 @@ bool CEXEBlock::LoadValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 		*pArray = CreateArray(*Count,0);
 
 		// Read data into Array
-		ReadFile(hFile, *pArray, (*Count)*sizeof(DWORD), &bytes, NULL);
+		Hook_ReadFile(hFile, *pArray, (*Count)*sizeof(DWORD), &bytes, NULL);
 		if(bytes==0) bResult=false;
 	}
 	else
@@ -685,7 +685,7 @@ bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, 
 		*pArray = CreateArray(*Count,dwType);
 
 		// Read data into Array
-		ReadFile(hFile, *pArray, (*Count), &bytes, NULL);
+		Hook_ReadFile(hFile, *pArray, (*Count), &bytes, NULL);
 		if(bytes==0) bResult=false;
 	}
 	else
@@ -714,11 +714,11 @@ bool CEXEBlock::LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 		{
 			// Read length of string
 			DWORD length = 0;
-			ReadFile(hFile, &length, 4, &bytes, NULL);
+			Hook_ReadFile(hFile, &length, 4, &bytes, NULL);
 			char* pStr = std::make_unique<char[]>(length+1).release();
 			if(length>0)
 			{
-				ReadFile(hFile, pStr, length, &bytes, NULL);
+				Hook_ReadFile(hFile, pStr, length, &bytes, NULL);
 				if(bytes==0) bResult=false;
 			}
 			pStr[length]=0;
@@ -916,9 +916,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 						// Detect if DLL has the PassCoreData Function..
 						DLL_PassCore g_DLL_PassCoreData;
-						g_DLL_PassCoreData = ( DLL_PassCore ) GetProcAddress ( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
+						g_DLL_PassCoreData = ( DLL_PassCore ) Hook_GetProcAddress( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
 						if (!g_DLL_PassCoreData)
-							g_DLL_PassCoreData = ( DLL_PassCore ) GetProcAddress ( hDLLMod[dllindex], "ReceiveCoreDataPtr" );
+							g_DLL_PassCoreData = ( DLL_PassCore ) Hook_GetProcAddress( hDLLMod[dllindex], "ReceiveCoreDataPtr" );
 					}
 
 					// Flag if official DLL
@@ -933,7 +933,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						// CORE Pass Ptrs To Core (Error Handling, Data Statements)
 						const auto coreApiResult = ResolveCoreRuntimeApi(
 							[hCoreDLL](const char* name) -> void* {
-								return reinterpret_cast<void*>(GetProcAddress(hCoreDLL, name));
+								return reinterpret_cast<void*>(Hook_GetProcAddress(hCoreDLL, name));
 							},
 							DeriveProgramRuntimeRequirements(m_dwUsertypeStringPatternQuantity));
 						if(coreApiResult)
@@ -966,8 +966,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						}
 						
 						// CORE SEcurity Functions
-						g_CORE_GetSecurityCode	= ( GDI_RetIntParamVoidPFN )			GetProcAddress ( hCoreDLL, "?GetSecurityCode@@YAHXZ" );
-						g_CORE_WipeSecurityCode	= ( GDI_RetVoidParamVoidPFN )			GetProcAddress ( hCoreDLL, "?WipeSecurityCode@@YAXXZ" );
+						g_CORE_GetSecurityCode	= ( GDI_RetIntParamVoidPFN )			Hook_GetProcAddress( hCoreDLL, "?GetSecurityCode@@YAHXZ" );
+						g_CORE_WipeSecurityCode	= ( GDI_RetVoidParamVoidPFN )			Hook_GetProcAddress( hCoreDLL, "?WipeSecurityCode@@YAXXZ" );
 
 						// Get GlobStruct Ptr for rest of DLL loading
 						if(g_CORE_GetGlobPtr) g_pGlob = (GlobStruct*)g_CORE_GetGlobPtr();
@@ -985,9 +985,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						g_pGlob->g_Transforms = hDLLMod[dllindex];
 						PluginRegistry::GetInstance().RegisterPlugin("Transforms", hDLLMod[dllindex]);
 
-						g_Transforms_Constructor	= ( DLL_Constructor )						GetProcAddress ( g_pGlob->g_Transforms, "Constructor" );
-						g_Transforms_Destructor		= ( DLL_Destructor )						GetProcAddress ( g_pGlob->g_Transforms, "Destructor" );
-						g_Transforms_Update			= ( DLL_Update )							GetProcAddress ( g_pGlob->g_Transforms, "Update" );
+						g_Transforms_Constructor	= ( DLL_Constructor )						Hook_GetProcAddress( g_pGlob->g_Transforms, "Constructor" );
+						g_Transforms_Destructor		= ( DLL_Destructor )						Hook_GetProcAddress( g_pGlob->g_Transforms, "Destructor" );
+						g_Transforms_Update			= ( DLL_Update )							Hook_GetProcAddress( g_pGlob->g_Transforms, "Update" );
 
 						bIsOfficialDLL=true;
 					}
@@ -1000,9 +1000,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						PluginRegistry::GetInstance().RegisterPlugin("Sprites", hDLLMod[dllindex]);
 
 						// SPRITES Function Calls
-						g_Sprites_Constructor       = ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_pGlob->g_Sprites, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
-						g_Sprites_Destructor        = ( SPRITES_RetVoidParamVoidPFN )			GetProcAddress ( g_pGlob->g_Sprites, "?Destructor@@YAXXZ" );
-						g_Sprites_Update            = ( SPRITES_RetVoidParamVoidPFN )			GetProcAddress ( g_pGlob->g_Sprites, "?Update@@YAXXZ" );
+						g_Sprites_Constructor       = ( SPRITES_RetVoidParamHINSTANCE2PFN )		Hook_GetProcAddress( g_pGlob->g_Sprites, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
+						g_Sprites_Destructor        = ( SPRITES_RetVoidParamVoidPFN )			Hook_GetProcAddress( g_pGlob->g_Sprites, "?Destructor@@YAXXZ" );
+						g_Sprites_Update            = ( SPRITES_RetVoidParamVoidPFN )			Hook_GetProcAddress( g_pGlob->g_Sprites, "?Update@@YAXXZ" );
 						bIsOfficialDLL=true;
 					}
 
@@ -1014,8 +1014,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						PluginRegistry::GetInstance().RegisterPlugin("Image", hDLLMod[dllindex]);
 
 						// IMAGE Function Calls
-						g_Image_Constructor          = ( IMAGE_RetVoidParamVoidPFN )		GetProcAddress ( g_pGlob->g_Image, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
-						g_Image_Destructor           = ( IMAGE_RetVoidParamVoidPFN )		GetProcAddress ( g_pGlob->g_Image, "?Destructor@@YAXXZ" );
+						g_Image_Constructor          = ( IMAGE_RetVoidParamVoidPFN )		Hook_GetProcAddress( g_pGlob->g_Image, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+						g_Image_Destructor           = ( IMAGE_RetVoidParamVoidPFN )		Hook_GetProcAddress( g_pGlob->g_Image, "?Destructor@@YAXXZ" );
 						bIsOfficialDLL=true;
 					}
 
@@ -1162,33 +1162,33 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				{
 					// Get Any DLL Function Pointers
 					DLL_Constructor			g_DLL_Constructor;		// constructor
-					g_DLL_Constructor		= ( DLL_Constructor )	GetProcAddress ( hDLLMod[dllindex], "?Constructor@@YAXXZ" );
+					g_DLL_Constructor		= ( DLL_Constructor )	Hook_GetProcAddress( hDLLMod[dllindex], "?Constructor@@YAXXZ" );
 					if (!g_DLL_Constructor)
-						g_DLL_Constructor	= ( DLL_Constructor )	GetProcAddress ( hDLLMod[dllindex], "Constructor" );
+						g_DLL_Constructor	= ( DLL_Constructor )	Hook_GetProcAddress( hDLLMod[dllindex], "Constructor" );
 
 					// Call TPC constructor functions (if any)
 					if(g_DLL_Constructor)	g_DLL_Constructor();						
 
 					// 2ND : TPC Sends special security code
 					DLL_OptionalSecurityCode g_DLL_OptionalSecurityCode;
-					g_DLL_OptionalSecurityCode = ( DLL_OptionalSecurityCode ) GetProcAddress ( hDLLMod[dllindex], "?OptionalSecurityCode@@YAXH@Z" );
+					g_DLL_OptionalSecurityCode = ( DLL_OptionalSecurityCode ) Hook_GetProcAddress( hDLLMod[dllindex], "?OptionalSecurityCode@@YAXH@Z" );
 					if (!g_DLL_OptionalSecurityCode)
-						g_DLL_OptionalSecurityCode = (DLL_OptionalSecurityCode)GetProcAddress(hDLLMod[dllindex], "OptionalSecurityCode");
+						g_DLL_OptionalSecurityCode = (DLL_OptionalSecurityCode)Hook_GetProcAddress(hDLLMod[dllindex], "OptionalSecurityCode");
 					if(g_DLL_OptionalSecurityCode)	g_DLL_OptionalSecurityCode ( iSecurityCode );
 
 					// get num of additional dependencies
 					int iNumDLLDependencies = 0;
 					typedef int ( *RETINTNOPARAM ) ( void );
-					RETINTNOPARAM GetNumDependencies = ( RETINTNOPARAM ) GetProcAddress ( hDLLMod[dllindex], "?GetNumDependencies@@YAHXZ" );
+					RETINTNOPARAM GetNumDependencies = ( RETINTNOPARAM ) Hook_GetProcAddress( hDLLMod[dllindex], "?GetNumDependencies@@YAHXZ" );
 					if(!GetNumDependencies)
-						GetNumDependencies = (RETINTNOPARAM)GetProcAddress(hDLLMod[dllindex], "GetNumDependencies");
+						GetNumDependencies = (RETINTNOPARAM)Hook_GetProcAddress(hDLLMod[dllindex], "GetNumDependencies");
 					if ( GetNumDependencies ) iNumDLLDependencies=GetNumDependencies();
 
 					// Obtain dependence and receive function pointers from DLL
 					typedef void ( *RETVOIDLPSTRHINSTANCE ) ( LPSTR, HINSTANCE );
-					RETVOIDLPSTRHINSTANCE ReceiveDependenceHinstance = ( RETVOIDLPSTRHINSTANCE ) GetProcAddress ( hDLLMod[dllindex], "?ReceiveDependenciesHinstance@@YAXPADPAUHINSTANCE__@@@Z" );
+					RETVOIDLPSTRHINSTANCE ReceiveDependenceHinstance = ( RETVOIDLPSTRHINSTANCE ) Hook_GetProcAddress( hDLLMod[dllindex], "?ReceiveDependenciesHinstance@@YAXPADPAUHINSTANCE__@@@Z" );
 					if (!ReceiveDependenceHinstance)
-						ReceiveDependenceHinstance = (RETVOIDLPSTRHINSTANCE)GetProcAddress(hDLLMod[dllindex], "ReceiveDependenciesHinstance");
+						ReceiveDependenceHinstance = (RETVOIDLPSTRHINSTANCE)Hook_GetProcAddress(hDLLMod[dllindex], "ReceiveDependenciesHinstance");
 
 					// If Dependency HINSTANCE passing exists, pass them now
 					if ( iNumDLLDependencies > 0 )
@@ -1198,9 +1198,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							// get dependence name from ID
 							char pDLLNameToFind [ 256 ];
 							typedef const char * ( *RETLPSTRNOPARAM ) ( int n );
-							RETLPSTRNOPARAM GetDependencyID = ( RETLPSTRNOPARAM ) GetProcAddress ( hDLLMod[dllindex], "?GetDependencyID@@YAPBDH@Z" );
+							RETLPSTRNOPARAM GetDependencyID = ( RETLPSTRNOPARAM ) Hook_GetProcAddress( hDLLMod[dllindex], "?GetDependencyID@@YAPBDH@Z" );
 							if (!GetDependencyID)
-								GetDependencyID = (RETLPSTRNOPARAM)GetProcAddress(hDLLMod[dllindex], "GetDependencyID");
+								GetDependencyID = (RETLPSTRNOPARAM)Hook_GetProcAddress(hDLLMod[dllindex], "GetDependencyID");
 							strcpy ( pDLLNameToFind, GetDependencyID(iD) );
 
 							// find hModuleFound of that dependence
@@ -1301,9 +1301,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(dllindex<=255 && bDLLTPC[dllindex]==true)
 					{
 						DLL_PassCore g_DLL_PassCoreData;
-						g_DLL_PassCoreData = ( DLL_PassCore ) GetProcAddress ( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
+						g_DLL_PassCoreData = ( DLL_PassCore ) Hook_GetProcAddress( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
 						if (!g_DLL_PassCoreData)
-							g_DLL_PassCoreData = ( DLL_PassCore )GetProcAddress(hDLLMod[dllindex], "ReceiveCoreDataPtr");
+							g_DLL_PassCoreData = ( DLL_PassCore )Hook_GetProcAddress(hDLLMod[dllindex], "ReceiveCoreDataPtr");
 						if(g_DLL_PassCoreData)	g_DLL_PassCoreData( g_pGlob );
 					}
 				}
@@ -1441,7 +1441,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					else
 					{
 						// Locate function ptr from DLL
-						uintptr_t dwAdd = (uintptr_t)GetProcAddress(hDLLMod[dll], pStr);
+						uintptr_t dwAdd = (uintptr_t)Hook_GetProcAddress(hDLLMod[dll], pStr);
 						if(dwAdd!=0)
 						{
 							*(pProgramRefPtr+ref)=(DWORD)dwAdd;
@@ -1665,9 +1665,9 @@ void CEXEBlock::Free(void)
 		{
 			// Call TPC pre-destructor (if any)
 			DLL_Destructor			g_DLL_Destructor;			
-			g_DLL_Destructor		= ( DLL_Destructor )	GetProcAddress ( hDLLMod[dll], "?PreDestructor@@YAXXZ" );
+			g_DLL_Destructor		= ( DLL_Destructor )	Hook_GetProcAddress( hDLLMod[dll], "?PreDestructor@@YAXXZ" );
 			if (!g_DLL_Destructor)
-				g_DLL_Destructor	= ( DLL_Destructor )	GetProcAddress ( hDLLMod[dll], "PreDestructor" );
+				g_DLL_Destructor	= ( DLL_Destructor )	Hook_GetProcAddress( hDLLMod[dll], "PreDestructor" );
 			if(g_DLL_Destructor)	g_DLL_Destructor();
 		}
 	}
@@ -1677,15 +1677,18 @@ void CEXEBlock::Free(void)
 		{
 			// Call TPC destructor (if any)
 			DLL_Destructor			g_DLL_Destructor;
-			g_DLL_Destructor		= ( DLL_Destructor )	GetProcAddress ( hDLLMod[dll], "?Destructor@@YAXXZ" );
+			g_DLL_Destructor		= ( DLL_Destructor )	Hook_GetProcAddress( hDLLMod[dll], "?Destructor@@YAXXZ" );
 			if (!g_DLL_Destructor)
-				g_DLL_Destructor	= ( DLL_Destructor )	GetProcAddress ( hDLLMod[dll], "Destructor" );
+				g_DLL_Destructor	= ( DLL_Destructor )	Hook_GetProcAddress( hDLLMod[dll], "Destructor" );
 			if(g_DLL_Destructor)	g_DLL_Destructor();
 			bDLLTPC[dll]=false;
 		}
 		if(hDLLMod[dll])
 		{
-			FreeLibrary(hDLLMod[dll]);
+			if(MemoryPE::IsMemoryModule(hDLLMod[dll]))
+				MemoryPE::UnloadModule(hDLLMod[dll]);
+			else
+				FreeLibrary(hDLLMod[dll]);
 			hDLLMod[dll]=NULL;
 		}
 	}

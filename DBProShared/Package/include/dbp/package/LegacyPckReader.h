@@ -32,6 +32,9 @@ public:
     static PackageResult<std::unique_ptr<LegacyPckReader>> OpenExecutable(
         const std::filesystem::path& executablePath,
         const LegacyPckLimits& limits = {});
+    static PackageResult<std::unique_ptr<LegacyPckReader>> OpenPckFile(
+        const std::filesystem::path& pckPath,
+        const LegacyPckLimits& limits = {});
 
     ~LegacyPckReader() = default;
     LegacyPckReader(const LegacyPckReader&) = delete;

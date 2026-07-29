@@ -389,6 +389,60 @@ LegacyPckReader::OpenExecutable(
                 applicationKind.value())));
 }
 
+PackageResult<std::unique_ptr<LegacyPckReader>>
+LegacyPckReader::OpenPckFile(
+    const std::filesystem::path& pckPath,
+    const LegacyPckLimits& limits) {
+    std::error_code statusError;
+    const auto status =
+        std::filesystem::symlink_status(pckPath, statusError);
+    if (statusError ||
+        !std::filesystem::is_regular_file(status) ||
+        std::filesystem::is_symlink(status)) {
+        return Failure<std::unique_ptr<LegacyPckReader>>(
+            PackageErrorCode::IoFailed,
+            "The legacy sidecar PCK is not a safe regular file.");
+    }
+    const auto fileSize =
+        std::filesystem::file_size(pckPath, statusError);
+    if (statusError) {
+        return Failure<std::unique_ptr<LegacyPckReader>>(
+            PackageErrorCode::IoFailed,
+            "Reading the legacy sidecar PCK size failed.");
+    }
+    if (fileSize < sizeof(std::uint32_t)) {
+        return Failure<std::unique_ptr<LegacyPckReader>>(
+            PackageErrorCode::InvalidFormat,
+            "The legacy sidecar PCK terminator is missing.");
+    }
+    if (fileSize > limits.maximumArchiveBytes ||
+        fileSize > (std::numeric_limits<std::size_t>::max)()) {
+        return Failure<std::unique_ptr<LegacyPckReader>>(
+            PackageErrorCode::LimitExceeded,
+            "The legacy sidecar PCK exceeds the configured limit.");
+    }
+    std::ifstream input(pckPath, std::ios::binary);
+    if (!input) {
+        return Failure<std::unique_ptr<LegacyPckReader>>(
+            PackageErrorCode::IoFailed,
+            "Opening the legacy sidecar PCK failed.");
+    }
+    const auto archive =
+        ReadExtent(input, 0, static_cast<std::size_t>(fileSize));
+    if (!archive) {
+        return PackageResult<std::unique_ptr<LegacyPckReader>>::Failure(
+            archive.error());
+    }
+    auto entries = ParseArchive(archive.value(), 0, limits);
+    if (!entries) {
+        return PackageResult<std::unique_ptr<LegacyPckReader>>::Failure(
+            entries.error());
+    }
+    return PackageResult<std::unique_ptr<LegacyPckReader>>::Success(
+        std::unique_ptr<LegacyPckReader>(
+            new LegacyPckReader(std::move(entries.value()), 0)));
+}
+
 const LegacyPckEntry* LegacyPckReader::FindEntry(
     const std::string_view canonicalPath) const noexcept {
     const auto found = std::find_if(

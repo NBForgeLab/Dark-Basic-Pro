@@ -202,6 +202,45 @@ TEST_F(MetadataFixture, InjectsAndReadsExactVersionedKeyResource) {
     EXPECT_EQ(ReadFile(sourceExecutable_), originalBytes);
 }
 
+TEST_F(MetadataFixture, ReadsPreviousKeyDuringDescriptorCommitWindow) {
+    const auto executable = CopyExecutable("resource-fallback.exe");
+    const auto currentId = TestKeyId(0xA1);
+    const auto previousId = TestKeyId(0xA2);
+    auto currentKey = SecureBuffer::FromBytes(
+        std::vector<std::uint8_t>(kPackageMasterKeySize, 0x11));
+    ExecutablePackageKey previous{
+        previousId,
+        SecureBuffer::FromBytes(
+            std::vector<std::uint8_t>(
+                kPackageMasterKeySize,
+                0x22)),
+    };
+
+    const auto injected = InjectExecutablePackageKeys(
+        executable,
+        currentId,
+        currentKey,
+        &previous);
+
+    ASSERT_TRUE(injected) << injected.error().message;
+    const auto current =
+        ReadExecutablePackageKey(executable, currentId);
+    const auto fallback =
+        ReadExecutablePackageKey(executable, previousId);
+    ASSERT_TRUE(current) << current.error().message;
+    ASSERT_TRUE(fallback) << fallback.error().message;
+    EXPECT_EQ(
+        current.value().masterKey.CopyBytes(),
+        std::vector<std::uint8_t>(
+            kPackageMasterKeySize,
+            0x11));
+    EXPECT_EQ(
+        fallback.value().masterKey.CopyBytes(),
+        std::vector<std::uint8_t>(
+            kPackageMasterKeySize,
+            0x22));
+}
+
 TEST_F(MetadataFixture, RejectsMissingDuplicateAndWrongKeyResources) {
     const auto missing =
         ReadExecutablePackageKey(sourceExecutable_, TestKeyId());

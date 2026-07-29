@@ -1993,12 +1993,9 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 #define CHECK_MISSING_FILEPATH(which)\
 	if ((which==0 && !FileExists(path)) || (which==1 && !PathExists(path)))\
 	{\
-		if(filesAreMissing)\
-		{\
-			filesAreMissing=true;\
-			strcat_s(missing, ", ");\
-		}\
+		if(filesAreMissing) strcat_s(missing, ", ");\
 		strcat_s(missing, path);\
+		filesAreMissing=true;\
 	}
 #define CHECK_MISSING_FILE() CHECK_MISSING_FILEPATH(0)
 #define CHECK_MISSING_PATH() CHECK_MISSING_FILEPATH(1)
@@ -2065,11 +2062,8 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	strcpy(path, GetInternalFile(PATH_ROOTPATH));
 	strcat(path, "SETUP.INI");
 	GetPrivateProfileString("MULTITHREADING", "ThreadCount", "0", textfiles, sizeof(textfiles), path);
-	if (!g_WorkQueue.Init( static_cast<db3::uint>(atoi(textfiles)) ))
-	{
-		MessageBoxW( GetActiveWindow(), L"Failed to initialize work queue", L"Error", MB_ICONERROR|MB_OK );
-		return false;
-	}
+	const db3::uint threadCount =
+		static_cast<db3::uint>(atoi(textfiles));
 
 	// === TESTING ===
 #if 0
@@ -2196,13 +2190,6 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	strcat(path, "ErrorReport.txt");
 	SetInternalFile(PATH_TEMPERRORFILE, path);
 
-	// Get Path to DBM File
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "plugins\\");
-	strcat(path, "compress.dll");
-	SetInternalFile(PATH_COMPRESSDLLFILE, path);
-	CHECK_MISSING_FILE();
-
 	// Verify Importanr Files Exist
 #if 0
 	bool bAllFilesAvailable=true;
@@ -2213,7 +2200,6 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	if(PathExists(GetInternalFile(PATH_PLUGINSUSERFOLDER))==false) bAllFilesAvailable=false;
 	if(PathExists(GetInternalFile(PATH_PLUGINSLICENSEDFOLDER))==false) bAllFilesAvailable=false;
 	if(PathExists(GetInternalFile(PATH_TEMPFOLDER))==false) bAllFilesAvailable=false;
-	if(FileExists(GetInternalFile(PATH_COMPRESSDLLFILE))==false) bAllFilesAvailable=false;
 #else
 	bool bAllFilesAvailable = !filesAreMissing;
 #endif
@@ -2226,19 +2212,40 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 		// Not all files could be found
 #if 0
 		char missing[32];
-		wsprintf ( missing, "%s\nStatus:%d%d%d%d%d%d%d%d",	GetInternalFile(PATH_TEMPFOLDER),//g_pDBPCompiler->GetWordString(8),
+		wsprintf ( missing, "%s\nStatus:%d%d%d%d%d%d%d",	GetInternalFile(PATH_TEMPFOLDER),//g_pDBPCompiler->GetWordString(8),
 															(int)FileExists(GetInternalFile(PATH_SETUPFILE)),
 															(int)FileExists(GetInternalFile(PATH_ERRORSFILE)),
 															(int)FileExists(GetInternalFile(PATH_DEBUGGERFILE)),
 															(int)PathExists(GetInternalFile(PATH_PLUGINSFOLDER)),
 															(int)PathExists(GetInternalFile(PATH_PLUGINSUSERFOLDER)),
 															(int)PathExists(GetInternalFile(PATH_PLUGINSLICENSEDFOLDER)),
-															(int)PathExists(GetInternalFile(PATH_TEMPFOLDER)),
-															(int)FileExists(GetInternalFile(PATH_COMPRESSDLLFILE))
+															(int)PathExists(GetInternalFile(PATH_TEMPFOLDER))
 															);
 #endif
 		// Not all internal files exist for compiler
-		MessageBoxW(NULL, TextConvert::UTF8ToUTF16(missing).c_str(), TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetWordString(9)).c_str(), MB_OK|MB_ICONERROR);
+		if(!db3::g_bHeadlessMode)
+		{
+			MessageBoxW(
+				NULL,
+				TextConvert::UTF8ToUTF16(missing).c_str(),
+				TextConvert::UTF8ToUTF16(
+					g_pDBPCompiler->GetWordString(9)).c_str(),
+				MB_OK|MB_ICONERROR);
+		}
+		return false;
+	}
+
+	// Do not start worker threads for an installation that has already failed
+	// validation. Besides wasting resources, early initialization made this
+	// routine unsafe to exercise repeatedly in tests and tools.
+	if (!g_WorkQueue.Init(threadCount))
+	{
+		if(!db3::g_bHeadlessMode)
+			MessageBoxW(
+				GetActiveWindow(),
+				L"Failed to initialize work queue",
+				L"Error",
+				MB_ICONERROR|MB_OK);
 		return false;
 	}
 
@@ -2380,6 +2387,22 @@ void CDBPCompiler::SetRuntimeRootOverride(
 {
 	m_runtimeRootOverride = std::move(runtimeRoot);
 	m_resolvedRuntimeBundle.reset();
+}
+
+void CDBPCompiler::SetPackageKeyFile(
+	std::optional<std::filesystem::path> keyFile)
+{
+	if(keyFile && !keyFile->is_absolute())
+		keyFile = std::filesystem::absolute(*keyFile);
+	if(keyFile)
+		keyFile = keyFile->lexically_normal();
+	m_packageKeyFile = std::move(keyFile);
+}
+
+const std::optional<std::filesystem::path>&
+CDBPCompiler::GetPackageKeyFile(void) const
+{
+	return m_packageKeyFile;
 }
 
 bool CDBPCompiler::ValidateRuntimeBundle(DWORD structurePatternCount)

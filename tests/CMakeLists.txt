@@ -56,6 +56,8 @@ add_executable(dbp_tests
     test_legacy_pck_reader.cpp
     test_package_runtime_metadata.cpp
     test_package_mount.cpp
+    test_runtime_package_startup.cpp
+    "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
@@ -84,6 +86,7 @@ target_compile_definitions(dbp_tests PRIVATE
 target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompiler"
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPDebugger"
+    "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
 )
 
@@ -91,9 +94,7 @@ if(MSVC)
     target_link_options(dbp_tests PRIVATE /SAFESEH:NO)
 endif()
 
-include(GoogleTest)
-
-set(dbp_test_properties TIMEOUT 60)
+set(dbp_test_properties TIMEOUT 180)
 if(DBP_ENABLE_ASAN AND MSVC)
     get_filename_component(dbp_msvc_runtime_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
     list(APPEND dbp_test_properties
@@ -102,7 +103,9 @@ if(DBP_ENABLE_ASAN AND MSVC)
     )
 endif()
 
-gtest_discover_tests(dbp_tests
-    DISCOVERY_TIMEOUT 30
-    PROPERTIES ${dbp_test_properties}
-)
+# Running the suite as one CTest process avoids CMake's finite capture limit for
+# large `--gtest_list_tests` output. It also exercises process-global compiler
+# state across tests instead of accidentally hiding lifecycle bugs behind one
+# process per case.
+add_test(NAME dbp_tests COMMAND dbp_tests)
+set_tests_properties(dbp_tests PROPERTIES ${dbp_test_properties})

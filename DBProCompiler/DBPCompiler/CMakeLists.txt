@@ -44,7 +44,6 @@ set(LIB_SOURCES
     VFSHooks.cpp
     MemoryPE.cpp
     EXEBlock.cpp
-    Encryptor.cpp
     Error.cpp
     FileBuilder.cpp
     IncludeTable.cpp
@@ -101,8 +100,97 @@ target_link_libraries(dbp_compiler_lib PUBLIC
 )
 target_include_directories(dbp_compiler_lib PUBLIC . icons)
 
-# Compile main executable linking to the compiler library
-add_executable(DBPCompiler WIN32 Main.cpp DBPCompiler.rc)
+# Generate the resource script from the historical UI resources while binding
+# the executable stub to the DarkEXE target produced by this exact build.
+# This prevents a stale checked-in runner from being embedded in new programs.
+file(
+    READ
+    "${CMAKE_CURRENT_SOURCE_DIR}/DBPCompiler.rc"
+    DBP_COMPILER_RESOURCE_CONTENT
+)
+string(
+    REPLACE
+    "\"DarkEXE.exe\""
+    "\"$<TARGET_FILE:DarkEXE>\""
+    DBP_COMPILER_RESOURCE_CONTENT
+    "${DBP_COMPILER_RESOURCE_CONTENT}"
+)
+string(
+    REPLACE
+    "\"icon1-db3.ico\""
+    "\"${CMAKE_CURRENT_SOURCE_DIR}/icon1-db3.ico\""
+    DBP_COMPILER_RESOURCE_CONTENT
+    "${DBP_COMPILER_RESOURCE_CONTENT}"
+)
+string(
+    APPEND
+    DBP_COMPILER_RESOURCE_CONTENT
+    "\n109 X \"$<TARGET_FILE:DarkEXE>\"\n"
+)
+set(DBP_COMPILER_RESOURCE
+    "${CMAKE_CURRENT_BINARY_DIR}/DBPCompiler-$<CONFIG>.rc")
+file(
+    GENERATE
+    OUTPUT "${DBP_COMPILER_RESOURCE}"
+    CONTENT "${DBP_COMPILER_RESOURCE_CONTENT}"
+)
+
+# Compile main executable linking to the compiler library.
+add_executable(
+    DBPCompiler
+    WIN32
+    Main.cpp
+    "${DBP_COMPILER_RESOURCE}"
+)
+add_dependencies(DBPCompiler DarkEXE)
 dbp_apply_legacy_cpp_options(DBPCompiler)
 target_compile_definitions(DBPCompiler PRIVATE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
+
+# A compiler build is only usable when its host command database, localized
+# diagnostics, debugger, and legacy product plug-ins are deployed beside it.
+# Keep the newly built compiler and runner, but publish the immutable support
+# surface from the tracked installation instead of silently accepting a
+# partially populated output directory.
+set(DBP_COMPILER_HOST_ROOT "${CMAKE_SOURCE_DIR}/Install/Compiler")
+add_custom_command(
+    TARGET DBPCompiler
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_FILE_DIR:DBPCompiler>/../temp"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DBP_COMPILER_HOST_ROOT}/setup.ini"
+        "$<TARGET_FILE_DIR:DBPCompiler>/setup.ini"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DBP_COMPILER_HOST_ROOT}/DBPDebugger.exe"
+        "$<TARGET_FILE_DIR:DBPCompiler>/DBPDebugger.exe"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DBP_COMPILER_HOST_ROOT}/BCGCB59.dll"
+        "$<TARGET_FILE_DIR:DBPCompiler>/BCGCB59.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DBP_COMPILER_HOST_ROOT}/MD5.dll"
+        "$<TARGET_FILE_DIR:DBPCompiler>/MD5.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DBP_COMPILER_HOST_ROOT}/mfc71.dll"
+        "$<TARGET_FILE_DIR:DBPCompiler>/mfc71.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${DBP_COMPILER_HOST_ROOT}/msvcr71.dll"
+        "$<TARGET_FILE_DIR:DBPCompiler>/msvcr71.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${DBP_COMPILER_HOST_ROOT}/lang"
+        "$<TARGET_FILE_DIR:DBPCompiler>/lang"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${DBP_COMPILER_HOST_ROOT}/effects"
+        "$<TARGET_FILE_DIR:DBPCompiler>/effects"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${DBP_COMPILER_HOST_ROOT}/plugins"
+        "$<TARGET_FILE_DIR:DBPCompiler>/plugins"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${DBP_COMPILER_HOST_ROOT}/plugins-user"
+        "$<TARGET_FILE_DIR:DBPCompiler>/plugins-user"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${DBP_COMPILER_HOST_ROOT}/plugins-licensed"
+        "$<TARGET_FILE_DIR:DBPCompiler>/plugins-licensed"
+    VERBATIM
+    COMMENT "Deploying the DBPro compiler host runtime"
+)

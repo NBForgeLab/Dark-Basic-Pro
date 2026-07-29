@@ -1,6 +1,7 @@
 include_guard(GLOBAL)
 
 option(DBP_ENABLE_ASAN "Enable AddressSanitizer for project-owned C/C++ targets" OFF)
+option(DBP_BUILD_FUZZERS "Build optional Clang/libFuzzer package targets" OFF)
 
 function(dbp_enable_parallel_msvc target)
     if(MSVC)

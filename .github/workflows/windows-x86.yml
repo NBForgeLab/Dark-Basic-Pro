@@ -4,7 +4,8 @@ on:
   pull_request:
   push:
     branches:
-      - test-4
+      - main
+      - master
       - "codex/**"
 
 permissions:
@@ -19,6 +20,7 @@ jobs:
       matrix:
         preset:
           - windows-x86-debug
+          - windows-x86-release
           - windows-x86-asan
 
     steps:
@@ -72,6 +74,21 @@ jobs:
           $ErrorActionPreference = 'Stop'
           ctest --preset ${{ matrix.preset }}
 
+      - name: Run language conformance
+        if: matrix.preset == 'windows-x86-release'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DBP_CONFORMANCE_COMPILER = `
+            "$PWD/out/build/windows-x86-release/bin/Release/DBPCompiler.exe"
+          $env:DBP_CONFORMANCE_RUNTIME_ROOT = "$PWD/Install/Compiler"
+          $result = Invoke-Pester `
+            -Path tests/conformance/run-conformance.Tests.ps1 `
+            -PassThru
+          if ($result.FailedCount -ne 0) {
+            throw "Language conformance failed: $($result.FailedCount) test(s)."
+          }
+
       - name: Upload test diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -81,3 +98,48 @@ jobs:
             out/build/${{ matrix.preset }}/Testing/Temporary/
           if-no-files-found: ignore
           retention-days: 7
+
+  fuzz-corpus-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Acquire pinned Microsoft D3DX compatibility package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packageUri = 'https://www.nuget.org/api/v2/package/Microsoft.DXSDK.D3DX/9.29.952.8'
+          $expectedSha256 = 'EAD0906AE8A26C18A7525DA7490127A2110F7C58F18293738283E30E97C6EA4B'
+          $archive = Join-Path $PWD 'out/deps/Microsoft.DXSDK.D3DX.zip'
+          $destination = Join-Path $PWD 'out/deps/dxsdk'
+          New-Item -ItemType Directory -Path (Split-Path $archive) -Force | Out-Null
+          Invoke-WebRequest -Uri $packageUri -OutFile $archive
+          if ((Get-FileHash -Algorithm SHA256 $archive).Hash -ne $expectedSha256) {
+            throw 'D3DX package SHA-256 mismatch.'
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination
+
+      - name: Configure Clang libFuzzer targets
+        shell: pwsh
+        run: |
+          cmake -S . -B out/build/windows-x86-fuzz `
+            -G "Visual Studio 17 2022" -A Win32 -T ClangCL `
+            -DDBP_BUILD_FUZZERS=ON -DBUILD_TESTING=OFF `
+            -DDBP_DXSDK_ROOT="$PWD/out/deps/dxsdk"
+
+      - name: Build fuzz targets
+        shell: pwsh
+        run: |
+          cmake --build out/build/windows-x86-fuzz `
+            --config Release `
+            --target dbp_package_reader_fuzzer `
+              dbp_legacy_pck_reader_fuzzer `
+              dbp_fuzz_seed_generator
+
+      - name: Run bounded valid and malformed corpus smoke
+        shell: pwsh
+        run: |
+          ./fuzz/run-corpus-smoke.ps1 `
+            -BinaryDirectory out/build/windows-x86-fuzz/bin/Release

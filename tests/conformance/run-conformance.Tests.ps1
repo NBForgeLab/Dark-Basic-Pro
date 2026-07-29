@@ -64,7 +64,14 @@ function Invoke-ProcessWithTimeout {
 
 Describe "DarkBASIC Language Conformance Tests" {
     # Find built compiler
-    $compilerCandidates = @(
+    $compilerCandidates = @()
+    if (-not [string]::IsNullOrWhiteSpace(
+            $env:DBP_CONFORMANCE_COMPILER)) {
+        $compilerCandidates += $env:DBP_CONFORMANCE_COMPILER
+    }
+    $compilerCandidates += @(
+        (Join-Path $PSScriptRoot "..\..\out\build\windows-x86-release\bin\Release\DBPCompiler.exe"),
+        (Join-Path $PSScriptRoot "..\..\out\build\windows-x86-debug\bin\Debug\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\build\bin\Release\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\build\bin\Debug\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\bin\Release\DBPCompiler.exe"),
@@ -82,7 +89,19 @@ Describe "DarkBASIC Language Conformance Tests" {
     if ($null -eq $script:CompilerPath) {
         throw "DBPCompiler.exe not found in build outputs. Build project first."
     }
-    $script:RuntimeRoot = [IO.Path]::GetDirectoryName($script:CompilerPath)
+    if (-not [string]::IsNullOrWhiteSpace(
+            $env:DBP_CONFORMANCE_RUNTIME_ROOT)) {
+        $script:RuntimeRoot = [IO.Path]::GetFullPath(
+            $env:DBP_CONFORMANCE_RUNTIME_ROOT)
+    } else {
+        $installedRuntime = Join-Path $PSScriptRoot "..\..\Install\Compiler"
+        if (Test-Path -LiteralPath $installedRuntime -PathType Container) {
+            $script:RuntimeRoot = [IO.Path]::GetFullPath($installedRuntime)
+        } else {
+            $script:RuntimeRoot =
+                [IO.Path]::GetDirectoryName($script:CompilerPath)
+        }
+    }
 
     $testFiles = Get-ChildItem -Path $PSScriptRoot -Filter "*.dba" -Recurse
     foreach ($file in $testFiles) {
@@ -178,6 +197,106 @@ Describe "DarkBASIC Language Conformance Tests" {
                     Remove-Item -LiteralPath $workspace -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
+        }
+    }
+
+    It "Keeps the previous application runnable across an interrupted rebuild" {
+        $workspace = Join-Path ([IO.Path]::GetTempPath()) (
+            "dbp-publication-" + [Guid]::NewGuid().ToString("N"))
+        New-Item -ItemType Directory -Path $workspace | Out-Null
+        try {
+            "end`r`n" | Set-Content -LiteralPath (
+                Join-Path $workspace "main.dba") -Encoding ASCII
+            @(
+                "main=main.dba"
+                "executable=app.exe"
+                "final source=_Temp.dbsource"
+            ) -join "`r`n" | Set-Content -LiteralPath (
+                Join-Path $workspace "project.dbpro") -Encoding ASCII
+            $outputExe = Join-Path $workspace "app.exe"
+            $descriptor = Join-Path $workspace "app.dbpakref"
+            $arguments =
+                "--json --runtime-root `"$($script:RuntimeRoot)`" " +
+                "--output `"$outputExe`" " +
+                "`"$(Join-Path $workspace 'project.dbpro')`""
+
+            $initial = Invoke-ProcessWithTimeout `
+                -FileName $script:CompilerPath `
+                -Arguments $arguments `
+                -WorkingDirectory $workspace
+            $initial.ExitCode | Should Be 0
+            $descriptorHash =
+                (Get-FileHash -LiteralPath $descriptor -Algorithm SHA256).Hash
+            $executableHash =
+                (Get-FileHash -LiteralPath $outputExe -Algorithm SHA256).Hash
+
+            @(
+                "main=main.dba"
+                "executable=app.exe"
+                "final source=_Temp.dbsource"
+                "app title=Interrupted rebuild"
+            ) -join "`r`n" | Set-Content -LiteralPath (
+                Join-Path $workspace "project.dbpro") -Encoding ASCII
+
+            $packageInterruptWrapper =
+                Join-Path $workspace "interrupt-after-package.cmd"
+            @(
+                "@echo off"
+                "set DBP_TEST_FAIL_PUBLICATION_STAGE=after-package"
+                "`"$($script:CompilerPath)`" $arguments"
+                "if not errorlevel 1 exit /b 0"
+                "exit /b 23"
+            ) -join "`r`n" | Set-Content -LiteralPath (
+                $packageInterruptWrapper) -Encoding ASCII
+            $packageInterrupted = Invoke-ProcessWithTimeout `
+                -FileName $env:ComSpec `
+                -Arguments "/d /s /c `"`"$packageInterruptWrapper`"`"" `
+                -WorkingDirectory $workspace
+            $packageInterrupted.Stdout |
+                Should Match "DBP3190"
+            $packageInterrupted.HasExited | Should Be $true
+            (Get-FileHash -LiteralPath $outputExe -Algorithm SHA256).Hash |
+                Should Be $executableHash
+            (Get-FileHash -LiteralPath $descriptor -Algorithm SHA256).Hash |
+                Should Be $descriptorHash
+
+            $interruptWrapper =
+                Join-Path $workspace "interrupt-build.cmd"
+            @(
+                "@echo off"
+                "set DBP_TEST_FAIL_PUBLICATION_STAGE=after-executable"
+                "`"$($script:CompilerPath)`" $arguments"
+                "if not errorlevel 1 exit /b 0"
+                "exit /b 23"
+            ) -join "`r`n" | Set-Content -LiteralPath (
+                $interruptWrapper) -Encoding ASCII
+            $interrupted = Invoke-ProcessWithTimeout `
+                -FileName $env:ComSpec `
+                -Arguments "/d /s /c `"`"$interruptWrapper`"`"" `
+                -WorkingDirectory $workspace
+            $interrupted.Stdout |
+                Should Match "DBP3191"
+            $interrupted.HasExited | Should Be $true
+            (Get-FileHash -LiteralPath $descriptor -Algorithm SHA256).Hash |
+                Should Be $descriptorHash
+
+            $application = Invoke-ProcessWithTimeout `
+                -FileName $outputExe `
+                -WorkingDirectory $workspace
+            $application.ExitCode | Should Be 0
+
+            $completed = Invoke-ProcessWithTimeout `
+                -FileName $script:CompilerPath `
+                -Arguments $arguments `
+                -WorkingDirectory $workspace
+            $completed.ExitCode | Should Be 0
+            @(Get-ChildItem -LiteralPath $workspace -Force |
+                Where-Object Name -Like "*.dbp-backup-*").Count |
+                Should Be 0
+        }
+        finally {
+            Remove-Item -LiteralPath $workspace -Recurse -Force `
+                -ErrorAction SilentlyContinue
         }
     }
 }

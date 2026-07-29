@@ -12,6 +12,8 @@ namespace dbp::package {
 inline constexpr std::size_t kExecutableKeyResourceSize = 64U;
 inline constexpr wchar_t kExecutableKeyResourceName[] =
     L"DBP_PACKAGE_KEY_V2";
+inline constexpr wchar_t kExecutableFallbackKeyResourceName[] =
+    L"DBP_PACKAGE_PREVIOUS_KEY_V2";
 
 struct ExecutablePackageKey {
     KeyId keyId{};
@@ -30,6 +32,11 @@ PackageResult<bool> InjectExecutablePackageKey(
     const std::filesystem::path& executablePath,
     const KeyId& keyId,
     const SecureBuffer& masterKey);
+PackageResult<bool> InjectExecutablePackageKeys(
+    const std::filesystem::path& executablePath,
+    const KeyId& keyId,
+    const SecureBuffer& masterKey,
+    const ExecutablePackageKey* fallbackKey);
 PackageResult<ExecutablePackageKey> ReadExecutablePackageKey(
     const std::filesystem::path& executablePath,
     const KeyId& expectedKeyId);

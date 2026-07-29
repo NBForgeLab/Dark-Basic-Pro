@@ -4,6 +4,7 @@
 #include "RuntimeBundleResolver.h"
 #include "Str.h"
 #include "DBPCompiler.h"
+#include "DB3.h"
 
 #include <Windows.h>
 
@@ -146,6 +147,30 @@ TEST(RuntimeBundleIntegrationTest, CompilerKeepsHostCommandsWithSelectedCoreRunt
             compiler.GetInternalFile(PATH_PLUGINSLICENSEDFOLDER)),
         std::filesystem::weakly_canonical(
             compilerDirectory / "plugins-licensed"));
+
+    std::error_code error;
+    std::filesystem::remove_all(installRoot, error);
+}
+
+TEST(RuntimeBundleIntegrationTest, RejectsIncompleteHostCompilerInstallation) {
+    TemporaryRuntimeBundle bundle(true);
+    const auto suffix = std::to_string(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+    const auto installRoot = std::filesystem::temp_directory_path() /
+        ("dbpro_incomplete_compiler_install_" + suffix);
+    const auto compilerDirectory = installRoot / "Compiler";
+    std::filesystem::create_directories(compilerDirectory);
+
+    auto compilerPath = (compilerDirectory / "DBPCompiler.exe").string();
+    CDBPCompiler compiler(compilerPath.data());
+    compiler.SetRuntimeRootOverride(bundle.root());
+
+    const bool previousHeadlessMode = db3::g_bHeadlessMode;
+    db3::g_bHeadlessMode = true;
+    const bool established = compiler.EstablishRequiredBaseFiles();
+    db3::g_bHeadlessMode = previousHeadlessMode;
+
+    EXPECT_FALSE(established);
 
     std::error_code error;
     std::filesystem::remove_all(installRoot, error);

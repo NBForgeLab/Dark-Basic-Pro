@@ -1,75 +1,46 @@
-# Phase 13: Virtual File System (VFS) & Antivirus Protection
+# Phase 13: Read-only Virtual File System
 
-## 🎯 Goal
-Replace the temporary directory unpacking mechanism with a **Virtual File System (VFS)**. This modernization prevents antivirus false-positive alerts on generated game executables and speeds up file asset loads by avoiding disk writes.
+## Current behavior
 
----
+The runtime mounts authenticated DBPAK v2 archives and validated historical
+PCK archives through a read-only VFS. Registry entries own their underlying
+data sources, opened handles own independent seek cursors, and clearing a mount
+does not invalidate an already-open stream.
 
-## ⚠️ Current Issues: Antivirus Triggers
-The legacy runner [EXEBlock.cpp](file:///d:/GitHub-repo/Dark-Basic-Pro/DBProCompiler/DBPCompiler/EXEBlock.cpp) uses a self-extracting mechanism to execute games:
-1. When the game executable starts, it creates a temporary subdirectory in Windows (`Temp`).
-2. It extracts all engine components (`DLLs`) and assets (images, sounds, 3D meshes) to that disk directory.
-3. It loads the DLLs dynamically from that directory.
+Package paths are canonical and exact. The VFS does not fall back from a path
+to its basename; any compatibility alias must be registered explicitly. A
+mounted path rejects write/create/truncate access. Disk access is used only
+when no virtual path exists, so a failed authentication cannot silently fall
+through to an untrusted disk file.
 
-* **Why is this a problem?**
-  * Modern antivirus software (e.g., Windows Defender) flags any program that extracts DLLs/EXEs to temporary user directories and executes them as highly suspicious "Droppers" or "Trojan" installers.
-  * Writing and reading files from disk causes heavy I/O overhead.
+## Runtime flow
 
----
+1. `DarkEXE` resolves its sibling `.dbpakref`.
+2. It reads the matching versioned key resource from its own PE image.
+3. It opens and authenticates the named DBPAK relative to the executable.
+4. `PackageMount` registers lazy authenticated data sources.
+5. `_virtual.dat`, plugins, and media are opened through VFS-aware file and PE
+   loading paths.
 
-## 🛠️ Design: Memory-based Virtual File System
+There is no temporary `_virtual.pck`, arbitrary current-directory package
+selection, or execution of a legacy decompression plugin. Historical
+executables without a v2 descriptor use only the bounded, read-only legacy
+adapter.
 
-We recommend integrating **PhysicsFS (PhysFS)** or a similar lightweight archive-mounting system:
+## Security and antivirus expectations
 
-```
-[Standalone EXE] ──> (Loads asset archive directly in memory)
-                                │
-                                ▼
-                   (Virtual File System - VFS)
-                                │
-          ┌─────────────────────┴─────────────────────┐
-          ▼                                           ▼
-   [Image.dll Loader]                         [Sound.dll Loader]
-  (Reads data from buffer)                   (Reads data from buffer)
-```
+Avoiding a self-extracting PCK and loading packaged DLLs from authenticated
+memory removes common dropper-like behavior and reduces temporary I/O. It
+cannot guarantee that antivirus products will never report a false positive;
+reputation, signatures, compiler output, dependencies, and distribution
+channels also affect detection.
 
-### 1. How VFS Works
-* The game's assets and DLLs are kept inside a single packed file (or embedded directly into the `.exe`).
-* When the game requests an asset, the VFS reads the bytes directly from the archive in-memory.
-* The asset data is loaded into RAM streams, bypassing disk writes entirely.
+Installer mode is the explicit exception to no extraction. It authenticates
+all entries first, writes only beneath a private staging directory, and
+publishes the completed application directory atomically.
 
-### 2. VFS API Design
-```cpp
-#pragma once
-#include <vector>
-#include <string>
+## Concurrency model
 
-class VFS {
-public:
-    static bool MountArchive(const std::string& archivePath);
-    
-    // Read file contents directly into a memory buffer
-    static std::vector<uint8_t> ReadFileToBuffer(const std::string& virtualPath);
-    
-    // Check if file exists in the virtual archive
-    static bool FileExists(const std::string& virtualPath);
-};
-```
-
----
-
-## 🔄 Implementation Steps
-
-1. **Integrate PhysFS in core modules**:
-   * Add PhysFS as a static dependency in `Core.dll` and CMake lists.
-2. **Refactor Resource DLLs**:
-   * Modify texture and sound loader functions in `Image.dll` and `Sound.dll` to read from memory streams instead of file path strings. For instance, replace standard Direct3D file load functions with memory-based variants (`D3DXCreateTextureFromFileInMemory`).
-3. **Asset Encryption**:
-   * Optionally encrypt assets inside the VFS package to protect game developer content from piracy.
-
----
-
-## 🚀 Benefits
-* **Clean Antivirus Reputations**: Game executables will not be flagged or quarantined by Windows Defender because they do not drop executable code on user systems.
-* **Instant Load Times**: Loading assets directly from a memory-mapped ZIP or PCK archive is significantly faster than standard disk I/O.
-* **Compact Packaging**: Games distribute cleanly as a single executable containing all assets.
+The registry and active-handle tables use narrow mutex scopes. Concurrent
+opens and reads are supported, each stream tracks its own offset, and source
+lifetime is shared rather than borrowed through raw pointers.

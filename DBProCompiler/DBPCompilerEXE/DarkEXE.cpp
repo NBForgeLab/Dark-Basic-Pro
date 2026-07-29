@@ -5,13 +5,17 @@
 // Internal Includes
 #define _CRT_SECURE_NO_DEPRECATE
 #pragma warning(disable : 4996)
-#include "FileReader.h"
+#include "RuntimePackageBootstrap.h"
 #include "windows.h"
 #include "direct.h"
 #include "../DBPCompiler/TextConvert.h"
 #include "../DBPCompiler/VFSHooks.h"
 #include "../DBPCompiler/CrashHandler.h"
 #include "time.h"
+
+#include <filesystem>
+#include <memory>
+#include <string>
 
 // Defines and Externs
 #include "DarkEXE.h"
@@ -40,7 +44,6 @@ time_t					TodaysDay						= 0;
 LPSTR								gRefCommandLineString=NULL;
 char								gUnpackDirectory[_MAX_PATH];
 char								gpDBPDataName[_MAX_PATH];
-DWORD								gEncryptionKey;
 
 // EXECUTABLE Class
 CEXEBlock							CEXE;
@@ -696,7 +699,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	db3::SetupDiagnosticHandlers();
 
 	// Initialize Virtual File System hooks
-	VFSHooks::Initialize();
+	if(!VFSHooks::Initialize())
+		return 1;
 
 	// Memory Manager Initial Snapshot
 	strcpy ( g_MM_FunctionName, "WinMain" );
@@ -712,18 +716,33 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Store reference to CL$()
 	gRefCommandLineString=lpCmdLine;
 
-	// Create File Reader
-	CFileReader* pFileReader = new CFileReader;
-
-	// Prepare Virtual Directory from Data Appended to EXE File
+	// Resolve and authenticate the package belonging to this executable.
 	char ActualEXEFilename[_MAX_PATH];
+	std::filesystem::path ActualExecutablePath;
 	{
 		wchar_t wPath[_MAX_PATH];
 		GetModuleFileNameW(hInstance, wPath, _MAX_PATH);
+		ActualExecutablePath = std::filesystem::path(wPath);
 		std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
 		strncpy(ActualEXEFilename, utf8Path.c_str(), _MAX_PATH - 1);
 		ActualEXEFilename[_MAX_PATH - 1] = '\0';
 	}
+	auto PackageStartup =
+		RuntimePackageBootstrap::Start(ActualExecutablePath);
+	if(!PackageStartup)
+	{
+		const auto message = TextConvert::UTF8ToUTF16(
+			"Dark Basic Professional could not authenticate its runtime package.\n\n" +
+			PackageStartup.error().message);
+		MessageBoxW(
+			NULL,
+			message.c_str(),
+			L"Runtime package error",
+			MB_OK | MB_ICONERROR | MB_TOPMOST);
+		VFSHooks::Shutdown();
+		return 1;
+	}
+	auto RuntimePackage = std::move(PackageStartup.value());
 
 	// Get current working directory (for temp folder compare)
 	char CurrentDirectory[_MAX_PATH];
@@ -785,62 +804,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	#endif
 
-	// Extract PCK from EXE (if any, else use exename + pck)
-	char pPCKFilename[_MAX_PATH];
-	strcpy(pPCKFilename, gUnpackDirectory);
-	strcat(pPCKFilename, "\\_virtual.pck");
-
-	// U75 - 051209 - modified contents of this function (if PCK detected, do NOT read from EXE)
-	// NOTE: This helps systems that want an untouched EXE (with no data appended to end of it)
-	pFileReader->MakePCKFromEXE(ActualEXEFilename, pPCKFilename);
-
-	// U75 - 081209 - prefer CWD version of PCK if found
-	char pAlternativePCKinCWD[_MAX_PATH];
-	strcpy ( pAlternativePCKinCWD, "" );
-	for ( int n=strlen(ActualEXEFilename); n>0; n-- )
-	{
-		if ( ActualEXEFilename[n]=='/' || ActualEXEFilename[n]=='\\' )
-		{
-			strcpy ( pAlternativePCKinCWD, ActualEXEFilename+n+1 );
-			pAlternativePCKinCWD[strlen(pAlternativePCKinCWD)-4]=0;
-			strcat ( pAlternativePCKinCWD, ".pck" );
-			break;
-		}
-	}
-	if ( FileExists ( pAlternativePCKinCWD )==true )
-	{
-		// prefer PCK alongside EXE ONLY when PCK in CWD does not exist
-		strcpy ( pPCKFilename, pAlternativePCKinCWD );
-	}
-
-	// Always loads from constrcted program
+	// The executable block is mounted under its canonical package path.
 	char LoadWithFilename[_MAX_PATH];
-	strcpy(LoadWithFilename, gUnpackDirectory);
-	strcat(LoadWithFilename, "\\_virtual.dat");
-
-	// Initialise Virtual File Table and Create Files There
-	if(pFileReader->CreateVirtualFileTable(pPCKFilename)==false)
-		return 1;
+	strcpy(LoadWithFilename, "_virtual.dat");
+	int RuntimeExitCode = 0;
 
 	// If EXE is an installer, create files then quit
-	if(pFileReader->IsEXEInstaller())
+	if(RuntimePackage->mode()==dbp::package::RuntimeMode::Installer)
 	{
-		// Create installer folder and installer files at CWD
-		char ActualEXENameOnly[_MAX_PATH];
-		strcpy(ActualEXENameOnly, ActualEXEFilename);
-		pFileReader->StripFileOnly(ActualEXENameOnly);
-		if(pFileReader->CreateInstallerFolder(ActualEXENameOnly)==false)
-			return 1;
+		const auto installed = RuntimePackage->MaterializeInstaller(
+			std::filesystem::path(
+				TextConvert::UTF8ToUTF16(CurrentDirectory)));
+		if(!installed)
+		{
+			RuntimeExitCode = 1;
+			const auto message = TextConvert::UTF8ToUTF16(
+				"Dark Basic Professional could not publish the installed application.\n\n" +
+				installed.error().message);
+			MessageBoxW(
+				NULL,
+				message.c_str(),
+				L"Installer package error",
+				MB_OK | MB_ICONERROR | MB_TOPMOST);
+		}
 	}
 	else
 	{
-		// Prepare executable and then run it
-		strcpy(pPCKFilename, gUnpackDirectory);
-		strcat(pPCKFilename, "\\_virtual.pck");
-		DeleteFileW(TextConvert::UTF8ToUTF16(pPCKFilename).c_str());
-
 		// Send critical start info to CEXE
-		CEXE.StartInfo(gUnpackDirectory, gEncryptionKey);
+		CEXE.StartInfo(gUnpackDirectory, 0);
 
 		// Place absolute EXE filename in CEXE structure
 		CEXE.m_AbsoluteAppFile = ActualEXEFilename;
@@ -902,13 +893,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			// Free EXE Block
 			CEXE.Free();
 		}
+		else
+		{
+			RuntimeExitCode = 1;
+		}
 
-		// Remove temp folder containing virtual files (carefully two passes)
-		pFileReader->RemoveVirtualFileTable();
 	}
 
-	// Free File Reader
-	SAFE_DELETE(pFileReader);
+	// Unmount before shutting down the VFS hook layer.
+	RuntimePackage.reset();
 
 	// leeadd - 230604 - u54 - use current date to remove
 	chdir(WindowsTempDirectory);
@@ -921,5 +914,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Shutdown Virtual File System hooks and free resources
 	VFSHooks::Shutdown();
 
-	return 0;
+	return RuntimeExitCode;
 }

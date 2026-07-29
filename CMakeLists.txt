@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 
 # يجب وضع إعداد المعمارية قبل تعريف المشروع
 set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Force Win32 Platform" FORCE)
@@ -131,6 +131,10 @@ add_subdirectory(DBProShared/Package)
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 add_subdirectory(DBProCompiler/DBPDebugger)
+
+if(DBP_BUILD_FUZZERS)
+    add_subdirectory(fuzz)
+endif()
 
 if(BUILD_TESTING)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)

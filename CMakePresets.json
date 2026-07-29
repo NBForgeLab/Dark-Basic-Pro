@@ -23,6 +23,12 @@
       "description": "Compatibility baseline with compiler and CTest coverage"
     },
     {
+      "name": "windows-x86-release",
+      "inherits": "windows-x86-base",
+      "displayName": "Windows x86 Release",
+      "description": "Optimized release build with compiler, runtime, and CTest coverage"
+    },
+    {
       "name": "windows-x86-asan",
       "inherits": "windows-x86-base",
       "displayName": "Windows x86 AddressSanitizer",
@@ -48,6 +54,17 @@
       "name": "windows-x86-asan",
       "configurePreset": "windows-x86-asan",
       "configuration": "Debug",
+      "jobs": 8,
+      "targets": [
+        "DBPCompiler",
+        "DarkEXE",
+        "dbp_tests"
+      ]
+    },
+    {
+      "name": "windows-x86-release",
+      "configurePreset": "windows-x86-release",
+      "configuration": "Release",
       "jobs": 8,
       "targets": [
         "DBPCompiler",
@@ -80,6 +97,17 @@
       },
       "environment": {
         "ASAN_OPTIONS": "halt_on_error=1:detect_leaks=0"
+      }
+    },
+    {
+      "name": "windows-x86-release",
+      "configurePreset": "windows-x86-release",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
       }
     }
   ]

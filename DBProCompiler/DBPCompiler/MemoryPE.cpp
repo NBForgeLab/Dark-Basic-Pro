@@ -305,17 +305,24 @@ FARPROC MemoryPE::GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
     DWORD* names = (DWORD*)(baseAddress + exports->AddressOfNames);
     WORD* ordinals = (WORD*)(baseAddress + exports->AddressOfNameOrdinals);
     
-    if ((DWORD)lpProcName >> 16 == 0) {
-        WORD ordinal = (WORD)(DWORD)lpProcName - exports->Base;
-        if (ordinal >= exports->NumberOfFunctions) return nullptr;
-        return (FARPROC)(baseAddress + functions[ordinal]);
+    const auto procedureValue = reinterpret_cast<uintptr_t>(lpProcName);
+    if ((procedureValue >> 16) == 0) {
+        const DWORD requestedOrdinal =
+            static_cast<DWORD>(procedureValue & 0xFFFFu);
+        if (requestedOrdinal < exports->Base) return nullptr;
+        const DWORD functionIndex = requestedOrdinal - exports->Base;
+        if (functionIndex >= exports->NumberOfFunctions) return nullptr;
+        return reinterpret_cast<FARPROC>(
+            baseAddress + functions[functionIndex]);
     }
     
     for (DWORD i = 0; i < exports->NumberOfNames; i++) {
         const char* name = (const char*)(baseAddress + names[i]);
         if (strcmp(name, lpProcName) == 0) {
-            WORD ordinal = ordinals[i];
-            return (FARPROC)(baseAddress + functions[ordinal]);
+            const DWORD functionIndex = ordinals[i];
+            if (functionIndex >= exports->NumberOfFunctions) return nullptr;
+            return reinterpret_cast<FARPROC>(
+                baseAddress + functions[functionIndex]);
         }
     }
     return nullptr;

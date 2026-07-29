@@ -15,6 +15,7 @@ struct CompilerArguments {
     bool legacyFinalSource = false;
     std::optional<std::filesystem::path> runtimeRoot;
     std::optional<std::filesystem::path> outputPath;
+    std::optional<std::filesystem::path> packageKeyFile;
     std::filesystem::path inputPath;
 };
 

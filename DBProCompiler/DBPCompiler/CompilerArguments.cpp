@@ -69,6 +69,17 @@ CompilerArgumentsResult ParseWideCompilerArguments(
                     "--output requires an executable file path.");
             }
             parsed.outputPath = arguments[++index];
+        } else if (argument == L"--package-key-file") {
+            if (parsed.packageKeyFile) {
+                return CompilerArgumentsResult::Failure(
+                    "--package-key-file may only be specified once.");
+            }
+            if (index + 1 >= arguments.size() ||
+                IsOption(arguments[index + 1])) {
+                return CompilerArgumentsResult::Failure(
+                    "--package-key-file requires a binary key file path.");
+            }
+            parsed.packageKeyFile = arguments[++index];
         } else if (argument == L"--json") {
             parsed.json = true;
         } else if (argument == L"--trace") {
@@ -110,6 +121,11 @@ CompilerArgumentsResult ParseWideCompilerArguments(
         Lowercase(parsed.outputPath->extension().wstring()) != L".exe") {
         return CompilerArgumentsResult::Failure(
             "--output requires an .exe file path.");
+    }
+    if (parsed.packageKeyFile &&
+        Lowercase(parsed.inputPath.extension().wstring()) != L".dbpro") {
+        return CompilerArgumentsResult::Failure(
+            "--package-key-file requires a DBPro project input.");
     }
     return CompilerArgumentsResult::Success(std::move(parsed));
 }

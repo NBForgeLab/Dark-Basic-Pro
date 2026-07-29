@@ -9,8 +9,13 @@
 #include "Error.h"
 #include "macros.h"
 #include "wingdi.h"
-#include "Encryptor.h"
 #include "TextConvert.h"
+#include "dbp/package/ExecutableKeyResource.h"
+#include "dbp/package/RuntimeDescriptor.h"
+
+#include <algorithm>
+#include <filesystem>
+#include <optional>
 
 // 'C' Includes
 extern "C"
@@ -31,6 +36,88 @@ CFileBuilder::CFileBuilder()
 	: m_hfile(NULL), m_SizeOfEXECode(0), m_bEncryptionState(false)
 {
 }
+
+CFileBuilder::~CFileBuilder()
+{
+	if(!m_stagedExecutablePath.empty())
+	{
+		std::error_code ignored;
+		std::filesystem::remove(m_stagedExecutablePath, ignored);
+	}
+}
+
+namespace {
+
+bool PublicationFailureRequested(const char* const stage)
+{
+	char value[64]{};
+	const auto size = GetEnvironmentVariableA(
+		"DBP_TEST_FAIL_PUBLICATION_STAGE",
+		value,
+		static_cast<DWORD>(std::size(value)));
+	return size!=0 &&
+		size<std::size(value) &&
+		_stricmp(value, stage)==0;
+}
+
+std::wstring HexKeyId(const dbp::package::KeyId& keyId)
+{
+	static constexpr wchar_t digits[] = L"0123456789abcdef";
+	std::wstring result;
+	result.reserve(keyId.size()*2);
+	for(const auto byte : keyId)
+	{
+		result.push_back(digits[(byte>>4U)&0x0FU]);
+		result.push_back(digits[byte&0x0FU]);
+	}
+	return result;
+}
+
+bool FlushFileForPublication(const std::filesystem::path& path)
+{
+	const auto handle = CreateFileW(
+		path.c_str(),
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		nullptr,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH,
+		nullptr);
+	if(handle==INVALID_HANDLE_VALUE)
+		return false;
+	const auto flushed = FlushFileBuffers(handle)!=FALSE;
+	CloseHandle(handle);
+	return flushed;
+}
+
+void RemoveStaleExecutableBackups(
+	const std::filesystem::path& executablePath)
+{
+	const auto prefix =
+		executablePath.filename().wstring() +
+		L".dbp-backup-";
+	std::error_code iterationError;
+	for(const auto& entry :
+		std::filesystem::directory_iterator(
+			executablePath.parent_path(),
+			iterationError))
+	{
+		if(iterationError)
+			return;
+		const auto name = entry.path().filename().wstring();
+		std::error_code statusError;
+		const auto status = entry.symlink_status(statusError);
+		if(!statusError &&
+			std::filesystem::is_regular_file(status) &&
+			name.size()>=prefix.size() &&
+			name.compare(0, prefix.size(), prefix)==0)
+		{
+			std::filesystem::remove(entry.path(), statusError);
+		}
+	}
+}
+
+} // namespace
 
 void CFileBuilder::DeleteFileTable(void)
 {
@@ -142,106 +229,318 @@ bool CFileBuilder::AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile)
 	return true;
 }
 
-typedef int ( *COMPRESSFUNC ) ( DWORD*, int );
 bool CFileBuilder::MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR pCompressDLL)
 {
-	// Must create EXE
-
-	// Store Encryption Key
+	// The legacy switches are migration inputs only. DBPAK v2 always applies
+	// authenticated encryption and selects compression per entry.
 	m_bEncryptionState = bEncryptionState;
-
-	// Calculate name of PCK File
-	std::string destPCKfilename = GetPCKFileFromEXEFile(destEXEfilename);
-
-	// EXE-Alone (now a seperate PCK file)
-	ConstructEXE(destEXEfilename);
-
-	// Start PCK File Creation
-	ConstructPCK(destPCKfilename.data());
-
-	// Go Through Files in Table
-	float pBit = 30.0f/m_FileTable.size();
-	for(DWORD f=0; f<m_FileTable.size(); f++)
+	(void)pCompressDLL;
+	m_packageSessionReady = false;
+	if(!m_stagedExecutablePath.empty())
 	{
-		AddFileToConstruct(const_cast<LPSTR>(m_FileTable[f].c_str()), const_cast<LPSTR>(m_FileTablePlacement[f].c_str()));
-		g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc((DWORD)(10+(pBit*f))));
+		std::error_code ignored;
+		std::filesystem::remove(m_stagedExecutablePath, ignored);
+		m_stagedExecutablePath.clear();
+	}
+	m_packageEntries.clear();
+	if(m_FileTable.size()!=m_FileTablePlacement.size())
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3101: Package input table is inconsistent.");
+		return false;
+	}
+	for(std::size_t index=0; index<m_FileTable.size(); ++index)
+	{
+		m_packageEntries.push_back({
+			std::filesystem::path(
+				TextConvert::UTF8ToUTF16(m_FileTable[index])),
+			m_FileTablePlacement[index],
+			true});
 	}
 
-	// Complete PCK File Creation
-	FinishPCK();
-
-	// Progress Reporting Tool
-	g_pErrorReport->ProgressReport("Linker now at line ",g_pErrorReport->GetPerc(45));
-
-	// Make a CompressedPCK File if flagged
-	if(pCompressDLL)
+	dbp::package::CngCryptoProvider crypto;
+	const auto randomKeyId = crypto.RandomBytes(m_packageKeyId.size());
+	if(!randomKeyId)
 	{
-		// Load PCK Data 
-		HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if(hreadfile==INVALID_HANDLE_VALUE)
+		std::string message =
+			"DBP3102: Failed to generate the package key identifier: " +
+			randomKeyId.error().message;
+		g_pErrorReport->AddErrorString(message.data());
+		return false;
+	}
+	std::copy(
+		randomKeyId.value().begin(),
+		randomKeyId.value().end(),
+		m_packageKeyId.begin());
+
+	if(m_packageKeyFile)
+	{
+		dbp::package::FileKeyProvider provider(
+			m_packageKeyId,
+			*m_packageKeyFile);
+		auto resolved = provider.Resolve(m_packageKeyId);
+		if(!resolved)
 		{
-			// Report failure
-			g_pErrorReport->AddErrorString("Failed to 'MakeEXE' : CompressDLL Create Read File Failed");
+			std::string message =
+				"DBP3103: Failed to read the package key file: " +
+				resolved.error().message;
+			g_pErrorReport->AddErrorString(message.data());
 			return false;
 		}
-
-		// Read readout file into memory
-		DWORD bytesread=0;
-		DWORD filebuffersize = GetFileSize(hreadfile, NULL);	
-		std::vector<char> filebuffer(filebuffersize);
-		ReadFile(hreadfile, filebuffer.data(), filebuffersize, &bytesread, NULL); 
-		CloseHandle(hreadfile);
-
-		// Dynamically load compress.dll and use it to compress
-		HMODULE hModule = LoadLibraryW(TextConvert::UTF8ToUTF16(pCompressDLL).c_str());
-		COMPRESSFUNC CompressBlock = ( COMPRESSFUNC ) GetProcAddress ( hModule, "compress_block" );
-
-		// Compress PCK Data
-		LPSTR pData=NULL;
-		DWORD dwDataSize=0;
-		int iReturnInt =  CompressBlock((DWORD*)filebuffer.data(), (int)filebuffersize);
-		if(iReturnInt==-1)
+		m_packageMasterKey = std::move(resolved.value());
+	}
+	else
+	{
+		const auto generated =
+			crypto.RandomBytes(dbp::package::kPackageMasterKeySize);
+		if(!generated)
 		{
-			// Error while compressing!
-			g_pErrorReport->AddErrorString("Failed to 'MakeEXE' : Error while compressing!");
+			std::string message =
+				"DBP3102: Failed to generate the package master key: " +
+				generated.error().message;
+			g_pErrorReport->AddErrorString(message.data());
 			return false;
 		}
-		if(iReturnInt==-2)
+		m_packageMasterKey =
+			dbp::package::SecureBuffer::FromBytes(generated.value());
+	}
+
+	std::error_code outputError;
+	m_finalExecutablePath = std::filesystem::absolute(
+		std::filesystem::path(
+			TextConvert::UTF8ToUTF16(destEXEfilename)),
+		outputError).lexically_normal();
+	if(outputError || m_finalExecutablePath.filename().empty())
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3104: Resolving the executable staging path failed.");
+		return false;
+	}
+	m_stagedExecutablePath =
+		m_finalExecutablePath.parent_path() /
+		(L"." + m_finalExecutablePath.filename().wstring() +
+		 L".dbp-stage-" + HexKeyId(m_packageKeyId));
+	auto stagedUtf8 =
+		TextConvert::UTF16ToUTF8(m_stagedExecutablePath.wstring());
+	if(!ConstructEXE(stagedUtf8.data()))
+		return false;
+	m_packageSessionReady = true;
+	return true;
+}
+
+void CFileBuilder::SetPackageKeyFile(
+	std::optional<std::filesystem::path> packageKeyFile)
+{
+	m_packageKeyFile = std::move(packageKeyFile);
+}
+
+bool CFileBuilder::HasStagedExecutable() const
+{
+	std::error_code error;
+	return !m_stagedExecutablePath.empty() &&
+		std::filesystem::is_regular_file(
+			m_stagedExecutablePath,
+			error) &&
+		!error;
+}
+
+bool CFileBuilder::FinalizePackage(
+	LPSTR pEXEFilename,
+	DWORD KindOfExecutable)
+{
+	if(!m_packageSessionReady ||
+		m_packageMasterKey.size()!=dbp::package::kPackageMasterKeySize)
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3104: Package finalization was requested without a valid session.");
+		return false;
+	}
+	if(KindOfExecutable>1)
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3104: The runtime package mode is invalid.");
+		return false;
+	}
+
+	std::error_code pathError;
+	auto executablePath = std::filesystem::absolute(
+		std::filesystem::path(
+			TextConvert::UTF8ToUTF16(pEXEFilename)),
+		pathError).lexically_normal();
+	if(pathError)
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3104: Resolving the executable output path failed.");
+		return false;
+	}
+	if(executablePath!=m_finalExecutablePath ||
+		m_stagedExecutablePath.empty())
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3104: The executable finalization path does not match its staging session.");
+		return false;
+	}
+	auto outputDirectory = executablePath.parent_path();
+	if(outputDirectory.empty())
+	{
+		outputDirectory =
+			std::filesystem::current_path(pathError);
+		if(pathError)
 		{
-			// Compressed data is larger than uncompressed data!
-			g_pErrorReport->AddErrorString("Failed to 'MakeEXE' : Compressed data is larger than uncompressed data!");
+			g_pErrorReport->AddErrorString(
+				"DBP3104: Resolving the package output directory failed.");
 			return false;
-		}
-
-		// Get The actual data
-		HANDLE hGlobAlloc = (HANDLE)iReturnInt;
-		pData = (LPSTR)GlobalLock(hGlobAlloc);
-		dwDataSize = GlobalSize(hGlobAlloc);
-
-		// filebuffer auto-freed by vector going out of scope
-
-		// Create new PCK File (CompressDLL + PCKData)
-		ConstructPCK(destPCKfilename.data());
-		AddFileToConstruct(pCompressDLL, "compress.dll");
-		AddDataToConstruct(pData, dwDataSize);
-		FinishPCK();
-
-		// Free compressed data too
-		if(pData)
-		{
-			GlobalUnlock(pData);
-			pData=NULL;
-		}
-
-		// Free compression DLL
-		if(hModule)
-		{
-			FreeLibrary(hModule);
-			hModule=NULL;
 		}
 	}
 
-	// Complete
+	dbp::package::CngCryptoProvider crypto;
+	dbp::package::ZstdCompressionCodec compression;
+	dbp::package::Win32AtomicFilePublisher publisher;
+	dbp::package::MemoryKeyProvider keys(
+		m_packageKeyId,
+		dbp::package::SecureBuffer::FromBytes(
+			m_packageMasterKey.CopyBytes()));
+	dbp::package::PackageWriter writer(
+		crypto,
+		compression,
+		publisher);
+	const auto written = writer.Write(
+		{outputDirectory, m_packageKeyId, m_packageEntries},
+		keys);
+	if(!written)
+	{
+		std::string message =
+			"DBP3105: Failed to publish the DBPAK package: " +
+			written.error().message;
+		g_pErrorReport->AddErrorString(message.data());
+		return false;
+	}
+	if(PublicationFailureRequested("after-package"))
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3190: Simulated failure after package publication.");
+		return false;
+	}
+
+	std::optional<dbp::package::ExecutablePackageKey> previousKey;
+	const auto descriptorPath =
+		GetPackageDescriptorFileFromEXEFile(pEXEFilename);
+	std::error_code previousError;
+	if(std::filesystem::is_regular_file(
+			executablePath,
+			previousError) &&
+		!previousError &&
+		std::filesystem::is_regular_file(
+			descriptorPath,
+			previousError) &&
+		!previousError)
+	{
+		const auto previousDescriptor =
+			dbp::package::ReadRuntimeDescriptor(descriptorPath);
+		if(previousDescriptor)
+		{
+			auto resolvedPrevious =
+				dbp::package::ReadExecutablePackageKey(
+					executablePath,
+					previousDescriptor.value().keyId);
+			if(resolvedPrevious)
+				previousKey.emplace(
+					std::move(resolvedPrevious.value()));
+		}
+	}
+	const auto injected =
+		dbp::package::InjectExecutablePackageKeys(
+			m_stagedExecutablePath,
+			m_packageKeyId,
+			m_packageMasterKey,
+			previousKey ? &*previousKey : nullptr);
+	if(!injected)
+	{
+		std::string message =
+			"DBP3106: Failed to inject the executable package key: " +
+			injected.error().message;
+		g_pErrorReport->AddErrorString(message.data());
+		return false;
+	}
+	if(!FlushFileForPublication(m_stagedExecutablePath))
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3106: Flushing the staged executable failed.");
+		return false;
+	}
+
+	dbp::package::RuntimeDescriptor descriptor;
+	descriptor.mode = KindOfExecutable==0
+		? dbp::package::RuntimeMode::Application
+		: dbp::package::RuntimeMode::Installer;
+	descriptor.packageId = written.value().packageId;
+	descriptor.keyId = m_packageKeyId;
+	descriptor.packageFileName =
+		written.value().packagePath.filename().string();
+	auto backupPath = executablePath;
+	backupPath += L".dbp-backup-" + HexKeyId(m_packageKeyId);
+	std::filesystem::remove(backupPath, previousError);
+	const auto hadPreviousExecutable =
+		std::filesystem::is_regular_file(
+			executablePath,
+			previousError) &&
+		!previousError;
+	const auto executablePublished = hadPreviousExecutable
+		? ReplaceFileW(
+			executablePath.c_str(),
+			m_stagedExecutablePath.c_str(),
+			backupPath.c_str(),
+			REPLACEFILE_WRITE_THROUGH,
+			nullptr,
+			nullptr)!=FALSE
+		: MoveFileExW(
+			m_stagedExecutablePath.c_str(),
+			executablePath.c_str(),
+			MOVEFILE_WRITE_THROUGH)!=FALSE;
+	if(!executablePublished)
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3106: Atomically publishing the executable failed.");
+		return false;
+	}
+	m_stagedExecutablePath.clear();
+
+	if(PublicationFailureRequested("after-executable"))
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3191: Simulated interruption after executable publication.");
+		return false;
+	}
+
+	const auto descriptorWritten =
+		dbp::package::WriteRuntimeDescriptorAtomically(
+			descriptorPath,
+			descriptor);
+	if(!descriptorWritten)
+	{
+		if(hadPreviousExecutable)
+		{
+			ReplaceFileW(
+				executablePath.c_str(),
+				backupPath.c_str(),
+				nullptr,
+				REPLACEFILE_WRITE_THROUGH,
+				nullptr,
+				nullptr);
+		}
+		else
+		{
+			std::filesystem::remove(executablePath, previousError);
+		}
+		std::string message =
+			"DBP3107: Failed to publish the runtime package descriptor: " +
+			descriptorWritten.error().message;
+		g_pErrorReport->AddErrorString(message.data());
+		return false;
+	}
+	std::filesystem::remove(backupPath, previousError);
+	RemoveStaleExecutableBackups(executablePath);
+	m_packageSessionReady = false;
 	return true;
 }
 
@@ -280,98 +579,6 @@ bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 
 	// EXE is complete
 	CloseHandle(m_hfile);
-	return true;
-}
-
-bool CFileBuilder::AddDataToConstruct(LPSTR filebuffer, DWORD filebuffersize)
-{
-	// Add single datablock to construction
-	if(m_hfile)
-	{
-		DWORD byteswritten=0;
-		WriteFile(m_hfile, filebuffer, filebuffersize, &byteswritten, NULL); 
-	}
-	else
-	{
-		// Soft fail
-		return false;
-	}
-	return true;
-}
-
-bool CFileBuilder::AddFileToConstruct(LPSTR FilenameString, LPSTR pPlacement)
-{
-	DWORD bytesread;
-	DWORD byteswritten;
-	DWORD FilenameLength = strlen(FilenameString) + 1;
-
-	// Add single file to construction
-	if(m_hfile)
-	{
-		// Load Temporary PCK Data 
-		HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(FilenameString).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if(hreadfile==INVALID_HANDLE_VALUE)
-		{
-			char err[256];
-			wsprintf(err, "Cannot find %s", FilenameString);
-			g_pErrorReport->AddErrorString(err);
-			return false;
-		}
-
-		// Read readout file into memory
-		DWORD filebuffersize = GetFileSize(hreadfile, NULL);	
-		std::vector<char> filebuffer(filebuffersize);
-		ReadFile(hreadfile, filebuffer.data(), filebuffersize, &bytesread, NULL); 
-		CloseHandle(hreadfile);
-
-		// Header: [FILENAME LENGTH] and [FILENAME STRING]
-		DWORD dwPlacementFilename = strlen(pPlacement);
-		WriteFile(m_hfile, &dwPlacementFilename, 4, &byteswritten, NULL); 
-		WriteFile(m_hfile, pPlacement, dwPlacementFilename, &byteswritten, NULL); 
-
-		// Encrypt File (only if PCK is to be added to EXE (if exe alone key will be blanked))
-		// And Only Encrypt Media Files (not internal root files)
-		if(strnicmp(pPlacement, "media\\", 6)==NULL)
-		{
-			DWORD dwVal = 0;
-			if(m_bEncryptionState==true) dwVal = 12321;
-			CEncryptor pEncryptor(dwVal);
-			pEncryptor.EncryptFileData(filebuffer.data(), filebuffersize, true);
-		}
-
-		// Header: [FILEDATA LENGTH] and [FILEDATA]
-		WriteFile(m_hfile, &filebuffersize, 4, &byteswritten, NULL); 
-		WriteFile(m_hfile, filebuffer.data(), filebuffersize, &byteswritten, NULL); 
-	}
-	else
-	{
-		// Soft fail
-		return false;
-	}
-
-	return true;
-}
-
-bool CFileBuilder::ConstructPCK(LPSTR PCKfilename)
-{
-	// Create PCK File from Data
-	DeleteFileW(TextConvert::UTF8ToUTF16(PCKfilename).c_str());
-	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(PCKfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(m_hfile==INVALID_HANDLE_VALUE)
-	{
-		g_pErrorReport->AddErrorString("Failed to 'CFileBuilder::ConstructPCK'");
-		return false;
-	}
-
-	// Leave file Open..for PCK files
-	return true;
-}
-
-bool CFileBuilder::FinishPCK(void)
-{
-	// Close File
-	CloseHandle(m_hfile);
-	m_hfile = NULL;
 	return true;
 }
 
@@ -447,6 +654,22 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 /* U59 FileBuilder Code
 bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBuilder)
 {
+	std::string stagedExecutableUtf8;
+	if(m_packageSessionReady &&
+		!m_stagedExecutablePath.empty())
+	{
+		stagedExecutableUtf8 =
+			TextConvert::UTF16ToUTF8(
+				m_stagedExecutablePath.wstring());
+		pFilenameEXE = stagedExecutableUtf8.data();
+	}
+	if(m_FileTable.size()!=12U)
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3108: Executable resource metadata is incomplete.");
+		return false;
+	}
+
 	// File 0-9 is version string info
 	LPSTR pVerComments = m_pFileTable[0];
 	LPSTR pVerCompany = m_pFileTable[1];
@@ -705,6 +928,22 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 
 bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBuilder)
 {
+	std::string stagedExecutableUtf8;
+	if(m_packageSessionReady &&
+		!m_stagedExecutablePath.empty())
+	{
+		stagedExecutableUtf8 =
+			TextConvert::UTF16ToUTF8(
+				m_stagedExecutablePath.wstring());
+		pFilenameEXE = stagedExecutableUtf8.data();
+	}
+	if(m_FileTable.size()!=12U)
+	{
+		g_pErrorReport->AddErrorString(
+			"DBP3108: Executable resource metadata is incomplete.");
+		return false;
+	}
+
 	// File 0-9 is version string info
 	LPSTR pVerComments = const_cast<LPSTR>(m_FileTable[0].c_str());
 	LPSTR pVerCompany = const_cast<LPSTR>(m_FileTable[1].c_str());
@@ -717,10 +956,9 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	LPSTR pVerProduct = const_cast<LPSTR>(m_FileTable[8].c_str());
 	LPSTR pVerProductNumber = const_cast<LPSTR>(m_FileTable[9].c_str());
 
-	// Files are 32x32 and 16x16 Icons
+	// Files are 32x32 and 16x16 icons.
 	LPSTR pLargeIcon = const_cast<LPSTR>(m_FileTable[10].c_str());
 	LPSTR pSmallIcon = const_cast<LPSTR>(m_FileTable[11].c_str());
-	LPSTR pLarge256Icon = const_cast<LPSTR>(m_FileTable[12].c_str());
 
 	// Absolute Path for Modulename
 	char ModuleName[256];
@@ -1120,101 +1358,14 @@ bool CFileBuilder::MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename)
 	return true;
 }
 
-bool CFileBuilder::AddPCKToEXE(LPSTR EXEfilename, DWORD KindOfExecutable)
+std::filesystem::path
+CFileBuilder::GetPackageDescriptorFileFromEXEFile(
+	LPSTR destEXEfilename) const
 {
-	// Get pre-build EXE (with modified icon/etc data)
-	std::vector<char> exeData;
-	DWORD dwSizeOfEXECode = 0;	
-	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hreadfile!=INVALID_HANDLE_VALUE)
-	{
-		// Read pre-build EXE into memory
-		DWORD bytesread=0;
-		dwSizeOfEXECode = GetFileSize(hreadfile, NULL);	
-		exeData.resize(dwSizeOfEXECode);
-		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, NULL); 
-		CloseHandle(hreadfile);
-	}
-	else
-	{
-		g_pErrorReport->AddErrorString("Failed to 'AddPCKToEXE::ReadEXEBit'");
-		return false;
-	}
-
-	// Construct PCK File
-	std::string destPCKfilename = GetPCKFileFromEXEFile(EXEfilename);
-
-	// Get pre-build PCK file
-	std::vector<char> pckData;
-	DWORD dwSizeOfPCKData = 0;	
-	hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hreadfile!=INVALID_HANDLE_VALUE)
-	{
-		// Read pre-build EXE into memory
-		DWORD bytesread=0;
-		dwSizeOfPCKData = GetFileSize(hreadfile, NULL);	
-		pckData.resize(dwSizeOfPCKData);
-		ReadFile(hreadfile, pckData.data(), dwSizeOfPCKData, &bytesread, NULL); 
-		CloseHandle(hreadfile);
-	}
-	else
-	{
-		g_pErrorReport->AddErrorString("Failed to 'AddPCKToEXE::ReadEXEBit'");
-		return false;
-	}
-
-	// Create File and place EXE Runner Code
-	DeleteFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str());
-	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(m_hfile==INVALID_HANDLE_VALUE)
-	{
-		g_pErrorReport->AddErrorString("Failed to 'CFileBuilder::AddPCKToEXE'");
-		return false;
-	}
-
-	// Get Encruption Key so EXE can decrypt later on
-	DWORD dwVal = 0;
-	if(m_bEncryptionState==true) dwVal = 12321;
-	CEncryptor pEncryptor(dwVal);
-	DWORD dwUniqueKeyForEncryption=pEncryptor.GetUniqueKey();
-
-	// Write EXE Code first to launch core executable
-	DWORD byteswritten;
-	WriteFile(m_hfile, exeData.data(), dwSizeOfEXECode, &byteswritten, NULL); 
-
-	// Write PCK File Packet Here
-	WriteFile(m_hfile, pckData.data(), dwSizeOfPCKData, &byteswritten, NULL); 
-
-	// First DWORD of file-block is filename length header, so zero is quit
-	DWORD FilenameLength=0;
-	WriteFile(m_hfile, &FilenameLength, 4, &byteswritten, NULL); 
-
-	// Last DWORD is length of footer for the readers backtrack referencer
-	DWORD ValidityCode=12345678;
-	WriteFile(m_hfile, &dwUniqueKeyForEncryption, 4, &byteswritten, NULL); 
-	WriteFile(m_hfile, &ValidityCode, 4, &byteswritten, NULL); 
-	WriteFile(m_hfile, &KindOfExecutable, 4, &byteswritten, NULL); 
-	WriteFile(m_hfile, &dwSizeOfEXECode, 4, &byteswritten, NULL); 
-
-	// Close File
-	CloseHandle(m_hfile);
-	m_hfile = NULL;
-
-	// Delete PCK File now redundant
-	DeleteFileW(TextConvert::UTF8ToUTF16(destPCKfilename).c_str());
-
-	// Complete
-	return true;
-}
-
-std::string CFileBuilder::GetPCKFileFromEXEFile(LPSTR destEXEfilename)
-{
-	// Swap the trailing ".exe" extension for ".pck" (value semantics - no
-	// caller-supplied buffer to overflow)
-	std::string destPCKfilename(destEXEfilename);
-	destPCKfilename.resize(destPCKfilename.size()-4);
-	destPCKfilename += ".pck";
-	return destPCKfilename;
+	auto descriptor = std::filesystem::path(
+		TextConvert::UTF8ToUTF16(destEXEfilename));
+	descriptor.replace_extension(L".dbpakref");
+	return descriptor;
 }
 
 bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, LPSTR pDataBlock, DWORD dwBlockSize )

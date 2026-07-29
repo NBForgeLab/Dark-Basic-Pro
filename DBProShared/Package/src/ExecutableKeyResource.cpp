@@ -106,13 +106,14 @@ BOOL CALLBACK CollectResourceLanguage(
 }
 
 PackageResult<std::vector<std::uint8_t>> ReadResourceBytes(
-    const HMODULE module) {
+    const HMODULE module,
+    const wchar_t* const resourceName) {
     ResourceLanguages languages;
     SetLastError(ERROR_SUCCESS);
     const auto enumerated = EnumResourceLanguagesW(
         module,
         MAKEINTRESOURCEW(10),
-        kExecutableKeyResourceName,
+        resourceName,
         CollectResourceLanguage,
         reinterpret_cast<LONG_PTR>(&languages));
     if (!enumerated && languages.count == 0) {
@@ -140,7 +141,7 @@ PackageResult<std::vector<std::uint8_t>> ReadResourceBytes(
     const auto resource = FindResourceExW(
         module,
         MAKEINTRESOURCEW(10),
-        kExecutableKeyResourceName,
+        resourceName,
         languages.first);
     if (resource == nullptr) {
         return Failure<std::vector<std::uint8_t>>(
@@ -163,6 +164,52 @@ PackageResult<std::vector<std::uint8_t>> ReadResourceBytes(
     }
     return PackageResult<std::vector<std::uint8_t>>::Success(
         std::vector<std::uint8_t>(bytes, bytes + resourceSize));
+}
+
+PackageResult<bool> UpdateKeyResources(
+    const std::filesystem::path& executablePath,
+    std::vector<std::uint8_t>& primary,
+    std::vector<std::uint8_t>* const fallback) {
+    const auto update =
+        BeginUpdateResourceW(executablePath.c_str(), FALSE);
+    if (update == nullptr) {
+        return Failure<bool>(
+            PackageErrorCode::PublicationFailed,
+            "Opening the executable resource table for update failed.");
+    }
+    const WORD language =
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
+    const auto updateOne = [update, language](
+                               const wchar_t* const name,
+                               std::vector<std::uint8_t>* bytes) {
+        return UpdateResourceW(
+            update,
+            MAKEINTRESOURCEW(10),
+            const_cast<wchar_t*>(name),
+            language,
+            bytes == nullptr
+                ? nullptr
+                : static_cast<void*>(bytes->data()),
+            bytes == nullptr
+                ? 0U
+                : static_cast<DWORD>(bytes->size())) != FALSE;
+    };
+    if (!updateOne(kExecutableKeyResourceName, &primary) ||
+        (fallback != nullptr &&
+         !updateOne(
+             kExecutableFallbackKeyResourceName,
+             fallback))) {
+        EndUpdateResourceW(update, TRUE);
+        return Failure<bool>(
+            PackageErrorCode::PublicationFailed,
+            "Updating the executable package-key resources failed.");
+    }
+    if (!EndUpdateResourceW(update, FALSE)) {
+        return Failure<bool>(
+            PackageErrorCode::PublicationFailed,
+            "Committing the executable package-key resources failed.");
+    }
+    return PackageResult<bool>::Success(true);
 }
 
 } // namespace
@@ -258,12 +305,37 @@ PackageResult<bool> InjectExecutablePackageKey(
     const std::filesystem::path& executablePath,
     const KeyId& keyId,
     const SecureBuffer& masterKey) {
+    return InjectExecutablePackageKeys(
+        executablePath,
+        keyId,
+        masterKey,
+        nullptr);
+}
+
+PackageResult<bool> InjectExecutablePackageKeys(
+    const std::filesystem::path& executablePath,
+    const KeyId& keyId,
+    const SecureBuffer& masterKey,
+    const ExecutablePackageKey* const fallbackKey) {
     auto bytes =
         SerializeExecutableKeyResource(keyId, masterKey);
     if (!bytes) {
         return PackageResult<bool>::Failure(bytes.error());
     }
     SensitiveBytes eraseSerializedKey(bytes.value());
+    PackageResult<std::vector<std::uint8_t>> fallbackBytes =
+        PackageResult<std::vector<std::uint8_t>>::Success({});
+    if (fallbackKey != nullptr &&
+        fallbackKey->keyId != keyId) {
+        fallbackBytes = SerializeExecutableKeyResource(
+            fallbackKey->keyId,
+            fallbackKey->masterKey);
+        if (!fallbackBytes) {
+            return PackageResult<bool>::Failure(
+                fallbackBytes.error());
+        }
+    }
+    SensitiveBytes eraseFallback(fallbackBytes.value());
     std::error_code statusError;
     const auto status =
         std::filesystem::symlink_status(executablePath, statusError);
@@ -273,31 +345,15 @@ PackageResult<bool> InjectExecutablePackageKey(
             "The package-key resource destination is not a regular file.");
     }
 
-    const auto update =
-        BeginUpdateResourceW(executablePath.c_str(), FALSE);
-    if (update == nullptr) {
-        return Failure<bool>(
-            PackageErrorCode::PublicationFailed,
-            "Opening the executable resource table for update failed.");
-    }
-    if (!UpdateResourceW(
-            update,
-            MAKEINTRESOURCEW(10),
-            const_cast<wchar_t*>(kExecutableKeyResourceName),
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-            const_cast<std::uint8_t*>(bytes.value().data()),
-            static_cast<DWORD>(bytes.value().size()))) {
-        EndUpdateResourceW(update, TRUE);
-        return Failure<bool>(
-            PackageErrorCode::PublicationFailed,
-            "Updating the executable package-key resource failed.");
-    }
-    if (!EndUpdateResourceW(update, FALSE)) {
-        return Failure<bool>(
-            PackageErrorCode::PublicationFailed,
-            "Committing the executable package-key resource failed.");
-    }
-    return PackageResult<bool>::Success(true);
+    auto* fallbackPointer =
+        fallbackKey != nullptr &&
+            fallbackKey->keyId != keyId
+        ? &fallbackBytes.value()
+        : nullptr;
+    return UpdateKeyResources(
+        executablePath,
+        bytes.value(),
+        fallbackPointer);
 }
 
 PackageResult<ExecutablePackageKey> ReadExecutablePackageKey(
@@ -312,14 +368,33 @@ PackageResult<ExecutablePackageKey> ReadExecutablePackageKey(
             PackageErrorCode::IoFailed,
             "Loading the executable resource image failed.");
     }
-    auto bytes = ReadResourceBytes(module.get());
+    auto bytes = ReadResourceBytes(
+        module.get(),
+        kExecutableKeyResourceName);
     if (!bytes) {
         return PackageResult<ExecutablePackageKey>::Failure(
             bytes.error());
     }
     auto sensitiveBytes = std::move(bytes.value());
     SensitiveBytes eraseResource(sensitiveBytes);
-    return ParseExecutableKeyResource(sensitiveBytes, expectedKeyId);
+    auto parsed =
+        ParseExecutableKeyResource(sensitiveBytes, expectedKeyId);
+    if (parsed ||
+        parsed.error().code != PackageErrorCode::MissingKey) {
+        return parsed;
+    }
+    auto fallbackBytes = ReadResourceBytes(
+        module.get(),
+        kExecutableFallbackKeyResourceName);
+    if (!fallbackBytes) {
+        return PackageResult<ExecutablePackageKey>::Failure(
+            parsed.error());
+    }
+    auto sensitiveFallback = std::move(fallbackBytes.value());
+    SensitiveBytes eraseFallback(sensitiveFallback);
+    return ParseExecutableKeyResource(
+        sensitiveFallback,
+        expectedKeyId);
 }
 
 PackageResult<ExecutablePackageKey>
@@ -332,14 +407,33 @@ ReadExecutablePackageKeyFromModule(
             PackageErrorCode::IoFailed,
             "The executable module handle is null.");
     }
-    auto bytes = ReadResourceBytes(module);
+    auto bytes = ReadResourceBytes(
+        module,
+        kExecutableKeyResourceName);
     if (!bytes) {
         return PackageResult<ExecutablePackageKey>::Failure(
             bytes.error());
     }
     auto sensitiveBytes = std::move(bytes.value());
     SensitiveBytes eraseResource(sensitiveBytes);
-    return ParseExecutableKeyResource(sensitiveBytes, expectedKeyId);
+    auto parsed =
+        ParseExecutableKeyResource(sensitiveBytes, expectedKeyId);
+    if (parsed ||
+        parsed.error().code != PackageErrorCode::MissingKey) {
+        return parsed;
+    }
+    auto fallbackBytes = ReadResourceBytes(
+        module,
+        kExecutableFallbackKeyResourceName);
+    if (!fallbackBytes) {
+        return PackageResult<ExecutablePackageKey>::Failure(
+            parsed.error());
+    }
+    auto sensitiveFallback = std::move(fallbackBytes.value());
+    SensitiveBytes eraseFallback(sensitiveFallback);
+    return ParseExecutableKeyResource(
+        sensitiveFallback,
+        expectedKeyId);
 }
 
 } // namespace dbp::package

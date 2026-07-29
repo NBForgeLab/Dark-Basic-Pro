@@ -69,22 +69,19 @@ Write-Host "=========================================" -ForegroundColor Cyan
 # Phase 1: Toolchain Build
 Write-Host "`n[1/5] Building Toolchain ($Configuration)..." -ForegroundColor Yellow
 $rootPath = Resolve-Path (Join-Path $PSScriptRoot "..")
-$buildPath = Join-Path $rootPath "build"
-
-if (-not (Test-Path $buildPath)) {
-    $null = New-Item -ItemType Directory -Path $buildPath -Force
-}
+$preset = "windows-x86-" + $Configuration.ToLowerInvariant()
+$buildPath = Join-Path $rootPath "out\build\$preset"
 
 # Run CMake Configuration
 Write-Host "Configuring CMake project..."
 $global:LASTEXITCODE = 0
-& cmake -B $buildPath -S $rootPath -DCMAKE_BUILD_TYPE=$Configuration
+& cmake --preset $preset --fresh
 Assert-Step "CMake configuration failed." "Compile"
 
 # Run CMake Build
 Write-Host "Building CMake targets..."
 $global:LASTEXITCODE = 0
-& cmake --build $buildPath --config $Configuration --parallel
+& cmake --build --preset $preset
 Assert-Step "CMake build failed." "Compile"
 
 # Phase 2: C++ Unit Tests
@@ -120,7 +117,30 @@ if (-not (Test-Path $conformancePath)) {
 }
 
 $global:LASTEXITCODE = 0
-Invoke-Pester -Path $conformancePath -ErrorAction SilentlyContinue
+$previousCompiler = $env:DBP_CONFORMANCE_COMPILER
+$previousRuntime = $env:DBP_CONFORMANCE_RUNTIME_ROOT
+$env:DBP_CONFORMANCE_COMPILER = Join-Path `
+    $buildPath "bin\$Configuration\DBPCompiler.exe"
+$env:DBP_CONFORMANCE_RUNTIME_ROOT = Join-Path $rootPath "Install\Compiler"
+$conformanceResult = $null
+try {
+    $conformanceResult = Invoke-Pester `
+        -Path $conformancePath `
+        -PassThru
+}
+catch {
+    Write-Error $_
+}
+finally {
+    $env:DBP_CONFORMANCE_COMPILER = $previousCompiler
+    $env:DBP_CONFORMANCE_RUNTIME_ROOT = $previousRuntime
+}
+if ($null -eq $conformanceResult -or
+    $conformanceResult.FailedCount -ne 0) {
+    $global:LASTEXITCODE = 1
+} else {
+    $global:LASTEXITCODE = 0
+}
 Assert-Step "Language conformance tests failed." "Conformance"
 
 # Phase 4: Golden Compatibility Matrix
@@ -129,12 +149,18 @@ if ($SkipGolden) {
     $script:PhaseStatuses["CompatibilityMatrix"] = "SKIPPED"
 } else {
     Write-Host "`n[4/5] Running Golden Compatibility Matrix Tests..." -ForegroundColor Yellow
-    $compatScript = "D:\GitHub-repo\FPS-Creator-Classic\scripts\darkbasic-compatibility\Invoke-DarkBasicCompatibility.ps1"
-    $compatSuite = "D:\GitHub-repo\FPS-Creator-Classic\config\darkbasic-compatibility\fpsc-golden-projects.json"
-    $projectsRoot = "D:\GitHub-repo\FPS-Creator-Classic\Dark Basic Pro Shared\Dark Basic Pro\Projects"
+    $repositoryParent = Split-Path $rootPath -Parent
+    $fpsRoot = Join-Path $repositoryParent "FPS-Creator-Classic"
+    $compatScript = Join-Path $fpsRoot `
+        "scripts\darkbasic-compatibility\Invoke-DarkBasicCompatibility.ps1"
+    $compatSuite = Join-Path $fpsRoot `
+        "config\darkbasic-compatibility\fpsc-golden-projects.json"
+    $projectsRoot = Join-Path $fpsRoot `
+        "Dark Basic Pro Shared\Dark Basic Pro\Projects"
     $compatWorkspace = Join-Path $env:TEMP "dbp-compat-workspace"
     $compatReport = Join-Path $env:TEMP "dbp-compat-report.json"
-    $compatCandidate = Join-Path $env:TEMP "dbp-compat-candidate"
+    $compatCandidate = Join-Path $env:TEMP `
+        ("dbp-compat-candidate-" + [Guid]::NewGuid().ToString("N"))
 
     if (-not (Test-Path $compatWorkspace)) {
         $null = New-Item -ItemType Directory -Path $compatWorkspace -Force
@@ -145,14 +171,12 @@ if ($SkipGolden) {
         Assert-Step "Could not find compatibility script at $compatScript. Ensure FPS-Creator-Classic is checked out sibling to Dark-Basic-Pro." "CompatibilityMatrix"
     }
 
-    # 1. Clean and recreate candidate directory
-    if (Test-Path $compatCandidate) {
-        Remove-Item -Path $compatCandidate -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    # 1. Create a unique candidate directory.
     $null = New-Item -ItemType Directory -Path $compatCandidate -Force
 
     # 2. Copy active compiler template from FPS-Creator-Classic
-    $templateCompilerDir = "D:\GitHub-repo\FPS-Creator-Classic\Dark Basic Pro Shared\Dark Basic Pro\Compiler"
+    $templateCompilerDir = Join-Path $fpsRoot `
+        "Dark Basic Pro Shared\Dark Basic Pro\Compiler"
     if (Test-Path $templateCompilerDir) {
         Copy-Item -Path (Join-Path $templateCompilerDir "*") -Destination $compatCandidate -Recurse -Force
     } else {
@@ -187,7 +211,12 @@ if ($SkipFPSTests) {
     $script:PhaseStatuses["FPSTests"] = "SKIPPED"
 } else {
     Write-Host "`n[5/5] Running FPS Creator Unit Tests..." -ForegroundColor Yellow
-    $fpsTestsExe = "D:\GitHub-repo\FPS-Creator-Classic\FPS Creator Editor\tests\FPSTests\$Configuration\FPSTests.exe"
+    if (-not $fpsRoot) {
+        $repositoryParent = Split-Path $rootPath -Parent
+        $fpsRoot = Join-Path $repositoryParent "FPS-Creator-Classic"
+    }
+    $fpsTestsExe = Join-Path $fpsRoot `
+        "FPS Creator Editor\tests\FPSTests\$Configuration\FPSTests.exe"
     
     if (-not (Test-Path $fpsTestsExe)) {
         $global:LASTEXITCODE = 1

@@ -11,6 +11,9 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <aclapi.h>
+#include <sddl.h>
+#include <windows.h>
 
 namespace {
 
@@ -47,6 +50,60 @@ public:
             static_cast<std::streamsize>(bytes.size()));
         output.close();
         EXPECT_TRUE(output);
+        EXPECT_TRUE(RestrictToOwner(path));
+        return path;
+    }
+
+    std::filesystem::path WriteBroadlyReadable(
+        const std::string& name,
+        const std::vector<std::uint8_t>& bytes) const {
+        const auto path = Write(name, bytes);
+        PSID everyone = nullptr;
+        EXPECT_TRUE(ConvertStringSidToSidW(L"S-1-1-0", &everyone));
+        EXPLICIT_ACCESSW access{};
+        access.grfAccessPermissions = GENERIC_READ;
+        access.grfAccessMode = GRANT_ACCESS;
+        access.grfInheritance = NO_INHERITANCE;
+        access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+        access.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+        access.Trustee.ptstrName = static_cast<LPWSTR>(everyone);
+        PACL oldAcl = nullptr;
+        PSECURITY_DESCRIPTOR descriptor = nullptr;
+        EXPECT_EQ(
+            GetNamedSecurityInfoW(
+                path.c_str(),
+                SE_FILE_OBJECT,
+                DACL_SECURITY_INFORMATION,
+                nullptr,
+                nullptr,
+                &oldAcl,
+                nullptr,
+                &descriptor),
+            ERROR_SUCCESS);
+        PACL newAcl = nullptr;
+        EXPECT_EQ(
+            SetEntriesInAclW(1, &access, oldAcl, &newAcl),
+            ERROR_SUCCESS);
+        EXPECT_EQ(
+            SetNamedSecurityInfoW(
+                const_cast<LPWSTR>(path.c_str()),
+                SE_FILE_OBJECT,
+                DACL_SECURITY_INFORMATION |
+                    PROTECTED_DACL_SECURITY_INFORMATION,
+                nullptr,
+                nullptr,
+                newAcl,
+                nullptr),
+            ERROR_SUCCESS);
+        if (newAcl != nullptr) {
+            LocalFree(newAcl);
+        }
+        if (descriptor != nullptr) {
+            LocalFree(descriptor);
+        }
+        if (everyone != nullptr) {
+            LocalFree(everyone);
+        }
         return path;
     }
 
@@ -55,6 +112,48 @@ public:
     }
 
 private:
+    static bool RestrictToOwner(const std::filesystem::path& path) {
+        PSID owner = nullptr;
+        PSECURITY_DESCRIPTOR descriptor = nullptr;
+        if (GetNamedSecurityInfoW(
+                path.c_str(),
+                SE_FILE_OBJECT,
+                OWNER_SECURITY_INFORMATION,
+                &owner,
+                nullptr,
+                nullptr,
+                nullptr,
+                &descriptor) != ERROR_SUCCESS) {
+            return false;
+        }
+        EXPLICIT_ACCESSW access{};
+        access.grfAccessPermissions = GENERIC_ALL;
+        access.grfAccessMode = SET_ACCESS;
+        access.grfInheritance = NO_INHERITANCE;
+        access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+        access.Trustee.TrusteeType = TRUSTEE_IS_USER;
+        access.Trustee.ptstrName = static_cast<LPWSTR>(owner);
+        PACL acl = nullptr;
+        const auto aclResult =
+            SetEntriesInAclW(1, &access, nullptr, &acl);
+        const auto setResult = aclResult == ERROR_SUCCESS
+            ? SetNamedSecurityInfoW(
+                const_cast<LPWSTR>(path.c_str()),
+                SE_FILE_OBJECT,
+                DACL_SECURITY_INFORMATION |
+                    PROTECTED_DACL_SECURITY_INFORMATION,
+                nullptr,
+                nullptr,
+                acl,
+                nullptr)
+            : aclResult;
+        if (acl != nullptr) {
+            LocalFree(acl);
+        }
+        LocalFree(descriptor);
+        return setResult == ERROR_SUCCESS;
+    }
+
     std::filesystem::path path_;
 };
 
@@ -164,6 +263,23 @@ TEST(PackageKeysTest, FileProviderFailsSafelyForMissingAndUnreadablePaths) {
     const auto unreadableResult = directoryPath.Resolve(keyId);
     ASSERT_FALSE(unreadableResult);
     EXPECT_EQ(unreadableResult.error().code, PackageErrorCode::MissingKey);
+}
+
+TEST(PackageKeysTest, FileProviderRejectsBroaderThanOwnerReadAccess) {
+    TemporaryKeyDirectory directory;
+    const auto keyId = MakeKeyId(0x52);
+    const auto path = directory.WriteBroadlyReadable(
+        "broad.key",
+        MasterKeyBytes());
+    FileKeyProvider provider(keyId, path);
+
+    const auto result = provider.Resolve(keyId);
+
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().code, PackageErrorCode::MissingKey);
+    EXPECT_EQ(
+        result.error().message.find("broad.key"),
+        std::string::npos);
 }
 
 TEST(PackageKeysTest, DerivesSeparatedManifestAndCanonicalEntryKeys) {

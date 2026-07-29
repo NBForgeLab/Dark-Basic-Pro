@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
-#include <type_traits>
-#include <utility>
+#include <vector>
 #include <windows.h>
 #include "FileBuilder.h"
 #include "DataTable.h"
@@ -10,28 +12,48 @@
 // CFileBuilder contracts
 // ---------------------------------------------------------------------------
 
-// Contract: the derived PCK filename must be returned as an owning std::string
-// by value. The legacy contract wrote through an unbounded caller-supplied
-// LPSTR buffer (no size limit - overflow risk for long EXE paths).
-TEST(FileBuilderTest, GetPCKFileFromEXEFileReturnsOwningString) {
-    static_assert(std::is_same_v<decltype(std::declval<CFileBuilder&>().GetPCKFileFromEXEFile(std::declval<LPSTR>())), std::string>,
-                  "GetPCKFileFromEXEFile must return std::string by value");
-}
-
-// The .exe extension is replaced with .pck, preserving the rest of the path.
-TEST(FileBuilderTest, GetPCKFileFromEXEFileReplacesExtension) {
+TEST(FileBuilderTest, DerivesRuntimeDescriptorBesideExecutable) {
     CFileBuilder builder;
 
-    char exeName[] = "C:\\Projects\\My Game\\game.exe";
-    EXPECT_EQ(builder.GetPCKFileFromEXEFile(exeName), "C:\\Projects\\My Game\\game.pck");
+    char absoluteName[] = "C:\\Projects\\My Game\\game.exe";
+    char relativeName[] = "output.exe";
+
+    EXPECT_EQ(
+        builder.GetPackageDescriptorFileFromEXEFile(absoluteName),
+        std::filesystem::path(
+            L"C:\\Projects\\My Game\\game.dbpakref"));
+    EXPECT_EQ(
+        builder.GetPackageDescriptorFileFromEXEFile(relativeName),
+        std::filesystem::path(L"output.dbpakref"));
 }
 
-// Relative paths keep their form; only the last four characters are swapped.
-TEST(FileBuilderTest, GetPCKFileFromEXEFileHandlesRelativePath) {
-    CFileBuilder builder;
+TEST(FileBuilderTest, ActiveProductionCannotReintroduceLegacyPckWriting) {
+    const auto root = std::filesystem::path(DBP_TEST_SOURCE_ROOT);
+    const std::vector<std::filesystem::path> activeSources{
+        root / "DBProCompiler/DBPCompiler/FileBuilder.cpp",
+        root / "DBProCompiler/DBPCompiler/FileBuilder.h",
+        root / "DBProCompiler/DBPCompiler/ASMWriter.cpp",
+        root / "DBProCompiler/DBPCompilerEXE/DarkEXE.cpp",
+    };
+    const std::vector<std::string> forbidden{
+        "CEncryptor",
+        "12321",
+        "AddPCKToEXE",
+        "ConstructPCK",
+        "D:\\GitHub-repo",
+    };
 
-    char exeName[] = "output.exe";
-    EXPECT_EQ(builder.GetPCKFileFromEXEFile(exeName), "output.pck");
+    for (const auto& source : activeSources) {
+        std::ifstream input(source, std::ios::binary);
+        ASSERT_TRUE(input) << source.string();
+        const std::string contents{
+            std::istreambuf_iterator<char>(input),
+            std::istreambuf_iterator<char>()};
+        for (const auto& token : forbidden) {
+            EXPECT_EQ(contents.find(token), std::string::npos)
+                << token << " remains active in " << source.string();
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

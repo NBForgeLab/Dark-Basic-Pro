@@ -507,6 +507,7 @@ void PrintHelp() {
     std::cout << "  --legacy-final-source Compile an existing final source artifact without assembly\n";
     std::cout << "  --runtime-root <path> Select and validate a DBPro runtime bundle\n";
     std::cout << "  --output <path>       Write the generated executable to an isolated path\n";
+    std::cout << "  --package-key-file <path> Use an exact 32-byte binary package key file\n";
     std::cout << "\nExample:\n";
     std::cout << "  DBPCompiler.exe --json \"D:\\Projects\\MyGame\\project.dbpro\"\n\n" << std::flush;
 }
@@ -652,6 +653,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		const bool legacyFinalSource = parsedArguments.value().legacyFinalSource;
 		g_pDBPCompiler->SetRuntimeRootOverride(parsedArguments.value().runtimeRoot);
 		g_pDBPCompiler->SetExecutableOutputOverride(parsedArguments.value().outputPath);
+		g_pDBPCompiler->SetPackageKeyFile(parsedArguments.value().packageKeyFile);
 
 		if (projectPath.empty()) {
 			if (g_bJsonDiagnostics) {

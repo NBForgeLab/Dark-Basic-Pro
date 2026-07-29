@@ -23,7 +23,6 @@
 #define PATH_TEMPEXBFILE 7
 #define PATH_TEMPERRORFILE 8
 #define PATH_DEBUGGERFILE 9
-#define PATH_COMPRESSDLLFILE 10
 #define PATH_PLUGINSUSERFOLDER 11
 #define PATH_PLUGINSLICENSEDFOLDER 12
 #define PATH_CURRENTFOLDER 13
@@ -106,6 +105,8 @@ class CDBPCompiler
 		void SetExecutableOutputOverride(std::optional<std::filesystem::path> outputPath);
 		bool PrepareExecutableOutputDirectory(void) const;
 		void SetRuntimeRootOverride(std::optional<std::filesystem::path> runtimeRoot);
+		void SetPackageKeyFile(std::optional<std::filesystem::path> keyFile);
+		const std::optional<std::filesystem::path>& GetPackageKeyFile(void) const;
 		bool ValidateRuntimeBundle(DWORD structurePatternCount);
 		const ResolvedRuntimeBundle* GetResolvedRuntimeBundle(void) const;
 
@@ -192,6 +193,7 @@ class CDBPCompiler
 		std::optional<std::filesystem::path> m_executableOutputOverride;
 		std::string m_executableOutputOverrideText;
 		std::optional<std::filesystem::path> m_runtimeRootOverride;
+		std::optional<std::filesystem::path> m_packageKeyFile;
 		std::optional<ResolvedRuntimeBundle> m_resolvedRuntimeBundle;
 };
 

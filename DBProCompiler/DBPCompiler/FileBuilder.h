@@ -1,6 +1,10 @@
 // FileBuilder.h: interface for the CFileBuilder class.
 #include "direct.h"
 #include "io.h"
+#include "dbp/package/KeyProvider.h"
+#include "dbp/package/PackageWriter.h"
+#include <filesystem>
+#include <optional>
 #include <vector>
 #include <string>
 
@@ -28,19 +32,19 @@ class CFileBuilder
 {
 	public:
 		CFileBuilder();
-		~CFileBuilder() = default;
+		~CFileBuilder();
 		void DeleteFileTable(void);
 
 		bool NewFileTable(void);
 		bool AddFile(LPSTR pFilename, LPSTR pPlacement);
 		bool AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile);
 		bool MakeEXE(LPSTR destEXEfilename, bool bEncryptionState, LPSTR pCompressDLL);
+		void SetPackageKeyFile(
+			std::optional<std::filesystem::path> packageKeyFile);
+		bool FinalizePackage(LPSTR pEXEFilename, DWORD KindOfExe);
+		bool HasStagedExecutable() const;
 
 		bool ConstructEXE(LPSTR EXEfilename);
-		bool ConstructPCK(LPSTR PCKfilename);
-		bool AddFileToConstruct(LPSTR filename, LPSTR pPlacement);
-		bool AddDataToConstruct(LPSTR filebuffer, DWORD filebuffersize);
-		bool FinishPCK(void);
 
 		bool ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersioBlock, DWORD dwOffsetToFirstEntry, DWORD dwVersionBlockSize);
 		bool ChangeEXE(LPSTR pFilenameEXE, LPSTR gPathToPluginFolderForBuilder);
@@ -49,8 +53,8 @@ class CFileBuilder
 		bool SaveIconCursorFileFromInfo(LPSTR pszFullFileName, int iWidth, int iHeight, int iColors, int iHotspotX, int iHotSpotY, LPSTR pImg, DWORD dwImgSize);
 		bool MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename);
 
-		bool AddPCKToEXE(LPSTR pEXEFilename, DWORD KindOfExe);
-		std::string GetPCKFileFromEXEFile(LPSTR destEXEfilename);
+		std::filesystem::path GetPackageDescriptorFileFromEXEFile(
+			LPSTR destEXEfilename) const;
 
 		bool ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, LPSTR pDataBlock, DWORD dwBlockSize );
 
@@ -66,4 +70,11 @@ class CFileBuilder
 
 		// Encryption Vars
 		bool		m_bEncryptionState;
+		std::optional<std::filesystem::path> m_packageKeyFile;
+		std::vector<dbp::package::PackageSourceEntry> m_packageEntries;
+		dbp::package::KeyId m_packageKeyId{};
+		dbp::package::SecureBuffer m_packageMasterKey;
+		bool m_packageSessionReady = false;
+		std::filesystem::path m_finalExecutablePath;
+		std::filesystem::path m_stagedExecutablePath;
 };

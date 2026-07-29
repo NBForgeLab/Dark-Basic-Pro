@@ -24,7 +24,7 @@ include_directories(
 # Source files (using CMAKE_SOURCE_DIR to correctly resolve root paths)
 set(SOURCES
     DarkEXE.cpp
-    FileReader.cpp
+    RuntimePackageBootstrap.cpp
     getdxver.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/CoreRuntimeApi.cpp
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler/EXEBlock.cpp

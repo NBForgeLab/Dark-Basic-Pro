@@ -144,3 +144,49 @@ TEST(CompilerArgumentsTest, PreservesUnicodeExecutableOutputPath) {
         *result.value().outputPath,
         std::filesystem::path(L"D:\\نتائج\\لعبة.exe"));
 }
+
+TEST(CompilerArgumentsTest, AcceptsExactlyOnePackageKeyFilePath) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe",
+        "--package-key-file",
+        "D:/keys/game.key",
+        "Game.dbpro"});
+
+    ASSERT_TRUE(result.has_value()) << result.error();
+    ASSERT_TRUE(result.value().packageKeyFile.has_value());
+    EXPECT_EQ(
+        *result.value().packageKeyFile,
+        std::filesystem::path("D:/keys/game.key"));
+}
+
+TEST(CompilerArgumentsTest, RejectsMissingAndDuplicatePackageKeyFile) {
+    auto result = ParseCompilerArguments({
+        "DBPCompiler.exe", "--package-key-file"});
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(
+        result.error(),
+        "--package-key-file requires a binary key file path.");
+
+    result = ParseCompilerArguments({
+        "DBPCompiler.exe",
+        "--package-key-file", "one.key",
+        "--package-key-file", "two.key",
+        "Game.dbpro"});
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(
+        result.error(),
+        "--package-key-file may only be specified once.");
+}
+
+TEST(CompilerArgumentsTest, NeverAcceptsRawPackageKeys) {
+    const auto result = ParseCompilerArguments({
+        "DBPCompiler.exe",
+        "--package-key",
+        "secret",
+        "Game.dbpro"});
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(
+        result.error(),
+        "Unknown compiler option: --package-key");
+}
