@@ -2,6 +2,8 @@
 
 #include "DBProTools/Publisher/PublisherCli.h"
 
+#include <nlohmann/json.hpp>
+
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -14,6 +16,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -516,6 +520,64 @@ TEST(PublisherCliTest, PublishesRealPeAndEmitsSecretFreeJson) {
         root / "dist/game.exe"));
     EXPECT_TRUE(std::filesystem::is_regular_file(
         root / "dist/game.dbpakref"));
+}
+
+TEST(PublisherCliTest, ProcessSecuritySuiteIsRequiredByLocalAndHostedCi) {
+    const auto root = std::filesystem::path(DBP_TEST_SOURCE_ROOT);
+    for (const auto& path : {
+             root / "scripts/run-local-ci.ps1",
+             root / ".github/workflows/windows-x86.yml",
+         }) {
+        std::ifstream input(path, std::ios::binary);
+        ASSERT_TRUE(input) << path.string();
+        const std::string contents{
+            std::istreambuf_iterator<char>(input),
+            std::istreambuf_iterator<char>()};
+        EXPECT_NE(
+            contents.find("dbp-publish.Tests.ps1"),
+            std::string::npos)
+            << path.string()
+            << " does not gate the publisher process security suite";
+        EXPECT_NE(
+            contents.find("DBP_PACKAGE_PROBE_EXE"),
+            std::string::npos)
+            << path.string()
+            << " does not provide the authenticated package probe";
+    }
+
+    std::ifstream presetsInput(
+        root / "CMakePresets.json",
+        std::ios::binary);
+    ASSERT_TRUE(presetsInput);
+    const auto presets =
+        nlohmann::json::parse(presetsInput);
+    const std::set<std::string> expectedPresets{
+        "windows-x86-debug",
+        "windows-x86-release",
+        "windows-x86-asan",
+    };
+    std::set<std::string> checkedPresets;
+    for (const auto& preset : presets.at("buildPresets")) {
+        const auto name = preset.at("name").get<std::string>();
+        if (expectedPresets.find(name) == expectedPresets.end()) {
+            continue;
+        }
+        checkedPresets.insert(name);
+        const auto& targets = preset.at("targets");
+        EXPECT_NE(
+            std::find(
+                targets.begin(),
+                targets.end(),
+                "dbp-publish"),
+            targets.end()) << name;
+        EXPECT_NE(
+            std::find(
+                targets.begin(),
+                targets.end(),
+                "dbp-package-probe"),
+            targets.end()) << name;
+    }
+    EXPECT_EQ(checkedPresets, expectedPresets);
 }
 
 } // namespace

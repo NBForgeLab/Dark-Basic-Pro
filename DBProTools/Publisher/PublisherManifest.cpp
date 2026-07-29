@@ -453,12 +453,12 @@ PackageResult<PublisherManifest> ReadPublisherManifest(
             return PackageResult<PublisherManifest>::Failure(
                 source.error());
         }
-        const auto sourceValid = RequireRegularFile(
-            source.value(),
-            "A publisher asset source is not a regular file.");
-        if (!sourceValid) {
+        const auto sourceIdentity =
+            package::CapturePackageSourceIdentity(
+                source.value());
+        if (!sourceIdentity) {
             return PackageResult<PublisherManifest>::Failure(
-                sourceValid.error());
+                sourceIdentity.error());
         }
         const auto destination =
             package::NormalizePackageInputPath(
@@ -473,15 +473,7 @@ PackageResult<PublisherManifest> ReadPublisherManifest(
                 PackageErrorCode::LimitExceeded,
                 "A publisher asset destination is too long.");
         }
-        std::error_code fileSizeError;
-        const auto fileSize = std::filesystem::file_size(
-            source.value(),
-            fileSizeError);
-        if (fileSizeError) {
-            return Failure(
-                PackageErrorCode::IoFailed,
-                "Reading a publisher asset size failed.");
-        }
+        const auto fileSize = sourceIdentity.value().size;
         if (fileSize >
             limits.maximumEntryPlaintextSize) {
             return Failure(
@@ -507,6 +499,7 @@ PackageResult<PublisherManifest> ReadPublisherManifest(
             source.value(),
             destination.value(),
             asset.value("compress", true),
+            sourceIdentity.value(),
         });
     }
     const auto pathsValid =
@@ -537,6 +530,7 @@ BuildApplicationPublishRequest(
             asset.source,
             asset.destination,
             asset.compress,
+            asset.sourceIdentity,
         });
     }
     return request;

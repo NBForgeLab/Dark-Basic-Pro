@@ -418,6 +418,45 @@ TEST(PackageWriterTest, RejectsPathCollisionsBeforeCreatingOutput) {
     EXPECT_EQ(directory.Files(), filesBefore);
 }
 
+TEST(PackageWriterTest, RejectsSourceReplacedAfterIdentitySnapshot) {
+    TemporaryWriterDirectory directory;
+    const auto source = directory.Write(
+        "source.bin",
+        {0x10, 0x20, 0x30, 0x40});
+    const auto identity = CapturePackageSourceIdentity(source);
+    ASSERT_TRUE(identity) << identity.error().message;
+
+    const auto replacement = directory.Write(
+        "replacement.bin",
+        {0x40, 0x30, 0x20, 0x10});
+    ASSERT_TRUE(std::filesystem::remove(source));
+    ASSERT_NO_THROW(std::filesystem::rename(replacement, source));
+
+    PackageWriteRequest request{
+        directory.path(),
+        TestKeyId(),
+        {{
+            source,
+            "media/source.bin",
+            false,
+            identity.value(),
+        }},
+    };
+    CngCryptoProvider crypto;
+    ZstdCompressionCodec compression;
+    Win32AtomicFilePublisher publisher;
+    PackageWriter writer(crypto, compression, publisher);
+    MemoryKeyProvider keys(
+        request.keyId,
+        SecureBuffer::FromBytes(TestMasterKey()));
+
+    const auto result = writer.Write(request, keys);
+
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().code, PackageErrorCode::IoFailed);
+    EXPECT_EQ(directory.Files(), std::vector<std::filesystem::path>{source});
+}
+
 TEST(PackageWriterTest, RejectsDuplicateNoncesWithoutPublishing) {
     TemporaryWriterDirectory directory;
     const auto source = directory.Write("source.bin", {1, 2, 3});

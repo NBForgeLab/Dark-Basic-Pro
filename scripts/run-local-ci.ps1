@@ -25,6 +25,7 @@ $script:PhaseStatuses = [ordered]@{
     "Compile"             = "PENDING"
     "C++Tests"            = "PENDING"
     "Conformance"         = "PENDING"
+    "PublisherSecurity"   = "PENDING"
     "CompatibilityMatrix" = "PENDING"
     "FPSTests"            = "PENDING"
 }
@@ -67,7 +68,7 @@ Write-Host "   Unified DarkBASIC Pro Local CI/CD     " -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 
 # Phase 1: Toolchain Build
-Write-Host "`n[1/5] Building Toolchain ($Configuration)..." -ForegroundColor Yellow
+Write-Host "`n[1/6] Building Toolchain ($Configuration)..." -ForegroundColor Yellow
 $rootPath = Resolve-Path (Join-Path $PSScriptRoot "..")
 $preset = "windows-x86-" + $Configuration.ToLowerInvariant()
 $buildPath = Join-Path $rootPath "out\build\$preset"
@@ -85,7 +86,7 @@ $global:LASTEXITCODE = 0
 Assert-Step "CMake build failed." "Compile"
 
 # Phase 2: C++ Unit Tests
-Write-Host "`n[2/5] Running C++ Unit Tests (dbp_tests)..." -ForegroundColor Yellow
+Write-Host "`n[2/6] Running C++ Unit Tests (dbp_tests)..." -ForegroundColor Yellow
 $testExe = Join-Path $buildPath "bin\$Configuration\dbp_tests.exe"
 if (-not (Test-Path $testExe)) {
     $testExe = Join-Path $buildPath "bin\dbp_tests.exe"
@@ -109,7 +110,7 @@ finally {
 }
 
 # Phase 3: Conformance Tests
-Write-Host "`n[3/5] Running Language Conformance Tests..." -ForegroundColor Yellow
+Write-Host "`n[3/6] Running Language Conformance Tests..." -ForegroundColor Yellow
 $conformancePath = Join-Path $rootPath "tests\conformance\run-conformance.Tests.ps1"
 if (-not (Test-Path $conformancePath)) {
     $global:LASTEXITCODE = 1
@@ -143,12 +144,48 @@ if ($null -eq $conformanceResult -or
 }
 Assert-Step "Language conformance tests failed." "Conformance"
 
-# Phase 4: Golden Compatibility Matrix
+# Phase 4: Publisher Process Security
+Write-Host "`n[4/6] Running Publisher Process Security Tests..." -ForegroundColor Yellow
+$publisherSecurityPath = Join-Path $rootPath `
+    "tests\conformance\dbp-publish.Tests.ps1"
+if (-not (Test-Path -LiteralPath $publisherSecurityPath -PathType Leaf)) {
+    $global:LASTEXITCODE = 1
+    Assert-Step "Could not find publisher security tests." "PublisherSecurity"
+}
+$previousPublisher = $env:DBP_PUBLISHER_EXE
+$previousPackageProbe = $env:DBP_PACKAGE_PROBE_EXE
+$env:DBP_PUBLISHER_EXE = Join-Path `
+    $buildPath "bin\$Configuration\dbp-publish.exe"
+$env:DBP_PACKAGE_PROBE_EXE = Join-Path `
+    $buildPath "bin\$Configuration\dbp-package-probe.exe"
+$publisherSecurityResult = $null
+try {
+    $publisherSecurityResult = Invoke-Pester `
+        -Path $publisherSecurityPath `
+        -PassThru
+}
+catch {
+    Write-Error $_
+}
+finally {
+    $env:DBP_PUBLISHER_EXE = $previousPublisher
+    $env:DBP_PACKAGE_PROBE_EXE = $previousPackageProbe
+}
+if ($null -eq $publisherSecurityResult -or
+    $publisherSecurityResult.FailedCount -ne 0 -or
+    $publisherSecurityResult.SkippedCount -ne 0) {
+    $global:LASTEXITCODE = 1
+} else {
+    $global:LASTEXITCODE = 0
+}
+Assert-Step "Publisher process security tests failed." "PublisherSecurity"
+
+# Phase 5: Golden Compatibility Matrix
 if ($SkipGolden) {
-    Write-Host "`n[4/5] Skipping Golden Compatibility Matrix Phase." -ForegroundColor Gray
+    Write-Host "`n[5/6] Skipping Golden Compatibility Matrix Phase." -ForegroundColor Gray
     $script:PhaseStatuses["CompatibilityMatrix"] = "SKIPPED"
 } else {
-    Write-Host "`n[4/5] Running Golden Compatibility Matrix Tests..." -ForegroundColor Yellow
+    Write-Host "`n[5/6] Running Golden Compatibility Matrix Tests..." -ForegroundColor Yellow
     $repositoryParent = Split-Path $rootPath -Parent
     $fpsRoot = Join-Path $repositoryParent "FPS-Creator-Classic"
     $compatScript = Join-Path $fpsRoot `
@@ -205,12 +242,12 @@ if ($SkipGolden) {
     Assert-Step "Golden project compatibility checks failed." "CompatibilityMatrix"
 }
 
-# Phase 5: FPS Creator Unit Tests
+# Phase 6: FPS Creator Unit Tests
 if ($SkipFPSTests) {
-    Write-Host "`n[5/5] Skipping FPS Creator Unit Tests Phase." -ForegroundColor Gray
+    Write-Host "`n[6/6] Skipping FPS Creator Unit Tests Phase." -ForegroundColor Gray
     $script:PhaseStatuses["FPSTests"] = "SKIPPED"
 } else {
-    Write-Host "`n[5/5] Running FPS Creator Unit Tests..." -ForegroundColor Yellow
+    Write-Host "`n[6/6] Running FPS Creator Unit Tests..." -ForegroundColor Yellow
     if (-not $fpsRoot) {
         $repositoryParent = Split-Path $rootPath -Parent
         $fpsRoot = Join-Path $repositoryParent "FPS-Creator-Classic"

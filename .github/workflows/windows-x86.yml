@@ -89,6 +89,23 @@ jobs:
             throw "Language conformance failed: $($result.FailedCount) test(s)."
           }
 
+      - name: Run publisher process security
+        if: matrix.preset == 'windows-x86-release'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DBP_PUBLISHER_EXE = `
+            "$PWD/out/build/windows-x86-release/bin/Release/dbp-publish.exe"
+          $env:DBP_PACKAGE_PROBE_EXE = `
+            "$PWD/out/build/windows-x86-release/bin/Release/dbp-package-probe.exe"
+          $result = Invoke-Pester `
+            -Path tests/conformance/dbp-publish.Tests.ps1 `
+            -PassThru
+          if ($result.FailedCount -ne 0 -or
+              $result.SkippedCount -ne 0) {
+            throw "Publisher security failed: $($result.FailedCount) failed, $($result.SkippedCount) skipped."
+          }
+
       - name: Upload test diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4

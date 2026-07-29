@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,7 @@ struct PublisherAsset {
     std::filesystem::path source;
     std::string destination;
     bool compress = true;
+    std::optional<package::PackageSourceIdentity> sourceIdentity;
 };
 
 struct PublisherManifest {

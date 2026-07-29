@@ -107,6 +107,15 @@ TEST_F(PublisherManifestFixture, ParsesStrictVersionOneDocument) {
         parsed.value().assets.front().destination,
         "media/asset.bin");
     EXPECT_FALSE(parsed.value().assets.front().compress);
+    EXPECT_TRUE(parsed.value().assets.front().sourceIdentity.has_value());
+
+    const auto request = BuildApplicationPublishRequest(
+        parsed.value(),
+        KeyId{});
+    ASSERT_EQ(request.entries.size(), 1U);
+    EXPECT_EQ(
+        request.entries.front().expectedIdentity,
+        parsed.value().assets.front().sourceIdentity);
 }
 
 TEST_F(

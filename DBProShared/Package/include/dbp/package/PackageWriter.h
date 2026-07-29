@@ -6,15 +6,39 @@
 #include "dbp/package/PackageFormat.h"
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace dbp::package {
 
+struct PackageSourceIdentity {
+    std::uint32_t volumeSerialNumber = 0;
+    std::uint64_t fileIndex = 0;
+    std::uint64_t size = 0;
+    std::uint64_t lastWriteTime = 0;
+    std::uint64_t changeTime = 0;
+
+    bool operator==(
+        const PackageSourceIdentity& other) const noexcept {
+        return volumeSerialNumber == other.volumeSerialNumber &&
+            fileIndex == other.fileIndex &&
+            size == other.size &&
+            lastWriteTime == other.lastWriteTime &&
+            changeTime == other.changeTime;
+    }
+
+    bool operator!=(
+        const PackageSourceIdentity& other) const noexcept {
+        return !(*this == other);
+    }
+};
+
 struct PackageSourceEntry {
     std::filesystem::path sourcePath;
     std::string packagePath;
     bool enableCompression = true;
+    std::optional<PackageSourceIdentity> expectedIdentity;
 };
 
 struct PackageWriteRequest {
@@ -29,6 +53,10 @@ struct PackageWriteResult {
     PackageId packageId{};
     PackageHeader header;
 };
+
+PackageResult<PackageSourceIdentity>
+CapturePackageSourceIdentity(
+    const std::filesystem::path& sourcePath);
 
 class AtomicFilePublisher {
 public:

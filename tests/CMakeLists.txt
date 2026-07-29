@@ -66,6 +66,17 @@ add_executable(dbp_tests
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
 )
 
+add_executable(dbp-package-probe
+    package_probe_main.cpp
+)
+
+dbp_apply_modern_cpp_options(dbp-package-probe)
+dbp_enable_sanitizers(dbp-package-probe)
+
+target_link_libraries(dbp-package-probe PRIVATE
+    dbp_package
+)
+
 set_source_files_properties(
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
     PROPERTIES LANGUAGE ASM_MASM
@@ -78,6 +89,7 @@ target_link_libraries(dbp_tests PRIVATE
     dbp_publisher
     dbp_compiler_lib
     GTest::gtest
+    nlohmann_json::nlohmann_json
     spdlog::spdlog
     xinput
 )

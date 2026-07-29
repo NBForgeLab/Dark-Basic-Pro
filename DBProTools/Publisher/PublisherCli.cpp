@@ -202,6 +202,75 @@ public:
     }
 };
 
+PackageResult<bool> WaitForManifestSnapshotTestGate() {
+    const auto required = GetEnvironmentVariableW(
+        L"DBP_TEST_MANIFEST_SNAPSHOT_GATE",
+        nullptr,
+        0);
+    if (required == 0) {
+        return PackageResult<bool>::Success(true);
+    }
+    std::wstring value(required, L'\0');
+    const auto length = GetEnvironmentVariableW(
+        L"DBP_TEST_MANIFEST_SNAPSHOT_GATE",
+        value.data(),
+        required);
+    if (length == 0 || length >= required) {
+        return PackageResult<bool>::Failure({
+            PackageErrorCode::IoFailed,
+            "Reading the manifest snapshot test gate failed.",
+            std::nullopt,
+        });
+    }
+    value.resize(length);
+    const std::filesystem::path gate(value);
+    std::error_code statusError;
+    const auto gateStatus =
+        std::filesystem::symlink_status(gate, statusError);
+    if (statusError ||
+        !std::filesystem::is_directory(gateStatus) ||
+        std::filesystem::is_symlink(gateStatus)) {
+        return PackageResult<bool>::Failure({
+            PackageErrorCode::IoFailed,
+            "The manifest snapshot test gate is unavailable or unsafe.",
+            std::nullopt,
+        });
+    }
+
+    const auto readyPath = gate / L"ready";
+    const HANDLE ready = CreateFileW(
+        readyPath.c_str(),
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+    if (ready == INVALID_HANDLE_VALUE) {
+        return PackageResult<bool>::Failure({
+            PackageErrorCode::IoFailed,
+            "Creating the manifest snapshot test gate failed.",
+            std::nullopt,
+        });
+    }
+    CloseHandle(ready);
+
+    const auto continuePath = gate / L"continue";
+    const auto deadline = GetTickCount64() + 10'000ULL;
+    while (GetFileAttributesW(continuePath.c_str()) ==
+           INVALID_FILE_ATTRIBUTES) {
+        if (GetTickCount64() >= deadline) {
+            return PackageResult<bool>::Failure({
+                PackageErrorCode::IoFailed,
+                "The manifest snapshot test gate timed out.",
+                std::nullopt,
+            });
+        }
+        Sleep(10);
+    }
+    return PackageResult<bool>::Success(true);
+}
+
 bool ContainsJsonOption(
     const std::vector<std::wstring>& arguments) {
     return std::find(
@@ -459,6 +528,18 @@ int RunPublisherProcessUnchecked(
     const auto request = BuildApplicationPublishRequest(
         manifest.value(),
         keyId);
+    const auto snapshotGate =
+        WaitForManifestSnapshotTestGate();
+    if (!snapshotGate) {
+        EmitError(
+            snapshotGate.error(),
+            command.json,
+            standardOutput,
+            standardError);
+        return PublisherFailureExitCode(
+            PublisherFailurePhase::Publication,
+            snapshotGate.error().code);
+    }
     const auto published =
         publisher.Publish(request, keys);
     if (!published) {

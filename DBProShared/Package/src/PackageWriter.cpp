@@ -4,6 +4,10 @@
 #include "dbp/package/ByteCodec.h"
 #include "dbp/package/PackagePath.h"
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -70,11 +74,70 @@ private:
     std::vector<std::filesystem::path> paths_;
 };
 
+class SourceFileHandle {
+public:
+    explicit SourceFileHandle(const HANDLE handle) noexcept
+        : handle_(handle) {}
+
+    ~SourceFileHandle() {
+        if (handle_ != INVALID_HANDLE_VALUE) {
+            CloseHandle(handle_);
+        }
+    }
+
+    SourceFileHandle(const SourceFileHandle&) = delete;
+    SourceFileHandle& operator=(const SourceFileHandle&) = delete;
+
+    HANDLE get() const noexcept {
+        return handle_;
+    }
+
+private:
+    HANDLE handle_ = INVALID_HANDLE_VALUE;
+};
+
+PackageResult<PackageSourceIdentity> ReadSourceIdentity(
+    const HANDLE handle) {
+    BY_HANDLE_FILE_INFORMATION information{};
+    FILE_BASIC_INFO basicInformation{};
+    if (!GetFileInformationByHandle(handle, &information) ||
+        !GetFileInformationByHandleEx(
+            handle,
+            FileBasicInfo,
+            &basicInformation,
+            sizeof(basicInformation)) ||
+        (information.dwFileAttributes &
+            (FILE_ATTRIBUTE_DIRECTORY |
+             FILE_ATTRIBUTE_REPARSE_POINT)) != 0) {
+        return PackageResult<PackageSourceIdentity>::Failure(
+            IoError("A package source is unavailable or unsafe."));
+    }
+    PackageSourceIdentity identity;
+    identity.volumeSerialNumber =
+        information.dwVolumeSerialNumber;
+    identity.fileIndex =
+        (static_cast<std::uint64_t>(
+             information.nFileIndexHigh) << 32U) |
+        information.nFileIndexLow;
+    identity.size =
+        (static_cast<std::uint64_t>(
+             information.nFileSizeHigh) << 32U) |
+        information.nFileSizeLow;
+    identity.lastWriteTime =
+        static_cast<std::uint64_t>(
+            basicInformation.LastWriteTime.QuadPart);
+    identity.changeTime =
+        static_cast<std::uint64_t>(
+            basicInformation.ChangeTime.QuadPart);
+    return PackageResult<PackageSourceIdentity>::Success(identity);
+}
+
 struct ValidatedEntry {
     std::filesystem::path sourcePath;
     std::string packagePath;
     bool enableCompression = true;
     std::uint64_t size = 0;
+    PackageSourceIdentity expectedIdentity;
     AesGcmNonce nonce{};
 };
 
@@ -158,30 +221,20 @@ PackageResult<std::vector<ValidatedEntry>> ValidateRequest(
                     "A package path exceeds the configured limit."));
         }
 
-        std::error_code sourceStatusError;
-        const auto sourceStatus =
-            std::filesystem::symlink_status(
-                entry.sourcePath,
-                sourceStatusError);
-        if (sourceStatusError ||
-            !std::filesystem::is_regular_file(sourceStatus) ||
-            std::filesystem::is_symlink(sourceStatus)) {
+        const auto sourceIdentity =
+            CapturePackageSourceIdentity(entry.sourcePath);
+        if (!sourceIdentity) {
+            return PackageResult<std::vector<ValidatedEntry>>::Failure(
+                sourceIdentity.error());
+        }
+        if (entry.expectedIdentity &&
+            entry.expectedIdentity.value() !=
+                sourceIdentity.value()) {
             return PackageResult<std::vector<ValidatedEntry>>::Failure(
                 IoError(
-                    "The package source for '" +
-                    packagePath.value() +
-                    "' is unavailable or unsafe."));
+                    "A package source changed after it was selected."));
         }
-        std::error_code sizeError;
-        const auto sourceSize =
-            std::filesystem::file_size(entry.sourcePath, sizeError);
-        if (sizeError ||
-            sourceSize >
-                std::numeric_limits<std::uint64_t>::max()) {
-            return PackageResult<std::vector<ValidatedEntry>>::Failure(
-                IoError("Reading a package source size failed."));
-        }
-        const auto size = static_cast<std::uint64_t>(sourceSize);
+        const auto size = sourceIdentity.value().size;
         if (size > request.limits.maximumEntryPlaintextSize) {
             return PackageResult<std::vector<ValidatedEntry>>::Failure(
                 WriterError(
@@ -205,6 +258,7 @@ PackageResult<std::vector<ValidatedEntry>> ValidateRequest(
             packagePath.value(),
             entry.enableCompression,
             size,
+            sourceIdentity.value(),
             {},
         });
     }
@@ -227,26 +281,51 @@ PackageResult<std::vector<ValidatedEntry>> ValidateRequest(
 PackageResult<std::uint64_t> CopySourceSnapshot(
     const std::filesystem::path& sourcePath,
     const std::filesystem::path& snapshotPath,
-    const std::uint64_t expectedSize) {
-    std::ifstream input(sourcePath, std::ios::binary);
+    const PackageSourceIdentity& expectedIdentity) {
+    SourceFileHandle input(CreateFileW(
+        sourcePath.c_str(),
+        GENERIC_READ | FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_FLAG_OPEN_REPARSE_POINT |
+            FILE_FLAG_SEQUENTIAL_SCAN,
+        nullptr));
+    if (input.get() == INVALID_HANDLE_VALUE) {
+        return PackageResult<std::uint64_t>::Failure(
+            IoError("Opening a package source snapshot failed."));
+    }
+    const auto openedIdentity =
+        ReadSourceIdentity(input.get());
+    if (!openedIdentity ||
+        openedIdentity.value() != expectedIdentity) {
+        return PackageResult<std::uint64_t>::Failure(
+            openedIdentity
+                ? IoError(
+                    "A package source changed while it was being staged.")
+                : openedIdentity.error());
+    }
+
     std::ofstream output(
         snapshotPath,
         std::ios::binary | std::ios::trunc);
-    if (!input || !output) {
+    if (!output) {
         return PackageResult<std::uint64_t>::Failure(
             IoError("Opening a package source snapshot failed."));
     }
 
+    const auto expectedSize = expectedIdentity.size;
     auto buffer = SecureBuffer::FromBytes(
         std::vector<std::uint8_t>(ioBufferSize));
     std::uint64_t total = 0;
     while (true) {
-        input.read(
-            reinterpret_cast<char*>(buffer.data()),
-            static_cast<std::streamsize>(buffer.size()));
-        const auto bytesRead = input.gcount();
-        if (bytesRead < 0 || input.bad() ||
-            (input.fail() && !input.eof())) {
+        DWORD bytesRead = 0;
+        if (!ReadFile(
+                input.get(),
+                buffer.data(),
+                static_cast<DWORD>(buffer.size()),
+                &bytesRead,
+                nullptr)) {
             return PackageResult<std::uint64_t>::Failure(
                 IoError("Reading a package source failed."));
         }
@@ -262,14 +341,18 @@ PackageResult<std::uint64_t> CopySourceSnapshot(
         }
         output.write(
             reinterpret_cast<const char*>(buffer.data()),
-            bytesRead);
+            static_cast<std::streamsize>(bytesRead));
         if (!output) {
             return PackageResult<std::uint64_t>::Failure(
                 IoError("Writing a package source snapshot failed."));
         }
         total += count;
     }
-    if (!input.eof() || total != expectedSize) {
+    const auto completedIdentity =
+        ReadSourceIdentity(input.get());
+    if (total != expectedSize ||
+        !completedIdentity ||
+        completedIdentity.value() != expectedIdentity) {
         return PackageResult<std::uint64_t>::Failure(
             IoError(
                 "A package source changed while it was being staged."));
@@ -494,6 +577,25 @@ PackageResult<bool> VerifyWrittenPackage(
 
 } // namespace
 
+PackageResult<PackageSourceIdentity>
+CapturePackageSourceIdentity(
+    const std::filesystem::path& sourcePath) {
+    SourceFileHandle handle(CreateFileW(
+        sourcePath.c_str(),
+        GENERIC_READ | FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_FLAG_OPEN_REPARSE_POINT |
+            FILE_FLAG_SEQUENTIAL_SCAN,
+        nullptr));
+    if (handle.get() == INVALID_HANDLE_VALUE) {
+        return PackageResult<PackageSourceIdentity>::Failure(
+            IoError("Opening a package source failed."));
+    }
+    return ReadSourceIdentity(handle.get());
+}
+
 PackageWriter::PackageWriter(
     const CryptoProvider& crypto,
     const ZstdCompressionCodec& compression,
@@ -593,7 +695,7 @@ PackageResult<PackageWriteResult> PackageWriter::Write(
         const auto copied = CopySourceSnapshot(
             entry.sourcePath,
             snapshotPath,
-            entry.size);
+            entry.expectedIdentity);
         if (!copied) {
             return PackageResult<PackageWriteResult>::Failure(
                 copied.error());
