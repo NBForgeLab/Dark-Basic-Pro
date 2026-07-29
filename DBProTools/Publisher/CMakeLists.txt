@@ -1,4 +1,5 @@
 add_library(dbp_publisher STATIC
+    PublisherCli.cpp
     PublisherManifest.cpp
 )
 
@@ -11,5 +12,19 @@ target_include_directories(dbp_publisher PUBLIC
 
 target_link_libraries(dbp_publisher PUBLIC
     dbp_package
+)
+
+target_link_libraries(dbp_publisher PRIVATE
     nlohmann_json::nlohmann_json
+)
+
+add_executable(dbp-publish
+    Main.cpp
+)
+
+dbp_apply_modern_cpp_options(dbp-publish)
+dbp_enable_sanitizers(dbp-publish)
+
+target_link_libraries(dbp-publish PRIVATE
+    dbp_publisher
 )

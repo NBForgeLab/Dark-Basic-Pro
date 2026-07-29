@@ -54,6 +54,7 @@ add_executable(dbp_tests
     test_package_writer.cpp
     test_application_publisher.cpp
     test_publisher_manifest.cpp
+    test_publisher_cli.cpp
     test_package_reader.cpp
     test_legacy_pck_reader.cpp
     test_package_runtime_metadata.cpp
