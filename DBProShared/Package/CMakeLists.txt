@@ -1,4 +1,5 @@
 add_library(dbp_package STATIC
+    src/ApplicationPublisher.cpp
     src/AtomicFilePublisher.cpp
     src/ByteCodec.cpp
     src/CngCryptoProvider.cpp
@@ -9,6 +10,7 @@ add_library(dbp_package STATIC
     src/PackagePath.cpp
     src/PackageReader.cpp
     src/PackageWriter.cpp
+    src/PublicationCheckpoint.cpp
     src/RuntimeDescriptor.cpp
     src/SecureBuffer.cpp
     src/ZstdCompressionCodec.cpp
