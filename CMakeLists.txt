@@ -64,6 +64,14 @@ if(TARGET libzstd_static)
     dbp_enable_sanitizers(libzstd_static)
 endif()
 
+# Header-only JSON parser used by the strict, versioned publisher manifest.
+FetchContent_Declare(
+    nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+    URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 # مسارات مخرجات البناء الموحدة
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -128,6 +136,7 @@ link_directories(
 
 # إضافة المشاريع الفرعية للترجمة والمشغل والمصحح
 add_subdirectory(DBProShared/Package)
+add_subdirectory(DBProTools/Publisher)
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 add_subdirectory(DBProCompiler/DBPDebugger)
