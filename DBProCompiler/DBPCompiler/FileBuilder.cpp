@@ -10,8 +10,8 @@
 #include "macros.h"
 #include "wingdi.h"
 #include "TextConvert.h"
-#include "dbp/package/ExecutableKeyResource.h"
-#include "dbp/package/RuntimeDescriptor.h"
+#include "PublicationDiagnostics.h"
+#include "dbp/package/ApplicationPublisher.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -48,17 +48,59 @@ CFileBuilder::~CFileBuilder()
 
 namespace {
 
-bool PublicationFailureRequested(const char* const stage)
+class EnvironmentPublicationCheckpoint final
+	: public dbp::package::PublicationCheckpoint
 {
-	char value[64]{};
-	const auto size = GetEnvironmentVariableA(
-		"DBP_TEST_FAIL_PUBLICATION_STAGE",
-		value,
-		static_cast<DWORD>(std::size(value)));
-	return size!=0 &&
-		size<std::size(value) &&
-		_stricmp(value, stage)==0;
-}
+public:
+	dbp::package::PackageResult<bool> Reach(
+		const dbp::package::PublicationStage stage) const override
+	{
+		char value[64]{};
+		const auto size = GetEnvironmentVariableA(
+			"DBP_TEST_FAIL_PUBLICATION_STAGE",
+			value,
+			static_cast<DWORD>(std::size(value)));
+		if(size==0 || size>=std::size(value))
+			return dbp::package::PackageResult<bool>::Success(true);
+
+		const char* requestedStage = nullptr;
+		switch(stage)
+		{
+		case dbp::package::PublicationStage::PackagePublished:
+			requestedStage = "after-package";
+			break;
+		case dbp::package::PublicationStage::ExecutablePublished:
+			requestedStage = "after-executable";
+			break;
+		case dbp::package::PublicationStage::DescriptorPublished:
+			requestedStage = "after-descriptor";
+			break;
+		case dbp::package::PublicationStage::CleanupStarted:
+			requestedStage = "during-cleanup";
+			break;
+		}
+		if(requestedStage==nullptr ||
+			_stricmp(value, requestedStage)!=0)
+		{
+			return dbp::package::PackageResult<bool>::Success(true);
+		}
+
+		failedStage_ = stage;
+		return dbp::package::PackageResult<bool>::Failure({
+			dbp::package::PackageErrorCode::PublicationFailed,
+			"A publication interruption was requested.",
+			std::nullopt});
+	}
+
+	std::optional<dbp::package::PublicationStage>
+	FailedStage() const noexcept
+	{
+		return failedStage_;
+	}
+
+private:
+	mutable std::optional<dbp::package::PublicationStage> failedStage_;
+};
 
 std::wstring HexKeyId(const dbp::package::KeyId& keyId)
 {
@@ -73,48 +115,51 @@ std::wstring HexKeyId(const dbp::package::KeyId& keyId)
 	return result;
 }
 
-bool FlushFileForPublication(const std::filesystem::path& path)
+bool CompilerStageCleanupFailureRequested()
 {
-	const auto handle = CreateFileW(
-		path.c_str(),
-		GENERIC_WRITE,
-		FILE_SHARE_READ,
-		nullptr,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH,
-		nullptr);
-	if(handle==INVALID_HANDLE_VALUE)
-		return false;
-	const auto flushed = FlushFileBuffers(handle)!=FALSE;
-	CloseHandle(handle);
-	return flushed;
+	char value[8]{};
+	const auto size = GetEnvironmentVariableA(
+		"DBP_TEST_FAIL_COMPILER_STAGE_CLEANUP",
+		value,
+		static_cast<DWORD>(std::size(value)));
+	return size==1 && value[0]=='1';
 }
 
-void RemoveStaleExecutableBackups(
-	const std::filesystem::path& executablePath)
+std::string PublicationDiagnosticPrefix(
+	const dbp::package::PackageError& error,
+	const EnvironmentPublicationCheckpoint& checkpoint)
 {
-	const auto prefix =
-		executablePath.filename().wstring() +
-		L".dbp-backup-";
-	std::error_code iterationError;
-	for(const auto& entry :
-		std::filesystem::directory_iterator(
-			executablePath.parent_path(),
-			iterationError))
+	if(checkpoint.FailedStage())
 	{
-		if(iterationError)
-			return;
-		const auto name = entry.path().filename().wstring();
-		std::error_code statusError;
-		const auto status = entry.symlink_status(statusError);
-		if(!statusError &&
-			std::filesystem::is_regular_file(status) &&
-			name.size()>=prefix.size() &&
-			name.compare(0, prefix.size(), prefix)==0)
+		switch(*checkpoint.FailedStage())
 		{
-			std::filesystem::remove(entry.path(), statusError);
+		case dbp::package::PublicationStage::PackagePublished:
+			return "DBP3190: Simulated failure after package publication";
+		case dbp::package::PublicationStage::ExecutablePublished:
+			return "DBP3191: Simulated interruption after executable publication";
+		case dbp::package::PublicationStage::DescriptorPublished:
+			return "DBP3192: Simulated interruption after descriptor publication";
+		case dbp::package::PublicationStage::CleanupStarted:
+			return "DBP3193: Simulated interruption during publication cleanup";
 		}
 	}
+	const auto code =
+		dbp::compiler::PublicationDiagnosticCode(error);
+	if(code=="DBP3105")
+	{
+		return "DBP3105: Failed to publish the DBPAK package";
+	}
+	if(code=="DBP3106")
+	{
+		return "DBP3106: Failed to publish the executable transaction";
+	}
+	if(error.applicationPublicationPhase &&
+		*error.applicationPublicationPhase==
+			dbp::package::ApplicationPublicationPhase::Cleanup)
+	{
+		return "DBP3107: Failed to clean the committed application tuple";
+	}
+	return "DBP3107: Failed to finalize the application tuple";
 }
 
 } // namespace
@@ -380,167 +425,58 @@ bool CFileBuilder::FinalizePackage(
 			"DBP3104: The executable finalization path does not match its staging session.");
 		return false;
 	}
-	auto outputDirectory = executablePath.parent_path();
-	if(outputDirectory.empty())
-	{
-		outputDirectory =
-			std::filesystem::current_path(pathError);
-		if(pathError)
-		{
-			g_pErrorReport->AddErrorString(
-				"DBP3104: Resolving the package output directory failed.");
-			return false;
-		}
-	}
-
 	dbp::package::CngCryptoProvider crypto;
 	dbp::package::ZstdCompressionCodec compression;
-	dbp::package::Win32AtomicFilePublisher publisher;
+	dbp::package::Win32AtomicFilePublisher filePublisher;
+	EnvironmentPublicationCheckpoint checkpoint;
 	dbp::package::MemoryKeyProvider keys(
 		m_packageKeyId,
 		dbp::package::SecureBuffer::FromBytes(
 			m_packageMasterKey.CopyBytes()));
-	dbp::package::PackageWriter writer(
+	dbp::package::ApplicationPublisher publisher(
 		crypto,
 		compression,
-		publisher);
-	const auto written = writer.Write(
-		{outputDirectory, m_packageKeyId, m_packageEntries},
-		keys);
-	if(!written)
-	{
-		std::string message =
-			"DBP3105: Failed to publish the DBPAK package: " +
-			written.error().message;
-		g_pErrorReport->AddErrorString(message.data());
-		return false;
-	}
-	if(PublicationFailureRequested("after-package"))
-	{
-		g_pErrorReport->AddErrorString(
-			"DBP3190: Simulated failure after package publication.");
-		return false;
-	}
-
-	std::optional<dbp::package::ExecutablePackageKey> previousKey;
-	const auto descriptorPath =
-		GetPackageDescriptorFileFromEXEFile(pEXEFilename);
-	std::error_code previousError;
-	if(std::filesystem::is_regular_file(
-			executablePath,
-			previousError) &&
-		!previousError &&
-		std::filesystem::is_regular_file(
-			descriptorPath,
-			previousError) &&
-		!previousError)
-	{
-		const auto previousDescriptor =
-			dbp::package::ReadRuntimeDescriptor(descriptorPath);
-		if(previousDescriptor)
-		{
-			auto resolvedPrevious =
-				dbp::package::ReadExecutablePackageKey(
-					executablePath,
-					previousDescriptor.value().keyId);
-			if(resolvedPrevious)
-				previousKey.emplace(
-					std::move(resolvedPrevious.value()));
-		}
-	}
-	const auto injected =
-		dbp::package::InjectExecutablePackageKeys(
-			m_stagedExecutablePath,
-			m_packageKeyId,
-			m_packageMasterKey,
-			previousKey ? &*previousKey : nullptr);
-	if(!injected)
-	{
-		std::string message =
-			"DBP3106: Failed to inject the executable package key: " +
-			injected.error().message;
-		g_pErrorReport->AddErrorString(message.data());
-		return false;
-	}
-	if(!FlushFileForPublication(m_stagedExecutablePath))
-	{
-		g_pErrorReport->AddErrorString(
-			"DBP3106: Flushing the staged executable failed.");
-		return false;
-	}
-
-	dbp::package::RuntimeDescriptor descriptor;
-	descriptor.mode = KindOfExecutable==0
+		filePublisher,
+		checkpoint);
+	dbp::package::ApplicationPublishRequest request;
+	request.hostExecutable = m_stagedExecutablePath;
+	request.outputExecutable = executablePath;
+	request.mode = KindOfExecutable==0
 		? dbp::package::RuntimeMode::Application
 		: dbp::package::RuntimeMode::Installer;
-	descriptor.packageId = written.value().packageId;
-	descriptor.keyId = m_packageKeyId;
-	descriptor.packageFileName =
-		written.value().packagePath.filename().string();
-	auto backupPath = executablePath;
-	backupPath += L".dbp-backup-" + HexKeyId(m_packageKeyId);
-	std::filesystem::remove(backupPath, previousError);
-	const auto hadPreviousExecutable =
-		std::filesystem::is_regular_file(
-			executablePath,
-			previousError) &&
-		!previousError;
-	const auto executablePublished = hadPreviousExecutable
-		? ReplaceFileW(
-			executablePath.c_str(),
-			m_stagedExecutablePath.c_str(),
-			backupPath.c_str(),
-			REPLACEFILE_WRITE_THROUGH,
-			nullptr,
-			nullptr)!=FALSE
-		: MoveFileExW(
-			m_stagedExecutablePath.c_str(),
-			executablePath.c_str(),
-			MOVEFILE_WRITE_THROUGH)!=FALSE;
-	if(!executablePublished)
+	request.keyId = m_packageKeyId;
+	request.entries = m_packageEntries;
+	const auto published = publisher.Publish(request, keys);
+	if(!published)
 	{
-		g_pErrorReport->AddErrorString(
-			"DBP3106: Atomically publishing the executable failed.");
-		return false;
-	}
-	m_stagedExecutablePath.clear();
-
-	if(PublicationFailureRequested("after-executable"))
-	{
-		g_pErrorReport->AddErrorString(
-			"DBP3191: Simulated interruption after executable publication.");
-		return false;
-	}
-
-	const auto descriptorWritten =
-		dbp::package::WriteRuntimeDescriptorAtomically(
-			descriptorPath,
-			descriptor);
-	if(!descriptorWritten)
-	{
-		if(hadPreviousExecutable)
+		if(published.error().applicationTupleCommitted)
 		{
-			ReplaceFileW(
-				executablePath.c_str(),
-				backupPath.c_str(),
-				nullptr,
-				REPLACEFILE_WRITE_THROUGH,
-				nullptr,
-				nullptr);
-		}
-		else
-		{
-			std::filesystem::remove(executablePath, previousError);
+			m_packageSessionReady = false;
+			m_packageMasterKey = dbp::package::SecureBuffer{};
+			m_packageEntries.clear();
 		}
 		std::string message =
-			"DBP3107: Failed to publish the runtime package descriptor: " +
-			descriptorWritten.error().message;
+			PublicationDiagnosticPrefix(
+				published.error(),
+				checkpoint) +
+			": " +
+			published.error().message;
 		g_pErrorReport->AddErrorString(message.data());
 		return false;
 	}
-	std::filesystem::remove(backupPath, previousError);
-	RemoveStaleExecutableBackups(executablePath);
+
 	m_packageSessionReady = false;
+	m_packageMasterKey = dbp::package::SecureBuffer{};
+	m_packageEntries.clear();
+	const auto cleanupResult =
+		dbp::compiler::CleanupCompilerStageAfterCommit(
+		m_stagedExecutablePath,
+		CompilerStageCleanupFailureRequested());
+	if(cleanupResult!=
+		dbp::compiler::CompilerStageCleanupResult::Deferred)
+	{
+		m_stagedExecutablePath.clear();
+	}
 	return true;
 }
 

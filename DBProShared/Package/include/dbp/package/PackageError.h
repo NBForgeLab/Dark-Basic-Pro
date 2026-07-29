@@ -25,10 +25,20 @@ enum class PackageErrorCode {
     PublicationFailed,
 };
 
+enum class ApplicationPublicationPhase {
+    Package,
+    Executable,
+    Descriptor,
+    Cleanup,
+};
+
 struct PackageError {
     PackageErrorCode code;
     std::string message;
     std::optional<std::uint64_t> offset;
+    std::optional<ApplicationPublicationPhase>
+        applicationPublicationPhase = std::nullopt;
+    bool applicationTupleCommitted = false;
 };
 
 template <typename T>

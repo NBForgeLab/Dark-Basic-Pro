@@ -8,6 +8,7 @@ enum class PublicationStage {
     PackagePublished,
     ExecutablePublished,
     DescriptorPublished,
+    CleanupStarted,
 };
 
 class PublicationCheckpoint {

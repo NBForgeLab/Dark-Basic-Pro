@@ -30,13 +30,39 @@ PackageError PublicationError(std::string message) {
     };
 }
 
+PackageError WithApplicationPublicationContext(
+    PackageError error,
+    const ApplicationPublicationPhase phase,
+    const bool tupleCommitted = false) {
+    error.applicationPublicationPhase = phase;
+    error.applicationTupleCommitted = tupleCommitted;
+    return error;
+}
+
+PackageResult<ApplicationPublishResult> FailureAt(
+    PackageError error,
+    const ApplicationPublicationPhase phase,
+    const bool tupleCommitted = false) {
+    return PackageResult<ApplicationPublishResult>::Failure(
+        WithApplicationPublicationContext(
+            std::move(error),
+            phase,
+            tupleCommitted));
+}
+
 PackageResult<ApplicationPublishResult> PublicationFailure(
-    std::string message) {
-    return PackageResult<ApplicationPublishResult>::Failure({
-        PackageErrorCode::PublicationFailed,
-        std::move(message),
-        std::nullopt,
-    });
+    std::string message,
+    const ApplicationPublicationPhase phase =
+        ApplicationPublicationPhase::Executable,
+    const bool tupleCommitted = false) {
+    return FailureAt(
+        {
+            PackageErrorCode::PublicationFailed,
+            std::move(message),
+            std::nullopt,
+        },
+        phase,
+        tupleCommitted);
 }
 
 PackageResult<std::filesystem::path> AbsoluteNormalized(
@@ -1058,6 +1084,7 @@ PackageResult<bool> RestoreCommittedFile(
 
 PackageResult<ApplicationPublishResult> RollbackHandleFailure(
     const PackageError& cause,
+    const ApplicationPublicationPhase phase,
     const FileHandle& outputDirectory,
     const std::filesystem::path& executableFileName,
     FileHandle& publishedExecutable,
@@ -1111,9 +1138,11 @@ PackageResult<ApplicationPublishResult> RollbackHandleFailure(
             message += " " +
                 executableRestoreError->message;
         }
-        return PublicationFailure(std::move(message));
+        return PublicationFailure(
+            std::move(message),
+            phase);
     }
-    return PackageResult<ApplicationPublishResult>::Failure(cause);
+    return FailureAt(cause, phase);
 }
 
 PackageResult<bool> RemoveBackupByHandle(
@@ -1148,8 +1177,9 @@ ApplicationPublisher::Publish(
         ValidateCanonicalWindowsFileName(
             request.outputExecutable.filename());
     if (!canonicalFileName) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            canonicalFileName.error());
+        return FailureAt(
+            canonicalFileName.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto host = AbsoluteNormalized(request.hostExecutable);
     const auto output = AbsoluteNormalized(request.outputExecutable);
@@ -1177,8 +1207,9 @@ ApplicationPublisher::Publish(
         host.value(),
         "The host executable must be an existing non-reparse file.");
     if (!hostValid) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            hostValid.error());
+        return FailureAt(
+            hostValid.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto outputDirectory =
         output.value().parent_path();
@@ -1196,47 +1227,54 @@ ApplicationPublisher::Publish(
     const auto directoryValid =
         ValidateOutputDirectory(outputDirectory);
     if (!directoryValid) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            directoryValid.error());
+        return FailureAt(
+            directoryValid.error(),
+            ApplicationPublicationPhase::Executable);
     }
     auto outputDirectoryHandle =
         OpenPinnedDirectory(outputDirectory);
     if (!outputDirectoryHandle) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            outputDirectoryHandle.error());
+        return FailureAt(
+            outputDirectoryHandle.error(),
+            ApplicationPublicationPhase::Executable);
     }
     auto publicationLock = AcquirePublicationLock(
         outputDirectoryHandle.value(),
         output.value(),
         crypto_);
     if (!publicationLock) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            publicationLock.error());
+        return FailureAt(
+            publicationLock.error(),
+            ApplicationPublicationPhase::Executable);
     }
     auto hostHandle = OpenPinnedHost(host.value());
     if (!hostHandle) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            hostHandle.error());
+        return FailureAt(
+            hostHandle.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto outputPresent = ValidateDestinationIfPresent(
         output.value(),
         "The output executable destination is unsafe.");
     if (!outputPresent) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            outputPresent.error());
+        return FailureAt(
+            outputPresent.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto descriptorPresent = ValidateDestinationIfPresent(
         descriptorPath,
         "The runtime descriptor destination is unsafe.");
     if (!descriptorPresent) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            descriptorPresent.error());
+        return FailureAt(
+            descriptorPresent.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto sameFile =
         IsSameExistingFile(host.value(), output.value());
     if (!sameFile) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            sameFile.error());
+        return FailureAt(
+            sameFile.error(),
+            ApplicationPublicationPhase::Executable);
     }
     if (sameFile.value()) {
         return PublicationFailure(
@@ -1245,8 +1283,9 @@ ApplicationPublisher::Publish(
     const auto hostDescriptorAlias =
         IsSameExistingFile(host.value(), descriptorPath);
     if (!hostDescriptorAlias) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            hostDescriptorAlias.error());
+        return FailureAt(
+            hostDescriptorAlias.error(),
+            ApplicationPublicationPhase::Executable);
     }
     if (hostDescriptorAlias.value()) {
         return PublicationFailure(
@@ -1256,8 +1295,9 @@ ApplicationPublisher::Publish(
         const auto outputDescriptorAlias =
             IsSameExistingFile(output.value(), descriptorPath);
         if (!outputDescriptorAlias) {
-            return PackageResult<ApplicationPublishResult>::Failure(
-                outputDescriptorAlias.error());
+            return FailureAt(
+                outputDescriptorAlias.error(),
+                ApplicationPublicationPhase::Executable);
         }
         if (outputDescriptorAlias.value()) {
             return PublicationFailure(
@@ -1267,8 +1307,9 @@ ApplicationPublisher::Publish(
 
     const auto masterKey = keys.Resolve(request.keyId);
     if (!masterKey) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            masterKey.error());
+        return FailureAt(
+            masterKey.error(),
+            ApplicationPublicationPhase::Package);
     }
     MemoryKeyProvider packageKeys(
         request.keyId,
@@ -1310,22 +1351,25 @@ ApplicationPublisher::Publish(
         hostHandle.value(),
         stagePath.value());
     if (!copiedHost) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            copiedHost.error());
+        return FailureAt(
+            copiedHost.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto stagedValid = ValidateRegularNonReparseFile(
         stagePath.value(),
         "The staged host executable is not a regular file.");
     if (!stagedValid) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            stagedValid.error());
+        return FailureAt(
+            stagedValid.error(),
+            ApplicationPublicationPhase::Executable);
     }
     const auto originalStageIdentity = ReadFileIdentity(
         copiedHost.value(),
         "The staged executable is unsafe.");
     if (!originalStageIdentity) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            originalStageIdentity.error());
+        return FailureAt(
+            originalStageIdentity.error(),
+            ApplicationPublicationPhase::Executable);
     }
 
     PackageWriter writer(
@@ -1341,22 +1385,25 @@ ApplicationPublisher::Publish(
         },
         packageKeys);
     if (!package) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            package.error());
+        return FailureAt(
+            package.error(),
+            ApplicationPublicationPhase::Package);
     }
     const auto packageCheckpoint = ReachCheckpoint(
         checkpoint_,
         PublicationStage::PackagePublished);
     if (!packageCheckpoint) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            packageCheckpoint.error());
+        return FailureAt(
+            packageCheckpoint.error(),
+            ApplicationPublicationPhase::Package);
     }
     const auto stageUnchanged = VerifyPathIdentity(
         stagePath.value(),
         originalStageIdentity.value());
     if (!stageUnchanged) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            stageUnchanged.error());
+        return FailureAt(
+            stageUnchanged.error(),
+            ApplicationPublicationPhase::Executable);
     }
 
     auto previousExecutableResult =
@@ -1365,10 +1412,11 @@ ApplicationPublisher::Publish(
         OpenPinnedExistingFile(descriptorPath);
     if (!previousExecutableResult ||
         !previousDescriptorResult) {
-        return PackageResult<ApplicationPublishResult>::Failure(
+        return FailureAt(
             !previousExecutableResult
                 ? previousExecutableResult.error()
-                : previousDescriptorResult.error());
+                : previousDescriptorResult.error(),
+            ApplicationPublicationPhase::Executable);
     }
     auto previousExecutable =
         std::move(previousExecutableResult.value());
@@ -1389,15 +1437,17 @@ ApplicationPublisher::Publish(
         const auto previousMetadata =
             ReadRuntimeDescriptor(descriptorPath);
         if (!previousMetadata) {
-            return PackageResult<ApplicationPublishResult>::Failure(
-                previousMetadata.error());
+            return FailureAt(
+                previousMetadata.error(),
+                ApplicationPublicationPhase::Executable);
         }
         auto previousKey = ReadExecutablePackageKey(
             output.value(),
             previousMetadata.value().keyId);
         if (!previousKey) {
-            return PackageResult<ApplicationPublishResult>::Failure(
-                previousKey.error());
+            return FailureAt(
+                previousKey.error(),
+                ApplicationPublicationPhase::Executable);
         }
         fallbackKey.emplace(std::move(previousKey.value()));
     }
@@ -1408,8 +1458,9 @@ ApplicationPublisher::Publish(
             *previousExecutable,
             executableBackupPath.value());
         if (!backup) {
-            return PackageResult<ApplicationPublishResult>::Failure(
-                backup.error());
+            return FailureAt(
+                backup.error(),
+                ApplicationPublicationPhase::Executable);
         }
         executableBackup.emplace(
             std::move(backup.value()));
@@ -1420,8 +1471,9 @@ ApplicationPublisher::Publish(
             *previousDescriptor,
             descriptorBackupPath.value());
         if (!backup) {
-            return PackageResult<ApplicationPublishResult>::Failure(
-                backup.error());
+            return FailureAt(
+                backup.error(),
+                ApplicationPublicationPhase::Executable);
         }
         descriptorBackup.emplace(
             std::move(backup.value()));
@@ -1434,14 +1486,16 @@ ApplicationPublisher::Publish(
         masterKey.value(),
         fallbackKey ? &*fallbackKey : nullptr);
     if (!injected) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            injected.error());
+        return FailureAt(
+            injected.error(),
+            ApplicationPublicationPhase::Executable);
     }
     auto executableCommitHandle = OpenForHandleCommit(
         stagePath.value());
     if (!executableCommitHandle) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            executableCommitHandle.error());
+        return FailureAt(
+            executableCommitHandle.error(),
+            ApplicationPublicationPhase::Executable);
     }
 
     if (previousExecutable) {
@@ -1456,8 +1510,9 @@ ApplicationPublisher::Publish(
         output.value().filename(),
         hadPreviousExecutable);
     if (!executablePublished) {
-        return PackageResult<ApplicationPublishResult>::Failure(
-            executablePublished.error());
+        return FailureAt(
+            executablePublished.error(),
+            ApplicationPublicationPhase::Executable);
     }
     stageCleanup.Release();
     FileHandle publishedExecutable(
@@ -1470,6 +1525,7 @@ ApplicationPublisher::Publish(
     if (!executableCheckpoint) {
         return RollbackHandleFailure(
             executableCheckpoint.error(),
+            ApplicationPublicationPhase::Executable,
             outputDirectoryHandle.value(),
             output.value().filename(),
             publishedExecutable,
@@ -1495,6 +1551,7 @@ ApplicationPublisher::Publish(
     if (!serializedDescriptor) {
         return RollbackHandleFailure(
             serializedDescriptor.error(),
+            ApplicationPublicationPhase::Descriptor,
             outputDirectoryHandle.value(),
             output.value().filename(),
             publishedExecutable,
@@ -1514,6 +1571,7 @@ ApplicationPublisher::Publish(
     if (!descriptorProtectiveHandle) {
         return RollbackHandleFailure(
             descriptorProtectiveHandle.error(),
+            ApplicationPublicationPhase::Descriptor,
             outputDirectoryHandle.value(),
             output.value().filename(),
             publishedExecutable,
@@ -1533,6 +1591,7 @@ ApplicationPublisher::Publish(
     if (!descriptorCommitHandle) {
         return RollbackHandleFailure(
             descriptorCommitHandle.error(),
+            ApplicationPublicationPhase::Descriptor,
             outputDirectoryHandle.value(),
             output.value().filename(),
             publishedExecutable,
@@ -1554,6 +1613,7 @@ ApplicationPublisher::Publish(
     if (!descriptorPublished) {
         return RollbackHandleFailure(
             descriptorPublished.error(),
+            ApplicationPublicationPhase::Descriptor,
             outputDirectoryHandle.value(),
             output.value().filename(),
             publishedExecutable,
@@ -1577,6 +1637,7 @@ ApplicationPublisher::Publish(
     if (!descriptorCheckpoint) {
         return RollbackHandleFailure(
             descriptorCheckpoint.error(),
+            ApplicationPublicationPhase::Descriptor,
             outputDirectoryHandle.value(),
             output.value().filename(),
             publishedExecutable,
@@ -1589,6 +1650,18 @@ ApplicationPublisher::Publish(
             hadPreviousDescriptor,
             executableBackupCleanup,
             descriptorBackupCleanup);
+    }
+
+    const auto cleanupCheckpoint = ReachCheckpoint(
+        checkpoint_,
+        PublicationStage::CleanupStarted);
+    if (!cleanupCheckpoint) {
+        executableBackupCleanup.Release();
+        descriptorBackupCleanup.Release();
+        return FailureAt(
+            cleanupCheckpoint.error(),
+            ApplicationPublicationPhase::Cleanup,
+            true);
     }
 
     const auto executableBackupRemoved =
@@ -1608,7 +1681,9 @@ ApplicationPublisher::Publish(
         return PublicationFailure(
             !executableBackupRemoved
                 ? executableBackupRemoved.error().message
-                : descriptorBackupRemoved.error().message);
+                : descriptorBackupRemoved.error().message,
+            ApplicationPublicationPhase::Cleanup,
+            true);
     }
     executableBackupCleanup.Release();
     descriptorBackupCleanup.Release();

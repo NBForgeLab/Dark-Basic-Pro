@@ -2,10 +2,14 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include <windows.h>
 #include "FileBuilder.h"
+#include "PublicationDiagnostics.h"
 #include "DataTable.h"
 
 // ---------------------------------------------------------------------------
@@ -54,6 +58,88 @@ TEST(FileBuilderTest, ActiveProductionCannotReintroduceLegacyPckWriting) {
                 << token << " remains active in " << source.string();
         }
     }
+}
+
+TEST(FileBuilderTest, DelegatesPublicationTransactionToSharedService) {
+    const auto source =
+        std::filesystem::path(DBP_TEST_SOURCE_ROOT) /
+        "DBProCompiler/DBPCompiler/FileBuilder.cpp";
+    std::ifstream input(source, std::ios::binary);
+    ASSERT_TRUE(input) << source.string();
+    const std::string contents{
+        std::istreambuf_iterator<char>(input),
+        std::istreambuf_iterator<char>()};
+
+    EXPECT_NE(
+        contents.find("ApplicationPublisher"),
+        std::string::npos);
+    for (const auto* const forbidden : {
+             "ReplaceFileW(",
+             "MoveFileExW(",
+             "InjectExecutablePackageKeys(",
+             "WriteRuntimeDescriptorAtomically(",
+         }) {
+        EXPECT_EQ(contents.find(forbidden), std::string::npos)
+            << forbidden
+            << " bypasses the shared publication transaction";
+    }
+}
+
+TEST(FileBuilderTest, MapsStructuredPublicationPhasesToStableDiagnostics) {
+    using dbp::package::ApplicationPublicationPhase;
+    using dbp::package::PackageError;
+    using dbp::package::PackageErrorCode;
+
+    PackageError error{
+        PackageErrorCode::PublicationFailed,
+        "failure",
+        std::nullopt,
+    };
+    for (const auto& expected : {
+             std::pair{
+                 ApplicationPublicationPhase::Package,
+                 std::string_view("DBP3105")},
+             std::pair{
+                 ApplicationPublicationPhase::Executable,
+                 std::string_view("DBP3106")},
+             std::pair{
+                 ApplicationPublicationPhase::Descriptor,
+                 std::string_view("DBP3107")},
+             std::pair{
+                 ApplicationPublicationPhase::Cleanup,
+                 std::string_view("DBP3107")},
+         }) {
+        error.applicationPublicationPhase = expected.first;
+        EXPECT_EQ(
+            dbp::compiler::PublicationDiagnosticCode(error),
+            expected.second);
+    }
+}
+
+TEST(FileBuilderTest, DefersNonCriticalCompilerStageCleanupAfterCommit) {
+    const auto stage =
+        std::filesystem::temp_directory_path() /
+        ("dbp-compiler-stage-" +
+         std::to_string(GetCurrentProcessId()) + "-" +
+         std::to_string(GetCurrentThreadId()));
+    {
+        std::ofstream output(stage, std::ios::binary);
+        output << "host without an injected package key";
+        ASSERT_TRUE(output);
+    }
+
+    EXPECT_EQ(
+        dbp::compiler::CleanupCompilerStageAfterCommit(
+            stage,
+            true),
+        dbp::compiler::CompilerStageCleanupResult::Deferred);
+    EXPECT_TRUE(std::filesystem::is_regular_file(stage));
+    EXPECT_EQ(
+        dbp::compiler::CleanupCompilerStageAfterCommit(
+            stage,
+            false),
+        dbp::compiler::CompilerStageCleanupResult::Removed);
+    EXPECT_FALSE(std::filesystem::exists(stage));
 }
 
 // ---------------------------------------------------------------------------

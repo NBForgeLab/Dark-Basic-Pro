@@ -277,6 +277,8 @@ Describe "DarkBASIC Language Conformance Tests" {
             $interrupted.Stdout |
                 Should Match "DBP3191"
             $interrupted.HasExited | Should Be $true
+            (Get-FileHash -LiteralPath $outputExe -Algorithm SHA256).Hash |
+                Should Be $executableHash
             (Get-FileHash -LiteralPath $descriptor -Algorithm SHA256).Hash |
                 Should Be $descriptorHash
 

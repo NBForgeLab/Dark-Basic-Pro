@@ -124,6 +124,21 @@ const char* ErrorCodeName(
     return "unknown";
 }
 
+const char* PublicationPhaseName(
+    const package::ApplicationPublicationPhase phase) {
+    switch (phase) {
+    case package::ApplicationPublicationPhase::Package:
+        return "package";
+    case package::ApplicationPublicationPhase::Executable:
+        return "executable";
+    case package::ApplicationPublicationPhase::Descriptor:
+        return "descriptor";
+    case package::ApplicationPublicationPhase::Cleanup:
+        return "cleanup";
+    }
+    return "unknown";
+}
+
 void EmitError(
     const PackageError& error,
     const bool jsonMode,
@@ -134,10 +149,20 @@ void EmitError(
             {"type", "error"},
             {"code", ErrorCodeName(error.code)},
             {"message", error.message},
+            {"committed", error.applicationTupleCommitted},
         };
+        if (error.applicationPublicationPhase) {
+            document["phase"] = PublicationPhaseName(
+                *error.applicationPublicationPhase);
+        }
         output << document.dump() << '\n';
     } else {
         diagnostic << "error: " << error.message << '\n';
+        if (error.applicationTupleCommitted) {
+            diagnostic
+                << "note: the application tuple was committed "
+                   "before cleanup failed.\n";
+        }
     }
 }
 
@@ -163,7 +188,9 @@ public:
             (stage == package::PublicationStage::ExecutablePublished &&
              requested == L"after-executable") ||
             (stage == package::PublicationStage::DescriptorPublished &&
-             requested == L"after-descriptor");
+             requested == L"after-descriptor") ||
+            (stage == package::PublicationStage::CleanupStarted &&
+             requested == L"during-cleanup");
         if (!matches) {
             return PackageResult<bool>::Success(true);
         }

@@ -484,6 +484,38 @@ TEST(PublisherCliTest, PublishesRealPeAndEmitsSecretFreeJson) {
         root / "dist/game.exe"));
     EXPECT_TRUE(std::filesystem::is_regular_file(
         root / "dist/game.dbpakref"));
+
+    output.str({});
+    output.clear();
+    ASSERT_TRUE(SetEnvironmentVariableW(
+        L"DBP_TEST_FAIL_PUBLICATION_STAGE",
+        L"during-cleanup"));
+    const auto cleanupExitCode = RunPublisherProcess(
+        {
+            L"dbp-publish",
+            L"publish",
+            manifestPath.wstring(),
+            L"--package-key-file",
+            keyPath.wstring(),
+            L"--json",
+        },
+        output,
+        diagnostic);
+    ASSERT_TRUE(SetEnvironmentVariableW(
+        L"DBP_TEST_FAIL_PUBLICATION_STAGE",
+        nullptr));
+
+    EXPECT_EQ(cleanupExitCode, 5);
+    EXPECT_NE(
+        output.str().find("\"committed\":true"),
+        std::string::npos);
+    EXPECT_NE(
+        output.str().find("\"phase\":\"cleanup\""),
+        std::string::npos);
+    EXPECT_TRUE(std::filesystem::is_regular_file(
+        root / "dist/game.exe"));
+    EXPECT_TRUE(std::filesystem::is_regular_file(
+        root / "dist/game.dbpakref"));
 }
 
 } // namespace

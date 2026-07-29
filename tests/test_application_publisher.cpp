@@ -497,7 +497,8 @@ TEST_F(
         (std::vector<PublicationStage>{
             PublicationStage::PackagePublished,
             PublicationStage::ExecutablePublished,
-            PublicationStage::DescriptorPublished}));
+            PublicationStage::DescriptorPublished,
+            PublicationStage::CleanupStarted}));
     ExpectPublishedPayload(keyId, payload);
     ExpectNoTransactionArtifacts();
 }
@@ -708,6 +709,11 @@ TEST_F(
         publisher.Publish(Request(newKeyId, newAsset), newKeys);
 
     ASSERT_FALSE(interrupted);
+    ASSERT_TRUE(interrupted.error().applicationPublicationPhase);
+    EXPECT_EQ(
+        *interrupted.error().applicationPublicationPhase,
+        ApplicationPublicationPhase::Package);
+    EXPECT_FALSE(interrupted.error().applicationTupleCommitted);
     EXPECT_EQ(
         checkpoint.stages(),
         (std::vector<PublicationStage>{
@@ -792,6 +798,11 @@ TEST_F(
         publisher.Publish(Request(newKeyId, newAsset), newKeys);
 
     ASSERT_FALSE(interrupted);
+    ASSERT_TRUE(interrupted.error().applicationPublicationPhase);
+    EXPECT_EQ(
+        *interrupted.error().applicationPublicationPhase,
+        ApplicationPublicationPhase::Executable);
+    EXPECT_FALSE(interrupted.error().applicationTupleCommitted);
     EXPECT_EQ(
         checkpoint.stages(),
         (std::vector<PublicationStage>{
@@ -846,6 +857,11 @@ TEST_F(
         publisher.Publish(Request(newKeyId, newAsset), newKeys);
 
     ASSERT_FALSE(interrupted);
+    ASSERT_TRUE(interrupted.error().applicationPublicationPhase);
+    EXPECT_EQ(
+        *interrupted.error().applicationPublicationPhase,
+        ApplicationPublicationPhase::Descriptor);
+    EXPECT_FALSE(interrupted.error().applicationTupleCommitted);
     EXPECT_EQ(
         checkpoint.stages(),
         (std::vector<PublicationStage>{
@@ -858,6 +874,33 @@ TEST_F(
     EXPECT_EQ(ReadFileBytes(descriptorPath), oldDescriptorBytes);
     ExpectPublishedPayload(oldKeyId, oldPayload);
     ExpectNoTransactionArtifacts();
+}
+
+TEST_F(
+    ApplicationPublisherFixture,
+    CleanupFailureReportsThatTheTupleWasCommitted) {
+    const auto keyId = TestKeyId(0x64);
+    const std::vector<std::uint8_t> payload{0xE1, 0xE2};
+    const auto asset = WriteAsset("asset-cleanup.bin", payload);
+    auto keys = Keys(keyId, 0x84);
+    RecordingCheckpoint checkpoint(
+        PublicationStage::CleanupStarted);
+    ApplicationPublisher publisher(
+        crypto_,
+        compression_,
+        filePublisher_,
+        checkpoint);
+
+    const auto interrupted =
+        publisher.Publish(Request(keyId, asset), keys);
+
+    ASSERT_FALSE(interrupted);
+    ASSERT_TRUE(interrupted.error().applicationPublicationPhase);
+    EXPECT_EQ(
+        *interrupted.error().applicationPublicationPhase,
+        ApplicationPublicationPhase::Cleanup);
+    EXPECT_TRUE(interrupted.error().applicationTupleCommitted);
+    ExpectPublishedPayload(keyId, payload);
 }
 
 TEST_F(
