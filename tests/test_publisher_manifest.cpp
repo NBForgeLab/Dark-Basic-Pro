@@ -138,6 +138,27 @@ TEST_F(
 
 TEST_F(
     PublisherManifestFixture,
+    RejectsDuplicateRootKeySeparatedByNestedObjectAsDuplicate) {
+    const auto parsed = Parse(R"json({
+        "schemaVersion": 2,
+        "mode": {},
+        "schemaVersion": 1,
+        "hostExecutable": "host.exe",
+        "outputExecutable": "game.exe",
+        "assets": []
+    })json");
+
+    ASSERT_FALSE(parsed);
+    EXPECT_EQ(
+        parsed.error().code,
+        PackageErrorCode::InvalidFormat);
+    EXPECT_EQ(
+        parsed.error().message,
+        "The publisher manifest contains a duplicate key.");
+}
+
+TEST_F(
+    PublisherManifestFixture,
     RejectsUnsafeDestinationsAndCaseInsensitiveCollisions) {
     for (const auto& destinations : {
              R"json([{"source":"asset.bin","destination":"../escape.bin"}])json",

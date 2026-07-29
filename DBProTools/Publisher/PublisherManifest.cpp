@@ -273,7 +273,6 @@ PackageResult<json> ParseStrictJson(
                 objectKeys.resize(index + 2U);
             }
             if (event == json::parse_event_t::object_start) {
-                objectKeys[index].clear();
                 objectKeys[index + 1U].clear();
             } else if (event == json::parse_event_t::key) {
                 if (!objectKeys[index].insert(
@@ -282,7 +281,6 @@ PackageResult<json> ParseStrictJson(
                 }
             } else if (
                 event == json::parse_event_t::object_end) {
-                objectKeys[index].clear();
                 objectKeys[index + 1U].clear();
             }
             return true;
