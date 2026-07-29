@@ -143,7 +143,7 @@ add_executable(
     Main.cpp
     "${DBP_COMPILER_RESOURCE}"
 )
-add_dependencies(DBPCompiler DarkEXE)
+add_dependencies(DBPCompiler DarkEXE dbp-publish)
 dbp_apply_legacy_cpp_options(DBPCompiler)
 target_compile_definitions(DBPCompiler PRIVATE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
@@ -177,6 +177,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${DBP_COMPILER_HOST_ROOT}/msvcr71.dll"
         "$<TARGET_FILE_DIR:DBPCompiler>/msvcr71.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:dbp-publish>"
+        "$<TARGET_FILE_DIR:DBPCompiler>/dbp-publish.exe"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${DBP_COMPILER_HOST_ROOT}/lang"
         "$<TARGET_FILE_DIR:DBPCompiler>/lang"

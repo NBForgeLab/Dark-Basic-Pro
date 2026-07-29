@@ -8,10 +8,12 @@
 
 #include <Windows.h>
 
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -110,6 +112,103 @@ private:
 };
 
 } // namespace
+
+TEST(
+    RuntimeBundleIntegrationTest,
+    CompilerBundleDeploysRunnableHeadlessPublisher) {
+    const auto sourceRoot =
+        std::filesystem::path(DBP_TEST_SOURCE_ROOT);
+    std::ifstream cmakeInput(
+        sourceRoot /
+            "DBProCompiler/DBPCompiler/CMakeLists.txt",
+        std::ios::binary);
+    ASSERT_TRUE(cmakeInput);
+    const std::string cmakeContents{
+        std::istreambuf_iterator<char>(cmakeInput),
+        std::istreambuf_iterator<char>()};
+    EXPECT_NE(
+        cmakeContents.find("$<TARGET_FILE:dbp-publish>"),
+        std::string::npos);
+    EXPECT_NE(
+        cmakeContents.find(
+            "$<TARGET_FILE_DIR:DBPCompiler>/dbp-publish.exe"),
+        std::string::npos);
+
+    std::array<wchar_t, 32'768> modulePath{};
+    const auto moduleLength = GetModuleFileNameW(
+        nullptr,
+        modulePath.data(),
+        static_cast<DWORD>(modulePath.size()));
+    ASSERT_GT(moduleLength, 0U);
+    ASSERT_LT(moduleLength, modulePath.size());
+    const auto publisher =
+        std::filesystem::path(
+            modulePath.data(),
+            modulePath.data() + moduleLength)
+            .parent_path() /
+        L"dbp-publish.exe";
+    ASSERT_TRUE(std::filesystem::is_regular_file(publisher));
+
+    const auto outputPath =
+        std::filesystem::temp_directory_path() /
+        ("dbp-publisher-version-" +
+         std::to_string(
+             std::chrono::steady_clock::now()
+                 .time_since_epoch()
+                 .count()) +
+         ".txt");
+    SECURITY_ATTRIBUTES security{};
+    security.nLength = sizeof(security);
+    security.bInheritHandle = TRUE;
+    const HANDLE output = CreateFileW(
+        outputPath.c_str(),
+        GENERIC_WRITE,
+        FILE_SHARE_READ,
+        &security,
+        CREATE_NEW,
+        FILE_ATTRIBUTE_TEMPORARY,
+        nullptr);
+    ASSERT_NE(output, INVALID_HANDLE_VALUE);
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    startup.dwFlags = STARTF_USESTDHANDLES;
+    startup.hStdOutput = output;
+    startup.hStdError = output;
+    startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    PROCESS_INFORMATION process{};
+    std::wstring command =
+        L"\"" + publisher.wstring() + L"\" --version";
+    ASSERT_TRUE(CreateProcessW(
+        publisher.c_str(),
+        command.data(),
+        nullptr,
+        nullptr,
+        TRUE,
+        CREATE_NO_WINDOW,
+        nullptr,
+        publisher.parent_path().c_str(),
+        &startup,
+        &process));
+    EXPECT_EQ(
+        WaitForSingleObject(process.hProcess, 15'000),
+        WAIT_OBJECT_0);
+    DWORD exitCode = 0;
+    EXPECT_TRUE(GetExitCodeProcess(process.hProcess, &exitCode));
+    EXPECT_EQ(exitCode, 0U);
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    CloseHandle(output);
+
+    std::ifstream versionInput(outputPath, std::ios::binary);
+    const std::string version{
+        std::istreambuf_iterator<char>(versionInput),
+        std::istreambuf_iterator<char>()};
+    versionInput.close();
+    EXPECT_EQ(version, "dbp-publish 1.0.0\r\n");
+    std::error_code removeError;
+    EXPECT_TRUE(std::filesystem::remove(outputPath, removeError));
+    EXPECT_FALSE(removeError);
+}
 
 TEST(RuntimeBundleIntegrationTest, CompilerKeepsHostCommandsWithSelectedCoreRuntime) {
     TemporaryRuntimeBundle bundle(true);

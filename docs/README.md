@@ -93,6 +93,8 @@ Each phase of the modernization process is detailed in its own markdown document
 16. **[Phase 16: Authenticated DBPAK v2 Packages](16_modern_asset_protection_and_vfs_pak_roadmap.md)**
     * Shipped AES-256-GCM/HKDF-SHA-256 packages, explicit runtime descriptors, PE key resources, and read-only legacy compatibility.
     * [Verification baseline and reproducible evidence](baselines/2026-07-28-authenticated-package-v2.md).
+17. **[Headless Application Publisher](17_headless_application_publisher.md)**
+    * Publish a precompiled host and explicit assets as an authenticated, transactional EXE + DBPAK + descriptor tuple from scripts or CI.
 
 ---
 

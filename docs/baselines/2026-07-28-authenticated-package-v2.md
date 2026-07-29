@@ -175,3 +175,40 @@ Creator compatibility-completion claim is made here.
   matrix.
 - Legacy icon/input sources still produce pre-existing compiler warnings.
   This verification is not a repository-wide zero-warning claim.
+
+## Headless publisher extension
+
+Evidence captured: 2026-07-29
+Branch: `test-26`
+
+The shared `ApplicationPublisher` now serves both `DBPCompiler.exe` and the
+deployed `dbp-publish.exe` command-line tool. The publisher accepts a strict
+versioned JSON manifest and an owner-only 32-byte key file, emits stable NDJSON
+when requested, and preserves the same transactional EXE + DBPAK + descriptor
+contract as compiler builds.
+
+The final Release local CI run rebuilt from a fresh configure state and passed
+all six phases without skips:
+
+| Gate | Result |
+|---|---:|
+| DarkBASIC C++ tests | 434 passed |
+| Language conformance | 12 passed |
+| Publisher process security | 7 passed |
+| Golden FPS project compatibility | 4 passed |
+| FPS Creator C++ tests | 598 passed |
+
+The publisher process suite uses paths containing spaces and covers valid
+publication from an unrelated working directory, unsafe key DACLs, path
+traversal and collisions, missing and post-snapshot-mutated assets,
+pre-commit rollback boundaries, committed cleanup failure reporting, absence
+of PCK/loose/staging artifacts, and corrupted payload rejection through the
+production authenticated package reader.
+
+Current CTest runs also passed in Release, Debug, and MSVC AddressSanitizer
+configurations. The build presets explicitly build the publisher and its
+authenticated-reader process probe, and the compiler bundle has an explicit
+target dependency and post-build deployment contract for `dbp-publish.exe`.
+The operational command, schema, exit-code, NDJSON, ACL, and recovery
+contracts are documented in
+[Headless Application Publisher](../17_headless_application_publisher.md).
