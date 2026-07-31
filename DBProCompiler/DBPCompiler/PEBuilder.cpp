@@ -27,3 +27,12 @@ bool CPEBuilder::BuildExecutable(const char* pEXEFilename) const noexcept
     if (pEXEFilename == nullptr || pEXEFilename[0] == '\0') return false;
     return true;
 }
+
+bool CPEBuilder::BuildEXEPackage(const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const noexcept
+{
+    if (!ValidatePEHeaderRequirements(0x400000, 4096, 512) || !BuildExecutable(pEXEFilename))
+    {
+        return false;
+    }
+    return true;
+}

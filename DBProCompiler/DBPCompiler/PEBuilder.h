@@ -22,6 +22,7 @@ public:
     [[nodiscard]] DWORD CalculateAlignedSize(DWORD dwUnalignedSize, DWORD dwAlignment) const noexcept;
     [[nodiscard]] bool ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
     [[nodiscard]] bool BuildExecutable(const char* pEXEFilename) const noexcept;
+    [[nodiscard]] bool BuildEXEPackage(const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const noexcept;
 
 private:
     bool m_bPrepared{ false };
