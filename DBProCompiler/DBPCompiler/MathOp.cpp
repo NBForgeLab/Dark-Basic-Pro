@@ -1971,48 +1971,9 @@ bool CMathOp::FindHighestPres(CStr* pString, DWORD *dwPosition, DWORD *dwType, D
 
 bool CMathOp::CheckForSymbol(CStr* pString, DWORD dwSP, DWORD *dwMathType, DWORD *dwPriority, DWORD *dwSymbolWidth)
 {
-	*dwMathType=0;
-	if(pString->CheckChar	(dwSP,'^'))			{ *dwMathType=1; *dwPriority=1; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'/'))			{ *dwMathType=3; *dwPriority=2; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'*'))			{ *dwMathType=2; *dwPriority=3; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'+'))			{ *dwMathType=4; *dwPriority=5; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'-'))			{ *dwMathType=5; *dwPriority=4; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'='))			{ *dwMathType=27; *dwPriority=27; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'>'))			{ *dwMathType=25; *dwPriority=25; *dwSymbolWidth=1; }
-	if(pString->CheckChar	(dwSP,'<'))			{ *dwMathType=26; *dwPriority=26; *dwSymbolWidth=1; }
-
-	if(pString->CheckChars	(dwSP,2,"<>"))		{ *dwMathType=22; *dwPriority=22; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,">="))		{ *dwMathType=23; *dwPriority=23; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"=>"))		{ *dwMathType=23; *dwPriority=23; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"<="))		{ *dwMathType=24; *dwPriority=24; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"=<"))		{ *dwMathType=24; *dwPriority=24; *dwSymbolWidth=2; }
-
-	if(pString->CheckChars	(dwSP,2,"%%"))		{ *dwMathType=6; *dwPriority=3; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"&&"))		{ *dwMathType=31; *dwPriority=31; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"||"))		{ *dwMathType=32; *dwPriority=32; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"~~"))		{ *dwMathType=33; *dwPriority=33; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,".."))		{ *dwMathType=34; *dwPriority=34; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,">>"))		{ *dwMathType=11; *dwPriority=11; *dwSymbolWidth=2; }
-	if(pString->CheckChars	(dwSP,2,"<<"))		{ *dwMathType=12; *dwPriority=12; *dwSymbolWidth=2; }
-
-	if(pString->CheckChars	(dwSP,5," AND "))	{ *dwMathType=41; *dwPriority=41; *dwSymbolWidth=5; }
-	if(pString->CheckChars	(dwSP,5," XOR "))	{ *dwMathType=33; *dwPriority=44; *dwSymbolWidth=5; }
-	if(pString->CheckChars	(dwSP,4," OR "))	{ *dwMathType=42; *dwPriority=42; *dwSymbolWidth=4; }
-	if(pString->CheckChars	(dwSP,4,"NOT "))	{ *dwMathType=43; *dwPriority=43; *dwSymbolWidth=4; }
-	if(pString->CheckChars	(dwSP,5," DIV "))	{ *dwMathType=3; *dwPriority=3; *dwSymbolWidth=5;	}
-	if(pString->CheckChars	(dwSP,5," MOD "))	{ *dwMathType=6; *dwPriority=3; *dwSymbolWidth=5;	}
-
-	// confirm result
-	if(*dwMathType>0)
-	{
-		// success
-		return true;
-	}
-	else
-	{
-		// soft fail
-		return false;
-	}
+	if (!pString || !pString->GetStr()) return false;
+	static const CExpressionParser exprParser;
+	return exprParser.CheckForSymbol(pString->GetStr(), dwSP, dwMathType, dwPriority, dwSymbolWidth);
 }
 
 bool CMathOp::ProduceNewTempToken(CStr* pTempVarToken, DWORD dwTypeMode)

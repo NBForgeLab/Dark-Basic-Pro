@@ -16,6 +16,7 @@ public:
     CExpressionParser& operator=(CExpressionParser&&) noexcept = default;
 
     [[nodiscard]] bool IsNumericLiteral(std::string_view svText) const noexcept;
+    [[nodiscard]] bool CheckForSymbol(std::string_view svText, DWORD dwSP, DWORD* pdwMathType, DWORD* pdwPriority, DWORD* pdwSymbolWidth) const noexcept;
 };
 
 #endif // EXPRESSIONPARSER_H
