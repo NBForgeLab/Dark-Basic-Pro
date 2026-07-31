@@ -26,7 +26,7 @@ CollisionTrace *trace; //Holds the collision information
 void
 c_init()
 {
-	HINSTANCE hLib=LoadLibrary("collision.dll");
+	HINSTANCE hLib=LoadLibraryEx("collision.dll", nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 	CollideAndSlide=(C1)GetProcAddress((HMODULE)hLib, "collideAndSlide");
 	EnableGravity=(C2)GetProcAddress((HMODULE)hLib, "colEnableGravity");

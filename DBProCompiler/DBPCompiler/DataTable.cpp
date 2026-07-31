@@ -8,6 +8,7 @@
 #include "DBPCompiler.h"
 #include "direct.h"
 #include "TextConvert.h"
+#include "SafeDLLLoading.h"
 extern CDBPCompiler* g_pDBPCompiler;
 extern bool g_bExternaliseDLLS;
 
@@ -231,7 +232,7 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 				{
 					// must be user DLL (associated with main DLL)
 					int iAssociationCode = 0;
-					HMODULE hModule = LoadLibraryW(TextConvert::UTF8ToUTF16(pDLLName).c_str());
+					HMODULE hModule = dbp::dll::LoadApplicationDLLW(TextConvert::UTF8ToUTF16(pDLLName).c_str());
 					if(hModule)
 					{
 						// get associate dll value if any

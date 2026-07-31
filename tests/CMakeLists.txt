@@ -58,6 +58,9 @@ add_executable(dbp_tests
     test_package_mount.cpp
     test_runtime_package_startup.cpp
     test_text_line_splitter.cpp
+    test_safe_dll_loading.cpp
+    test_error.cpp
+    test_unsafe_string_patterns.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"

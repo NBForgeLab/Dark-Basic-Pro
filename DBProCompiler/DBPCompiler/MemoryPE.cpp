@@ -1,5 +1,6 @@
 #include "MemoryPE.h"
 #include "VFSHooks.h"
+#include "SafeDLLLoading.h"
 #include <unordered_map>
 #include <vector>
 #include <iostream>
@@ -158,7 +159,7 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
             // Check VFS first
             HMODULE hImport = LoadFromVFS(dllName);
             if (!hImport) {
-                hImport = LoadLibraryA(dllName);
+                hImport = dbp::dll::LoadApplicationDLLA(dllName);
             }
             
             if (!hImport) {

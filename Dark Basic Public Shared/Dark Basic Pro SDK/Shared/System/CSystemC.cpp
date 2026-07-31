@@ -233,7 +233,7 @@ HRESULT CheckD3D9Ex( void )
     HRESULT hr = E_FAIL;
 
     // Manually load the d3d9.dll library.
-    g_libHandle = LoadLibrary("d3d9.dll");
+    g_libHandle = LoadLibraryEx("d3d9.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if(g_libHandle != NULL)
     {
         // Obtain the address of the Direct3DCreate9Ex function. 
@@ -305,7 +305,7 @@ DARKSDK int DMEMAvailable(void)
 	HMODULE gdi32Handle;
 	PFND3DKMT_QUERYSTATISTICS queryD3DKMTStatistics;
         
-	if (gdi32Handle = LoadLibrary(TEXT("gdi32.dll")))
+	if (gdi32Handle = LoadLibraryEx(TEXT("gdi32.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32))
 		queryD3DKMTStatistics = (PFND3DKMT_QUERYSTATISTICS)GetProcAddress(gdi32Handle, "D3DKMTQueryStatistics");
         
 	if (queryD3DKMTStatistics && CheckD3D9Ex()==S_OK )
@@ -628,7 +628,7 @@ DARKSDK void DLLLoadCore( DWORD pDLLFile, int dllid )
 	{
 		if(hDLLModule[dllid]==NULL)
 		{
-			hDLLModule[dllid] = LoadLibrary((LPSTR)pDLLFile);
+			hDLLModule[dllid] = LoadLibraryEx((LPSTR)pDLLFile, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 			if(!hDLLModule[dllid])
 			{
 				RunTimeSoftWarning(RUNTIMEERROR_SYSCOULDNOTLOADDLL);

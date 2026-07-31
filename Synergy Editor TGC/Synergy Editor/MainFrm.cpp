@@ -1330,7 +1330,7 @@ void MainFrame::OnDBPAbout()
 	} 
 
    /* get handle to dll */
-   HINSTANCE hGetProcIDDLL = LoadLibrary(location);
+   HINSTANCE hGetProcIDDLL = LoadLibraryEx(location, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
    /* get pointer to the function in the dll*/
    FARPROC lpfnGetProcessID = GetProcAddress(HMODULE(hGetProcIDDLL), "on_about");
@@ -1440,7 +1440,7 @@ void MainFrame::OnCheckModules()
 
 void MainFrame::OnOpenGameCreatorStore()
 {
-	HINSTANCE StoreHandle = LoadLibrary(_T("GameCreatorStore.dll"));
+	HINSTANCE StoreHandle = LoadLibraryEx(_T("GameCreatorStore.dll"), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 	if ( !StoreHandle ) 
 	{
 		MessageBox( _T("Failed to load Store DLL"), _T("Error") );

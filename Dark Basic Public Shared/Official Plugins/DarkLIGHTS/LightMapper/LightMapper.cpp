@@ -108,7 +108,7 @@ DLLEXPORT void LMStart ( )
 	if ( bInitialised ) return;
 
 	#ifndef DARKSDK_COMPILE
-	HINSTANCE CoreHandle = LoadLibrary("DBProCore.dll");
+	HINSTANCE CoreHandle = LoadLibraryEx("DBProCore.dll", nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     GlobStruct* (*GetGlobPtr)(void) = ( GlobStruct* (*)(void) ) GetProcAddress( CoreHandle, "?GetGlobPtr@@YAKXZ" );
     FreeLibrary( CoreHandle );
 
@@ -118,7 +118,7 @@ DLLEXPORT void LMStart ( )
 		exit(1);
 	}
 
-	CoreHandle = LoadLibrary("DBProSetupDebug.dll");
+	CoreHandle = LoadLibraryEx("DBProSetupDebug.dll", nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 	g_GetDirect3DDevice	= ( GetDirect3DDevicePFN ) GetProcAddress ( CoreHandle, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
 	FreeLibrary( CoreHandle );
 

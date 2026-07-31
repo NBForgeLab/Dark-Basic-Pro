@@ -1,4 +1,5 @@
 #include "CrashHandler.h"
+#include "SafeDLLLoading.h"
 #include <windows.h>
 #include <dbghelp.h>
 #include <iostream>
@@ -16,7 +17,7 @@ static void SETranslator(unsigned int code, _EXCEPTION_POINTERS*) {
 
 // Generate Minidump
 static void CreateMinidump(_EXCEPTION_POINTERS* apExceptionInfo) {
-    HMODULE hDbgHelp = LoadLibraryW(L"dbghelp.dll");
+    HMODULE hDbgHelp = dbp::dll::LoadSystemDLLW(L"dbghelp.dll");
     if (!hDbgHelp) return;
 
     typedef BOOL (WINAPI *MINIDUMPWRITEDUMP)(

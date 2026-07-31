@@ -146,7 +146,7 @@ EXPORT void ReceiveCoreDataPtr(LPVOID CorePtr)
 	char cPath[_MAX_PATH];
 	strcpy(cPath, Core->pEXEUnpackDirectory);
 	strcat(cPath, "\\DBProSetupDebug.dll");
-	g_hLib = LoadLibrary(cPath);
+	g_hLib = LoadLibraryEx(cPath, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 	
     // Get the Basic3D handle here
     //Basic3D = LoadLibrary(Dependencies[0] );
@@ -156,30 +156,30 @@ EXPORT void ReceiveCoreDataPtr(LPVOID CorePtr)
 	char cPath2[_MAX_PATH];
 	strcpy(cPath2, Core->pEXEUnpackDirectory);
 	strcat(cPath2, "\\DBProBasic3DDebug.dll");
-	Basic3D = LoadLibrary(cPath2);
+	Basic3D = LoadLibraryEx(cPath2, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 	//Access to Camera handle
 	char cPath3[_MAX_PATH];
 	strcpy(cPath3, Core->pEXEUnpackDirectory);
 	strcat(cPath3, "\\DBProCameraDebug.dll");
-	CameraMod = LoadLibrary(cPath3);
+	CameraMod = LoadLibraryEx(cPath3, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 	//Access to Vectors handle
 	char cPath4[_MAX_PATH];
 	strcpy(cPath4, Core->pEXEUnpackDirectory);
 	strcat(cPath4, "\\DBProVectorsDebug.dll");
-	VectorsMod = LoadLibrary(cPath4);
+	VectorsMod = LoadLibraryEx(cPath4, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 	char cPath5[_MAX_PATH];
 	strcpy(cPath5, Core->pEXEUnpackDirectory);
 	strcat(cPath5, "\\DBProCore.dll");
-	CoreMod = LoadLibrary(cPath5);
+	CoreMod = LoadLibraryEx(cPath5, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 	//Access to Basic2D handle
 	char cPath6[_MAX_PATH];
 	strcpy(cPath6, Core->pEXEUnpackDirectory);
 	strcat(cPath6, "\\DBProBasic2DDebug.dll");
-	Basic2D = LoadLibrary(cPath6);
+	Basic2D = LoadLibraryEx(cPath6, nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 
 	//Basic3D = Core->g_Basic3D;
     // NOTE, this particular library is also available via Core->g_Basic3D

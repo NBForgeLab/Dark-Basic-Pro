@@ -1,6 +1,7 @@
 #include "VFSHooks.h"
 
 #include "MemoryPE.h"
+#include "SafeDLLLoading.h"
 #include "TextConvert.h"
 #include "dbp/package/PackagePath.h"
 
@@ -549,7 +550,7 @@ HMODULE WINAPI Hook_LoadLibraryA(const LPCSTR fileName) {
     if (VFSRegistry::Exists(fileName)) {
         return MemoryPE::LoadFromVFS(fileName);
     }
-    return LoadLibraryA(fileName);
+    return dbp::dll::LoadApplicationDLLA(fileName);
 }
 
 HMODULE WINAPI Hook_LoadLibraryW(const LPCWSTR fileName) {
@@ -562,7 +563,7 @@ HMODULE WINAPI Hook_LoadLibraryW(const LPCWSTR fileName) {
     if (VFSRegistry::Exists(utf8)) {
         return MemoryPE::LoadFromVFS(utf8);
     }
-    return LoadLibraryW(fileName);
+    return dbp::dll::LoadApplicationDLLW(fileName);
 }
 
 bool VFSHooks::Initialize() {
