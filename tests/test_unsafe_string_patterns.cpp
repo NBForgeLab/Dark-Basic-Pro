@@ -124,3 +124,13 @@ TEST(UnsafeStringPatternsTest, FileBuilder_HasNoUnsafeStringCalls)
     const auto source = ReadSourceFile(relativePath);
     AssertNoUnsafePatterns(relativePath, source);
 }
+
+// ---------------------------------------------------------------------------
+// Statement.cpp must not contain unsafe C-string calls
+// ---------------------------------------------------------------------------
+TEST(UnsafeStringPatternsTest, Statement_HasNoUnsafeStringCalls)
+{
+    const char relativePath[] = "DBProCompiler/DBPCompiler/Statement.cpp";
+    const auto source = ReadSourceFile(relativePath);
+    AssertNoUnsafePatterns(relativePath, source);
+}

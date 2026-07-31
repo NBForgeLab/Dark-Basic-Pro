@@ -1240,7 +1240,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				g_pStatementList->SetFileDataPointer(pPointer);
 
 				// default or literal
-				if(strnicmp(pPointer, "default", 7)==NULL)
+				if(_strnicmp(pPointer, "default", 7)==NULL)
 				{
 					// CASE DEFAULT
 					g_pStatementList->SetFileDataPointer(pPointer+7);
@@ -1829,7 +1829,10 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			// Ensure dec name is valid (stack CStr: RAII on every exit path)
 			CStr tempNameStr(pDecName.get());
 			tempNameStr.EatEdgeSpacesandTabs(NULL);
-			strcpy(pDecName.get(), tempNameStr.GetStr());
+			{
+				const size_t nameLen = strlen(tempNameStr.GetStr());
+				memcpy(pDecName.get(), tempNameStr.GetStr(), nameLen + 1);
+			}
 			if(tempNameStr.IsTextASingleVariable()==false)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
@@ -1862,7 +1865,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 				addTypes.AddText(" ");
 				addTypes.AddText(pWhatTypeMore.get());
 				std::unique_ptr<char[]> pNewTypeString(new char[addTypes.Length()+1]);
-				strcpy(pNewTypeString.get(), addTypes.GetStr());
+				memcpy(pNewTypeString.get(), addTypes.GetStr(), addTypes.Length() + 1);
 				pWhatType = std::move(pNewTypeString);
 			}
 			else
@@ -1998,13 +2001,13 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			// Use default type (owned copy: this function's pDecType is always a new[] buffer)
 			std::string defaultType = g_pVarTable->MakeDefaultVarType(pDecName.get());
 			pDecType.reset(new char[defaultType.size()+1]);
-			strcpy(pDecType.get(), defaultType.c_str());
+			memcpy(pDecType.get(), defaultType.c_str(), defaultType.size() + 1);
 		}
 		if(pDecInit==NULL && bAutoInitialiseData==true)
 		{
 			// Use default init
 			pDecInit.reset(new char[8]);
-			strcpy(pDecInit.get(),"0");
+			memcpy(pDecInit.get(), "0", 2);
 		}
 
 		// leefix - 230604 - u54 - If using DIM and no init value, means DIM arr(), so use -1 to make an EMPTY array!
@@ -2013,7 +2016,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			if ( strcmp( pDecArrValue.get(), "")==NULL )
 			{
 				pDecArrValue.reset(new char[8]);
-				strcpy(pDecArrValue.get(),"-1");
+				memcpy(pDecArrValue.get(), "-1", 3);
 			}
 		}
 
@@ -4333,7 +4336,7 @@ LPSTR CStatement::SeperateInitFromType(LPSTR pPossibleTypeAndInit)
 
 				// Hand a heap char[] back to the caller-owned raw contract
 				auto pInitString = std::make_unique<char[]>(initValue.Length()+1);
-				strcpy(pInitString.get(), initValue.GetStr());
+				memcpy(pInitString.get(), initValue.GetStr(), initValue.Length() + 1);
 				return pInitString.release();
 			}
 		}
@@ -4397,7 +4400,7 @@ LPSTR CStatement::GetStringToEndOfLine(void)
 	// Create string (hand a heap char[] back to the caller-owned raw contract;
 	// the caller frees it with delete[] via std::unique_ptr<char[]>)
 	auto pResult = std::make_unique<char[]>(stringStr.Length()+1);
-	strcpy(pResult.get(), stringStr.GetStr());
+	memcpy(pResult.get(), stringStr.GetStr(), stringStr.Length() + 1);
 
 	// Update pointer to end of line
 	g_pStatementList->SetFileDataPointer(pPointer);
@@ -4450,7 +4453,7 @@ bool CStatement::SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrVa
 			// hand a fresh heap char[] back to the caller-owned raw contract.
 			std::unique_ptr<char[]> pOldName(*pArrayString);
 			auto pNewName = std::make_unique<char[]>(pString.Length()+1);
-			strcpy(pNewName.get(), pString.GetStr());
+			memcpy(pNewName.get(), pString.GetStr(), pString.Length() + 1);
 			*pArrayString = pNewName.release();
 
 			// Success
@@ -4856,12 +4859,12 @@ DWORD CStatement::GetToken(void)
 LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 {
 	// Search for comment lines to skip
-	if(strnicmp(pPtr, "`", 1)==NULL
-	|| strnicmp(pPtr, "'", 1)==NULL
-	|| strnicmp(pPtr, "rem", 3)==NULL
-	|| strnicmp(pPtr, "remstart", 8)==NULL)
+	if(_strnicmp(pPtr, "`", 1)==NULL
+	|| _strnicmp(pPtr, "'", 1)==NULL
+	|| _strnicmp(pPtr, "rem", 3)==NULL
+	|| _strnicmp(pPtr, "remstart", 8)==NULL)
 	{
-		if(strnicmp(pPtr, "remstart", 8)==NULL)
+		if(_strnicmp(pPtr, "remstart", 8)==NULL)
 		{
 			// Ensure followed by sub32 character
 			if(*(pPtr+8)<=32)
@@ -4869,7 +4872,7 @@ LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 				// Skip code block
 				while(pPtr<pPtrEnd)
 				{
-					if(strnicmp(pPtr-5, "remend", 6)==NULL) break;
+					if(_strnicmp(pPtr-5, "remend", 6)==NULL) break;
 
 					// leefix - 110405 - must account for line number inc - tweaked 150405
 					if ( *(unsigned char*)(pPtr+0)==10
@@ -4884,9 +4887,9 @@ LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 		{
 			// Ensure followed by 32+ character
 			bool bValidComment=false;
-			if(strnicmp(pPtr, "`", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-			if(strnicmp(pPtr, "'", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-			if(strnicmp(pPtr, "rem", 3)==NULL && *(pPtr+3)>=32) bValidComment=true;
+			if(_strnicmp(pPtr, "`", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
+			if(_strnicmp(pPtr, "'", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
+			if(_strnicmp(pPtr, "rem", 3)==NULL && *(pPtr+3)>=32) bValidComment=true;
 			if(bValidComment)
 			{
 				// Only skip line
@@ -4976,11 +4979,11 @@ LPSTR CStatement::SeekToSeperator(LPSTR pPointer, bool bAdvanceLine, bool bStopA
 			// LEEFIX - 171102 - detect break by comment
 			if(bStopAtComment==true)
 			{
-				if(strnicmp(pPointer, "'", 1)==NULL)			break;
-				if(strnicmp(pPointer, "`", 1)==NULL)			break;
-				if(strnicmp(pPointer, "//", 2)==NULL)			break;
-				if(strnicmp(pPointer, "rem ", 4)==NULL)			break;
-				if(strnicmp(pPointer, "remstart ", 9)==NULL)	break;
+				if(_strnicmp(pPointer, "'", 1)==NULL)			break;
+				if(_strnicmp(pPointer, "`", 1)==NULL)			break;
+				if(_strnicmp(pPointer, "//", 2)==NULL)			break;
+				if(_strnicmp(pPointer, "rem ", 4)==NULL)			break;
+				if(_strnicmp(pPointer, "remstart ", 9)==NULL)	break;
 			}
 		}
 
@@ -5035,7 +5038,7 @@ PSTR CStatement::SeekToRemEnd(LPSTR pPointer)
 		}
 		if(iSpeechMarks==0)
 		{
-			if(strnicmp((char*)(pPointer), "remend", 6)==NULL)
+			if(_strnicmp((char*)(pPointer), "remend", 6)==NULL)
 			{
 				if(pPointer+5<pPointerEnd) pPointer+=6;
 				break;
