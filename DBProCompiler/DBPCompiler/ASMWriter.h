@@ -16,6 +16,8 @@
 #include "EXEBlock.h"
 #include "Str.h"
 #include "ICodeGenerator.h"
+#include "DebuggerInterface.h"
+#include "LeapMarkerManager.h"
 
 // ASM task codes (converted from #define constants)
 constexpr int ASMMAXCOUNT = 300;
@@ -367,10 +369,6 @@ class CASMWriter : public ICodeGenerator
 		void FreeMachineBlock(void);
 		void FreeAll(void);
 
-		bool HideAnyHiddenCode(LPSTR pData, DWORD dwSize);
-		LRESULT SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize);
-		void GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwDataSize);
-
 		DWORD GetBytePosOfLastInstruction(void);
 
 		DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue);
@@ -419,6 +417,8 @@ class CASMWriter : public ICodeGenerator
 		bool GetCondToggle ( void ) { return m_bOneOffCondToggle; }
 		void SetCondToggle ( bool bFlag ) { m_bOneOffCondToggle = bFlag; }
 
+	friend class CLeapMarkerManager;
+
 	private:
 
 		// Program Execution Settings
@@ -450,10 +450,8 @@ class CASMWriter : public ICodeGenerator
 		CMathOp*				m_pP2MathOp;
 		CMathOp*				m_pP3MathOp;
 
-		// Leap Marker Work Variable
-		LPSTR					m_pRecordTopBytePosition;
-		DWORD					m_pRecordRefPosition[9];
-		LPSTR					m_pRecordBytePosition[9];
+		// Leap Marker Manager (extracted subsystem)
+		CLeapMarkerManager		m_leapManager;
 
 	private:
 

@@ -41,6 +41,8 @@ add_executable(dbp_tests
         test_statement_paramlist.cpp
         test_statement_expression.cpp
     test_asmwriter_emission.cpp
+    test_leap_marker_manager.cpp
+    test_debugger_interface.cpp
     test_mathop_expression.cpp
     test_instruction_table.cpp
     test_statement_string_helpers.cpp
