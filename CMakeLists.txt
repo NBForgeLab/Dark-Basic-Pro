@@ -8,6 +8,19 @@ project(DarkBasicPro LANGUAGES C CXX ASM_MASM)
 include(CTest)
 include(cmake/ProjectOptions.cmake)
 
+# clang-tidy static analysis integration (opt-in).
+# When enabled, CMake will run clang-tidy on every translation unit during build.
+option(DBP_ENABLE_CLANG_TIDY "Enable clang-tidy static analysis" OFF)
+if(DBP_ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+    if(CLANG_TIDY_EXE)
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+        message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+    else()
+        message(WARNING "clang-tidy not found, static analysis disabled")
+    endif()
+endif()
+
 # Enable SAFESEH for MASM on Win32
 if(MSVC)
     set(CMAKE_ASM_MASM_FLAGS "${CMAKE_ASM_MASM_FLAGS} /safeseh")
