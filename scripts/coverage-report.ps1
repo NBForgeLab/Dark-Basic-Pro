@@ -48,7 +48,7 @@ $ErrorActionPreference = 'Stop'
 
 # ── Resolve build directory ──────────────────────────────────────────
 if (-not $BuildDirectory) {
-    $candidate = Get-ChildItem -Path "out/build" -Directory -Filter "*coverage*" -ErrorAction SilentlyAction |
+    $candidate = Get-ChildItem -Path "out/build" -Directory -Filter "*coverage*" -ErrorAction SilentlyContinue |
         Select-Object -First 1
     if ($candidate) {
         $BuildDirectory = $candidate.FullName

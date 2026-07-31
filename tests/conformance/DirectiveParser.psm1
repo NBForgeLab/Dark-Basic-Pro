@@ -1,4 +1,6 @@
-function Parse-TestDirectives {
+[CmdletBinding()]
+function ConvertFrom-TestDirective {
+    [CmdletBinding()]
     param(
         [string[]]$FileContent
     )
@@ -38,4 +40,6 @@ function Parse-TestDirectives {
     return $result
 }
 
-Export-ModuleMember -Function Parse-TestDirectives
+Set-Alias -Name Parse-TestDirectives -Value ConvertFrom-TestDirective -ErrorAction SilentlyContinue
+
+Export-ModuleMember -Function ConvertFrom-TestDirective, Parse-TestDirectives -Alias Parse-TestDirectives
