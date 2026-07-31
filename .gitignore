@@ -19,6 +19,8 @@ CMakeUserPresets.json
 
 # Compilation outputs
 *.obj
+*.res
+*.recipe
 *.lib
 *.dll
 *.exe
