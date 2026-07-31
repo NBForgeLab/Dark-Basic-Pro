@@ -379,8 +379,8 @@ __forceinline f32 Clamp(f32 x, f32 l, f32 h) {
 
 	return x;
 #else
-	x = (x + h - abs(x - h))*0.5f;
-	x = (x + l + abs(x - l))*0.5f;
+	x = (x + h - fabsf(x - h))*0.5f;
+	x = (x + l + fabsf(x - l))*0.5f;
 
 	return x;
 #endif
@@ -391,8 +391,8 @@ __forceinline f64 Clamp(f64 x, f64 l, f64 h) {
 
 	return x;
 #else
-	x = (x + h - abs(x - h))*0.5;
-	x = (x + l + abs(x - l))*0.5;
+	x = (x + h - fabs(x - h))*0.5;
+	x = (x + l + fabs(x - l))*0.5;
 
 	return x;
 #endif

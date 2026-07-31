@@ -106,9 +106,10 @@ void ExecuteRenderList()
     std::vector<RenderListItem> RenderList( g_vRenderList );
 
     // Execute each item in the list, by calling the Execute method of every item in the vector
+    // (std::mem_fun_ref was removed in C++17 - use std::mem_fn instead)
     std::for_each(
         RenderList.begin(),
         RenderList.end(),
-        std::mem_fun_ref( &RenderListItem::Execute )
+        std::mem_fn( &RenderListItem::Execute )
     );
 }
