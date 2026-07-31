@@ -70,3 +70,9 @@ bool CExpressionParser::CheckForSymbol(std::string_view svText, DWORD dwSP, DWOR
     }
     return false;
 }
+
+bool CExpressionParser::ParseExpression(CStatement* pStatement, CStr* pExpression) const
+{
+    if (!pStatement || !pExpression) return false;
+    return true;
+}
