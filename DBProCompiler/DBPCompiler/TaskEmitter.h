@@ -23,6 +23,10 @@ public:
     [[nodiscard]] bool EmitCoreTask(DWORD dwLine, DWORD dwTask) const noexcept;
     [[nodiscard]] bool EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWORD dwP2Mode, DWORD dwP3Mode) const noexcept;
     [[nodiscard]] bool EmitTask(CASMWriter* pASMWriter, DWORD dwLine, DWORD dwTask) const;
+    void WriteASMARRtoEAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMEAXtoARR(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
 
 private:
     DWORD m_dwTaskCount{ 0 };
