@@ -1,6 +1,8 @@
 #pragma once
 #include <windows.h>
 
+class CASMWriter;
+
 class CPEBuilder
 {
 public:
@@ -23,6 +25,7 @@ public:
     [[nodiscard]] bool ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
     [[nodiscard]] bool BuildExecutable(const char* pEXEFilename) const noexcept;
     [[nodiscard]] bool BuildEXEPackage(const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const noexcept;
+    [[nodiscard]] bool BuildEXEPackage(CASMWriter* pASMWriter, const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const;
 
 private:
     bool m_bPrepared{ false };

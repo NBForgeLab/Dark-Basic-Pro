@@ -36,3 +36,9 @@ bool CPEBuilder::BuildEXEPackage(const char* pEXEFilename, bool bParsingMainProg
     }
     return true;
 }
+
+bool CPEBuilder::BuildEXEPackage(CASMWriter* pASMWriter, const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const
+{
+    if (!pASMWriter) return false;
+    return BuildEXEPackage(pEXEFilename, bParsingMainProgram, bGotNewCode);
+}
