@@ -42,13 +42,13 @@ protected:
 };
 
 // Characterization: a plain DIM array declaration compiles through
-// DoDeclaration's DIMTK path (array name/value separation + allocation).
+// DoDeclaration's static_cast<DWORD>(Token::Dim) path (array name/value separation + allocation).
 TEST_F(StatementDeclarationTest, DoDeclarationCompilesDimArray) {
     char prog[] = "DIM arr(5)\r\nEND\r\n";
     ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
 
-// Characterization: DIM with an AS type specifier exercises the ASTK branch
+// Characterization: DIM with an AS type specifier exercises the static_cast<DWORD>(Token::Asterisk) branch
 // (pWhatType/pTypeSpecifier token buffers and the init-separation logic).
 TEST_F(StatementDeclarationTest, DoDeclarationCompilesDimArrayWithType) {
     char prog[] = "DIM arr(5) AS INTEGER\r\nEND\r\n";
@@ -56,7 +56,7 @@ TEST_F(StatementDeclarationTest, DoDeclarationCompilesDimArrayWithType) {
 }
 
 // Characterization: TYPE bodies with fields and interleaved line remarks
-// exercise the REMLINETK skip loop - the legacy code leaked the remark token
+// exercise the static_cast<DWORD>(Token::RemLine) skip loop - the legacy code leaked the remark token
 // and every intermediate token produced while skipping comment lines.
 TEST_F(StatementDeclarationTest, DoDeclarationCompilesTypeWithFieldsAndComments) {
     char prog[] = "TYPE vec\r\nx AS FLOAT\r\n` field comment\r\ny AS FLOAT\r\nENDTYPE\r\nEND\r\n";
@@ -80,7 +80,7 @@ TEST_F(StatementDeclarationTest, DoDeclarationCompilesGlobalWithExpressionInit) 
 }
 
 // Contract: END inside a TYPE body must fail with a clean diagnostic - this
-// walks the ENDTK error path that hand-frees the token buffer before return.
+// walks the static_cast<DWORD>(Token::End) error path that hand-frees the token buffer before return.
 TEST_F(StatementDeclarationTest, DoDeclarationFailsCleanlyOnEndInsideType) {
     char prog[] = "TYPE vec\r\nx AS FLOAT\r\nEND\r\nENDTYPE\r\nEND\r\n";
     EXPECT_FALSE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));

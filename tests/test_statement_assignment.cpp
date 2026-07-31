@@ -19,7 +19,7 @@ extern CLabelTable*       g_pLabelTable;
 extern CError*            g_pErrorReport;
 
 // Characterization pins for CStatement::DoAssignment (statement type 5,
-// reached via ASSIGNMENTTK). The legacy body extracts the full assignment
+// reached via static_cast<DWORD>(Token::Assignment)). The legacy body extracts the full assignment
 // segment with ProduceFullSegment (which returns a new char[]) and freed it
 // with scalar SAFE_DELETE - an array-new/scalar-delete mismatch. A heap CStr
 // temporary sits alongside it. These pins lock the observable behaviour a

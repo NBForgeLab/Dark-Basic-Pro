@@ -132,7 +132,7 @@ TEST_F(StatementLabelTest, ParseJumpOwnsBlockLabelsByValue) {
     EXPECT_EQ(jump.GetBlockLabelA(), "$label3[9]");
 }
 
-// PeekLabel classifies a "<name>:" token as a label (LABELTK) without
+// PeekLabel classifies a "<name>:" token as a label (static_cast<DWORD>(Token::Label)) without
 // consuming it. The label branch exercises both heap CStr allocations the
 // legacy implementation used (the segment string and the reserved-word
 // check copy), so this pins the behaviour before the RAII conversion.
@@ -144,7 +144,7 @@ TEST_F(StatementLabelTest, PeekLabelClassifiesLabelToken) {
     g_pStatementList->SetFileDataPointer(pStart);
 
     CStatement statement;
-    EXPECT_EQ(statement.PeekLabel(pStart), (DWORD)LABELTK);
+    EXPECT_EQ(statement.PeekLabel(pStart), (DWORD)static_cast<DWORD>(Token::Label));
 }
 
 // A reserved word without a trailing colon is not a label: the IsTextALabel
