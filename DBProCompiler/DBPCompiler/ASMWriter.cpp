@@ -2151,20 +2151,8 @@ DWORD CASMWriter::GetCurrentMCPosition(void)
 
 DWORD CASMWriter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue)
 {
-	// First Determine SizeCode From Type
-	DWORD dwAddressSizeCode=0;
-	switch(dwTypeValue)
-	{
-		case 4 :	dwAddressSizeCode=0;	break;	// BYTE
-		case 5 :	dwAddressSizeCode=0;	break;	// BYTE
-		case 6 :	dwAddressSizeCode=1;	break;	// WORD
-		case 8 :	dwAddressSizeCode=3;	break;	// DWORDx2
-		case 9 :	dwAddressSizeCode=3;	break;	// DWORDx2
-		default :	dwAddressSizeCode=2;	break;	// DWORD
-	}
-
-	// Then Determine Call From Size
-	return dwASMCodeAsAByte+dwAddressSizeCode;
+	DWORD dwAddressSizeCode = m_taskEmitter.DetermineASMCall(dwASMCodeAsAByte, dwTypeValue);
+	return dwASMCodeAsAByte + dwAddressSizeCode;
 }
 
 DWORD CASMWriter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue)

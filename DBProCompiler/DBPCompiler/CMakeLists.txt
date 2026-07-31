@@ -8,6 +8,7 @@ set(LIB_SOURCES
     MachineCodeBuffer.cpp
     ReferenceTracker.cpp
     Tokenizer.cpp
+    TaskEmitter.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
     CompilationInput.cpp

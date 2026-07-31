@@ -20,6 +20,7 @@
 #include "LeapMarkerManager.h"
 #include "MachineCodeBuffer.h"
 #include "ReferenceTracker.h"
+#include "TaskEmitter.h"
 
 // ASM task codes (converted from #define constants)
 constexpr int ASMMAXCOUNT = 300;
@@ -438,9 +439,14 @@ class CASMWriter : public ICodeGenerator
 		// Reference Tracking (extracted subsystem)
 		CReferenceTracker		m_referenceTracker;
 
+		// Task Emitter (extracted subsystem)
+		CTaskEmitter			m_taskEmitter;
+
 	public:
 		[[nodiscard]] CReferenceTracker& GetReferenceTracker() noexcept { return m_referenceTracker; }
 		[[nodiscard]] const CReferenceTracker& GetReferenceTracker() const noexcept { return m_referenceTracker; }
+		[[nodiscard]] CTaskEmitter& GetTaskEmitter() noexcept { return m_taskEmitter; }
+		[[nodiscard]] const CTaskEmitter& GetTaskEmitter() const noexcept { return m_taskEmitter; }
 
 		// Work Variables
 	public:

@@ -47,6 +47,7 @@ add_executable(dbp_tests
     test_reference_tracker.cpp
     test_tokenizer.cpp
     test_statement_tokenizer_delegation.cpp
+    test_task_emitter.cpp
     test_mathop_expression.cpp
     test_instruction_table.cpp
     test_statement_string_helpers.cpp
