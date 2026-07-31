@@ -4809,45 +4809,19 @@ LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 
 void CStatement::SkipToCR(void)
 {
-	// Get Pointer
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
-
-	// First ensure pointer string is beyond string terminators
-	if(*(pPointer)==0)
+	if (pPointer)
 	{
-		while(pPointer<g_pStatementList->GetFileDataEnd())
+		m_tokenizer.SetSourceBuffer(pPointer);
+		m_tokenizer.SkipToCR();
+		LPSTR pNewPointer = pPointer + m_tokenizer.GetCurrentPosition();
+		if (pNewPointer > pPointer)
 		{
-			if(*(pPointer)!=0) break;
-			pPointer++;
+			g_pStatementList->IncLineNumber();
+			g_pStatementList->SetTokenLineNumber(g_pStatementList->GetLineNumber());
 		}
+		g_pStatementList->SetFileDataPointer(pNewPointer);
 	}
-
-	// If already at CR(10), then line has already been incremented
-	if(*(pPointer)==10) pPointer++;
-
-	// Continue until reach CR (end of line)
-	bool bMustIncLine=false;
-	LPSTR pStartPointer = g_pStatementList->GetFileDataStart();
-	while(pPointer<g_pStatementList->GetFileDataEnd())
-	{
-		if(pPointer>pStartPointer+1)
-			if(*(unsigned char*)(pPointer-2)==13 && *(unsigned char*)(pPointer-1)==10)
-				break;
-
-		pPointer++;
-		bMustIncLine=true;
-	}
-
-	// Advance line number
-	if(bMustIncLine)
-	{
-		// leefix - 250604 - u54 - keep up to date for CR skips
-		g_pStatementList->IncLineNumber();
-		g_pStatementList->SetTokenLineNumber(g_pStatementList->GetLineNumber());
-	}
-
-	// Set Updated Pointer
-	g_pStatementList->SetFileDataPointer(pPointer);
 }
 
 LPSTR CStatement::SeekToSeperator(LPSTR pPointer, bool bAdvanceLine, bool bStopAtComment)
