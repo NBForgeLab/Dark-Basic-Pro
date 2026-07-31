@@ -4990,33 +4990,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 
 DWORD CStatement::DetermineNameToken(LPSTR pToken)
 {
-	DWORD dwToken = m_tokenizer.DetermineKeywordToken(pToken);
-	if (dwToken != 0) return dwToken;
-
-	// Fallback for remaining type/data keywords
-	if (stricmp(pToken, "UNDIM") == NULL) return static_cast<DWORD>(Token::Undim);
-	if (stricmp(pToken, "AS") == NULL) return static_cast<DWORD>(Token::Asterisk);
-	if (stricmp(pToken, "BOOLEAN") == NULL) return static_cast<DWORD>(Token::Boolean);
-	if (stricmp(pToken, "BYTE") == NULL) return static_cast<DWORD>(Token::Byte);
-	if (stricmp(pToken, "WORD") == NULL) return static_cast<DWORD>(Token::Word);
-	if (stricmp(pToken, "DWORD") == NULL) return static_cast<DWORD>(Token::Dword);
-	if (stricmp(pToken, "INTEGER") == NULL) return static_cast<DWORD>(Token::Integer);
-	if (stricmp(pToken, "FLOAT") == NULL) return static_cast<DWORD>(Token::Float);
-	if (stricmp(pToken, "STRING") == NULL) return static_cast<DWORD>(Token::String);
-	if (stricmp(pToken, "DOUBLE") == NULL) return static_cast<DWORD>(Token::Double);
-
-	if (stricmp(pToken, "REMSTART") == NULL) return static_cast<DWORD>(Token::RemStart);
-	if (stricmp(pToken, "REM") == NULL) return static_cast<DWORD>(Token::RemLine);
-	if (stricmp(pToken, "//") == NULL) return static_cast<DWORD>(Token::RemLine);
-	if (stricmp(pToken, "`") == NULL) return static_cast<DWORD>(Token::RemLine);
-	if (stricmp(pToken, "'") == NULL) return static_cast<DWORD>(Token::RemLine);
-	if (stricmp(pToken, "REMEND") == NULL) return static_cast<DWORD>(Token::RemEnd);
-	if (stricmp(pToken, "HIDESTART") == NULL) return static_cast<DWORD>(Token::RemLine);
-	if (stricmp(pToken, "HIDEEND") == NULL) return static_cast<DWORD>(Token::RemLine);
-
-	if (stricmp(pToken, "DATA") == NULL) return static_cast<DWORD>(Token::Data);
-
-	return 0;
+	return m_tokenizer.DetermineKeywordToken(pToken);
 }
 
 DWORD CStatement::DetermineToken(LPSTR pToken)

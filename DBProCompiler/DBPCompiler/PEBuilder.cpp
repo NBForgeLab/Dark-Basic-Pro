@@ -1,4 +1,11 @@
 #include "PEBuilder.h"
+#include "DBPCompiler.h"
+#include "ParserHeader.h"
+#include "StatementList.h"
+#include "DataTable.h"
+#include "VarTable.h"
+#include "StructTable.h"
+#include "Declaration.h"
 
 void CPEBuilder::Reset() noexcept
 {
@@ -42,14 +49,6 @@ bool CPEBuilder::BuildEXEPackage(CASMWriter* pASMWriter, const char* pEXEFilenam
     if (!pASMWriter) return false;
     return BuildEXEPackage(pEXEFilename, bParsingMainProgram, bGotNewCode);
 }
-
-#include "DBPCompiler.h"
-#include "ParserHeader.h"
-#include "StatementList.h"
-#include "DataTable.h"
-#include "VarTable.h"
-#include "StructTable.h"
-#include "Declaration.h"
 
 bool CPEBuilder::UpdateDLLData() const
 {

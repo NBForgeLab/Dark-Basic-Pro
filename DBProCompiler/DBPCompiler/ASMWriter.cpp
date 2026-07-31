@@ -619,12 +619,6 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 		return false;
 	}
 
-	if (!m_peBuilder.BuildEXEPackage(this, pEXEFilename, bParsingMainProgram, bGotNewCode))
-	{
-		g_pErrorReport->AddErrorString("Failed to 'PrepareEXE' : Invalid PE Header Requirements or Filename");
-		return false;
-	}
-
 	FreeMachineBlock();
 	return true;
 }
@@ -838,36 +832,6 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 
 void CASMWriter::TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dwPatternArrayCounter, DWORD* dwSizeOfUserTypePattern, CDeclaration* pDecMain)
 {
-	/* old code - not used - pre 2007
-	while(pDecMain)
-	{
-		// If find string item, add offset to array
-		DWORD dwOffset=dwBaseOffset + pDecMain->GetOffset();
-		if(pDecMain->GetType()->CheckChars(0,5,"STRING"))
-		{
-			// Store string offset in pattern
-			if(pass==1) g_pEXE->m_pUsertypeStringPatternArray[*dwPatternArrayCounter] = dwOffset;
-			(*dwPatternArrayCounter)++;
-
-			// Increase size of this pattern
-			(*dwSizeOfUserTypePattern)++;
-		}
-
-		// If another type, traverse that too
-		CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pDecMain->GetType()->GetStr());
-		if(pStruct)
-		{
-			CDeclaration* pDeeperDec = pStruct->GetDecChain();
-			if(pDeeperDec)
-			{
-				TraverseDecForPattern(dwOffset, pass, dwPatternArrayCounter, dwSizeOfUserTypePattern, pDeeperDec);
-			}
-		}
-
-		// Next dec item
-		pDecMain = pDecMain->GetNext();
-	}
-	*/
 }
 
 void CASMWriter::FreeMachineBlock(void)

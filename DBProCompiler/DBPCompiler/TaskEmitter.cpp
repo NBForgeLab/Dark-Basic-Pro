@@ -1,4 +1,7 @@
 #include "TaskEmitter.h"
+#include "ASMWriter.h"
+#include "Str.h"
+#include "DebugInfo.h"
 
 DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept
 {
@@ -35,8 +38,6 @@ DWORD CTaskEmitter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeV
 	}
 	return dwASMCodeAsAByte+dwAddressSizeCode;
 }
-
-#include "Str.h"
 
 DWORD CTaskEmitter::DetermineParamMode(CStr* pP, DWORD dwPType, DWORD dwPOffset) const noexcept
 {
@@ -111,8 +112,6 @@ bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWOR
     if (dwLine == 0) return false;
     return true;
 }
-
-#include "ASMWriter.h"
 
 bool CTaskEmitter::EmitTask(CASMWriter* pASMWriter, DWORD dwLine, DWORD dwTask) const
 {

@@ -157,6 +157,31 @@ DWORD CTokenizer::DetermineKeywordToken(const char* pToken) const noexcept
     if (_stricmp(pToken, "GLOBAL") == 0) return static_cast<DWORD>(Token::Global);
     if (_stricmp(pToken, "LOCAL") == 0) return static_cast<DWORD>(Token::Local);
     if (_stricmp(pToken, "DIM") == 0) return static_cast<DWORD>(Token::Dim);
+    if (_stricmp(pToken, "UNDIM") == 0) return static_cast<DWORD>(Token::Undim);
+    if (_stricmp(pToken, "AS") == 0) return static_cast<DWORD>(Token::Asterisk);
+
+    // Data types
+    if (_stricmp(pToken, "BOOLEAN") == 0) return static_cast<DWORD>(Token::Boolean);
+    if (_stricmp(pToken, "BYTE") == 0) return static_cast<DWORD>(Token::Byte);
+    if (_stricmp(pToken, "WORD") == 0) return static_cast<DWORD>(Token::Word);
+    if (_stricmp(pToken, "DWORD") == 0) return static_cast<DWORD>(Token::Dword);
+    if (_stricmp(pToken, "INTEGER") == 0) return static_cast<DWORD>(Token::Integer);
+    if (_stricmp(pToken, "FLOAT") == 0) return static_cast<DWORD>(Token::Float);
+    if (_stricmp(pToken, "STRING") == 0) return static_cast<DWORD>(Token::String);
+    if (_stricmp(pToken, "DOUBLE") == 0) return static_cast<DWORD>(Token::Double);
+
+    // Comments
+    if (_stricmp(pToken, "REMSTART") == 0) return static_cast<DWORD>(Token::RemStart);
+    if (_stricmp(pToken, "REM") == 0) return static_cast<DWORD>(Token::RemLine);
+    if (_stricmp(pToken, "//") == 0) return static_cast<DWORD>(Token::RemLine);
+    if (_stricmp(pToken, "`") == 0) return static_cast<DWORD>(Token::RemLine);
+    if (_stricmp(pToken, "'") == 0) return static_cast<DWORD>(Token::RemLine);
+    if (_stricmp(pToken, "REMEND") == 0) return static_cast<DWORD>(Token::RemEnd);
+    if (_stricmp(pToken, "HIDESTART") == 0) return static_cast<DWORD>(Token::RemLine);
+    if (_stricmp(pToken, "HIDEEND") == 0) return static_cast<DWORD>(Token::RemLine);
+
+    // Data
+    if (_stricmp(pToken, "DATA") == 0) return static_cast<DWORD>(Token::Data);
 
     return 0;
 }
