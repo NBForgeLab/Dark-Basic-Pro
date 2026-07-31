@@ -2929,6 +2929,7 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 
 bool CASMWriter::WriteASMTaskP1(DWORD dwLine, DWORD dwTask, CResultData* pP1Result)
 {
+	m_taskEmitter.IncrementTaskCount();
 	DWORD dwP1Type = 0;
 	CStr* pP1Str = NULL;
 	DWORD dwP1Offset = 0;

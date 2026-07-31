@@ -48,6 +48,7 @@ add_executable(dbp_tests
     test_tokenizer.cpp
     test_statement_tokenizer_delegation.cpp
     test_task_emitter.cpp
+    test_task_emitter_passes.cpp
     test_pe_builder.cpp
     test_pe_builder_headers.cpp
     test_tokenizer_keywords.cpp

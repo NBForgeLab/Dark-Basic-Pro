@@ -16,3 +16,8 @@ DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) 
 
     return dwAddressSizeCode;
 }
+
+DWORD CTaskEmitter::CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept
+{
+    return dwPassNumber * dwBaseOffset;
+}

@@ -17,6 +17,7 @@ public:
     [[nodiscard]] DWORD GetTaskCount() const noexcept { return m_dwTaskCount; }
 
     [[nodiscard]] DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept;
+    [[nodiscard]] DWORD CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept;
 
 private:
     DWORD m_dwTaskCount{ 0 };
