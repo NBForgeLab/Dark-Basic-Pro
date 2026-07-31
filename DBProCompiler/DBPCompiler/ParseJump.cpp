@@ -52,7 +52,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			m_pParameter->WriteDBM();
 
 			// Set the CMP Instruction for the Condition
-			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_CONDITION, m_pParameter->GetMathItem()->FindResultData());
+			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Condition), m_pParameter->GetMathItem()->FindResultData());
 
 			// Set the JE Instruction for the Condition
 			std::string jumpToLabel = GetBlockLabelB();
@@ -60,11 +60,11 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			CStr pJumpToLabel(jumpToLabel.data());
 			if ( g_pASMWriter->GetCondToggle() )
 			{
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPNE, &pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpNE), &pJumpToLabel, 10);
 				g_pASMWriter->SetCondToggle(false);
 			}
 			else
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPE, &pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpE), &pJumpToLabel, 10);
 		}
 		if(GetBlockA())
 		{
@@ -77,7 +77,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 				// Set the JMP Instruction for the Condition
 				std::string jumpToLabel = GetBlockLabelA();
 				CStr pJumpToLabel(jumpToLabel.data());
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, &pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Jump), &pJumpToLabel, 10);
 			}
 		}
 		if(GetBlockB())
@@ -98,7 +98,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 				CParseInstruction pTemp;
 				pTemp.SetLineNumber(GetStartLineNumber());
 				pTemp.PassStartEndCharForPossibleDebugHook(0, 0);
-				pTemp.WriteDBMHardCode(BUILD_SYNC, NULL, NULL, NULL);
+				pTemp.WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), NULL, NULL, NULL);
 			}
 		}
 
@@ -111,7 +111,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 
 		// Set the JMP Instruction
 		CStr pData(pLabelStr);
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, &pData, 10);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Jump), &pData, 10);
 
 	}
 	if(GetJumpType()==JUMPTYPE_GOSUB)
@@ -121,7 +121,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 
 		// Set the JMP Instruction
 		CStr pData(pLabelStr);
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMPSUBROUTINE, &pData, 10);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::JumpSubroutine), &pData, 10);
 	}
 	if(GetJumpType()==JUMPTYPE_SELECT)
 	{
@@ -142,24 +142,24 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			{
 				// Push Strings to stack
 				// LEEFIX - 081102 - SELECT in Functions did not resolve from decorated function-var-name
-//				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_PUSH, m_pParameter->GetMathItem()->GetResultData());
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_PUSH, m_pParameter->GetMathItem()->FindResultData());
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_PUSH, pCaseCondition->GetMathItem()->FindResultData());
+//				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), m_pParameter->GetMathItem()->GetResultData());
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), m_pParameter->GetMathItem()->FindResultData());
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), pCaseCondition->GetMathItem()->FindResultData());
 
 				// CALL String Comparison, result in EAX
-				CInstructionTableEntry* pRef=g_pInstructionTable->GetRef(IT_INTERNAL_EQUALLSS);
+				CInstructionTableEntry* pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::EqualSS));
 				LPSTR pMathCommand=pRef->GetDecoratedName()->GetStr();
 				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", pMathCommand);
 
 				// Free stack
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_POPEBX, NULL);
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_POPEBX, NULL);
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopEbx), NULL);
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopEbx), NULL);
 
 				// If EAX is one, jump to the label colding the case code
 				CStr pOne("1");
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDITIONDATA, &pOne, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::ConditionData), &pOne, 7);
 				CStr* pJumpToLabel=pCaseLabel->GetMathItem()->FindResultStringTokenForDBM();
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPE, pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpE), pJumpToLabel, 10);
 
 				// Next in chain
 				pCaseCondition=pCaseCondition->GetNext();
@@ -169,17 +169,17 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 		else
 		{
 			// Move Variable into EAX
-			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_ASSIGNTOEAX, m_pParameter->GetMathItem()->FindResultData());
+			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::AssignToEax), m_pParameter->GetMathItem()->FindResultData());
 
 			// Compares numeric values against EAX
 			while(pCaseCondition)
 			{
 				// Set the CMP Instruction for the Condition
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), ASMTASK_CONDITIONDATA, pCaseCondition->GetMathItem()->FindResultData());
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::ConditionData), pCaseCondition->GetMathItem()->FindResultData());
 
 				// Set the JE Instruction for the Condition
 				CStr* pJumpToLabel=pCaseLabel->GetMathItem()->FindResultStringTokenForDBM();
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_CONDJUMPE, pJumpToLabel, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpE), pJumpToLabel, 10);
 
 				// Next in chain
 				pCaseCondition=pCaseCondition->GetNext();
@@ -197,7 +197,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 		// Set the JMP Instruction to skip all case code
 		std::string skipToLabel = GetBlockLabelA();
 		CStr pSkipToLabel(skipToLabel.data());
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), ASMTASK_JUMP, &pSkipToLabel, 10);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Jump), &pSkipToLabel, 10);
 
 		// Write Out Case Blocks
 		CStatementChain* pStatementBlock = GetBlockChain();
@@ -210,7 +210,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			pStatementRef->WriteDBM();
 
 			// Set the JMP Instruction to skip all case code
-			g_pASMWriter->WriteASMTaskCoreP1(pStatementRef->GetLineNumber(), ASMTASK_JUMP, &pSkipToLabel, 10);
+			g_pASMWriter->WriteASMTaskCoreP1(pStatementRef->GetLineNumber(), static_cast<DWORD>(ASMTask::Jump), &pSkipToLabel, 10);
 
 			// Next in chain
 			pStatementBlock=pStatementBlock->GetNext();

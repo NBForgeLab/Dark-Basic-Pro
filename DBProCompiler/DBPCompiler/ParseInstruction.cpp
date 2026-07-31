@@ -58,16 +58,16 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 
 		// Determine natural mode, and make sure its an offset to get at the UDT element
 		DWORD dwAccessMode = g_pASMWriter->DetMode(pVar->m_pStringToken.get(), pVar->m_dwType, pVar->m_dwDataOffset);
-		if ( dwAccessMode==PMODE_MEM ) dwAccessMode=PMODE_MEMOFF;
-		if ( dwAccessMode==PMODE_EBP ) dwAccessMode=PMODE_EBPOFF;
+		if ( dwAccessMode==static_cast<DWORD>(ParamMode::Mem) ) dwAccessMode=static_cast<DWORD>(ParamMode::MemOff);
+		if ( dwAccessMode==static_cast<DWORD>(ParamMode::Ebp) ) dwAccessMode=static_cast<DWORD>(ParamMode::EbpOff);
 
 		// PUSH STRING FROM UDT TO STACK
 		g_pASMWriter->WriteASMXtoEAX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
-		g_pASMWriter->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, 3, iDisplacement);
+		g_pASMWriter->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, 3, iDisplacement);
 		g_pASMWriter->WriteASMComment("PUSH TO STACK", "", "", "");
 
 		// Pass DEST + CURRENT STRING (same address)
-		g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, &pNull, 7);
+		g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 		// CALL EQUATE to create a NEW STRING from CURRENT STRING
 		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
@@ -77,8 +77,8 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		g_pASMWriter->WriteASMComment("ASSIGN EAX TO X", "", "", "");
 
 		// Pop param data
-		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
-		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
+		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 	}
 
 	// Complete
@@ -221,11 +221,11 @@ bool CParseInstruction::WriteDBMBit(void)
 					if(pPutEAXReturn->m_pStringToken) pPutEAXReturn->m_pStringToken->TranslateForDBM(pPutEAXReturn);
 					if(pPutEAXReturn->m_pAdditionalOffset) pPutEAXReturn->m_pAdditionalOffset->TranslateForDBM(pPutEAXReturn);
 
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pPutEAXReturn);
-					CInstructionTableEntry* pRef=g_pInstructionTable->GetRef(IT_INTERNAL_STRFREE);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pPutEAXReturn);
+					CInstructionTableEntry* pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::StrFree));
 					LPSTR pMathCommand=pRef->GetDecoratedName()->GetStr();
 					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", pMathCommand);
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 				}
 			}
 		}
@@ -264,7 +264,7 @@ bool CParseInstruction::WriteDBMBit(void)
 							pSizeData.m_pStringToken = std::make_unique<CStr>();
 							pSizeData.m_pStringToken->SetNumericText(dwStackSizeInBytes);
 							pSizeData.m_dwDataOffset = dwStackSize;
-							g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, ASMTASK_PUSHUDT, pResultData, &pSizeData);
+							g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushUdt), pResultData, &pSizeData);
 
 							// Record size on stack (for later removal)
 							dwMustPopStack+=dwStackSize;
@@ -272,7 +272,7 @@ bool CParseInstruction::WriteDBMBit(void)
 						else
 						{
 							// regular DWORD(x2) push
-							g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pCurrent->GetMathItem()->FindResultData());
+							g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pCurrent->GetMathItem()->FindResultData());
 							if(dwDataType==8 || dwDataType==9 || dwDataType==108 || dwDataType==109)
 								dwMustPopStack+=2;
 							else
@@ -338,9 +338,9 @@ bool CParseInstruction::WriteDBMBit(void)
 
 				// A Return String must be passed (so it can be freed) All xxxxx[%S
 				if(m_pRefInstructionEntry->GetReturnParam()==3
-				&& m_pRefInstructionEntry->GetHardcoreInternalValue()!=IT_INTERNAL_ASSIGNSS)
+				&& m_pRefInstructionEntry->GetHardcoreInternalValue()!=static_cast<DWORD>(InternalInstruction::AssignSS))
 				{
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pPutEAXReturn);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pPutEAXReturn);
 					dwMustPopStack++;
 				}
 
@@ -356,7 +356,7 @@ bool CParseInstruction::WriteDBMBit(void)
 					CParameter* pCurrent = GetParameter();
 					if(pCurrent)
 					{
-						g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, ASMTASK_ASSIGN, pCurrent->GetMathItem()->FindResultData(), pCurrent->GetNext()->GetMathItem()->FindResultData());
+						g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::Assign), pCurrent->GetMathItem()->FindResultData(), pCurrent->GetNext()->GetMathItem()->FindResultData());
 					}
 				}
 				else
@@ -410,14 +410,14 @@ bool CParseInstruction::WriteDBMBit(void)
 
 			// Set the JMP Instruction
 			CStr* pLabelParam=GetLabelParam();
-			if(pLabelParam) g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMPSUBROUTINE, pLabelParam, 10);
+			if(pLabelParam) g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::JumpSubroutine), pLabelParam, 10);
 			
 			// Return stack pointer to normal
 			if(dwMustPopStack>0)
 			{
 				CStr pData("");
 				pData.SetNumericText(dwMustPopStack*4);
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_ADDESP, &pData, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::AddEsp), &pData, 7);
 			}
 
 			// No need to pop stack
@@ -432,7 +432,7 @@ bool CParseInstruction::WriteDBMBit(void)
 		if(pPutEAXReturn->m_pStringToken) pPutEAXReturn->m_pStringToken->TranslateForDBM(pPutEAXReturn);
 
 		// Copy EAX/EDX contents to Required Return Param
-		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_ASSIGN, pPutEAXReturn);
+		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Assign), pPutEAXReturn);
 	}
 
 	// Free usages (unique_ptr auto-cleanup)
@@ -443,7 +443,7 @@ bool CParseInstruction::WriteDBMBit(void)
 	{
 		while(dwMustPopStack)
 		{
-			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_POPEBX, NULL, 0);
+			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL, 0);
 			dwMustPopStack--;
 		}
 	}
@@ -455,7 +455,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 {
 	switch(dwBuildID)
 	{
-		case BUILD_RET:
+		case static_cast<DWORD>(BuildTask::Ret):
 			if ( g_pUserFunctionWithin && g_pDBPCompiler->m_bRemoveSafetyCode==false )
 			{
 				// U74 - 110509 - ensure RETURN commands not inside a user function
@@ -465,33 +465,33 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				return false;
 			}
 			else
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_RETURN, NULL, 0);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Return), NULL, 0);
 			break;
 
-		case BUILD_PURERET:
-			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PURERETURN, NULL, 0);
+		case static_cast<DWORD>(BuildTask::PureRet):
+			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PureReturn), NULL, 0);
 			break;
 
-		case BUILD_END:
+		case static_cast<DWORD>(BuildTask::End):
 			{
 				// Always jump to END OF PROGRAM
 				CStr pAlwaysJump("$labelend");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, &pAlwaysJump, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Jump), &pAlwaysJump, 10);
 			}
 			break;
 
-		case BUILD_ENDERROR:
+		case static_cast<DWORD>(BuildTask::EndError):
 			{
 				// Report An Error (user hit the function declaration mid-program)
 				g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EarlyEnd@@YAXXZ");
 
 				// Always jump to END OF PROGRAM
 				CStr pAlwaysJump("$labelend");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, &pAlwaysJump, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Jump), &pAlwaysJump, 10);
 			}
 			break;
 
-		case BUILD_SYNC:
+		case static_cast<DWORD>(BuildTask::Sync):
 			{
 				// If Debug Mode, always push code position to stack
 				if(g_DebugInfo.DebugModeOn())
@@ -501,17 +501,17 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					DWORD dwPosition=g_pASMWriter->GetCurrentMCPosition();
 					g_DebugInfo.SetLastBreakPoint(dwPosition);
 					pData.SetNumericText(dwPosition);
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, &pData, 7);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pData, 7);
 
 					// Call PROCESSMESSAGES Function with Debug Prog-Position
 					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?ProcessMessages@@YAKK@Z");
 
 					// Removes Position DWORD back off stack
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_POPEBX, NULL, 0);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL, 0);
 
 					// Check if EAX=1 (got a message to QUIT)
 					CStr pCondData("1");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDITIONDATA, &pCondData, 7);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::ConditionData), &pCondData, 7);
 
 					// Only snapshot if parsing main, not mini
 					if(g_DebugInfo.GetParsingMain())
@@ -521,17 +521,17 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 
 // No Stack save - data would be useless when new m/c executed
 //						// Push all registers to stack before snapshot
-//						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSHREGISTERS, NULL, 0);
+//						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushRegisters), NULL, 0);
 
 //						// Push stack location to stack
-//						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSHESP, NULL, 0);
+//						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushEsp), NULL, 0);
 
 //						// Ending program - Snapshot everything on stack back to beginning of program run
 //						g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?StackSnapshotStore@@YAXK@Z");
 
 						// Jump to END OF PROGRAM
 						CStr pJumpToLabel("$labelend");
-						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_JUMP, &pJumpToLabel, 10);
+						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Jump), &pJumpToLabel, 10);
 
 						// Complete LEAP-FORWARD Marker
 						g_pASMWriter->WriteASMLeapMarkerEnd(1);
@@ -540,7 +540,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					{
 						// Jump to END OF PROGRAM
 						CStr pJumpToLabel("$labelend");
-						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDJUMPE, &pJumpToLabel, 10);
+						g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::CondJumpE), &pJumpToLabel, 10);
 					}
 				}
 				else
@@ -550,31 +550,31 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 
 					// Check if EAX=1 (got a message to QUIT)
 					CStr pData("1");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDITIONDATA, &pData, 7);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::ConditionData), &pData, 7);
 
 					// If so, jump to END OF PROGRAM
 					CStr pJumpToLabel("$labelend");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_CONDJUMPE, &pJumpToLabel, 10);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::CondJumpE), &pJumpToLabel, 10);
 				}
 			}							
 			break;
 
-		case BUILD_STARTPROGRAM:
+		case static_cast<DWORD>(BuildTask::StartProgram):
 			{
 				// Store Registers before program begins
 				CStr pParam1("@$_ESP_");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSHREGISTERS, NULL, 0);
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_STOREESP, &pParam1, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushRegisters), NULL, 0);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::StoreEsp), &pParam1, 7);
 
 				// If Debug Mode, special jump if breakpoint needs to be jumped to
 				if(g_DebugInfo.DebugModeOn() && g_DebugInfo.GetParsingMain())
 				{
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_BREAKPOINTRESUME, NULL, 0);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::BreakpointResume), NULL, 0);
 				}
 			}
 			break;
 			
-		case BUILD_ENDPROGRAMANDQUIT:
+		case static_cast<DWORD>(BuildTask::EndProgramAndQuit):
 			{
 				// Call QUIT Function (to close message loop only for main program)
 				if(g_DebugInfo.GetParsingMain())
@@ -601,26 +601,26 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					// If they are different, broke from function or stack leak
 					// set special escapecode so cannot resume this program
 					CStr pParam1("@$_ESP_");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_SETNORETURNIFESPLEAK, &pParam1, 7);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::SetNoReturnIfEspLeak), &pParam1, 7);
 				}
 
 				// Restore STACK Pointer
 				CStr pParam1("@$_ESP_");
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_RESTOREESP, &pParam1, 7);
-				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_POPREGISTERS, NULL, 0);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::RestoreEsp), &pParam1, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopRegisters), NULL, 0);
 			}
 			break;
 
-		case BUILD_INC:
-		case BUILD_DEC:
+		case static_cast<DWORD>(BuildTask::Inc):
+		case static_cast<DWORD>(BuildTask::Dec):
 			{
 				// By 1 value, or Qty
 				if(pP2==NULL)
 				{
 					// Inc or Dec
 					DWORD dwASMToBuild=0;
-					if(dwBuildID==BUILD_INC) dwASMToBuild=ASMTASK_INCVAR;
-					if(dwBuildID==BUILD_DEC) dwASMToBuild=ASMTASK_DECVAR;
+					if(dwBuildID==static_cast<DWORD>(BuildTask::Inc)) dwASMToBuild=static_cast<DWORD>(ASMTask::IncVar);
+					if(dwBuildID==static_cast<DWORD>(BuildTask::Dec)) dwASMToBuild=static_cast<DWORD>(ASMTask::DecVar);
 
 					// Call hard code builder (leefix-260603-passing in all data now as INC can change to ADD)
 //					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, dwASMToBuild, pP1->m_pStringToken, pP1->m_dwType);
@@ -630,8 +630,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				{
 					// Add or Sub
 					DWORD dwASMToBuild=0;
-					if(dwBuildID==BUILD_INC) dwASMToBuild=ASMTASK_ADD;
-					if(dwBuildID==BUILD_DEC) dwASMToBuild=ASMTASK_SUB;
+					if(dwBuildID==static_cast<DWORD>(BuildTask::Inc)) dwASMToBuild=static_cast<DWORD>(ASMTask::Add);
+					if(dwBuildID==static_cast<DWORD>(BuildTask::Dec)) dwASMToBuild=static_cast<DWORD>(ASMTask::Sub);
 
 					// Call hard code builder
 					g_pASMWriter->WriteASMTaskCore(	m_dwLineNumber, dwASMToBuild,
@@ -642,13 +642,13 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 			}
 			break;
 
-		case BUILD_INCADD:
-		case BUILD_DECADD:
+		case static_cast<DWORD>(BuildTask::IncAdd):
+		case static_cast<DWORD>(BuildTask::DecAdd):
 			{
 				// Inc or Dec
 				DWORD dwMathSymbol=0;
-				if(dwBuildID==BUILD_INCADD) dwMathSymbol=4;
-				if(dwBuildID==BUILD_DECADD) dwMathSymbol=5;
+				if(dwBuildID==static_cast<DWORD>(BuildTask::IncAdd)) dwMathSymbol=4;
+				if(dwBuildID==static_cast<DWORD>(BuildTask::DecAdd)) dwMathSymbol=5;
 
 				// If pP2 is empty, assume 1
 				std::unique_ptr<CResultData> pDynValue;
@@ -662,8 +662,8 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				}
 
 				// Push Params for Add to stack (reverse order)
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pValue);
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pP1);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pValue);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pP1);
 
 				// Internal Math Call to DLL
 // get INC A,5.0 to parse as an INTEGER command, not a FLOAT (FFF) command...
@@ -671,7 +671,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				if(dwUseNewInstruction==0)
 				{
 					// Command not yet implemented
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_UNKNOWN, NULL);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), NULL);
 					pDynValue.reset();
 					return true;
 				}
@@ -682,47 +682,47 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				g_pASMWriter->WriteASMCall(m_dwLineNumber, pMathDLL, pMathCommand);
 
 				// Copy EAX (holding call result) to temp var used to hold return value
-				if(pP1) g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, ASMTASK_ASSIGN, pP1, NULL);
+				if(pP1) g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::Assign), pP1, NULL);
 
 				// Pop params after calc
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 				
 				// Free usages (unique_ptr auto-cleanup)
 				pDynValue.reset();
 			}
 			break;
 
-		case BUILD_COPYUDT:
+		case static_cast<DWORD>(BuildTask::CopyUdt):
 			{
 				// P1 = P2 using UDT values (use a memcpy to perform the copy) P3 is Size
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pP3);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pP3);
 
 				// Variable Or Array
 				if ( pP2->m_dwType==1101 )
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pP2);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pP2);
 				else
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSHADDRESS, pP2);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushAddress), pP2);
 
 				if ( pP1->m_dwType==1101 )
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pP1);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pP1);
 				else
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSHADDRESS, pP1);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushAddress), pP1);
 
 				// Call MEMCPY equivilant
 				g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?CopyByteMemory@@YAXKKH@Z");
 
 				// Pop params after calc - leefix - 170403 - stupidy stupidy stupidy
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_POPEBX, NULL);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 
 				// After block copy (for values, run through UDT area to recreate strings
 				ActOnLocalVars ( pP1 );
 			}
 			break;
 
-		case BUILD_USERFUNCTIONEXIT:
+		case static_cast<DWORD>(BuildTask::UserFunctionExit):
 
 			// Not in function so ignore command
 			if(g_pUserFunctionWithin==NULL)
@@ -766,11 +766,11 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				if ( bDuplicateReturnString )
 				{
 					// Source global string array
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, pResultData);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), pResultData);
 
 					// Blank String - no thing to free
 					CStr pNull("0");
-					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PUSH, &pNull, 7);
+					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 					// Put new string address in EAX for return passing
 					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
@@ -778,7 +778,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				else
 				{
 					// direct copy of var ref to outside EAX
-					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_ASSIGNTOEAX, pP1);
+					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::AssignToEax), pP1);
 				}
 			}
 
@@ -789,18 +789,18 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 			// If user function returns value, store in EAX/EDX/ST0
 			if(pP1)
 			{
-				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_ASSIGNTOEAX, pP1);
+				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::AssignToEax), pP1);
 			}
 			*/
 
 			// Restore ESP from EBP Register
-			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_MOVESPEBP, NULL, 0);
+			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::MovSpEbp), NULL, 0);
 
 			// Restore EBP Register
-			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_POPEBP, NULL, 0);
+			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopEbp), NULL, 0);
 
 			// RETurn
-			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, ASMTASK_PURERETURN, NULL, 0);
+			g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PureReturn), NULL, 0);
 			break;
 	}
 

@@ -20,266 +20,266 @@
 # include <DB3Array.h>
 #endif
 
-// Defines (for m_InternalInstructions[])
-#define IT_INTERNAL_MAXCOUNT			1000
+// Internal instruction codes (converted from #define constants)
+constexpr int IT_INTERNAL_MAXCOUNT = 1000;
 
-#define IT_INTERNAL_ALLOC				1
-#define IT_INTERNAL_FREE				2
-#define IT_INTERNAL_ASSIGNLL			3
-#define IT_INTERNAL_ASSIGNFF			4
-#define IT_INTERNAL_ASSIGNSS			5
-#define IT_INTERNAL_ASSIGNBB			6
-#define IT_INTERNAL_ASSIGNYY			7
-#define IT_INTERNAL_ASSIGNWW			8
-#define IT_INTERNAL_ASSIGNDD			9
-#define IT_INTERNAL_ASSIGNOO			10
-#define IT_INTERNAL_ASSIGNRR			11
-#define IT_INTERNAL_ASSIGNPP			12
-#define IT_INTERNAL_RELASSIGNLL			13
-#define IT_INTERNAL_RELASSIGNFF			14
-#define IT_INTERNAL_RELASSIGNSS			15
-#define IT_INTERNAL_RELASSIGNBB			16
-#define IT_INTERNAL_RELASSIGNYY			17
-#define IT_INTERNAL_RELASSIGNWW			18
-#define IT_INTERNAL_RELASSIGNDD			19
-#define IT_INTERNAL_RELASSIGNOO			20
-#define IT_INTERNAL_RELASSIGNRR			21
-#define IT_INTERNAL_STRFREE				22
-#define IT_INTERNAL_USERFUNCTIONEXIT	24
-#define IT_INTERNAL_ASSIGNUDT			25
+enum class InternalInstruction : int {
+	// Control
+	Alloc             = 1,
+	Free              = 2,
+	AssignLL          = 3,
+	AssignFF          = 4,
+	AssignSS          = 5,
+	AssignBB          = 6,
+	AssignYY          = 7,
+	AssignWW          = 8,
+	AssignDD          = 9,
+	AssignOO          = 10,
+	AssignRR          = 11,
+	AssignPP          = 12,
+	RelAssignLL       = 13,
+	RelAssignFF       = 14,
+	RelAssignSS       = 15,
+	RelAssignBB       = 16,
+	RelAssignYY       = 17,
+	RelAssignWW       = 18,
+	RelAssignDD       = 19,
+	RelAssignOO       = 20,
+	RelAssignRR       = 21,
+	StrFree           = 22,
+	UserFunctionExit  = 24,
+	AssignUdt         = 25,
 
-// Internal Math Instructions
+	// Integer math
+	PowerLLL          = 51,
+	MulLLL            = 52,
+	DivLLL            = 53,
+	AddLLL            = 54,
+	SubLLL            = 55,
+	ModLLL            = 56,
+	EqualLLL          = 57,
+	GreaterLLL        = 58,
+	LessLLL           = 59,
+	NotEqualLLL       = 60,
+	GreaterEqualLLL   = 61,
+	LessEqualLLL      = 62,
 
-// Integer Maths
-#define IT_INTERNAL_POWERLLL			51
-#define IT_INTERNAL_MULLLL				52
-#define IT_INTERNAL_DIVLLL				53
-#define IT_INTERNAL_ADDLLL				54
-#define IT_INTERNAL_SUBLLL				55
-#define IT_INTERNAL_MODLLL				56
+	// Float math
+	PowerFFF          = 71,
+	MulFFF            = 72,
+	DivFFF            = 73,
+	AddFFF            = 74,
+	SubFFF            = 75,
+	EqualFF           = 76,
+	GreaterLFF        = 77,
+	LessLFF           = 78,
+	NotEqualLFF       = 79,
+	GreaterEqualLFF   = 80,
+	LessEqualLFF      = 81,
+	ModFFF            = 82,
 
-#define IT_INTERNAL_EQUALLLL			57
-#define IT_INTERNAL_GREATERLLL			58
-#define IT_INTERNAL_LESSLLL				59
-#define IT_INTERNAL_NOTEQUALLLL			60
-#define IT_INTERNAL_GREATEREQUALLLL		61
-#define IT_INTERNAL_LESSEQUALLLL		62
+	// Double math
+	PowerOOO          = 91,
+	MulOOO            = 92,
+	DivOOO            = 93,
+	AddOOO            = 94,
+	SubOOO            = 95,
+	EqualLOO          = 96,
+	GreaterLOO        = 97,
+	LessLOO           = 98,
+	NotEqualLOO       = 99,
+	GreaterEqualLOO   = 100,
+	LessEqualOO       = 101,
 
-// Float Maths
-#define IT_INTERNAL_POWERFFF			71
-#define IT_INTERNAL_MULFFF				72
-#define IT_INTERNAL_DIVFFF				73
-#define IT_INTERNAL_ADDFFF				74
-#define IT_INTERNAL_SUBFFF				75
-#define IT_INTERNAL_MODFFF				82
-#define IT_INTERNAL_EQUALLFF			76
-#define IT_INTERNAL_GREATERLFF			77
-#define IT_INTERNAL_LESSLFF				78
-#define IT_INTERNAL_NOTEQUALLFF			79
-#define IT_INTERNAL_GREATEREQUALLFF		80
-#define IT_INTERNAL_LESSEQUALLFF		81
+	// String math
+	PowerSSS          = 111,
+	MulSSS            = 112,
+	DivSSS            = 113,
+	AddSSS            = 114,
+	SubSSS            = 115,
+	EqualSS           = 121,
+	GreaterLSS        = 122,
+	LessLSS           = 123,
+	NotEqualLSS       = 124,
+	GreaterEqualLSS   = 125,
+	LessEqualSS       = 126,
 
-// Double Float Maths
-#define IT_INTERNAL_POWEROOO			91
-#define IT_INTERNAL_MULOOO				92
-#define IT_INTERNAL_DIVOOO				93
-#define IT_INTERNAL_ADDOOO				94
-#define IT_INTERNAL_SUBOOO				95
-#define IT_INTERNAL_EQUALLOO			96
-#define IT_INTERNAL_GREATERLOO			97
-#define IT_INTERNAL_LESSLOO				98
-#define IT_INTERNAL_NOTEQUALLOO			99
-#define IT_INTERNAL_GREATEREQUALLOO		100
-#define IT_INTERNAL_LESSEQUALLOO		101
+	// Double integer math
+	PowerRRR          = 31,
+	MulRRR            = 32,
+	DivRRR            = 33,
+	AddRRR            = 34,
+	SubRRR            = 35,
+	EqualLRR          = 36,
+	GreaterLRR        = 37,
+	LessLRR           = 38,
+	NotEqualLRR       = 39,
+	GreaterEqualLRR   = 40,
+	LessEqualRR       = 41,
 
-// String Maths
-#define IT_INTERNAL_POWERSSS			111
-#define IT_INTERNAL_MULSSS				112
-#define IT_INTERNAL_DIVSSS				113
-#define IT_INTERNAL_ADDSSS				114
-#define IT_INTERNAL_SUBSSS				115
-#define IT_INTERNAL_EQUALLSS			121
-#define IT_INTERNAL_GREATERLSS			122
-#define IT_INTERNAL_LESSLSS				123
-#define IT_INTERNAL_NOTEQUALLSS			124
-#define IT_INTERNAL_GREATEREQUALLSS		125
-#define IT_INTERNAL_LESSEQUALLSS		126
+	// Bitwise math
+	ShiftLLLL         = 141,
+	ShiftRLLL         = 142,
+	BitOrLLL          = 143,
+	BitAndLLL         = 144,
+	BitXorLLL         = 145,
+	BitNotLLL         = 149,
 
-// Double Integer Maths
-#define IT_INTERNAL_POWERRRR			31
-#define IT_INTERNAL_MULRRR				32
-#define IT_INTERNAL_DIVRRR				33
-#define IT_INTERNAL_ADDRRR				34
-#define IT_INTERNAL_SUBRRR				35
-#define IT_INTERNAL_EQUALLRR			36
-#define IT_INTERNAL_GREATERLRR			37
-#define IT_INTERNAL_LESSLRR				38
-#define IT_INTERNAL_NOTEQUALLRR			39
-#define IT_INTERNAL_GREATEREQUALLRR		40
-#define IT_INTERNAL_LESSEQUALLRR		41
+	// Comparison math
+	OrLLL             = 146,
+	AndLLL            = 147,
+	NotLLL            = 148,
 
-// Bitwise Maths
-#define IT_INTERNAL_SHIFTLLLL			141
-#define IT_INTERNAL_SHIFTRLLL			142
-#define IT_INTERNAL_BITORLLL			143
-#define IT_INTERNAL_BITANDLLL			144
-#define IT_INTERNAL_BITXORLLL			145
-#define IT_INTERNAL_BITNOTLLL			149
+	// DWORD pointer math
+	PowerDDD          = 151,
+	MulDDD            = 152,
+	DivDDD            = 153,
+	AddDDD            = 154,
+	SubDDD            = 155,
+	ModDDD            = 156,
+	GreaterDDD        = 157,
+	LessDDD           = 158,
+	NotEqualDDD       = 159,
+	GreaterEqualDDD   = 160,
+	LessEqualDDD      = 161,
+	EqualDDD          = 162,
 
-// Comparison Maths
-#define IT_INTERNAL_ORLLL				146
-#define IT_INTERNAL_ANDLLL				147
-#define IT_INTERNAL_NOTLLL				148
+	// Boolean math
+	PowerBBB          = 171,
+	MulBBB            = 172,
+	DivBBB            = 173,
+	AddBBB            = 174,
+	SubBBB            = 175,
+	ModBBB            = 176,
 
-// DWORD Pointer Maths
-#define IT_INTERNAL_POWERDDD			151
-#define IT_INTERNAL_MULDDD				152
-#define IT_INTERNAL_DIVDDD				153
-#define IT_INTERNAL_ADDDDD				154
-#define IT_INTERNAL_SUBDDD				155
-#define IT_INTERNAL_MODDDD				156
+	// BYTE math
+	PowerYYY          = 181,
+	MulYYY            = 182,
+	DivYYY            = 183,
+	AddYYY            = 184,
+	SubYYY            = 185,
+	ModYYY            = 186,
 
-// lee - 240306 - u6b4 - re-introduced becasue 0xFF < 0x00 = false in DWORD terms
-#define IT_INTERNAL_EQUALDDD			162
-#define IT_INTERNAL_GREATERDDD			157
-#define IT_INTERNAL_LESSDDD				158
-#define IT_INTERNAL_NOTEQUALDDD			159
-#define IT_INTERNAL_GREATEREQUALDDD		160
-#define IT_INTERNAL_LESSEQUALDDD		161
+	// WORD math
+	PowerWWW          = 191,
+	MulWWW            = 192,
+	DivWWW            = 193,
+	AddWWW            = 194,
+	SubWWW            = 195,
+	ModWWW            = 196,
 
-// Boolean Maths
-#define IT_INTERNAL_POWERBBB			171
-#define IT_INTERNAL_MULBBB				172
-#define IT_INTERNAL_DIVBBB				173
-#define IT_INTERNAL_ADDBBB				174
-#define IT_INTERNAL_SUBBBB				175
-#define IT_INTERNAL_MODBBB				176
+	// Casting math
+	CastLToF          = 201,
+	CastLToB          = 202,
+	CastLToY          = 203,
+	CastLToW          = 204,
+	CastLToD          = 205,
+	CastLToO          = 206,
+	CastLToR          = 207,
+	CastFTOL          = 211,
+	CastFTOB          = 212,
+	CastFTOY          = 213,
+	CastFTOW          = 214,
+	CastFTOD          = 215,
+	CastFTOO          = 216,
+	CastFTOR          = 217,
+	CastBTOL          = 221,
+	CastBTOF          = 222,
+	CastBTOY          = 223,
+	CastBTOW          = 224,
+	CastBTOD          = 225,
+	CastBTOO          = 226,
+	CastBTOR          = 227,
+	CastYTOL          = 231,
+	CastYTOF          = 232,
+	CastYTOB          = 233,
+	CastYTOW          = 234,
+	CastYTOD          = 235,
+	CastYTOO          = 236,
+	CastYTOR          = 237,
+	CastWTOL          = 241,
+	CastWTOF          = 242,
+	CastWTOB          = 243,
+	CastWTOY          = 244,
+	CastWTOD          = 245,
+	CastWTOO          = 246,
+	CastWTOR          = 247,
+	CastDTOL          = 251,
+	CastDTOF          = 252,
+	CastDTOB          = 253,
+	CastDTOY          = 254,
+	CastDTOW          = 255,
+	CastDTOO          = 256,
+	CastDTOR          = 257,
+	CastOTOL          = 261,
+	CastOTOF          = 262,
+	CastOTOB          = 263,
+	CastOTOY          = 264,
+	CastOTOW          = 265,
+	CastOTOD          = 266,
+	CastOTOR          = 267,
+	CastRTOL          = 271,
+	CastRTOF          = 272,
+	CastRTOB          = 273,
+	CastRTOY          = 274,
+	CastRTOW          = 275,
+	CastRTOD          = 276,
+	CastRTOO          = 277,
 
-// BYTE Maths
-#define IT_INTERNAL_POWERYYY			181
-#define IT_INTERNAL_MULYYY				182
-#define IT_INTERNAL_DIVYYY				183
-#define IT_INTERNAL_ADDYYY				184
-#define IT_INTERNAL_SUBYYY				185
-#define IT_INTERNAL_MODYYY				186
+	// Internal commands
+	Return            = 301,
+	End               = 302,
+	Sync              = 303,
+	StartProgram      = 304,
+	EndProgram        = 305,
+	IncVar            = 306,
+	DecVar            = 307,
+	PureReturn        = 308,
+	EndError          = 309,
+};
 
-// WORD Maths
-#define IT_INTERNAL_POWERWWW			191
-#define IT_INTERNAL_MULWWW				192
-#define IT_INTERNAL_DIVWWW				193
-#define IT_INTERNAL_ADDWWW				194
-#define IT_INTERNAL_SUBWWW				195
-#define IT_INTERNAL_MODWWW				196
+// Build-in-instruction task codes (converted from #define constants)
+enum class BuildTask : int {
+	Ret               = 1,
+	End               = 2,
+	Sync              = 3,
+	StartProgram      = 4,
+	EndProgramAndQuit = 5,
+	UserFunctionExit  = 6,
+	PureRet           = 7,
+	CopyUdt           = 8,
+	EndError          = 9,
 
-// Casting Maths
-#define IT_INTERNAL_CASTLTOF			201
-#define IT_INTERNAL_CASTLTOB			202
-#define IT_INTERNAL_CASTLTOY			203
-#define IT_INTERNAL_CASTLTOW			204
-#define IT_INTERNAL_CASTLTOD			205
-#define IT_INTERNAL_CASTLTOO			206
-#define IT_INTERNAL_CASTLTOR			207
-#define IT_INTERNAL_CASTFTOL			211
-#define IT_INTERNAL_CASTFTOB			212
-#define IT_INTERNAL_CASTFTOY			213
-#define IT_INTERNAL_CASTFTOW			214
-#define IT_INTERNAL_CASTFTOD			215
-#define IT_INTERNAL_CASTFTOO			216
-#define IT_INTERNAL_CASTFTOR			217
-#define IT_INTERNAL_CASTBTOL			221
-#define IT_INTERNAL_CASTBTOF			222
-#define IT_INTERNAL_CASTBTOY			223
-#define IT_INTERNAL_CASTBTOW			224
-#define IT_INTERNAL_CASTBTOD			225
-#define IT_INTERNAL_CASTBTOO			226
-#define IT_INTERNAL_CASTBTOR			227
-#define IT_INTERNAL_CASTYTOL			231
-#define IT_INTERNAL_CASTYTOF			232
-#define IT_INTERNAL_CASTYTOB			233
-#define IT_INTERNAL_CASTYTOW			234
-#define IT_INTERNAL_CASTYTOD			235
-#define IT_INTERNAL_CASTYTOO			236
-#define IT_INTERNAL_CASTYTOR			237
-#define IT_INTERNAL_CASTWTOL			241
-#define IT_INTERNAL_CASTWTOF			242
-#define IT_INTERNAL_CASTWTOB			243
-#define IT_INTERNAL_CASTWTOY			244
-#define IT_INTERNAL_CASTWTOD			245
-#define IT_INTERNAL_CASTWTOO			246
-#define IT_INTERNAL_CASTWTOR			247
-#define IT_INTERNAL_CASTDTOL			251
-#define IT_INTERNAL_CASTDTOF			252
-#define IT_INTERNAL_CASTDTOB			253
-#define IT_INTERNAL_CASTDTOY			254
-#define IT_INTERNAL_CASTDTOW			255
-#define IT_INTERNAL_CASTDTOO			256
-#define IT_INTERNAL_CASTDTOR			257
-#define IT_INTERNAL_CASTOTOL			261
-#define IT_INTERNAL_CASTOTOF			262
-#define IT_INTERNAL_CASTOTOB			263
-#define IT_INTERNAL_CASTOTOY			264
-#define IT_INTERNAL_CASTOTOW			265
-#define IT_INTERNAL_CASTOTOD			266
-#define IT_INTERNAL_CASTOTOR			267
-#define IT_INTERNAL_CASTRTOL			271
-#define IT_INTERNAL_CASTRTOF			272
-#define IT_INTERNAL_CASTRTOB			273
-#define IT_INTERNAL_CASTRTOY			274
-#define IT_INTERNAL_CASTRTOW			275
-#define IT_INTERNAL_CASTRTOD			276
-#define IT_INTERNAL_CASTRTOO			277
+	Power             = 101,
+	Mul               = 102,
+	Div               = 103,
+	Add               = 104,
+	Sub               = 105,
+	Mod               = 106,
 
-// Internal Command
-#define IT_INTERNAL_RETURN				301
-#define IT_INTERNAL_END					302
-#define IT_INTERNAL_SYNC				303
-#define IT_INTERNAL_STARTPROGRAM		304
-#define IT_INTERNAL_ENDPROGRAM			305
-#define IT_INTERNAL_INCVAR				306
-#define IT_INTERNAL_DECVAR				307
-#define IT_INTERNAL_PURERETURN			308
-#define IT_INTERNAL_ENDERROR			309
+	Shr               = 151,
+	Shl               = 152,
+	BitAnd            = 153,
+	BitOr             = 154,
+	BitXor            = 155,
+	BitNot            = 156,
 
-// Defines for Build-In-Instruction Tasks
-#define BUILD_RET						1
-#define BUILD_END						2
-#define BUILD_SYNC						3
-#define BUILD_STARTPROGRAM				4
-#define BUILD_ENDPROGRAMANDQUIT			5
-#define BUILD_USERFUNCTIONEXIT			6
-#define BUILD_PURERET					7
-#define BUILD_COPYUDT					8
-#define	BUILD_ENDERROR					9
+	And               = 161,
+	Or                = 162,
+	Not               = 163,
 
-#define BUILD_POWER						101
-#define BUILD_MUL						102
-#define BUILD_DIV						103
-#define BUILD_ADD						104
-#define BUILD_SUB						105
-#define BUILD_MOD						106
+	Equal             = 201,
+	Greater           = 202,
+	Less              = 203,
+	NotEqual          = 204,
+	GreaterEqual      = 205,
+	LessEqual         = 206,
 
-#define BUILD_SHR						151
-#define BUILD_SHL						152
-#define BUILD_BITAND					153
-#define BUILD_BITOR						154
-#define BUILD_BITXOR					155
-#define BUILD_BITNOT					156
-
-#define BUILD_AND						161
-#define BUILD_OR						162
-#define BUILD_NOT						163
-
-#define BUILD_EQUAL						201
-#define BUILD_GREATER					202
-#define BUILD_LESS						203
-#define BUILD_NOTEQUAL					204
-#define BUILD_GREATEREQUAL				205
-#define BUILD_LESSEQUAL					206
-
-#define BUILD_INC						1001
-#define BUILD_DEC						1002
-#define BUILD_INCADD					1003
-#define BUILD_DECADD					1004
+	Inc               = 1001,
+	Dec               = 1002,
+	IncAdd            = 1003,
+	DecAdd            = 1004,
+};
 
 
 // Class Definition

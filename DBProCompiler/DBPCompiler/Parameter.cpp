@@ -231,7 +231,7 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 		}
 
 		// If INC/DEC, first param MUST be match (cannot cast the var!)
-		if(dwInternalCode==IT_INTERNAL_INCVAR)
+		if(dwInternalCode==static_cast<DWORD>(InternalInstruction::IncVar))
 		{
 			if(dwTypeRequired!=dwParsedType && dwParamsProcessed==0)
 			{
@@ -240,7 +240,7 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 				return false;
 			}
 		}
-		if(dwInternalCode==IT_INTERNAL_DECVAR)
+		if(dwInternalCode==static_cast<DWORD>(InternalInstruction::DecVar))
 		{
 			if(dwTypeRequired!=dwParsedType && dwParamsProcessed==0)
 			{

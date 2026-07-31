@@ -137,101 +137,101 @@ CInstructionTable::~CInstructionTable()
 bool CInstructionTable::DefineHardCodedCommand(void)
 {
 	// Bitwise
-	AddBuildCommand("+mathint", "SHLLLL", "L", 1, 1, IT_INTERNAL_SHIFTLLLL, BUILD_SHL);
-	AddBuildCommand("+mathint", "SHRLLL", "L", 1, 1, IT_INTERNAL_SHIFTRLLL, BUILD_SHR);
-	AddBuildCommand("+mathint", "BITORLLL", "L", 1, 1, IT_INTERNAL_BITORLLL, BUILD_BITOR);
-	AddBuildCommand("+mathint", "BITANDLLL", "L", 1, 1, IT_INTERNAL_BITANDLLL, BUILD_BITAND);
-	AddBuildCommand("+mathint", "BITXORLLL", "L", 1, 1, IT_INTERNAL_BITXORLLL, BUILD_BITXOR);
-	AddBuildCommand("+mathint", "BITNOTLLL", "L", 1, 1, IT_INTERNAL_BITNOTLLL, BUILD_BITNOT);
+	AddBuildCommand("+mathint", "SHLLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::ShiftLLLL), static_cast<DWORD>(BuildTask::Shl));
+	AddBuildCommand("+mathint", "SHRLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::ShiftRLLL), static_cast<DWORD>(BuildTask::Shr));
+	AddBuildCommand("+mathint", "BITORLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::BitOrLLL), static_cast<DWORD>(BuildTask::BitOr));
+	AddBuildCommand("+mathint", "BITANDLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::BitAndLLL), static_cast<DWORD>(BuildTask::BitAnd));
+	AddBuildCommand("+mathint", "BITXORLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::BitXorLLL), static_cast<DWORD>(BuildTask::BitXor));
+	AddBuildCommand("+mathint", "BITNOTLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::BitNotLLL), static_cast<DWORD>(BuildTask::BitNot));
 
 	// Logic
-	AddBuildCommand("+mathint", "ORLLL", "L", 1, 1, IT_INTERNAL_ORLLL, BUILD_OR);
-	AddBuildCommand("+mathint", "ANDLLL", "L", 1, 1, IT_INTERNAL_ANDLLL, BUILD_AND);
-	AddBuildCommand("+mathint", "NOTLLL", "L", 1, 1, IT_INTERNAL_NOTLLL, BUILD_NOT);
-	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, IT_INTERNAL_EQUALLLL, BUILD_EQUAL);
-	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, IT_INTERNAL_NOTEQUALLLL, BUILD_NOTEQUAL);
-	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, IT_INTERNAL_GREATERLLL, BUILD_GREATER);
-	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, IT_INTERNAL_GREATEREQUALLLL, BUILD_GREATEREQUAL);
-	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, IT_INTERNAL_LESSLLL, BUILD_LESS);
-	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, IT_INTERNAL_LESSEQUALLLL, BUILD_LESSEQUAL);
+	AddBuildCommand("+mathint", "ORLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::OrLLL), static_cast<DWORD>(BuildTask::Or));
+	AddBuildCommand("+mathint", "ANDLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::AndLLL), static_cast<DWORD>(BuildTask::And));
+	AddBuildCommand("+mathint", "NOTLLL", "L", 1, 1, static_cast<DWORD>(InternalInstruction::NotLLL), static_cast<DWORD>(BuildTask::Not));
+	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::EqualLLL), static_cast<DWORD>(BuildTask::Equal));
+	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLLL), static_cast<DWORD>(BuildTask::NotEqual));
+	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLLL), static_cast<DWORD>(BuildTask::Greater));
+	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLLL), static_cast<DWORD>(BuildTask::GreaterEqual));
+	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::LessLLL), static_cast<DWORD>(BuildTask::Less));
+	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualLLL), static_cast<DWORD>(BuildTask::LessEqual));
 
 	// External Maths
-	AddCommandCore("+math", "dbprocore.dll", "?PowerLLL@@YAKHH@Z", "LL", 1, 2, IT_INTERNAL_POWERLLL, 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerBBB@@YAKKK@Z", "BB", 4, 2, IT_INTERNAL_POWERBBB, 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerBBB@@YAKKK@Z", "YY", 5, 2, IT_INTERNAL_POWERYYY, 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerWWW@@YAKKK@Z", "WW", 6, 2, IT_INTERNAL_POWERWWW, 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerDDD@@YAKKK@Z", "DD", 7, 2, IT_INTERNAL_POWERDDD, 0);
+	AddCommandCore("+math", "dbprocore.dll", "?PowerLLL@@YAKHH@Z", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::PowerLLL), 0);
+	AddCommandCore("+math", "dbprocore.dll", "?PowerBBB@@YAKKK@Z", "BB", 4, 2, static_cast<DWORD>(InternalInstruction::PowerBBB), 0);
+	AddCommandCore("+math", "dbprocore.dll", "?PowerBBB@@YAKKK@Z", "YY", 5, 2, static_cast<DWORD>(InternalInstruction::PowerYYY), 0);
+	AddCommandCore("+math", "dbprocore.dll", "?PowerWWW@@YAKKK@Z", "WW", 6, 2, static_cast<DWORD>(InternalInstruction::PowerWWW), 0);
+	AddCommandCore("+math", "dbprocore.dll", "?PowerDDD@@YAKKK@Z", "DD", 7, 2, static_cast<DWORD>(InternalInstruction::PowerDDD), 0);
 
 	// INT Math
-	AddBuildCommand("+math", "MULLLL", "LL", 1, 2, IT_INTERNAL_MULLLL, BUILD_MUL);
-	AddBuildCommand("+math", "DIVLLL", "LL", 1, 2, IT_INTERNAL_DIVLLL, BUILD_DIV);
-	AddBuildCommand("+math", "ADDLLL", "LL", 1, 2, IT_INTERNAL_ADDLLL, BUILD_ADD);
-	AddBuildCommand("+math", "SUBLLL", "LL", 1, 2, IT_INTERNAL_SUBLLL, BUILD_SUB);
-	AddBuildCommand("+math", "MODLLL", "LL", 1, 2, IT_INTERNAL_MODLLL, BUILD_MOD);
+	AddBuildCommand("+math", "MULLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::MulLLL), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+math", "DIVLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::DivLLL), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+math", "ADDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::AddLLL), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+math", "SUBLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::SubLLL), static_cast<DWORD>(BuildTask::Sub));
+	AddBuildCommand("+math", "MODLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::ModLLL), static_cast<DWORD>(BuildTask::Mod));
 
 	// BOOLEAN Math
-	AddBuildCommand("+math", "MULBBB", "BB", 1, 2, IT_INTERNAL_MULBBB, BUILD_MUL);
-	AddBuildCommand("+math", "DIVBBB", "BB", 1, 2, IT_INTERNAL_DIVBBB, BUILD_DIV);
-	AddBuildCommand("+math", "ADDBBB", "BB", 1, 2, IT_INTERNAL_ADDBBB, BUILD_ADD);
-	AddBuildCommand("+math", "SUBBBB", "BB", 1, 2, IT_INTERNAL_SUBBBB, BUILD_SUB);
-	AddBuildCommand("+math", "MODBBB", "BB", 1, 2, IT_INTERNAL_MODBBB, BUILD_MOD);
+	AddBuildCommand("+math", "MULBBB", "BB", 1, 2, static_cast<DWORD>(InternalInstruction::MulBBB), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+math", "DIVBBB", "BB", 1, 2, static_cast<DWORD>(InternalInstruction::DivBBB), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+math", "ADDBBB", "BB", 1, 2, static_cast<DWORD>(InternalInstruction::AddBBB), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+math", "SUBBBB", "BB", 1, 2, static_cast<DWORD>(InternalInstruction::SubBBB), static_cast<DWORD>(BuildTask::Sub));
+	AddBuildCommand("+math", "MODBBB", "BB", 1, 2, static_cast<DWORD>(InternalInstruction::ModBBB), static_cast<DWORD>(BuildTask::Mod));
 
 	// BYTE Math
-	AddBuildCommand("+math", "MULYYY", "YY", 1, 2, IT_INTERNAL_MULYYY, BUILD_MUL);
-	AddBuildCommand("+math", "DIVYYY", "YY", 1, 2, IT_INTERNAL_DIVYYY, BUILD_DIV);
-	AddBuildCommand("+math", "ADDYYY", "YY", 1, 2, IT_INTERNAL_ADDYYY, BUILD_ADD);
-	AddBuildCommand("+math", "SUBYYY", "YY", 1, 2, IT_INTERNAL_SUBYYY, BUILD_SUB);
-	AddBuildCommand("+math", "MODYYY", "YY", 1, 2, IT_INTERNAL_MODYYY, BUILD_MOD);
+	AddBuildCommand("+math", "MULYYY", "YY", 1, 2, static_cast<DWORD>(InternalInstruction::MulYYY), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+math", "DIVYYY", "YY", 1, 2, static_cast<DWORD>(InternalInstruction::DivYYY), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+math", "ADDYYY", "YY", 1, 2, static_cast<DWORD>(InternalInstruction::AddYYY), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+math", "SUBYYY", "YY", 1, 2, static_cast<DWORD>(InternalInstruction::SubYYY), static_cast<DWORD>(BuildTask::Sub));
+	AddBuildCommand("+math", "MODYYY", "YY", 1, 2, static_cast<DWORD>(InternalInstruction::ModYYY), static_cast<DWORD>(BuildTask::Mod));
 
 	// WORD Math
-	AddBuildCommand("+math", "MULWWW", "WW", 1, 2, IT_INTERNAL_MULWWW, BUILD_MUL);
-	AddBuildCommand("+math", "DIVWWW", "WW", 1, 2, IT_INTERNAL_DIVWWW, BUILD_DIV);
-	AddBuildCommand("+math", "ADDWWW", "WW", 1, 2, IT_INTERNAL_ADDWWW, BUILD_ADD);
-	AddBuildCommand("+math", "SUBWWW", "WW", 1, 2, IT_INTERNAL_SUBWWW, BUILD_SUB);
-	AddBuildCommand("+math", "MODWWW", "WW", 1, 2, IT_INTERNAL_MODWWW, BUILD_MOD);
+	AddBuildCommand("+math", "MULWWW", "WW", 1, 2, static_cast<DWORD>(InternalInstruction::MulWWW), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+math", "DIVWWW", "WW", 1, 2, static_cast<DWORD>(InternalInstruction::DivWWW), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+math", "ADDWWW", "WW", 1, 2, static_cast<DWORD>(InternalInstruction::AddWWW), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+math", "SUBWWW", "WW", 1, 2, static_cast<DWORD>(InternalInstruction::SubWWW), static_cast<DWORD>(BuildTask::Sub));
+	AddBuildCommand("+math", "MODWWW", "WW", 1, 2, static_cast<DWORD>(InternalInstruction::ModWWW), static_cast<DWORD>(BuildTask::Mod));
 
 	// DWORD Math
-	AddBuildCommand("+math", "MULDDD", "DD", 1, 2, IT_INTERNAL_MULDDD, BUILD_MUL);
-	AddBuildCommand("+math", "DIVDDD", "DD", 1, 2, IT_INTERNAL_DIVDDD, BUILD_DIV);
-	AddBuildCommand("+math", "ADDDDD", "DD", 1, 2, IT_INTERNAL_ADDDDD, BUILD_ADD);
-	AddBuildCommand("+math", "SUBDDD", "DD", 1, 2, IT_INTERNAL_SUBDDD, BUILD_SUB);
-	AddBuildCommand("+math", "MODDDD", "DD", 1, 2, IT_INTERNAL_MODDDD, BUILD_MOD);
+	AddBuildCommand("+math", "MULDDD", "DD", 1, 2, static_cast<DWORD>(InternalInstruction::MulDDD), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+math", "DIVDDD", "DD", 1, 2, static_cast<DWORD>(InternalInstruction::DivDDD), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+math", "ADDDDD", "DD", 1, 2, static_cast<DWORD>(InternalInstruction::AddDDD), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+math", "SUBDDD", "DD", 1, 2, static_cast<DWORD>(InternalInstruction::SubDDD), static_cast<DWORD>(BuildTask::Sub));
+	AddBuildCommand("+math", "MODDDD", "DD", 1, 2, static_cast<DWORD>(InternalInstruction::ModDDD), static_cast<DWORD>(BuildTask::Mod));
 
 	// Quantity INC and DEC
-	AddBuildCommand("inc", "INCLL", "LL", 0, 2, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCFF", "FF", 0, 2, IT_INTERNAL_INCVAR, BUILD_INCADD);
-	AddBuildCommand("inc", "INCBB", "BB", 0, 2, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCYY", "YY", 0, 2, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCWW", "WW", 0, 2, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCDD", "DD", 0, 2, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCRR", "RR", 0, 2, IT_INTERNAL_INCVAR, BUILD_INCADD);
-	AddBuildCommand("inc", "INCOO", "OO", 0, 2, IT_INTERNAL_INCVAR, BUILD_INCADD);
-	AddBuildCommand("dec", "DECLL", "LL", 0, 2, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECFF", "FF", 0, 2, IT_INTERNAL_DECVAR, BUILD_DECADD);
-	AddBuildCommand("dec", "DECBB", "BB", 0, 2, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECYY", "YY", 0, 2, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECWW", "WW", 0, 2, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECDD", "DD", 0, 2, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECRR", "RR", 0, 2, IT_INTERNAL_DECVAR, BUILD_DECADD);
-	AddBuildCommand("dec", "DECOO", "OO", 0, 2, IT_INTERNAL_DECVAR, BUILD_DECADD);
+	AddBuildCommand("inc", "INCLL", "LL", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCFF", "FF", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::IncAdd));
+	AddBuildCommand("inc", "INCBB", "BB", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCYY", "YY", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCWW", "WW", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCDD", "DD", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCRR", "RR", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::IncAdd));
+	AddBuildCommand("inc", "INCOO", "OO", 0, 2, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::IncAdd));
+	AddBuildCommand("dec", "DECLL", "LL", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECFF", "FF", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::DecAdd));
+	AddBuildCommand("dec", "DECBB", "BB", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECYY", "YY", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECWW", "WW", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECDD", "DD", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECRR", "RR", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::DecAdd));
+	AddBuildCommand("dec", "DECOO", "OO", 0, 2, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::DecAdd));
 
 	// Singular INC and DEC
-	AddBuildCommand("inc", "INCL", "L", 0, 1, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCF", "F", 0, 1, IT_INTERNAL_INCVAR, BUILD_INCADD);
-	AddBuildCommand("inc", "INCB", "B", 0, 1, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCY", "Y", 0, 1, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCW", "W", 0, 1, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCD", "D", 0, 1, IT_INTERNAL_INCVAR, BUILD_INC);
-	AddBuildCommand("inc", "INCR", "R", 0, 1, IT_INTERNAL_INCVAR, BUILD_INCADD);
-	AddBuildCommand("inc", "INCO", "O", 0, 1, IT_INTERNAL_INCVAR, BUILD_INCADD);
-	AddBuildCommand("dec", "DECL", "L", 0, 1, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECF", "F", 0, 1, IT_INTERNAL_DECVAR, BUILD_DECADD);
-	AddBuildCommand("dec", "DECB", "B", 0, 1, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECY", "Y", 0, 1, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECW", "W", 0, 1, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECD", "D", 0, 1, IT_INTERNAL_DECVAR, BUILD_DEC);
-	AddBuildCommand("dec", "DECR", "R", 0, 1, IT_INTERNAL_DECVAR, BUILD_DECADD);
-	AddBuildCommand("dec", "DECO", "O", 0, 1, IT_INTERNAL_DECVAR, BUILD_DECADD);
+	AddBuildCommand("inc", "INCL", "L", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCF", "F", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::IncAdd));
+	AddBuildCommand("inc", "INCB", "B", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCY", "Y", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCW", "W", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCD", "D", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::Inc));
+	AddBuildCommand("inc", "INCR", "R", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::IncAdd));
+	AddBuildCommand("inc", "INCO", "O", 0, 1, static_cast<DWORD>(InternalInstruction::IncVar), static_cast<DWORD>(BuildTask::IncAdd));
+	AddBuildCommand("dec", "DECL", "L", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECF", "F", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::DecAdd));
+	AddBuildCommand("dec", "DECB", "B", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECY", "Y", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECW", "W", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECD", "D", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::Dec));
+	AddBuildCommand("dec", "DECR", "R", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::DecAdd));
+	AddBuildCommand("dec", "DECO", "O", 0, 1, static_cast<DWORD>(InternalInstruction::DecVar), static_cast<DWORD>(BuildTask::DecAdd));
 
 	// Complete
 	return true;
@@ -245,183 +245,183 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 # define BLANKCMD ""
 #endif
 	// Internal DBM that uses Hard Coded Machine Code
-	AddBuildCommand("return", "RET", "", 0, 0, IT_INTERNAL_RETURN, BUILD_RET);
-	AddBuildCommand(BLANKCMD, "PURERET", "", 0, 0, IT_INTERNAL_PURERETURN, BUILD_PURERET);
-	AddBuildCommand("sync", "", "", 0, 0, IT_INTERNAL_SYNC, BUILD_SYNC);
-	AddBuildCommand("end", "", "", 0, 0, IT_INTERNAL_END, BUILD_END);
-	AddBuildCommand("enderror", "", "", 0, 0, IT_INTERNAL_ENDERROR, BUILD_ENDERROR);
-	AddBuildCommand(BLANKCMD, "STARTPROG", "", 0, 0, IT_INTERNAL_STARTPROGRAM, BUILD_STARTPROGRAM);
-	AddBuildCommand(BLANKCMD, "ENDPROG", "", 0, 0, IT_INTERNAL_ENDPROGRAM, BUILD_ENDPROGRAMANDQUIT);
+	AddBuildCommand("return", "RET", "", 0, 0, static_cast<DWORD>(InternalInstruction::Return), static_cast<DWORD>(BuildTask::Ret));
+	AddBuildCommand(BLANKCMD, "PURERET", "", 0, 0, static_cast<DWORD>(InternalInstruction::PureReturn), static_cast<DWORD>(BuildTask::PureRet));
+	AddBuildCommand("sync", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::Sync), static_cast<DWORD>(BuildTask::Sync));
+	AddBuildCommand("end", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::End), static_cast<DWORD>(BuildTask::End));
+	AddBuildCommand("enderror", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::EndError), static_cast<DWORD>(BuildTask::EndError));
+	AddBuildCommand(BLANKCMD, "STARTPROG", "", 0, 0, static_cast<DWORD>(InternalInstruction::StartProgram), static_cast<DWORD>(BuildTask::StartProgram));
+	AddBuildCommand(BLANKCMD, "ENDPROG", "", 0, 0, static_cast<DWORD>(InternalInstruction::EndProgram), static_cast<DWORD>(BuildTask::EndProgramAndQuit));
 
 	// Optimisations from Hard Coded ASM
 	DefineHardCodedCommand();
 
 	// Internal Commands (generated internally)
-	AddCommandCore("+exitfunction", "", "", "", 0, 0, IT_INTERNAL_USERFUNCTIONEXIT, BUILD_USERFUNCTIONEXIT);
-	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YAKKKKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, IT_INTERNAL_ALLOC, 0);
-	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YAKK@Z", "D", 7, 1, IT_INTERNAL_FREE, 0);
-	AddCommandCore("+assign", "", "MOVLL", "LL", 0, 0, IT_INTERNAL_ASSIGNLL, 0);
-	AddCommandCore("+assign", "", "MOVFF", "FF", 0, 0, IT_INTERNAL_ASSIGNFF, 0);
-	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YAKKK@Z", "S", 3, 2, IT_INTERNAL_ASSIGNSS, 0);
-	AddCommandCore("+free", "dbprocore.dll", "?FreeSS@@YAKK@Z", "S", 3, 1, IT_INTERNAL_STRFREE, 0);
+	AddCommandCore("+exitfunction", "", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::UserFunctionExit), static_cast<DWORD>(BuildTask::UserFunctionExit));
+	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YAKKKKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
+	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YAKK@Z", "D", 7, 1, static_cast<DWORD>(InternalInstruction::Free), 0);
+	AddCommandCore("+assign", "", "MOVLL", "LL", 0, 0, static_cast<DWORD>(InternalInstruction::AssignLL), 0);
+	AddCommandCore("+assign", "", "MOVFF", "FF", 0, 0, static_cast<DWORD>(InternalInstruction::AssignFF), 0);
+	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YAKKK@Z", "S", 3, 2, static_cast<DWORD>(InternalInstruction::AssignSS), 0);
+	AddCommandCore("+free", "dbprocore.dll", "?FreeSS@@YAKK@Z", "S", 3, 1, static_cast<DWORD>(InternalInstruction::StrFree), 0);
 	
 	// Internal Assignments Commands
-	AddCommandCore("+assign", "", "MOVBB", "BB", 0, 0, IT_INTERNAL_ASSIGNBB, 0);
-	AddCommandCore("+assign", "", "MOVYY", "YY", 0, 0, IT_INTERNAL_ASSIGNYY, 0);
-	AddCommandCore("+assign", "", "MOVWW", "WW", 0, 0, IT_INTERNAL_ASSIGNWW, 0);
-	AddCommandCore("+assign", "", "MOVDD", "DD", 0, 0, IT_INTERNAL_ASSIGNDD, 0);
-	AddCommandCore("+assign", "", "MOVOO", "OO", 0, 0, IT_INTERNAL_ASSIGNOO, 0);
-	AddCommandCore("+assign", "", "MOVRR", "RR", 0, 0, IT_INTERNAL_ASSIGNRR, 0);
-	AddCommandCore("+assign", "", "MOVPP", "PP", 0, 0, IT_INTERNAL_ASSIGNPP, 0);
-	AddCommandCore("+relassign", "", "MOVREL_LL", "mL", 0, 0, IT_INTERNAL_RELASSIGNLL, 0);
-	AddCommandCore("+relassign", "", "MOVREL_FF", "gF", 0, 0, IT_INTERNAL_RELASSIGNFF, 0);
-	AddCommandCore("+relassign", "", "MOVREL_SS", "tS", 0, 0, IT_INTERNAL_RELASSIGNSS, 0);
-	AddCommandCore("+relassign", "", "MOVREL_BB", "cB", 0, 0, IT_INTERNAL_RELASSIGNBB, 0);
-	AddCommandCore("+relassign", "", "MOVREL_YY", "zY", 0, 0, IT_INTERNAL_RELASSIGNYY, 0);
-	AddCommandCore("+relassign", "", "MOVREL_WW", "xW", 0, 0, IT_INTERNAL_RELASSIGNWW, 0);
-	AddCommandCore("+relassign", "", "MOVREL_DD", "eD", 0, 0, IT_INTERNAL_RELASSIGNDD, 0);
-	AddCommandCore("+relassign", "", "MOVREL_OO", "uO", 0, 0, IT_INTERNAL_RELASSIGNOO, 0);
-	AddCommandCore("+relassign", "", "MOVREL_RR", "vR", 0, 0, IT_INTERNAL_RELASSIGNRR, 0);
+	AddCommandCore("+assign", "", "MOVBB", "BB", 0, 0, static_cast<DWORD>(InternalInstruction::AssignBB), 0);
+	AddCommandCore("+assign", "", "MOVYY", "YY", 0, 0, static_cast<DWORD>(InternalInstruction::AssignYY), 0);
+	AddCommandCore("+assign", "", "MOVWW", "WW", 0, 0, static_cast<DWORD>(InternalInstruction::AssignWW), 0);
+	AddCommandCore("+assign", "", "MOVDD", "DD", 0, 0, static_cast<DWORD>(InternalInstruction::AssignDD), 0);
+	AddCommandCore("+assign", "", "MOVOO", "OO", 0, 0, static_cast<DWORD>(InternalInstruction::AssignOO), 0);
+	AddCommandCore("+assign", "", "MOVRR", "RR", 0, 0, static_cast<DWORD>(InternalInstruction::AssignRR), 0);
+	AddCommandCore("+assign", "", "MOVPP", "PP", 0, 0, static_cast<DWORD>(InternalInstruction::AssignPP), 0);
+	AddCommandCore("+relassign", "", "MOVREL_LL", "mL", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignLL), 0);
+	AddCommandCore("+relassign", "", "MOVREL_FF", "gF", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignFF), 0);
+	AddCommandCore("+relassign", "", "MOVREL_SS", "tS", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignSS), 0);
+	AddCommandCore("+relassign", "", "MOVREL_BB", "cB", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignBB), 0);
+	AddCommandCore("+relassign", "", "MOVREL_YY", "zY", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignYY), 0);
+	AddCommandCore("+relassign", "", "MOVREL_WW", "xW", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignWW), 0);
+	AddCommandCore("+relassign", "", "MOVREL_DD", "eD", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignDD), 0);
+	AddCommandCore("+relassign", "", "MOVREL_OO", "uO", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignOO), 0);
+	AddCommandCore("+relassign", "", "MOVREL_RR", "vR", 0, 0, static_cast<DWORD>(InternalInstruction::RelAssignRR), 0);
 
-	AddCommandCore("+udtassign", "", "MOVUDT", "DD", 0, 0, IT_INTERNAL_ASSIGNUDT, BUILD_COPYUDT);
+	AddCommandCore("+udtassign", "", "MOVUDT", "DD", 0, 0, static_cast<DWORD>(InternalInstruction::AssignUdt), static_cast<DWORD>(BuildTask::CopyUdt));
 
 	// Internal Pointer Math Commands (what are the es for)
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?PowerDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_POWERDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?MulDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_MULDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?DivDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_DIVDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?AddDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_ADDDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?SubDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_SUBDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?EqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_EQUALDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_GREATERDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?LessDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_LESSDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?NotEqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_NOTEQUALDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterEqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_GREATEREQUALDDD, 0);
-//	AddCommandCore("+mathptr", "dbprocore.dll", "?LessEqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_LESSEQUALDDD, 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?PowerDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::PowerDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?MulDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::MulDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?DivDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::DivDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?AddDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::AddDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?SubDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::SubDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?EqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::EqualDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::GreaterDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?LessDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::LessDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?NotEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::NotEqualDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualDDD), 0);
+//	AddCommandCore("+mathptr", "dbprocore.dll", "?LessEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::LessEqualDDD), 0);
 	// lee - 240306 - u6b4 - reintroduced because 0xFF < 0x00 is not true (which INT will result in)
-	AddCommandCore("+mathptr", "dbprocore.dll", "?EqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_EQUALDDD, 0);
-	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_GREATERDDD, 0);
-	AddCommandCore("+mathptr", "dbprocore.dll", "?LessDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_LESSDDD, 0);
-	AddCommandCore("+mathptr", "dbprocore.dll", "?NotEqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_NOTEQUALDDD, 0);
-	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterEqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_GREATEREQUALDDD, 0);
-	AddCommandCore("+mathptr", "dbprocore.dll", "?LessEqualDDD@@YAKKK@Z", "eD", 7, 2, IT_INTERNAL_LESSEQUALDDD, 0);
+	AddCommandCore("+mathptr", "dbprocore.dll", "?EqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::EqualDDD), 0);
+	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::GreaterDDD), 0);
+	AddCommandCore("+mathptr", "dbprocore.dll", "?LessDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::LessDDD), 0);
+	AddCommandCore("+mathptr", "dbprocore.dll", "?NotEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::NotEqualDDD), 0);
+	AddCommandCore("+mathptr", "dbprocore.dll", "?GreaterEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualDDD), 0);
+	AddCommandCore("+mathptr", "dbprocore.dll", "?LessEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::LessEqualDDD), 0);
 
 	// Internal Math Commands
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?PowerFFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_POWERFFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?MulFFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_MULFFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?DivFFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_DIVFFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?AddFFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_ADDFFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?SubFFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_SUBFFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?ModFFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_MODFFF, 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?PowerFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::PowerFFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?MulFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::MulFFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?DivFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::DivFFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?AddFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::AddFFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?SubFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::SubFFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?ModFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::ModFFF), 0);
 
 	// Internal Comparison Commands
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?EqualLFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_EQUALLFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?GreaterLFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_GREATERLFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessLFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_LESSLFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?NotEqualLFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_NOTEQUALLFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?GreaterEqualLFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_GREATEREQUALLFF, 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessEqualLFF@@YAKMM@Z", "FF", 1, 2, IT_INTERNAL_LESSEQUALLFF, 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?EqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::EqualFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?GreaterLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessLFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?NotEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?GreaterEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLFF), 0);
+	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualLFF), 0);
 
 	// Internal Math Commands
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, IT_INTERNAL_ADDSSS, 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAKKK@Z", "SS", 3, 2, IT_INTERNAL_EQUALLSS, 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAKKK@Z", "SS", 3, 2, IT_INTERNAL_GREATERLSS, 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAKKK@Z", "SS", 3, 2, IT_INTERNAL_LESSLSS, 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAKKK@Z", "SS", 3, 2, IT_INTERNAL_NOTEQUALLSS, 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAKKK@Z", "SS", 3, 2, IT_INTERNAL_GREATEREQUALLSS, 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 3, 2, IT_INTERNAL_LESSEQUALLSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, IT_INTERNAL_ADDSSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAKKK@Z", "SS", 1, 2, IT_INTERNAL_EQUALLSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAKKK@Z", "SS", 1, 2, IT_INTERNAL_GREATERLSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAKKK@Z", "SS", 1, 2, IT_INTERNAL_LESSLSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAKKK@Z", "SS", 1, 2, IT_INTERNAL_NOTEQUALLSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAKKK@Z", "SS", 1, 2, IT_INTERNAL_GREATEREQUALLSS, 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 1, 2, IT_INTERNAL_LESSEQUALLSS, 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::EqualSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::GreaterLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::LessLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::NotEqualLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::EqualSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
 
 	// Internal Math Commands
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?PowerOOO@@YANNN@Z", "OO", 8, 2, IT_INTERNAL_POWEROOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?MulOOO@@YANNN@Z", "OO", 8, 2, IT_INTERNAL_MULOOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?DivOOO@@YANNN@Z", "OO", 8, 2, IT_INTERNAL_DIVOOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?AddOOO@@YANNN@Z", "OO", 8, 2, IT_INTERNAL_ADDOOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?SubOOO@@YANNN@Z", "OO", 8, 2, IT_INTERNAL_SUBOOO, 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?PowerOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::PowerOOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?MulOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::MulOOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?DivOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::DivOOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?AddOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::AddOOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?SubOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::SubOOO), 0);
 
 	// Internal Comparison Commands
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?EqualLOO@@YAKNN@Z", "OO", 1, 8, IT_INTERNAL_EQUALLOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?GreaterLOO@@YAKNN@Z", "OO", 1, 8, IT_INTERNAL_GREATERLOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?LessLOO@@YAKNN@Z", "OO", 1, 8, IT_INTERNAL_LESSLOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?NotEqualLOO@@YAKNN@Z", "OO", 1, 8, IT_INTERNAL_NOTEQUALLOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?GreaterEqualLOO@@YAKNN@Z", "OO", 1, 8, IT_INTERNAL_GREATEREQUALLOO, 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?LessEqualLOO@@YAKNN@Z", "OO", 1, 8, IT_INTERNAL_LESSEQUALLOO, 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?EqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::EqualLOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?GreaterLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::GreaterLOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?LessLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::LessLOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?NotEqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::NotEqualLOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?GreaterEqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::GreaterEqualLOO), 0);
+	AddCommandCore("+mathdoublef", "dbprocore.dll", "?LessEqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::LessEqualOO), 0);
 
 	// Internal Math Commands
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?PowerRRR@@YA_J_J0@Z", "RR", 9, 2, IT_INTERNAL_POWERRRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?MulRRR@@YA_J_J0@Z", "RR", 9, 2, IT_INTERNAL_MULRRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?DivRRR@@YA_J_J0@Z", "RR", 9, 2, IT_INTERNAL_DIVRRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?AddRRR@@YA_J_J0@Z", "RR", 9, 2, IT_INTERNAL_ADDRRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?SubRRR@@YA_J_J0@Z", "RR", 9, 2, IT_INTERNAL_SUBRRR, 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?PowerRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::PowerRRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?MulRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::MulRRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?DivRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::DivRRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?AddRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::AddRRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?SubRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::SubRRR), 0);
 
 	// Internal Comparison Commands
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?EqualLRR@@YAK_J0@Z", "RR", 1, 9, IT_INTERNAL_EQUALLRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?GreaterLRR@@YAK_J0@Z", "RR", 1, 9, IT_INTERNAL_GREATERLRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?LessLRR@@YAK_J0@Z", "RR", 1, 9, IT_INTERNAL_LESSLRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?NotEqualLRR@@YAK_J0@Z", "RR", 1, 9, IT_INTERNAL_NOTEQUALLRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?GreaterEqualLRR@@YAK_J0@Z", "RR", 1, 9, IT_INTERNAL_GREATEREQUALLRR, 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?LessEqualLRR@@YAK_J0@Z", "RR", 1, 9, IT_INTERNAL_LESSEQUALLRR, 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?EqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::EqualLRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?GreaterLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::GreaterLRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?LessLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::LessLRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?NotEqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::NotEqualLRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?GreaterEqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::GreaterEqualLRR), 0);
+	AddCommandCore("+mathdoublei", "dbprocore.dll", "?LessEqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::LessEqualRR), 0);
 
 	// Cast Instructions
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoF@@YAKH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoB@@YAKH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOB, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoB@@YAKH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOY, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoW@@YAKH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoD@@YAKH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoO@@YANH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOO, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoR@@YA_JH@Z", "L", 1, 1, IT_INTERNAL_CASTLTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoL@@YAKM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoB@@YAKM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOB, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoB@@YAKM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOY, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoW@@YAKM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoD@@YAKM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoO@@YANM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOO, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoR@@YA_JM@Z", "F", 1, 1, IT_INTERNAL_CASTFTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoL@@YAKE@Z", "B", 1, 1, IT_INTERNAL_CASTBTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoF@@YAKE@Z", "B", 1, 1, IT_INTERNAL_CASTBTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoW@@YAKE@Z", "B", 1, 1, IT_INTERNAL_CASTBTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoD@@YAKE@Z", "B", 1, 1, IT_INTERNAL_CASTBTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoO@@YANE@Z", "B", 1, 1, IT_INTERNAL_CASTBTOO, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoR@@YA_JE@Z", "B", 1, 1, IT_INTERNAL_CASTBTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoL@@YAKE@Z", "Y", 1, 1, IT_INTERNAL_CASTYTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoF@@YAKE@Z", "Y", 1, 1, IT_INTERNAL_CASTYTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoW@@YAKE@Z", "Y", 1, 1, IT_INTERNAL_CASTYTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoD@@YAKE@Z", "Y", 1, 1, IT_INTERNAL_CASTYTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoO@@YANE@Z", "Y", 1, 1, IT_INTERNAL_CASTYTOO, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoR@@YA_JE@Z", "Y", 1, 1, IT_INTERNAL_CASTYTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoL@@YAKG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoF@@YAKG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoB@@YAKG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOB, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoB@@YAKG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOY, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoD@@YAKG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoO@@YANG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOO, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoR@@YA_JG@Z", "W", 1, 1, IT_INTERNAL_CASTWTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoL@@YAKK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoF@@YAKK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoB@@YAKK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOB, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoB@@YAKK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOY, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoW@@YAKK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoO@@YANK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOO, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoR@@YA_JK@Z", "D", 1, 1, IT_INTERNAL_CASTDTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoL@@YAKN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoF@@YAKN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoB@@YAKN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOB, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoB@@YAKN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOY, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoW@@YAKN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoD@@YAKN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoR@@YA_JN@Z", "O", 1, 1, IT_INTERNAL_CASTOTOR, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoL@@YAK_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOL, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoF@@YAK_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOF, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoB@@YAK_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOB, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoB@@YAK_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOY, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoW@@YAK_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOW, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoD@@YAK_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOD, 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoO@@YAN_J@Z", "R", 1, 1, IT_INTERNAL_CASTRTOO, 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoF@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoB@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToB), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoB@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToY), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoW@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoD@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoO@@YANH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToO), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoR@@YA_JH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoL@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoB@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOB), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoB@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOY), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoW@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoD@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoO@@YANM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOO), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoR@@YA_JM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoL@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoF@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoW@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoD@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoO@@YANE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOO), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoR@@YA_JE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoL@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoF@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoW@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoD@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoO@@YANE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOO), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoR@@YA_JE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoL@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoF@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoB@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOB), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoB@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOY), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoD@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoO@@YANG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOO), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoR@@YA_JG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoL@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoF@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoB@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOB), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoB@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOY), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoW@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoO@@YANK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOO), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoR@@YA_JK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoL@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoF@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoB@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOB), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoB@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOY), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoW@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoD@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoR@@YA_JN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOR), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoL@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOL), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoF@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOF), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoB@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOB), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoB@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOY), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoW@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOW), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoD@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOD), 0);
+	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoO@@YAN_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOO), 0);
 
 	return true;
 }
@@ -2121,18 +2121,18 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 101 : // INTEGER POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERLLL;
-			case 2 :	return IT_INTERNAL_MULLLL;
-			case 3 :	return IT_INTERNAL_DIVLLL;
-			case 4 :	return IT_INTERNAL_ADDLLL;
-			case 5 :	return IT_INTERNAL_SUBLLL;
-			case 6 :	return IT_INTERNAL_MODLLL;
-			case 27 :	return IT_INTERNAL_EQUALLLL;
-			case 25 :	return IT_INTERNAL_GREATERLLL;
-			case 26 :	return IT_INTERNAL_LESSLLL;
-			case 22 :	return IT_INTERNAL_NOTEQUALLLL;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLLL;
-			case 24 :	return IT_INTERNAL_LESSEQUALLLL;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerLLL);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulLLL);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivLLL);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddLLL);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubLLL);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModLLL);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLLL);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLLL);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLLL);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLLL);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLLL);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualLLL);
 		}
 		break;
 
@@ -2140,18 +2140,18 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 102 : // FLOAT POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERFFF;
-			case 2 :	return IT_INTERNAL_MULFFF;
-			case 3 :	return IT_INTERNAL_DIVFFF;
-			case 4 :	return IT_INTERNAL_ADDFFF;
-			case 5 :	return IT_INTERNAL_SUBFFF;
-			case 6 :	return IT_INTERNAL_MODFFF;
-			case 27 :	return IT_INTERNAL_EQUALLFF;
-			case 25 :	return IT_INTERNAL_GREATERLFF;
-			case 26 :	return IT_INTERNAL_LESSLFF;
-			case 22 :	return IT_INTERNAL_NOTEQUALLFF;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLFF;
-			case 24 :	return IT_INTERNAL_LESSEQUALLFF;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerFFF);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulFFF);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivFFF);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddFFF);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubFFF);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModFFF);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualFF);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLFF);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLFF);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLFF);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLFF);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualLFF);
 		}
 		break;
 
@@ -2159,17 +2159,17 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 103 : // STRING POINTER
 		switch(dwMathSymbol)
 		{
-//			case 1 :	return IT_INTERNAL_POWERSSS;
-//			case 2 :	return IT_INTERNAL_MULSSS;
-//			case 3 :	return IT_INTERNAL_DIVSSS;
-//			case 5 :	return IT_INTERNAL_SUBSSS;
-			case 4 :	return IT_INTERNAL_ADDSSS;
-			case 27 :	return IT_INTERNAL_EQUALLSS;
-			case 25 :	return IT_INTERNAL_GREATERLSS;
-			case 26 :	return IT_INTERNAL_LESSLSS;
-			case 22 :	return IT_INTERNAL_NOTEQUALLSS;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLSS;
-			case 24 :	return IT_INTERNAL_LESSEQUALLSS;
+//			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerSSS);
+//			case 2 :	return static_cast<DWORD>(InternalInstruction::MulSSS);
+//			case 3 :	return static_cast<DWORD>(InternalInstruction::DivSSS);
+//			case 5 :	return static_cast<DWORD>(InternalInstruction::SubSSS);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddSSS);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualSS);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLSS);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLSS);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLSS);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLSS);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualSS);
 		}
 		break;
 
@@ -2177,18 +2177,18 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 104 : // BOOL POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERBBB;
-			case 2 :	return IT_INTERNAL_MULBBB;
-			case 3 :	return IT_INTERNAL_DIVBBB;
-			case 4 :	return IT_INTERNAL_ADDBBB;
-			case 5 :	return IT_INTERNAL_SUBBBB;
-			case 6 :	return IT_INTERNAL_MODBBB;
-			case 27 :	return IT_INTERNAL_EQUALLLL;
-			case 25 :	return IT_INTERNAL_GREATERLLL;
-			case 26 :	return IT_INTERNAL_LESSLLL;
-			case 22 :	return IT_INTERNAL_NOTEQUALLLL;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLLL;
-			case 24 :	return IT_INTERNAL_LESSEQUALLLL;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerBBB);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulBBB);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivBBB);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddBBB);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubBBB);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModBBB);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLLL);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLLL);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLLL);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLLL);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLLL);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualLLL);
 		}
 		break;
 
@@ -2196,18 +2196,18 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 105 : // BYTE POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERYYY;
-			case 2 :	return IT_INTERNAL_MULYYY;
-			case 3 :	return IT_INTERNAL_DIVYYY;
-			case 4 :	return IT_INTERNAL_ADDYYY;
-			case 5 :	return IT_INTERNAL_SUBYYY;
-			case 6 :	return IT_INTERNAL_MODYYY;
-			case 27 :	return IT_INTERNAL_EQUALLLL;
-			case 25 :	return IT_INTERNAL_GREATERLLL;
-			case 26 :	return IT_INTERNAL_LESSLLL;
-			case 22 :	return IT_INTERNAL_NOTEQUALLLL;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLLL;
-			case 24 :	return IT_INTERNAL_LESSEQUALLLL;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerYYY);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulYYY);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivYYY);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddYYY);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubYYY);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModYYY);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLLL);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLLL);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLLL);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLLL);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLLL);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualLLL);
 		}
 		break;
 
@@ -2215,18 +2215,18 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 106 : // WORD POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERWWW;
-			case 2 :	return IT_INTERNAL_MULWWW;
-			case 3 :	return IT_INTERNAL_DIVWWW;
-			case 4 :	return IT_INTERNAL_ADDWWW;
-			case 5 :	return IT_INTERNAL_SUBWWW;
-			case 6 :	return IT_INTERNAL_MODWWW;
-			case 27 :	return IT_INTERNAL_EQUALLLL;
-			case 25 :	return IT_INTERNAL_GREATERLLL;
-			case 26 :	return IT_INTERNAL_LESSLLL;
-			case 22 :	return IT_INTERNAL_NOTEQUALLLL;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLLL;
-			case 24 :	return IT_INTERNAL_LESSEQUALLLL;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerWWW);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulWWW);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivWWW);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddWWW);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubWWW);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModWWW);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLLL);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLLL);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLLL);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLLL);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLLL);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualLLL);
 		}
 		break;
 
@@ -2236,25 +2236,25 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 1101 : // USERDEFINED STRUCTURE PTR
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERDDD;
-			case 2 :	return IT_INTERNAL_MULDDD;
-			case 3 :	return IT_INTERNAL_DIVDDD;
-			case 4 :	return IT_INTERNAL_ADDDDD;
-			case 5 :	return IT_INTERNAL_SUBDDD;
-			case 6 :	return IT_INTERNAL_MODDDD; // leeadd - 300305 - forgot this?!?
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerDDD);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulDDD);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivDDD);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddDDD);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubDDD);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModDDD); // leeadd - 300305 - forgot this?!?
 // lee - 240306 - u6b4 - definate differences in INT compare and DWORD compare (ie 0xFF < 0x00 = false)
-//			case 27 :	return IT_INTERNAL_EQUALLLL;
-//			case 25 :	return IT_INTERNAL_GREATERLLL;
-//			case 26 :	return IT_INTERNAL_LESSLLL;
-//			case 22 :	return IT_INTERNAL_NOTEQUALLLL;
-//			case 23 :	return IT_INTERNAL_GREATEREQUALLLL;
-//			case 24 :	return IT_INTERNAL_LESSEQUALLLL;
-			case 27 :	return IT_INTERNAL_EQUALDDD;
-			case 25 :	return IT_INTERNAL_GREATERDDD;
-			case 26 :	return IT_INTERNAL_LESSDDD;
-			case 22 :	return IT_INTERNAL_NOTEQUALDDD;
-			case 23 :	return IT_INTERNAL_GREATEREQUALDDD;
-			case 24 :	return IT_INTERNAL_LESSEQUALDDD;
+//			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLLL);
+//			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLLL);
+//			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLLL);
+//			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLLL);
+//			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLLL);
+//			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualLLL);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualDDD);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterDDD);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessDDD);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualDDD);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualDDD);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualDDD);
 		}
 		break;
 
@@ -2262,17 +2262,17 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 108 : // DOUBLE FLOAT POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWEROOO;
-			case 2 :	return IT_INTERNAL_MULOOO;
-			case 3 :	return IT_INTERNAL_DIVOOO;
-			case 4 :	return IT_INTERNAL_ADDOOO;
-			case 5 :	return IT_INTERNAL_SUBOOO;
-			case 27 :	return IT_INTERNAL_EQUALLOO;
-			case 25 :	return IT_INTERNAL_GREATERLOO;
-			case 26 :	return IT_INTERNAL_LESSLOO;
-			case 22 :	return IT_INTERNAL_NOTEQUALLOO;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLOO;
-			case 24 :	return IT_INTERNAL_LESSEQUALLOO;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerOOO);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulOOO);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivOOO);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddOOO);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubOOO);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLOO);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLOO);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLOO);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLOO);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLOO);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualOO);
 		}
 		break;
 
@@ -2280,17 +2280,17 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		case 109 : // DOUBLE INTEGER POINTER
 		switch(dwMathSymbol)
 		{
-			case 1 :	return IT_INTERNAL_POWERRRR;
-			case 2 :	return IT_INTERNAL_MULRRR;
-			case 3 :	return IT_INTERNAL_DIVRRR;
-			case 4 :	return IT_INTERNAL_ADDRRR;
-			case 5 :	return IT_INTERNAL_SUBRRR;
-			case 27 :	return IT_INTERNAL_EQUALLRR;
-			case 25 :	return IT_INTERNAL_GREATERLRR;
-			case 26 :	return IT_INTERNAL_LESSLRR;
-			case 22 :	return IT_INTERNAL_NOTEQUALLRR;
-			case 23 :	return IT_INTERNAL_GREATEREQUALLRR;
-			case 24 :	return IT_INTERNAL_LESSEQUALLRR;
+			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerRRR);
+			case 2 :	return static_cast<DWORD>(InternalInstruction::MulRRR);
+			case 3 :	return static_cast<DWORD>(InternalInstruction::DivRRR);
+			case 4 :	return static_cast<DWORD>(InternalInstruction::AddRRR);
+			case 5 :	return static_cast<DWORD>(InternalInstruction::SubRRR);
+			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLRR);
+			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLRR);
+			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLRR);
+			case 22 :	return static_cast<DWORD>(InternalInstruction::NotEqualLRR);
+			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLRR);
+			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualRR);
 		}
 		break;
 	}
@@ -2298,88 +2298,88 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 	// Not Type Based
 	switch(dwMathSymbol)
 	{
-		case 11 :	return IT_INTERNAL_SHIFTRLLL;
-		case 12 :	return IT_INTERNAL_SHIFTLLLL;
-		case 31 :	return IT_INTERNAL_BITANDLLL;
-		case 32 :	return IT_INTERNAL_BITORLLL;
-		case 33 :	return IT_INTERNAL_BITXORLLL;
-		case 34 :	return IT_INTERNAL_BITNOTLLL;
+		case 11 :	return static_cast<DWORD>(InternalInstruction::ShiftRLLL);
+		case 12 :	return static_cast<DWORD>(InternalInstruction::ShiftLLLL);
+		case 31 :	return static_cast<DWORD>(InternalInstruction::BitAndLLL);
+		case 32 :	return static_cast<DWORD>(InternalInstruction::BitOrLLL);
+		case 33 :	return static_cast<DWORD>(InternalInstruction::BitXorLLL);
+		case 34 :	return static_cast<DWORD>(InternalInstruction::BitNotLLL);
 
-		case 41 :	return IT_INTERNAL_ANDLLL;
-		case 42 :	return IT_INTERNAL_ORLLL;
-		case 43 :	return IT_INTERNAL_NOTLLL;
+		case 41 :	return static_cast<DWORD>(InternalInstruction::AndLLL);
+		case 42 :	return static_cast<DWORD>(InternalInstruction::OrLLL);
+		case 43 :	return static_cast<DWORD>(InternalInstruction::NotLLL);
 
 		case 101 :	return 0;//IT_INTERNAL_CASTLTOL;
-		case 102 :	return IT_INTERNAL_CASTLTOF;
+		case 102 :	return static_cast<DWORD>(InternalInstruction::CastLToF);
 		case 103 :	return 0;//IT_INTERNAL_CASTLTOS;
-		case 104 :	return IT_INTERNAL_CASTLTOB;
-		case 105 :	return IT_INTERNAL_CASTLTOY;
-		case 106 :	return IT_INTERNAL_CASTLTOW;
-		case 107 :	return IT_INTERNAL_CASTLTOD;
-		case 108 :	return IT_INTERNAL_CASTLTOO;
-		case 109 :	return IT_INTERNAL_CASTLTOR;
+		case 104 :	return static_cast<DWORD>(InternalInstruction::CastLToB);
+		case 105 :	return static_cast<DWORD>(InternalInstruction::CastLToY);
+		case 106 :	return static_cast<DWORD>(InternalInstruction::CastLToW);
+		case 107 :	return static_cast<DWORD>(InternalInstruction::CastLToD);
+		case 108 :	return static_cast<DWORD>(InternalInstruction::CastLToO);
+		case 109 :	return static_cast<DWORD>(InternalInstruction::CastLToR);
 
-		case 111 :	return IT_INTERNAL_CASTFTOL;
+		case 111 :	return static_cast<DWORD>(InternalInstruction::CastFTOL);
 		case 112 :	return 0;//IT_INTERNAL_CASTFTOF;
-		case 114 :	return IT_INTERNAL_CASTFTOB;
-		case 115 :	return IT_INTERNAL_CASTFTOY;
-		case 116 :	return IT_INTERNAL_CASTFTOW;
-		case 117 :	return IT_INTERNAL_CASTFTOD;
-		case 118 :	return IT_INTERNAL_CASTFTOO;
-		case 119 :	return IT_INTERNAL_CASTFTOR;
+		case 114 :	return static_cast<DWORD>(InternalInstruction::CastFTOB);
+		case 115 :	return static_cast<DWORD>(InternalInstruction::CastFTOY);
+		case 116 :	return static_cast<DWORD>(InternalInstruction::CastFTOW);
+		case 117 :	return static_cast<DWORD>(InternalInstruction::CastFTOD);
+		case 118 :	return static_cast<DWORD>(InternalInstruction::CastFTOO);
+		case 119 :	return static_cast<DWORD>(InternalInstruction::CastFTOR);
 
-		case 131 :	return IT_INTERNAL_CASTBTOL;
-		case 132 :	return IT_INTERNAL_CASTBTOF;
+		case 131 :	return static_cast<DWORD>(InternalInstruction::CastBTOL);
+		case 132 :	return static_cast<DWORD>(InternalInstruction::CastBTOF);
 		case 134 :	return 0;//IT_INTERNAL_CASTBTOB;
-		case 135 :	return 0;//IT_INTERNAL_CASTBTOY;
-		case 136 :	return IT_INTERNAL_CASTBTOW;
-		case 137 :	return IT_INTERNAL_CASTBTOD;
-		case 138 :	return IT_INTERNAL_CASTBTOO;
-		case 139 :	return IT_INTERNAL_CASTBTOR;
+		case 135 :	return 0;//static_cast<DWORD>(InternalInstruction::CastBTOY);
+		case 136 :	return static_cast<DWORD>(InternalInstruction::CastBTOW);
+		case 137 :	return static_cast<DWORD>(InternalInstruction::CastBTOD);
+		case 138 :	return static_cast<DWORD>(InternalInstruction::CastBTOO);
+		case 139 :	return static_cast<DWORD>(InternalInstruction::CastBTOR);
 
-		case 141 :	return IT_INTERNAL_CASTYTOL;
-		case 142 :	return IT_INTERNAL_CASTYTOF;
-		case 144 :	return 0;//IT_INTERNAL_CASTYTOB;
+		case 141 :	return static_cast<DWORD>(InternalInstruction::CastYTOL);
+		case 142 :	return static_cast<DWORD>(InternalInstruction::CastYTOF);
+		case 144 :	return 0;//static_cast<DWORD>(InternalInstruction::CastYTOB);
 		case 145 :	return 0;//IT_INTERNAL_CASTYTOY;
-		case 146 :	return IT_INTERNAL_CASTYTOW;
-		case 147 :	return IT_INTERNAL_CASTYTOD;
-		case 148 :	return IT_INTERNAL_CASTYTOO;
-		case 149 :	return IT_INTERNAL_CASTYTOR;
+		case 146 :	return static_cast<DWORD>(InternalInstruction::CastYTOW);
+		case 147 :	return static_cast<DWORD>(InternalInstruction::CastYTOD);
+		case 148 :	return static_cast<DWORD>(InternalInstruction::CastYTOO);
+		case 149 :	return static_cast<DWORD>(InternalInstruction::CastYTOR);
 
-		case 151 :	return IT_INTERNAL_CASTWTOL;
-		case 152 :	return IT_INTERNAL_CASTWTOF;
-		case 154 :	return IT_INTERNAL_CASTWTOB;
-		case 155 :	return IT_INTERNAL_CASTWTOY;
+		case 151 :	return static_cast<DWORD>(InternalInstruction::CastWTOL);
+		case 152 :	return static_cast<DWORD>(InternalInstruction::CastWTOF);
+		case 154 :	return static_cast<DWORD>(InternalInstruction::CastWTOB);
+		case 155 :	return static_cast<DWORD>(InternalInstruction::CastWTOY);
 		case 156 :	return 0;//IT_INTERNAL_CASTWTOW;
-		case 157 :	return IT_INTERNAL_CASTWTOD;
-		case 158 :	return IT_INTERNAL_CASTWTOO;
-		case 159 :	return IT_INTERNAL_CASTWTOR;
+		case 157 :	return static_cast<DWORD>(InternalInstruction::CastWTOD);
+		case 158 :	return static_cast<DWORD>(InternalInstruction::CastWTOO);
+		case 159 :	return static_cast<DWORD>(InternalInstruction::CastWTOR);
 
-		case 161 :	return IT_INTERNAL_CASTDTOL;
-		case 162 :	return IT_INTERNAL_CASTDTOF;
-		case 164 :	return IT_INTERNAL_CASTDTOB;
-		case 165 :	return IT_INTERNAL_CASTDTOY;
-		case 166 :	return IT_INTERNAL_CASTDTOW;
+		case 161 :	return static_cast<DWORD>(InternalInstruction::CastDTOL);
+		case 162 :	return static_cast<DWORD>(InternalInstruction::CastDTOF);
+		case 164 :	return static_cast<DWORD>(InternalInstruction::CastDTOB);
+		case 165 :	return static_cast<DWORD>(InternalInstruction::CastDTOY);
+		case 166 :	return static_cast<DWORD>(InternalInstruction::CastDTOW);
 		case 167 :	return 0;//IT_INTERNAL_CASTDTOD;
-		case 168 :	return IT_INTERNAL_CASTDTOO;
-		case 169 :	return IT_INTERNAL_CASTDTOR;
+		case 168 :	return static_cast<DWORD>(InternalInstruction::CastDTOO);
+		case 169 :	return static_cast<DWORD>(InternalInstruction::CastDTOR);
 
-		case 171 :	return IT_INTERNAL_CASTOTOL;
-		case 172 :	return IT_INTERNAL_CASTOTOF;
-		case 174 :	return IT_INTERNAL_CASTOTOB;
-		case 175 :	return IT_INTERNAL_CASTOTOY;
-		case 176 :	return IT_INTERNAL_CASTOTOW;
-		case 177 :	return IT_INTERNAL_CASTOTOD;
+		case 171 :	return static_cast<DWORD>(InternalInstruction::CastOTOL);
+		case 172 :	return static_cast<DWORD>(InternalInstruction::CastOTOF);
+		case 174 :	return static_cast<DWORD>(InternalInstruction::CastOTOB);
+		case 175 :	return static_cast<DWORD>(InternalInstruction::CastOTOY);
+		case 176 :	return static_cast<DWORD>(InternalInstruction::CastOTOW);
+		case 177 :	return static_cast<DWORD>(InternalInstruction::CastOTOD);
 		case 178 :	return 0;//IT_INTERNAL_CASTOTOO;
-		case 179 :	return IT_INTERNAL_CASTOTOR;
+		case 179 :	return static_cast<DWORD>(InternalInstruction::CastOTOR);
 
-		case 181 :	return IT_INTERNAL_CASTRTOL;
-		case 182 :	return IT_INTERNAL_CASTRTOF;
-		case 184 :	return IT_INTERNAL_CASTRTOB;
-		case 185 :	return IT_INTERNAL_CASTRTOY;
-		case 186 :	return IT_INTERNAL_CASTRTOW;
-		case 187 :	return IT_INTERNAL_CASTRTOD;
-		case 188 :	return IT_INTERNAL_CASTRTOO;
+		case 181 :	return static_cast<DWORD>(InternalInstruction::CastRTOL);
+		case 182 :	return static_cast<DWORD>(InternalInstruction::CastRTOF);
+		case 184 :	return static_cast<DWORD>(InternalInstruction::CastRTOB);
+		case 185 :	return static_cast<DWORD>(InternalInstruction::CastRTOY);
+		case 186 :	return static_cast<DWORD>(InternalInstruction::CastRTOW);
+		case 187 :	return static_cast<DWORD>(InternalInstruction::CastRTOD);
+		case 188 :	return static_cast<DWORD>(InternalInstruction::CastRTOO);
 		case 189 :	return 0;//IT_INTERNAL_CASTRTOR;
 	}
 	return 0;

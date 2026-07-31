@@ -2419,7 +2419,7 @@ bool CMathOp::WriteDBM(void)
 				case 10002 :	// Add contents of 'this' result to stack (used for subscript passing for dynamic array)
 								if(GetResultData()->m_pStringToken) GetResultData()->m_pStringToken->TranslateForDBM(GetResultData());
 								if(GetResultData()->m_pAdditionalOffset) GetResultData()->m_pAdditionalOffset->TranslateForDBM(GetResultData());
-								g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, GetResultData());
+								g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), GetResultData());
 								break;
 
 				case 10003 :	// Process stack-items to calculate array-offset (array stored in left mathitem)
@@ -2427,13 +2427,13 @@ bool CMathOp::WriteDBM(void)
 								if(GetResultData()->m_pAdditionalOffset) GetResultData()->m_pAdditionalOffset->TranslateForDBM(GetResultData());
 								if(m_pLeftMathOp) if(m_pLeftMathOp->GetResultData()->m_pStringToken) m_pLeftMathOp->GetResultData()->m_pStringToken->TranslateForDBM(GetResultData());
 								if(m_pLeftMathOp) if(m_pLeftMathOp->GetResultData()->m_pAdditionalOffset) m_pLeftMathOp->GetResultData()->m_pAdditionalOffset->TranslateForDBM(GetResultData());
-								g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, ASMTASK_CALCARRAYOFFSET, GetResultData(), m_pLeftMathOp->GetResultData());
+								g_pASMWriter->WriteASMTaskP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::CalcArrayOffset), GetResultData(), m_pLeftMathOp->GetResultData());
 								break;
 
 				case 10004 :	// Adds internal index from array to stack
 								if(GetResultData()->m_pStringToken) GetResultData()->m_pStringToken->TranslateForDBM(GetResultData());
 								if(GetResultData()->m_pAdditionalOffset) GetResultData()->m_pAdditionalOffset->TranslateForDBM(GetResultData());
-								g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSHINTERNALARRAYINDEX, GetResultData());
+								g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushInternalArrayIndex), GetResultData());
 								break;
 			}
 		}
@@ -2458,7 +2458,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		switch(m_dwMathSymbol)
 		{
 			case 10002 :	// Add contents of 'this' result to stack (used for subscript passing for dynamic array)
-							g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_PUSH, GetResultData());
+							g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Push), GetResultData());
 							break;
 		}
 		return true;
@@ -2480,7 +2480,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 	if(dwUseNewInstruction==0)
 	{
 		// Command not yet implemented
-		g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_UNKNOWN, NULL);
+		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), NULL);
 		return true;
 	}
 
@@ -2492,7 +2492,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 	if(pRef==NULL)
 	{
 		// Command not yet implemented
-		g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_UNKNOWN, NULL);
+		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), NULL);
 		return true;
 	}
 
@@ -2503,29 +2503,29 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 	{
 		// Work out build
 		DWORD dwASMToBuild;
-		if(pRef->GetBuildID()==BUILD_MUL) dwASMToBuild=ASMTASK_MUL;
-		if(pRef->GetBuildID()==BUILD_DIV) dwASMToBuild=ASMTASK_DIV;
-		if(pRef->GetBuildID()==BUILD_ADD) dwASMToBuild=ASMTASK_ADD;
-		if(pRef->GetBuildID()==BUILD_SUB) dwASMToBuild=ASMTASK_SUB;
-		if(pRef->GetBuildID()==BUILD_MOD) dwASMToBuild=ASMTASK_MOD;
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Mul)) dwASMToBuild=static_cast<DWORD>(ASMTask::Mul);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Div)) dwASMToBuild=static_cast<DWORD>(ASMTask::Div);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Add)) dwASMToBuild=static_cast<DWORD>(ASMTask::Add);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Sub)) dwASMToBuild=static_cast<DWORD>(ASMTask::Sub);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Mod)) dwASMToBuild=static_cast<DWORD>(ASMTask::Mod);
 
-		if(pRef->GetBuildID()==BUILD_SHR) dwASMToBuild=ASMTASK_SHR;
-		if(pRef->GetBuildID()==BUILD_SHL) dwASMToBuild=ASMTASK_SHL;
-		if(pRef->GetBuildID()==BUILD_BITAND) dwASMToBuild=ASMTASK_AND;
-		if(pRef->GetBuildID()==BUILD_BITOR) dwASMToBuild=ASMTASK_OR;
-		if(pRef->GetBuildID()==BUILD_BITXOR) dwASMToBuild=ASMTASK_XOR;
-		if(pRef->GetBuildID()==BUILD_BITNOT) dwASMToBuild=ASMTASK_BITNOT;
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Shr)) dwASMToBuild=static_cast<DWORD>(ASMTask::Shr);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Shl)) dwASMToBuild=static_cast<DWORD>(ASMTask::Shl);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::BitAnd)) dwASMToBuild=static_cast<DWORD>(ASMTask::And);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::BitOr)) dwASMToBuild=static_cast<DWORD>(ASMTask::Or);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::BitXor)) dwASMToBuild=static_cast<DWORD>(ASMTask::Xor);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::BitNot)) dwASMToBuild=static_cast<DWORD>(ASMTask::BitNot);
 
-		if(pRef->GetBuildID()==BUILD_AND) dwASMToBuild=ASMTASK_AND;
-		if(pRef->GetBuildID()==BUILD_OR) dwASMToBuild=ASMTASK_OR;
-		if(pRef->GetBuildID()==BUILD_NOT) dwASMToBuild=ASMTASK_NOT;
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::And)) dwASMToBuild=static_cast<DWORD>(ASMTask::And);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Or)) dwASMToBuild=static_cast<DWORD>(ASMTask::Or);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Not)) dwASMToBuild=static_cast<DWORD>(ASMTask::Not);
 
-		if(pRef->GetBuildID()==BUILD_EQUAL) dwASMToBuild=ASMTASK_EQUAL;
-		if(pRef->GetBuildID()==BUILD_NOTEQUAL) dwASMToBuild=ASMTASK_NOTEQUAL;
-		if(pRef->GetBuildID()==BUILD_GREATER) dwASMToBuild=ASMTASK_GREATER;
-		if(pRef->GetBuildID()==BUILD_GREATEREQUAL) dwASMToBuild=ASMTASK_GREATEREQUAL;
-		if(pRef->GetBuildID()==BUILD_LESS) dwASMToBuild=ASMTASK_LESS;
-		if(pRef->GetBuildID()==BUILD_LESSEQUAL) dwASMToBuild=ASMTASK_LESSEQUAL;
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Equal)) dwASMToBuild=static_cast<DWORD>(ASMTask::Equal);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::NotEqual)) dwASMToBuild=static_cast<DWORD>(ASMTask::NotEqual);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Greater)) dwASMToBuild=static_cast<DWORD>(ASMTask::Greater);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::GreaterEqual)) dwASMToBuild=static_cast<DWORD>(ASMTask::GreaterEqual);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Less)) dwASMToBuild=static_cast<DWORD>(ASMTask::Less);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::LessEqual)) dwASMToBuild=static_cast<DWORD>(ASMTask::LessEqual);
 
 		// Call hard code builder
 		CResultData* pA = m_pLeftMathOp->FindResultData();
@@ -2544,17 +2544,17 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		{
 			// Ignore second param of casting maths (redundant)
 			DWORD dwDataTypeB = m_pRightMathOp->FindResultTypeValueForDBM();
-			g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, m_pRightMathOp->FindResultData());
+			g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), m_pRightMathOp->FindResultData());
 			if(dwDataTypeB==8 || dwDataTypeB==9 || dwDataTypeB==108 || dwDataTypeB==109) dwNumberOfPopsToMake++;
 		}
-		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, m_pLeftMathOp->FindResultData());
+		g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), m_pLeftMathOp->FindResultData());
 		if(dwDataTypeA==8 || dwDataTypeA==9 || dwDataTypeA==108 || dwDataTypeA==109) dwNumberOfPopsToMake++;
 
 		// Some Core Instructions require additional 'internal' params
 		if(GetResultData()->m_dwType==3)
 		{
 			// Add Destination string (as it needs to be freed if not-NULL)
-			g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, ASMTASK_PUSH, GetResultData());
+			g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), GetResultData());
 			dwNumberOfPopsToMake++;
 		}
 
@@ -2564,19 +2564,19 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		g_pASMWriter->WriteASMCall(dwLineNumber, pMathDLL, pMathCommand);
 
 		// Fundamental pop of all calls
-		g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_POPEBX, NULL);
+		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 
 		// Copy EAX (holding call result) to temp var used to hold return value
 		CStr* pReturnData = GetResultStringToken();
 		if(pReturnData)
 		{
 			DWORD dwReturnDataType = GetResultType();
-			g_pASMWriter->WriteASMTaskP2(dwLineNumber, ASMTASK_ASSIGN, GetResultData(), NULL);
+			g_pASMWriter->WriteASMTaskP2(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), GetResultData(), NULL);
 		}
 
 		// Pop params off stack in same quantity as those added
 		for(DWORD i=0; i<dwNumberOfPopsToMake-1; i++)
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_POPEAX, NULL);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEax), NULL);
 	}
 
 	return true;
