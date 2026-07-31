@@ -57,6 +57,7 @@ add_executable(dbp_tests
     test_package_runtime_metadata.cpp
     test_package_mount.cpp
     test_runtime_package_startup.cpp
+    test_text_line_splitter.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
@@ -88,6 +89,7 @@ target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPDebugger"
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
+    "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"
 )
 
 if(MSVC)

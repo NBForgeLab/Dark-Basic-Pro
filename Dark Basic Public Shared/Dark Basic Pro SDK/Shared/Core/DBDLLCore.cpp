@@ -22,6 +22,7 @@ char g_MM_FunctionName [ 256 ]= { "<none>" };
 
 // Internal Includes
 #include "DBDLLCore.h"
+#include "TextLineSplitter.h"
 #include "DBDLLDisplay.h"
 #include "DBDLLCoreInternal.h"
 #include "DBDLLArray.h"
@@ -5204,38 +5205,31 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD dwAllocation)
 					pData[dwDataSize]=0;
 					pData[dwDataSize+1]=0;
 
-					// Scan all lines into array
+					// Scan all lines into array (CRLF, lone LF and lone CR
+					// are all accepted - git eol normalisation produces
+					// LF-only text assets that must still parse per-line)
+					TextLineCursor lineCursor;
+					TextLineCursorInit(&lineCursor, pData, dwDataSize);
 					int arrindex = 0;
-					LPSTR pPtr = pData;
-					LPSTR pStart = pPtr;
-					LPSTR pPtrEnd = pData + dwDataSize;
-					while(pPtr<=pPtrEnd && arrindex<(int)dwExistingSizeOfArray)
+					const char* pLineStart = NULL;
+					DWORD dwStringSize = 0;
+					while(arrindex<(int)dwExistingSizeOfArray && TextLineCursorNext(&lineCursor, &pLineStart, &dwStringSize))
 					{
-						if( (*(pPtr+0)==13 && *(pPtr+1)==10) || *(pPtr+0)==0 )
+						DWORD* pEntry = *((DWORD**)dwAllocation+arrindex);
+						if(pEntry)
 						{
-							DWORD* pEntry = *((DWORD**)dwAllocation+arrindex);
-							if(pEntry)
-							{
-								// Free any existing string
-								if(*pEntry) delete[] (LPSTR)(*pEntry);
+							// Free any existing string
+							if(*pEntry) delete[] (LPSTR)(*pEntry);
 
-								// Make string
-								LPSTR pNewStr = NULL;
-								DWORD dwStringSize=pPtr-pStart;
-								pNewStr = new char[dwStringSize+1];
-								memcpy(pNewStr, pStart, dwStringSize);
-								pNewStr[dwStringSize]=0;
+							// Make string
+							LPSTR pNewStr = new char[dwStringSize+1];
+							memcpy(pNewStr, pLineStart, dwStringSize);
+							pNewStr[dwStringSize]=0;
 
-								// New string
-								*pEntry = (DWORD)pNewStr;
-								arrindex++;
-							}
-
-							// Next line
-							pStart = pPtr+2;
-							pPtr++;
+							// New string
+							*pEntry = (DWORD)pNewStr;
 						}
-						pPtr++;
+						arrindex++;
 					}
 
 					// Free data
