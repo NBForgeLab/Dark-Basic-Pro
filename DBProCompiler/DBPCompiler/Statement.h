@@ -131,6 +131,14 @@ class CStatement
 		void FreeObjects(void);
 		void Free(void);
 
+	private:
+		CTokenizer		m_tokenizer;
+
+	public:
+		// Tokenizer (extracted subsystem)
+		[[nodiscard]] CTokenizer& GetTokenizer() noexcept { return m_tokenizer; }
+		[[nodiscard]] const CTokenizer& GetTokenizer() const noexcept { return m_tokenizer; }
+
 		void			Add(CStatement *pNext);
 		CStatement*		GetNext(void) { return m_pNext; }
 		CStatement*		FindLastStatement(void);
