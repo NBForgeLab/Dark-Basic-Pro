@@ -140,7 +140,7 @@
 #define IT_INTERNAL_MODDDD				156
 
 // lee - 240306 - u6b4 - re-introduced becasue 0xFF < 0x00 = false in DWORD terms
-#define IT_INTERNAL_EQUALDDD			156
+#define IT_INTERNAL_EQUALDDD			162
 #define IT_INTERNAL_GREATERDDD			157
 #define IT_INTERNAL_LESSDDD				158
 #define IT_INTERNAL_NOTEQUALDDD			159
