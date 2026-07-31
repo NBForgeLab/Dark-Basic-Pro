@@ -21,6 +21,7 @@
 #include "MachineCodeBuffer.h"
 #include "ReferenceTracker.h"
 #include "TaskEmitter.h"
+#include "PEBuilder.h"
 
 // ASM task codes (converted from #define constants)
 constexpr int ASMMAXCOUNT = 300;
@@ -442,11 +443,16 @@ class CASMWriter : public ICodeGenerator
 		// Task Emitter (extracted subsystem)
 		CTaskEmitter			m_taskEmitter;
 
+		// PE Builder (extracted subsystem)
+		CPEBuilder				m_peBuilder;
+
 	public:
 		[[nodiscard]] CReferenceTracker& GetReferenceTracker() noexcept { return m_referenceTracker; }
 		[[nodiscard]] const CReferenceTracker& GetReferenceTracker() const noexcept { return m_referenceTracker; }
 		[[nodiscard]] CTaskEmitter& GetTaskEmitter() noexcept { return m_taskEmitter; }
 		[[nodiscard]] const CTaskEmitter& GetTaskEmitter() const noexcept { return m_taskEmitter; }
+		[[nodiscard]] CPEBuilder& GetPEBuilder() noexcept { return m_peBuilder; }
+		[[nodiscard]] const CPEBuilder& GetPEBuilder() const noexcept { return m_peBuilder; }
 
 		// Work Variables
 	public:

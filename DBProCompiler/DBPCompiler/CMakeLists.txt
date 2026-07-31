@@ -9,6 +9,7 @@ set(LIB_SOURCES
     ReferenceTracker.cpp
     Tokenizer.cpp
     TaskEmitter.cpp
+    PEBuilder.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
     CompilationInput.cpp
