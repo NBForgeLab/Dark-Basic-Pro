@@ -27,3 +27,9 @@ bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask) const noexcept
     if (dwLine == 0) return false;
     return true;
 }
+
+bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWORD dwP2Mode, DWORD dwP3Mode) const noexcept
+{
+    if (dwLine == 0) return false;
+    return true;
+}

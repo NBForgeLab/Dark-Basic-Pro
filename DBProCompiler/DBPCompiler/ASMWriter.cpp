@@ -3032,13 +3032,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		return false;
 	}
 
-	// Assign Line for DBM Code
-	m_dwLineNumber = dwLine;
-
 	// Determine Modes
 	DWORD dwP1Mode=DetMode(pP1, dwP1Type, dwP1Offset);
 	DWORD dwP2Mode=DetMode(pP2, dwP2Type, dwP2Offset);
 	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset);
+
+	if (!m_taskEmitter.EmitCoreTask(dwLine, dwTask, dwP1Mode, dwP2Mode, dwP3Mode))
+	{
+		return false;
+	}
 
 	// Batches of ASM Ops to perform a single task
 	if(dwTask==static_cast<DWORD>(ASMTask::AssignToEax))
