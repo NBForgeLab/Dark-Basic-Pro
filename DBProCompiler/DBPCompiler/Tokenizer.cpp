@@ -186,3 +186,196 @@ bool CTokenizer::DetermineIfFunctionName(const char* pToken) const noexcept
     if (pToken == nullptr || pToken[0] == '\0') return false;
     return (std::isalpha(static_cast<unsigned char>(pToken[0])) || pToken[0] == '_');
 }
+
+LPSTR CTokenizer::ProduceNextToken(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas) const
+{
+    return ProduceNextTokenEx(pString, bIncrementLineNumber, bProduceCRTK, bIncludeCommas, false);
+}
+
+LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas, bool bIgnoreSpacesAroundEquateSymbol) const
+{
+	if (!pString || !*pString) return nullptr;
+
+	char SepChars[33];
+	for(unsigned int s=0; s<32; s++) SepChars[s]=1+s;
+	SepChars[32]=0;
+
+	if ( bIgnoreSpacesAroundEquateSymbol) SepChars[31]=31;
+
+	LPSTR pFindStartOfToken=NULL;
+	DWORD dwSpeechMark=0;
+	bool bLineSeperatorFlag=false;
+	bool bIncToAvoidRepeatCR=false;
+	LPSTR pStringPointer = *pString;
+	unsigned int len=static_cast<unsigned int>(strlen(SepChars));
+	while(pStringPointer<g_pStatementList->GetFileDataEnd())
+	{
+		bool bFlag=false;
+		for(unsigned int n=0; n<len; n++)
+		{
+			if(*(unsigned char*)pStringPointer==(unsigned char)SepChars[n])
+				bFlag=true;
+		}
+		if(*(unsigned char*)(pStringPointer+0)==13
+		&& *(unsigned char*)(pStringPointer+1)==10)
+			bLineSeperatorFlag=true;
+
+		if ( bIgnoreSpacesAroundEquateSymbol && dwSpeechMark==0 )
+		{
+			bool bSpaceIsAllowed=false;
+			if(*(unsigned char*)pStringPointer==' ')
+			{
+				for ( LPSTR pChk=pStringPointer-1; pChk>=*pString; pChk-- )
+				{
+					if ( *(unsigned char*)pChk!=' ' && *(unsigned char*)pChk!='=' )
+						break;
+
+					if ( *(unsigned char*)pChk=='=' )
+					{
+						bSpaceIsAllowed=true;
+						break;
+					}
+				}
+				if ( !bSpaceIsAllowed )
+				{
+					for ( LPSTR pChk=pStringPointer+1; pChk<g_pStatementList->GetFileDataEnd(); pChk++ )
+					{
+						if ( *(unsigned char*)pChk!=' ' && *(unsigned char*)pChk!='=' )
+							break;
+
+						if ( *(unsigned char*)pChk=='=' )
+						{
+							bSpaceIsAllowed=true;
+							break;
+						}
+					}
+				}
+				if ( bSpaceIsAllowed==false )
+					bFlag=true;
+			}
+		}
+
+		if(pStringPointer>=g_pStatementList->GetFileDataEnd())
+			break;
+
+		if(*(unsigned char*)(pStringPointer+0)=='"') dwSpeechMark=1-dwSpeechMark;
+
+		bool bQuickQuit=false;
+		if(dwSpeechMark==0)
+		{
+			if(*(unsigned char*)(pStringPointer+0)==':')
+			{
+				if(pFindStartOfToken==NULL)
+					bQuickQuit=true;
+				else
+					break;
+			}
+		}
+
+		if(pFindStartOfToken==NULL)
+			if(pStringPointer>=g_pStatementList->GetFileDataEnd()-1)
+				bQuickQuit=true;
+
+		if(bQuickQuit==true)
+		{
+			LPSTR pProducedToken = new char[3];
+			pProducedToken[0]=13;
+			pProducedToken[1]=10;
+			pProducedToken[2]=0;
+
+			pStringPointer+=1;
+			*pString = pStringPointer;
+
+			return pProducedToken;
+		}
+
+		if(dwSpeechMark==0)
+			if(bIncludeCommas==true && *(unsigned char*)(pStringPointer+0)==',')
+				bFlag=true;
+
+		if(dwSpeechMark==0)
+			if(*(unsigned char*)(pStringPointer+0)=='`')
+			{
+				pFindStartOfToken=pStringPointer;
+				pStringPointer++;
+				if(*(unsigned char*)(pStringPointer+0)==13) bLineSeperatorFlag=true;
+				break;
+			}
+
+		if(bLineSeperatorFlag==true)
+		{
+			if(bProduceCRTK && pStringPointer>(*pString))
+			{
+				if(pFindStartOfToken==NULL)
+				{
+					LPSTR pProducedToken = new char[3];
+					pProducedToken[0]=13;
+					pProducedToken[1]=10;
+					pProducedToken[2]=0;
+					return pProducedToken;
+				}
+				else
+					break;
+			}
+
+			if(bProduceCRTK && pStringPointer==(*pString))
+			{
+				if(bIncrementLineNumber)
+					g_pStatementList->IncLineNumber();
+
+				LPSTR pProducedToken = new char[3];
+				pProducedToken[0]=13;
+				pProducedToken[1]=10;
+				pProducedToken[2]=0;
+
+				pStringPointer+=2;
+				*pString = pStringPointer;
+
+				return pProducedToken;
+			}
+
+			if(bIncrementLineNumber)
+			{
+				if(bIncrementLineNumber)
+				{
+					g_pStatementList->IncLineNumber();
+					bIncToAvoidRepeatCR = true;
+				}
+				bLineSeperatorFlag = false;
+				if ( pFindStartOfToken!=NULL )
+					break;
+			}
+		}
+
+		if(pFindStartOfToken==NULL)
+		{
+			if(bFlag==false)
+			{
+				g_pStatementList->SetTokenLineNumber(g_pStatementList->GetLineNumber());
+				g_pStatementList->SetLastCharInDataPosition((DWORD)(pStringPointer-g_pStatementList->GetFileDataStart()));
+				pFindStartOfToken=pStringPointer;
+			}
+		}
+		else
+		{
+			if(bFlag==true) break;
+		}
+		pStringPointer++;
+	}
+
+	LPSTR pProducedToken = NULL;
+	if(pFindStartOfToken!=NULL)
+	{
+		unsigned int length = pStringPointer-pFindStartOfToken;
+		if(length>0)
+		{
+			pProducedToken = new char[length+1];
+			memcpy(pProducedToken, pFindStartOfToken, length+1);
+			pProducedToken[length]=0;
+		}
+	}
+	if ( bIncToAvoidRepeatCR ) pStringPointer++;
+	*pString = pStringPointer;
+
+	return pProducedToken;
+}
