@@ -272,10 +272,10 @@ DWORD* CEXEBlock::CreateArray(DWORD dwCount,DWORD dwType)
 {
 	// leeadd - 090305 - DEP or regular flavour
 	DWORD* pArray = nullptr;
-	if ( dwType==PAGE_EXECUTE_READWRITE )
+	if ( dwType==PAGE_READWRITE )
 	{
-		// data block used to execute code
-		pArray = (DWORD*) VirtualAlloc ( nullptr, dwCount*sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE );
+		// data block used for MCB (allocated RW, later transitioned to RX via VirtualProtect)
+		pArray = (DWORD*) VirtualAlloc ( nullptr, dwCount*sizeof(DWORD), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE );
 	}
 	else
 	{
@@ -584,7 +584,7 @@ bool CEXEBlock::Load(char* lpFilename)
 		// Machine Code Block (MCB)
 		// leeadd - 090305 - added flag for DEP protection allowance
 		LoadValue(hFile, &m_dwSizeOfMCB);
-		LoadValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB, PAGE_EXECUTE_READWRITE);
+		LoadValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB, PAGE_READWRITE);
 
 		// Commands Data
 		LoadValue(hFile, &m_dwNumberOfCommands);
@@ -1565,6 +1565,17 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 	// leeadd - 221008 - u71 - extra info in globstruct for external debuggers
 	if ( g_pGlob ) g_pGlob->g_pMachineCodeBlock = (DWORD)m_pMachineCodeBlock;
+
+	// [EXE] W^X: Transition MCB from read-write to execute-read after all patching
+	if ( m_pMachineCodeBlock && m_dwSizeOfMCB > 0 )
+	{
+		DWORD oldProtect = 0;
+		if ( !VirtualProtect( m_pMachineCodeBlock, m_dwSizeOfMCB, PAGE_EXECUTE_READ, &oldProtect ) )
+		{
+			// Protection transition failed - MCB cannot be executed safely
+			bResult = false;
+		}
+	}
 
 	// [EXE] Switch out of TEMP Folder
 	_chdir(m_OriginalFolderName.c_str());
