@@ -6,6 +6,7 @@ set(LIB_SOURCES
     DebuggerInterface.cpp
     LeapMarkerManager.cpp
     MachineCodeBuffer.cpp
+    ReferenceTracker.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
     CompilationInput.cpp

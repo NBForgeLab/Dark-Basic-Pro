@@ -126,7 +126,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerJump(DWORD dwOp, DWORD di, CASMWriter
 	WriteASMLineLeap(dwOp, di, pWriter);
 
 	// Record Where JUMP Offset Must Go
-	m_pRecordRefPosition[di] = 1 + pWriter->m_dwProgramRefPointer;
+	m_pRecordRefPosition[di] = 1 + pWriter->GetReferenceTracker().GetRefPointer();
 	m_pRecordBytePosition[di] = pWriter->m_machineCodeBuffer.GetMachineBlock();
 
 	// Complete
@@ -163,7 +163,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerEnd(DWORD di, CASMWriter* pWriter)
 		m_pRecordRefPosition[di] -= 2;
 
 		// Get old ref-string
-		LPSTR pRefStr = reinterpret_cast<LPSTR>(pWriter->m_ProgramRefLabels[m_pRecordRefPosition[di]]);
+		LPSTR pRefStr = reinterpret_cast<LPSTR>(pWriter->GetReferenceTracker().GetRefLabel(m_pRecordRefPosition[di]));
 		if (pRefStr)
 		{
 			delete[] pRefStr;
@@ -178,7 +178,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerEnd(DWORD di, CASMWriter* pWriter)
 		tempStr.SetNumericText(dwLeapOffset);
 		pRefStr = new char[strlen(tempStr.GetStr()) + 1];
 		strcpy_s(pRefStr, strlen(tempStr.GetStr()) + 1, tempStr.GetStr());
-		pWriter->m_ProgramRefLabels[m_pRecordRefPosition[di]] = reinterpret_cast<uintptr_t>(pRefStr);
+		pWriter->GetReferenceTracker().GetProgramRefLabels()[m_pRecordRefPosition[di]] = reinterpret_cast<uintptr_t>(pRefStr);
 
 		// Clear leap flag
 		m_pRecordRefPosition[di] = 0;

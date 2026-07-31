@@ -19,6 +19,7 @@
 #include "DebuggerInterface.h"
 #include "LeapMarkerManager.h"
 #include "MachineCodeBuffer.h"
+#include "ReferenceTracker.h"
 
 // ASM task codes (converted from #define constants)
 constexpr int ASMMAXCOUNT = 300;
@@ -434,11 +435,12 @@ class CASMWriter : public ICodeGenerator
 		// Machine Code Buffer (extracted subsystem)
 		CMachineCodeBuffer		m_machineCodeBuffer;
 
-		// Reference Tracking
-		DWORD					m_dwRefBufferSize;
-		DWORD					m_dwProgramRefPointer;
-		std::vector<DWORD>		m_ProgramRefs;
-		std::vector<DWORD>		m_ProgramRefLabels;
+		// Reference Tracking (extracted subsystem)
+		CReferenceTracker		m_referenceTracker;
+
+	public:
+		[[nodiscard]] CReferenceTracker& GetReferenceTracker() noexcept { return m_referenceTracker; }
+		[[nodiscard]] const CReferenceTracker& GetReferenceTracker() const noexcept { return m_referenceTracker; }
 
 		// Work Variables
 	public:

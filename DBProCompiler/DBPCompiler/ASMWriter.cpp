@@ -49,8 +49,7 @@ extern GDI_RetVoidParamVoidPFN g_CORE_SyncRefresh;
 CASMWriter::CASMWriter()
 {
 	// Reference Tracking
-	m_dwRefBufferSize=0;
-	m_dwProgramRefPointer=0;
+	m_referenceTracker.Reset();
 	m_bOneOffCondToggle=false;
 
 	// Work Variables
@@ -386,10 +385,7 @@ bool CASMWriter::CreateASMHeader(void)
 	m_machineCodeBuffer.Initialize(1024);
 
 	// Prepare RefData
-	m_dwRefBufferSize=1024;
-	m_dwProgramRefPointer=0;
-	m_ProgramRefs.assign(m_dwRefBufferSize, 0);
-	m_ProgramRefLabels.assign(m_dwRefBufferSize, 0);
+	m_referenceTracker.Reset();
 
 	// In Debug Mode, hooks are always present
 	if(g_DebugInfo.DebugModeOn())
@@ -459,22 +455,15 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 				}
 				else
 				{
-					// Work out where in program the replacement should take place
-					DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
-
-					// Record Reference Position at index
-					m_ProgramRefs[m_dwProgramRefPointer]=MCBBytePos;
-
-					// Record Reference Label at index
+					// Record Reference Position & Label
 					char* pStr = new char[strlen(pData)+1];
 					strcpy_s(pStr, strlen(pData)+1, pData);
 					CStr cleanStr(pStr);
 					cleanStr.EatEdgeSpacesandTabs(NULL);
 					strcpy_s(pStr, strlen(pData)+1, cleanStr.GetStr());
-					m_ProgramRefLabels[m_dwProgramRefPointer]=(uintptr_t)pStr;
 
-					// Advance Ref Index
-					m_dwProgramRefPointer++;
+					DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
+					m_referenceTracker.AddReference(MCBBytePos, static_cast<DWORD>(reinterpret_cast<uintptr_t>(pStr)));
 
 					// WRITE BLANK(XXXX) INTO MB
 					m_machineCodeBuffer.WriteDWORD((DWORD)0xFFFFFFFF, 4);
@@ -518,23 +507,7 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 
 bool CASMWriter::CheckAndExpandREFMemory(void)
 {
-	// If within 100 bytes of end, expand memory
-	if(m_dwProgramRefPointer > m_dwRefBufferSize - 100)
-	{
-		// Create New Larger memory (another 1K)
-		DWORD dwNewSize = m_dwRefBufferSize+1024;
-		m_ProgramRefs.resize(dwNewSize, 0);
-		m_ProgramRefLabels.resize(dwNewSize, 0);
-
-		// Rereference to new memory
-		m_dwRefBufferSize=dwNewSize;
-
-		// Mem was expanded
-		return true;
-	}
-
-	// Did not expand
-	return false;
+	return m_referenceTracker.CheckAndExpandREFMemory();
 }
 
 void VarValueSenderHook(void)
@@ -1492,167 +1465,7 @@ bool CASMWriter::UpdateMCB(DWORD dwProgramSizeBytes)
 bool CASMWriter::UpdateMCBRefData(void)
 {
 	db3::CProfile<> prof("CASMWriter::UpdateMCBRefData");
-
-	// Tokenise Process Range
-	DWORD dwStartAt, dwFinishAt;
-
-	// Create or Add Arrays
-	if(g_pEXE->m_pRefArray==NULL)
-	{
-		// Create Array(s)
-		DWORD dwNewSize = m_dwProgramRefPointer;
-		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-
-		// Update pointers
-		g_pEXE->m_dwNumberOfReferences = dwNewSize;
-		g_pEXE->m_pRefArray = (DWORD*)pNewArray1;
-		g_pEXE->m_pRefTypeArray = (DWORD*)pNewArray2;
-		g_pEXE->m_pRefIndexArray = (DWORD*)pNewArray3;
-
-		// Tokenise all initial data
-		dwStartAt = 0;
-		dwFinishAt = g_pEXE->m_dwNumberOfReferences;
-	}
-	else
-	{
-		// Add To Array(s)
-		DWORD dwOldSize = g_pEXE->m_dwNumberOfReferences;
-		std::unique_ptr<DWORD[]> pOldArray1(g_pEXE->m_pRefArray);
-		std::unique_ptr<DWORD[]> pOldArray2(g_pEXE->m_pRefTypeArray);
-		std::unique_ptr<DWORD[]> pOldArray3(g_pEXE->m_pRefIndexArray);
-		DWORD dwNewSize = dwOldSize + m_dwProgramRefPointer;
-		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray2 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-		LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-
-		// Fill New Array with Old+New, then delete Old
-		memcpy(pNewArray1, pOldArray1.get(), dwOldSize*sizeof(DWORD));
-		memcpy(pNewArray2, pOldArray2.get(), dwOldSize*sizeof(DWORD));
-		memcpy(pNewArray3, pOldArray3.get(), dwOldSize*sizeof(DWORD));
-
-		// Update pointers
-		g_pEXE->m_dwNumberOfReferences = dwNewSize;
-		g_pEXE->m_pRefArray = (DWORD*)pNewArray1;
-		g_pEXE->m_pRefTypeArray = (DWORD*)pNewArray2;
-		g_pEXE->m_pRefIndexArray = (DWORD*)pNewArray3;
-
-		// Only need to tokenise new entries
-		dwStartAt = dwOldSize;
-		dwFinishAt = dwNewSize;
-	}
-
-	// Tokenise RefLabels --> RefType & RefIndex 
-	int iTokeniseCount = dwFinishAt-dwStartAt;
-	for(int ref=0; ref<iTokeniseCount; ref++)
-	{
-		// Calculate EXERefData Index
-		DWORD dwEXERefIndex = dwStartAt+ref;
-
-		// Tokenise entry
-		DWORD dwArrFlag=0;
-		DWORD dwUseMemOffset=0;
-		unsigned char iRefType=0;
-		LPSTR pStr = (LPSTR)m_ProgramRefLabels[ref];
-		if(iRefType==0 && pStr[0]=='[') iRefType=1;
-		if(iRefType==0 && pStr[0]=='$' && pStr[1]=='$') iRefType=2;
-		if(iRefType==0 && pStr[0]=='@' && pStr[1]=='&') { iRefType=3; dwArrFlag=1; }
-		if(iRefType==0 && pStr[0]=='+') { iRefType=3; pStr++; dwUseMemOffset=4; }
-		if(iRefType==0 && pStr[0]=='@') iRefType=3;
-		if(iRefType==0 && pStr[0]=='$' && pStr[1]=='l' && pStr[2]=='a' && pStr[3]=='b' && pStr[4]=='e' && pStr[5]=='l') iRefType=5;
-		if(iRefType==0 && pStr[0]=='$' && pStr[1]=='d' && pStr[2]=='a' && pStr[3]=='b' && pStr[4]=='e' && pStr[5]=='l') iRefType=6;
-		if(iRefType==0) iRefType=4;
-		if(iRefType>0)
-		{
-			// Write Ref Header (Type)
-			g_pEXE->m_pRefTypeArray[dwEXERefIndex]=iRefType;
-
-			// Write Ref Header (Index)
-			DWORD dwIndex=0;
-			if(iRefType==1)
-			{
-				int iCommandIndex=atoi(pStr+1)-1;	// [X=index to command
-				if(iCommandIndex!=-1)
-					dwIndex=iCommandIndex;
-			}
-			if(iRefType==2)
-			{
-				int iStringIndex=atoi(pStr+2)-1;	// $$X=index to string
-				if(iStringIndex!=-1)
-					dwIndex=iStringIndex;
-			}
-			if(iRefType==3)
-			{
-				CVarTable* pVar = g_pVarTable->FindVariable(NULL, pStr+1, dwArrFlag);
-				if(pVar)
-				{
-					DWORD dwOffset = pVar->GetOffsetValue() + dwUseMemOffset;
-					dwIndex=dwOffset;				// XXX offset to variable space only
-				}
-				else
-				{
-					// Could not find 'array' variable, must not exist
-					if(dwArrFlag==1)
-					{
-						g_pErrorReport->SetError(0, ERR_SYNTAX+6, pStr+2);
-						return false;
-					}
-				}
-			}
-			if(iRefType==4)
-			{
-				// lee - 2403060 u6b4 - not sure how this was not caught (-1 would not be 0xFFFFFFFF)
-				// dwIndex=atoi(pStr);					// XXX immediate value only
-				dwIndex = (DWORD)_atoi64(pStr);
-			}
-			if(iRefType==5)
-			{
-				CStr realLabel(pStr);
-				DWORD dwCrapPos = realLabel.FindFirstChar('@');
-				if(dwCrapPos>0) realLabel.EatChar(dwCrapPos);
-				CLabelTable* pLabel = g_pLabelTable->FindLabel(realLabel.GetStr());
-				if(pLabel==NULL)
-				{
-					g_pErrorReport->AddErrorString("Failed to 'CreateASMFooter::FindLabel'");
-					return false;
-				}
-				else
-				{
-					// XXX offset from program start to jump position
-					dwIndex = pLabel->GetBytePosition();
-					if(stricmp(pLabel->GetName()->GetStr(), "$labelend")!=NULL)
-					{
-						// Ensure label is correctly jumped to
-						dwIndex = dwIndex + g_pEXE->m_dwStartOfMiniMC;		
-					}
-				}
-			}
-			if(iRefType==6)
-			{
-				CStr realLabel(pStr);
-				realLabel.SetChar(1,'l');
-				DWORD dwCrapPos = realLabel.FindFirstChar('@');
-				if(dwCrapPos>0) realLabel.EatChar(dwCrapPos);
-				CLabelTable* pLabel = g_pLabelTable->FindLabel(realLabel.GetStr());
-				if(pLabel==NULL)
-				{
-					g_pErrorReport->AddErrorString("Failed to 'CreateASMFooter::FindLabel'");
-					return false;
-				}
-				else
-				{
-					// XXX offset from datastatement start to data line
-					dwIndex=pLabel->GetDataIndex();
-				}
-			}
-			g_pEXE->m_pRefIndexArray[dwEXERefIndex] = dwIndex;
-			g_pEXE->m_pRefArray[dwEXERefIndex] = ( m_ProgramRefs[ref] + g_pEXE->m_dwStartOfMiniMC );
-		}
-	}
-
-	// Complete
-	return true;
+	return m_referenceTracker.UpdateMCBRefData(g_pEXE);
 }
 
 bool CASMWriter::UpdateDLLData(void)
@@ -2313,17 +2126,8 @@ void CASMWriter::FreeMachineBlock(void)
 	// Clear machine code buffer
 	m_machineCodeBuffer.FreeMachineBlock();
 
-	// Free label strings stored as raw pointers in ref labels
-	for(DWORD n=0; n<m_dwRefBufferSize; n++)
-	{
-		if(m_ProgramRefLabels[n]!=0)
-		{
-			delete[] (char*)m_ProgramRefLabels[n];
-			m_ProgramRefLabels[n]=0;
-		}
-	}
-	m_ProgramRefs.clear();
-	m_ProgramRefLabels.clear();
+	// Reset reference tracker
+	m_referenceTracker.Reset();
 }
 
 void CASMWriter::FreeAll(void)
