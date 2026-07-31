@@ -135,3 +135,22 @@ TEST_F(InstructionTableTest, AddUserFunctionBecomesFindableByName) {
     char unknownName[] = "NOSUCHUSERFUNCXYZ";
     EXPECT_EQ(g_pInstructionTable->FindUserFunction(unknownName), nullptr);
 }
+
+// ResolveEntry matches command names case-insensitively: a lowercase query
+// must find a command registered in uppercase (exercises the strnicmp path).
+TEST_F(InstructionTableTest, ResolveEntryMatchesCaseInsensitive) {
+    char name[]   = "MYCASECMD";
+    char dll[]    = "";
+    char dec[]    = "";
+    char params[] = "L";
+
+    ASSERT_TRUE(g_pInstructionTable->AddCommand(name, dll, dec, params, 0, 1));
+
+    // FindInstruction delegates to the same ResolveEntry path that uses strnicmp
+    DWORD dwData = 0, dwParamMax = 0, dwLength = 0;
+    CInstructionTableEntry* pRef = nullptr;
+    char query[] = "mycasecmd";
+    EXPECT_TRUE(g_pInstructionTable->FindInstruction(
+        false, query, 0, &dwData, &dwParamMax, &dwLength, &pRef));
+    EXPECT_NE(pRef, nullptr);
+}

@@ -496,10 +496,10 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 
 					// Record Reference Label at index
 					char* pStr = new char[strlen(pData)+1];
-					strcpy(pStr, pData);
+					strcpy_s(pStr, strlen(pData)+1, pData);
 					CStr cleanStr(pStr);
 					cleanStr.EatEdgeSpacesandTabs(NULL);
-					strcpy(pStr, cleanStr.GetStr());
+					strcpy_s(pStr, strlen(pData)+1, cleanStr.GetStr());
 					m_ProgramRefLabels[m_dwProgramRefPointer]=(uintptr_t)pStr;
 
 					// Advance Ref Index
@@ -661,9 +661,9 @@ bool CASMWriter::ReportAnyErrorsToCLI(void)
 		LPSTR pRuntimeErrorString = NULL;
 		if(g_pEXE->m_pRuntimeErrorStringsArray) pRuntimeErrorString = (LPSTR)g_pEXE->m_pRuntimeErrorStringsArray[dwRTError];
 		if(dwRTErrorLine>0)
-			wsprintf(lpReturnError, "Runtime Error %d [%s] at line %d", dwRTError, pRuntimeErrorString, dwRTErrorLine);
+			snprintf(lpReturnError, sizeof(lpReturnError), "Runtime Error %d [%s] at line %d", dwRTError, pRuntimeErrorString, dwRTErrorLine);
 		else
-			wsprintf(lpReturnError, "Runtime Error %d [%s]", dwRTError, pRuntimeErrorString);
+			snprintf(lpReturnError, sizeof(lpReturnError), "Runtime Error %d [%s]", dwRTError, pRuntimeErrorString);
 			
 		SendDataToDebugger(31, lpReturnError, strlen(lpReturnError));
 
@@ -684,8 +684,8 @@ bool CASMWriter::HideAnyHiddenCode(LPSTR pData, DWORD dwSize)
 	while(pPtr<pPtrEnd)
 	{
 		// Check ahead
-		if(strnicmp(pPtr, "HIDESTART", 9)==NULL)	{ bReplaceOn=true;	pPtr+=9; }
-		if(strnicmp(pPtr, "HIDEEND", 7)==NULL)		{ bReplaceOn=false;	pPtr+=7; }
+		if(_strnicmp(pPtr, "HIDESTART", 9)==NULL)	{ bReplaceOn=true;	pPtr+=9; }
+		if(_strnicmp(pPtr, "HIDEEND", 7)==NULL)		{ bReplaceOn=false;	pPtr+=7; }
 
 		// Replace
 		if(*pPtr>32 && bReplaceOn==true) *pPtr='X';
@@ -1031,8 +1031,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					strcpy_s(pAbsPathToDLL, runtimeBundle->corePath.string().c_str());
 				else
 				{
-					strcpy(pAbsPathToDLL, pPluginsRoot);
-					strcat(pAbsPathToDLL, pDLLName);
+					snprintf(pAbsPathToDLL, sizeof(pAbsPathToDLL), "%s%s", pPluginsRoot, pDLLName);
 				}
 
 				const bool isCore = stricmp(pDLLName, "dbprocore.dll")==NULL;
@@ -1051,8 +1050,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				else if(!isCore)
 				{
 					// Get DLL from user folder (if exists - some DLLs can be removed without fault, ie Conv3DS)
-					strcpy(pAbsPathToDLL, pUserPluginsRoot);
-					strcat(pAbsPathToDLL, pDLLName);
+					snprintf(pAbsPathToDLL, sizeof(pAbsPathToDLL), "%s%s", pUserPluginsRoot, pDLLName);
 					if(g_pDBPCompiler->FileExists(pAbsPathToDLL))
 					{
 						CFBuilder.AddFile(pAbsPathToDLL, pDLLName);
@@ -1060,8 +1058,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					else
 					{
 						// leefix - 120104 - DLL can be in licensed folder also
-						strcpy(pAbsPathToDLL, pLicensedPluginsRoot);
-						strcat(pAbsPathToDLL, pDLLName);
+						snprintf(pAbsPathToDLL, sizeof(pAbsPathToDLL), "%s%s", pLicensedPluginsRoot, pDLLName);
 						if(g_pDBPCompiler->FileExists(pAbsPathToDLL))
 						{
 							CFBuilder.AddFile(pAbsPathToDLL, pDLLName);
@@ -1088,7 +1085,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			{
 				// Get Media File
 				char mediafieldname[256];
-				wsprintf(mediafieldname, "media%d", media);
+				snprintf(mediafieldname, sizeof(mediafieldname), "media%d", media);
 				std::unique_ptr<char[]> pMediaFileName(g_pDBPCompiler->GetProjectField(mediafieldname));
 				if(pMediaFileName)
 				{
@@ -1103,7 +1100,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				bool bUseMedia=true;
 				if(pMediaFileName[1]==':')
 				{
-					if(strnicmp(pMediaFileName.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
+					if(_strnicmp(pMediaFileName.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
 					{
 						// remove media path from it
 						strrev(pMediaFileName.get());
@@ -1131,10 +1128,8 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					if(bHadWildcards==false)
 					{
 						// Add Actual File to Table
-						strcpy(pMediaPath, "media\\");
-						strcat(pMediaPath, pMediaFileName.get());
-						strcpy(pAbsPathToMedia, pMediaRoot);
-						strcat(pAbsPathToMedia, pMediaFileName.get());
+						snprintf(pMediaPath, sizeof(pMediaPath), "media\\%s", pMediaFileName.get());
+						snprintf(pAbsPathToMedia, sizeof(pAbsPathToMedia), "%s%s", pMediaRoot, pMediaFileName.get());
 						CFBuilder.AddFile(pAbsPathToMedia, pMediaPath);
 					}
 					else
@@ -1164,10 +1159,10 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			char pAbsPathToMediaIcon[_MAX_PATH];
 			if(pIncludesReplacementIconFile[1]==':')
 			{
-				if(strnicmp(pIncludesReplacementIconFile.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
+				if(_strnicmp(pIncludesReplacementIconFile.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
 				{
 					// remove media path from it
-					strcpy(pAbsPathToMediaIcon, pIncludesReplacementIconFile.get());
+					snprintf(pAbsPathToMediaIcon, sizeof(pAbsPathToMediaIcon), "%s", pIncludesReplacementIconFile.get());
 				}
 				else
 				{
@@ -1178,25 +1173,24 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			}
 			else
 			{
-				strcpy(pAbsPathToMediaIcon, pMediaRoot);
-				strcat(pAbsPathToMediaIcon, pIncludesReplacementIconFile.get());
+				snprintf(pAbsPathToMediaIcon, sizeof(pAbsPathToMediaIcon), "%s%s", pMediaRoot, pIncludesReplacementIconFile.get());
 			}
 			if(bUseMedia)
 			{
 				// Make an ICO file from BMP
 				char pWorkIcon[_MAX_PATH];
 				DWORD dwLength=strlen(pAbsPathToMediaIcon);
-				if(strnicmp(pAbsPathToMediaIcon+dwLength-4, ".bmp", 4)==NULL)
+				if(_strnicmp(pAbsPathToMediaIcon+dwLength-4, ".bmp", 4)==NULL)
 				{
 					// BMP to ICO
-					strcpy(pWorkIcon, pPluginsRoot);
+					snprintf(pWorkIcon, sizeof(pWorkIcon), "%s", pPluginsRoot);
 					CFBuilder.MakeICOFromBMP(pAbsPathToMediaIcon, pWorkIcon);
-					strcat(pWorkIcon, "workicon.ico");
+					snprintf(pWorkIcon, sizeof(pWorkIcon), "%sworkicon.ico", pPluginsRoot);
 				}
 				else
 				{
 					// Must be ICO
-					strcpy(pWorkIcon, pAbsPathToMediaIcon);
+					snprintf(pWorkIcon, sizeof(pWorkIcon), "%s", pAbsPathToMediaIcon);
 				}
 
 				// Add Actual File to Table
@@ -1208,8 +1202,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 		{
 			// Add Actual File to Table
 			char pAbsPathToIcon[_MAX_PATH];
-			strcpy(pAbsPathToIcon, pPluginsRoot);
-			strcat(pAbsPathToIcon, "icon.ico");
+			snprintf(pAbsPathToIcon, sizeof(pAbsPathToIcon), "%s%s", pPluginsRoot, "icon.ico");
 			CFBuilder.AddFile(pAbsPathToIcon, "icon.ico");
 		}
 
@@ -1220,18 +1213,18 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			char pFinalFileName[_MAX_PATH];
 			if ( cindex==0 )
 			{
-				strcpy(pFieldName,"cursorarrow");
-				strcpy(pFinalFileName,"arrow.cur");
+				snprintf(pFieldName, sizeof(pFieldName), "%s", "cursorarrow");
+				snprintf(pFinalFileName, sizeof(pFinalFileName), "%s", "arrow.cur");
 			}
 			if ( cindex==1 )
 			{
-				strcpy(pFieldName,"cursorwait");
-				strcpy(pFinalFileName,"hourglass.cur");
+				snprintf(pFieldName, sizeof(pFieldName), "%s", "cursorwait");
+				snprintf(pFinalFileName, sizeof(pFinalFileName), "%s", "hourglass.cur");
 			}
 			if ( cindex>=2 )
 			{
-				wsprintf(pFieldName, "pointer%d", cindex);
-				wsprintf(pFinalFileName, "pointer%d.cur", cindex);
+				snprintf(pFieldName, sizeof(pFieldName), "pointer%d", cindex);
+				snprintf(pFinalFileName, sizeof(pFinalFileName), "pointer%d.cur", cindex);
 			}
 
 			std::unique_ptr<char[]> pCursorFilename(g_pDBPCompiler->GetProjectField(pFieldName));
@@ -1244,10 +1237,10 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					char pAbsPathToMediaCur[_MAX_PATH];
 					if(pCursorFilename[1]==':')
 					{
-						if(strnicmp(pCursorFilename.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
+						if(_strnicmp(pCursorFilename.get(), pMediaRoot, strlen(pMediaRoot))==NULL)
 						{
 							// remove media path from it
-							strcpy(pAbsPathToMediaCur, pCursorFilename.get());
+							snprintf(pAbsPathToMediaCur, sizeof(pAbsPathToMediaCur), "%s", pCursorFilename.get());
 						}
 						else
 						{
@@ -1258,24 +1251,23 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					}
 					else
 					{
-						strcpy(pAbsPathToMediaCur, pMediaRoot);
-						strcat(pAbsPathToMediaCur, pCursorFilename.get());
+						snprintf(pAbsPathToMediaCur, sizeof(pAbsPathToMediaCur), "%s%s", pMediaRoot, pCursorFilename.get());
 					}
 					if(bUseMedia)
 					{
 						// Make an CUR file from BMP
 						char pWorkCursor[_MAX_PATH];
 						DWORD dwLength=strlen(pAbsPathToMediaCur);
-						if(strnicmp(pAbsPathToMediaCur+dwLength-4, ".bmp", 4)==NULL)
+						if(_strnicmp(pAbsPathToMediaCur+dwLength-4, ".bmp", 4)==NULL)
 						{
 							// BMP to CUR
-							wsprintf(pWorkCursor, "%sworkcursor%d.cur", pPluginsRoot, cindex);
+							snprintf(pWorkCursor, sizeof(pWorkCursor), "%sworkcursor%d.cur", pPluginsRoot, cindex);
 							CFBuilder.MakeCURFromBMP(pAbsPathToMediaCur, pWorkCursor);
 						}
 						else
 						{
 							// Must be CUR
-							strcpy(pWorkCursor, pAbsPathToMediaCur);
+							snprintf(pWorkCursor, sizeof(pWorkCursor), "%s", pAbsPathToMediaCur);
 						}
 
 						// Add Actual File to Table
@@ -1292,14 +1284,15 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			char pFXPathAndName[_MAX_PATH];
 			for ( int i=0; i<6; i++)
 			{
-				if ( i==0 ) strcpy ( pFXName, "bump.fx" );
-				if ( i==1 ) strcpy ( pFXName, "cartoon.fx" );
-				if ( i==2 ) strcpy ( pFXName, "rainbow.fx" );
-				if ( i==3 ) strcpy ( pFXName, "stencilshadow.fx" );
-				if ( i==4 ) strcpy ( pFXName, "stencilshadowbone.fx" );
-				if ( i==5 ) strcpy ( pFXName, "quad.fx" );
-				strcpy ( pFXPathAndName, pEffectsRoot );
-				strcat ( pFXPathAndName, pFXName );
+				const char* pFXLiteral = nullptr;
+				if ( i==0 ) pFXLiteral = "bump.fx";
+				if ( i==1 ) pFXLiteral = "cartoon.fx";
+				if ( i==2 ) pFXLiteral = "rainbow.fx";
+				if ( i==3 ) pFXLiteral = "stencilshadow.fx";
+				if ( i==4 ) pFXLiteral = "stencilshadowbone.fx";
+				if ( i==5 ) pFXLiteral = "quad.fx";
+				snprintf(pFXName, sizeof(pFXName), "%s", pFXLiteral);
+				snprintf(pFXPathAndName, sizeof(pFXPathAndName), "%s%s", pEffectsRoot, pFXLiteral);
 				CFBuilder.AddFile(pFXPathAndName, pFXName);
 			}
 		}
@@ -1339,7 +1332,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				memcpy(pAppName, pOrigAppName.get(), dwSourceSize);
 			}
 			else
-				strcpy(pAppName, "DBPro Application");
+				snprintf(pAppName, sizeof(pAppName), "%s", "DBPro Application");
 
 			pAppName[24]=0;
 
@@ -1352,7 +1345,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				memcpy(pExeName, pEXEFilename, dwSourceSize);
 			}
 			else
-				strcpy(pExeName, "executable.exe");
+				snprintf(pExeName, sizeof(pExeName), "%s", "executable.exe");
 
 			pExeName[24]=0;
 
@@ -1379,8 +1372,8 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					memset(pFillStr, 0, 11);
 					if(pStr==NULL)
 					{
-						if(iIndex==3) strcpy(pFillStr, "V1.0");
-						if(iIndex==9) strcpy(pFillStr, "V1.0");
+						if(iIndex==3) snprintf(pFillStr, sizeof(pFillStr), "%s", "V1.0");
+						if(iIndex==9) snprintf(pFillStr, sizeof(pFillStr), "%s", "V1.0");
 					}
 					else
 					{
@@ -1399,31 +1392,28 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 					if(pStr==NULL)
 					{
 						// Copy to fill string
-						if(iIndex==0) strcpy(pFillStr, pAppName);
+						if(iIndex==0) snprintf(pFillStr, sizeof(pFillStr), "%s", pAppName);
 						if(iIndex==1)
 						{
-							strcpy(pFillStr, pAppName);
-							strcat(pFillStr, " Ltd");
+							snprintf(pFillStr, sizeof(pFillStr), "%s Ltd", pAppName);
 						}
-						if(iIndex==2) strcpy(pFillStr, pAppName);
-						if(iIndex==4) strcpy(pFillStr, pAppName);
+						if(iIndex==2) snprintf(pFillStr, sizeof(pFillStr), "%s", pAppName);
+						if(iIndex==4) snprintf(pFillStr, sizeof(pFillStr), "%s", pAppName);
 						if(iIndex==5)
 						{
-							strcpy(pFillStr, "(C) ");
-							strcat(pFillStr, pAppName);
-							strcat(pFillStr, " Ltd");
+							snprintf(pFillStr, sizeof(pFillStr), "(C) %s Ltd", pAppName);
 						}
 						if(iIndex==6)
 						{
-							strcpy(pFillStr, "");
+							snprintf(pFillStr, sizeof(pFillStr), "%s", "");
 						}
 						if(iIndex==7)
 						{
-							strcpy(pFillStr, pExeName);
+							snprintf(pFillStr, sizeof(pFillStr), "%s", pExeName);
 						}
 						if(iIndex==8)
 						{
-							strcpy(pFillStr, pAppName);
+							snprintf(pFillStr, sizeof(pFillStr), "%s", pAppName);
 						}
 					}
 					else
@@ -1439,34 +1429,36 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			}
 
 			// [10] 32x32 icon
-			strcpy(pAbsResourceFile, "");
+			snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s", "");
 			std::unique_ptr<char[]> pIconFilename(g_pDBPCompiler->GetProjectField("icon1"));
 			if(pIconFilename==NULL) pIconFilename.reset(g_pDBPCompiler->GetProjectField("icon1"));
 			if(pIconFilename)
 			{
-				if(pIconFilename[1]!=':') strcpy(pAbsResourceFile, pMediaRoot);
-				strcat(pAbsResourceFile, pIconFilename.get());
+				if(pIconFilename[1]!=':')
+					snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s%s", pMediaRoot, pIconFilename.get());
+				else
+					snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s", pIconFilename.get());
 			}
 			else
 			{
-				strcpy(pAbsResourceFile, pPluginsRoot);
-				strcat(pAbsResourceFile, "icon.ico");
+				snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s%s", pPluginsRoot, "icon.ico");
 			}
 			CFBuilder.AddFile(pAbsResourceFile,"");
 
 			// [11] 16x16 icon
-			strcpy(pAbsResourceFile, "");
+			snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s", "");
 			pIconFilename.reset(g_pDBPCompiler->GetProjectField("icon2"));
 			if(pIconFilename==NULL) pIconFilename.reset(g_pDBPCompiler->GetProjectField("icon1"));
 			if(pIconFilename)
 			{
-				if(pIconFilename[1]!=':') strcpy(pAbsResourceFile, pMediaRoot);
-				strcat(pAbsResourceFile, pIconFilename.get());
+				if(pIconFilename[1]!=':')
+					snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s%s", pMediaRoot, pIconFilename.get());
+				else
+					snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s", pIconFilename.get());
 			}
 			else
 			{
-				strcpy(pAbsResourceFile, pPluginsRoot);
-				strcat(pAbsResourceFile, "icon.ico");
+				snprintf(pAbsResourceFile, sizeof(pAbsResourceFile), "%s%s", pPluginsRoot, "icon.ico");
 			}
 			CFBuilder.AddFile(pAbsResourceFile,"");
 
@@ -1821,7 +1813,7 @@ bool CASMWriter::UpdateDLLData(void)
 					{
 						// Create Dynamic String
 						char* pDynamicString = new char[strlen(pStringData)+1];
-						strcpy(pDynamicString, pStringData);
+						strcpy_s(pDynamicString, strlen(pStringData)+1, pStringData);
 
 						// EXEData from Table
 						g_pEXE->m_pDLLIndexArray[dwDLLIndex]=pStringEntry->GetIndex();
@@ -1901,7 +1893,7 @@ bool CASMWriter::UpdateCommandData(void)
 
 			// Create Dynamic String
 			char* pDynamicString = new char[strlen(pRight)+1];
-			strcpy(pDynamicString, pRight);
+			strcpy_s(pDynamicString, strlen(pRight)+1, pRight);
 
 			// EXEData from Table
 			g_pEXE->m_pCommandDLLIdArray[c]=atoi(pLeft);
@@ -1970,7 +1962,7 @@ bool CASMWriter::UpdateStringData(void)
 
 			// Create Dynamic String
 			char* pDynamicString = new char[strlen(pStringData)+1];
-			strcpy(pDynamicString, pStringData);
+			strcpy_s(pDynamicString, strlen(pStringData)+1, pStringData);
 
 			// EXEData from Table
 			g_pEXE->m_pStringsArray[s]=(DWORD)pDynamicString;
@@ -2055,7 +2047,7 @@ bool CASMWriter::UpdateDataData(void)
 
 				// Create Dynamic String
 				char* pDynamicString = new char[strlen(pDataItem)+1];
-				strcpy(pDynamicString, pDataItem);
+				strcpy_s(pDynamicString, strlen(pDataItem)+1, pDataItem);
 
 				// EXEData from Table
 				DWORD dwStrIndex=d/10;
@@ -2427,7 +2419,7 @@ void CASMWriter::GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwDataSize)
 			{
 				*pData = new char[g_DebugInfo.GetCLISize()+2];
 				ZeroMemory(*pData, g_DebugInfo.GetCLISize()+2);
-				strcpy(*pData, g_DebugInfo.GetCLIText());
+				strcpy_s(*pData, g_DebugInfo.GetCLISize()+2, g_DebugInfo.GetCLIText());
 				*dwDataSize=strlen(*pData)+1;
 			}
 			else
@@ -3407,7 +3399,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	{
 		if(pP1)
 		{
-			if(strnicmp(pP1->GetStr(),"fs@",3)==NULL)
+			if(_strnicmp(pP1->GetStr(),"fs@",3)==NULL)
 			{
 				WriteASMComment("PUSH TO STACK", "", "", "");
 			}
@@ -4662,7 +4654,7 @@ bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 		CStr tempStr;
 		tempStr.SetNumericText(dwLeapOffset);
 		pRefStr = new char[strlen(tempStr.GetStr())+1];
-		strcpy(pRefStr, tempStr.GetStr());
+		strcpy_s(pRefStr, strlen(tempStr.GetStr())+1, tempStr.GetStr());
 		m_ProgramRefLabels[m_pRecordRefPosition[di]]=(uintptr_t)pRefStr;
 
 		// Clear leap flag

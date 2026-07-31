@@ -332,7 +332,7 @@ class CInstructionTable
 		bool		LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename);
 		bool		TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, LPSTR pRawCommandString);
 		void		AddCommandToHelpTxt(LPSTR pCategory, LPSTR pDLLName, LPSTR pParamStr, DWORD dwReturnParam, DWORD dwParamCount, LPSTR pParamDesc);
-		bool		CheckTroubleCommandSyntax(LPSTR lpTXTThisSyntax, LPSTR pCommandName);
+		bool		CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, LPSTR pCommandName);
 	
 		DWORD		DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD dwTypeValue);
 

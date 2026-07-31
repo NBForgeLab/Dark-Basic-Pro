@@ -1097,12 +1097,12 @@ bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructi
 		while(pEntry)
 		{
 			// Copy next one in to test against
-			strcpy(pTry, pEntry->GetName()->GetStr());
+			snprintf(pTry, sizeof(pTry), "%s", pEntry->GetName()->GetStr());
 
 			// Check with current parse item
 			DWORD length=strlen(pTry);
 			bool bFoundAPossible=false;
-			if(strnicmp(pStringData, pTry, length)==NULL)
+			if(_strnicmp(pStringData, pTry, length)==NULL)
 			{
 				if(bCommandWhiteSpace==false)
 				{
@@ -1546,7 +1546,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 			if(TurnStringIntoCommand(pCategory, pFilename, p)==false)
 			{
 				char err[512];
-				wsprintf(err, "Command in '%s' command-table unrecognised (%s)", libname, p);
+				snprintf(err, sizeof(err), "Command in '%s' command-table unrecognised (%s)", libname, p);
 				g_pErrorReport->AddErrorString(err);
 				fclose(f);
 				return false;
@@ -1613,7 +1613,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 					if(TurnStringIntoCommand(pCategory, pFilename, pTempStr)==false)
 					{
 						char err[512];
-						wsprintf(err, "Command in '%s' command-table unrecognised (%s)", pFilename, pTempStr);
+						snprintf(err, sizeof(err), "Command in '%s' command-table unrecognised (%s)", pFilename, pTempStr);
 						g_pErrorReport->AddErrorString(err);
 						return false;
 					}
@@ -1674,7 +1674,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 					if(TurnStringIntoCommand(pCategory, pFilename, pTempStr)==false)
 					{
 						char err[512];
-						wsprintf(err, "Command in '%s' command-table unrecognised (%s)", pFilename, pTempStr);
+						snprintf(err, sizeof(err), "Command in '%s' command-table unrecognised (%s)", pFilename, pTempStr);
 						g_pErrorReport->AddErrorString(err);
 						FreeLibrary(hModule);
 						return false;
@@ -1823,8 +1823,8 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 			{
 				// Could not add command as it was identically duplicated!
 				char err[512];
-//				wsprintf(err, "Command in DLL command-table duplicated (%s:%s)", pDLLName, pName->GetStr());
-				wsprintf(err, "Duplicate %s in %s and %s!", pName->GetStr(), pDLLName, lpConflictingDLLName);
+//				snprintf(err, sizeof(err), "Command in DLL command-table duplicated (%s:%s)", pDLLName, pName->GetStr());
+				snprintf(err, sizeof(err), "Duplicate %s in %s and %s!", pName->GetStr(), pDLLName, lpConflictingDLLName);
 				g_pErrorReport->AddErrorString(err);
 				SAFE_DELETE(lpConflictingDLLName);
 				return false;
@@ -1855,7 +1855,7 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	char lpMenuFilename[_MAX_PATH];
 	char lpTXTTitle[_MAX_PATH];
 	char lpTXTSyntax[_MAX_PATH];
-	char lpTXTThisSyntax[_MAX_PATH];
+	std::string sTXTThisSyntax;
 	char lpTXTCommand[_MAX_PATH];
 	char lpTXTThisCommand[_MAX_PATH];
 
@@ -1864,7 +1864,7 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	chdir("helptxt");
 	char lpIndexFilename[_MAX_PATH];
 	_getcwd(lpIndexFilename, _MAX_PATH);
-	strcat(lpIndexFilename, "\\index.txt");
+	snprintf(lpIndexFilename, sizeof(lpIndexFilename), "%s\\index.txt", lpIndexFilename);
 	mkdir("commands");
 	chdir("commands");
 	mkdir(pCategory);
@@ -1873,46 +1873,46 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	// PREPARE HELP PAGE CONTENTS TXT
 
 	// Filename
-	wsprintf(lpFilename, "..\\%s\\%s.txt", pCategory, pCommandName);
+	snprintf(lpFilename, sizeof(lpFilename), "..\\%s\\%s.txt", pCategory, pCommandName);
 
 	// Title of Command Page
-	wsprintf(lpTXTTitle, "%s", pCommandName);
+	snprintf(lpTXTTitle, sizeof(lpTXTTitle), "%s", pCommandName);
 
 	// Check if a trouble command
-	strcpy(lpTXTThisSyntax, "");
-	if(CheckTroubleCommandSyntax(lpTXTThisSyntax, pCommandName))
+	sTXTThisSyntax.clear();
+	if(CheckTroubleCommandSyntax(sTXTThisSyntax, pCommandName))
 	{
 		// Syntax Of Standard Command
 		if(dwReturnParam>0 && dwReturnParam<=10)
 		{
 			if(dwReturnParam>0 && pParamStr[0]!='*')
 			{
-				strcat(lpTXTThisSyntax, "Return ");
+				sTXTThisSyntax += "Return ";
 				switch(dwReturnParam)
 				{
-					case 1 : strcat(lpTXTThisSyntax, "Integer");			break;
-					case 2 : strcat(lpTXTThisSyntax, "Float");				break;
-					case 3 : strcat(lpTXTThisSyntax, "String");				break;
-					case 4 : strcat(lpTXTThisSyntax, "Flag");				break;
-					case 5 : strcat(lpTXTThisSyntax, "BYTE");				break;
-					case 6 : strcat(lpTXTThisSyntax, "WORD");				break;
-					case 7 : strcat(lpTXTThisSyntax, "DWORD");				break;
-					case 8 : strcat(lpTXTThisSyntax, "Double Float");		break;
-					case 9 : strcat(lpTXTThisSyntax, "Double Integer");		break;
+					case 1 : sTXTThisSyntax += "Integer";			break;
+					case 2 : sTXTThisSyntax += "Float";				break;
+					case 3 : sTXTThisSyntax += "String";				break;
+					case 4 : sTXTThisSyntax += "Flag";				break;
+					case 5 : sTXTThisSyntax += "BYTE";				break;
+					case 6 : sTXTThisSyntax += "WORD";				break;
+					case 7 : sTXTThisSyntax += "DWORD";				break;
+					case 8 : sTXTThisSyntax += "Double Float";		break;
+					case 9 : sTXTThisSyntax += "Double Integer";		break;
 				}
-				strcat(lpTXTThisSyntax, "=");
+				sTXTThisSyntax += "=";
 			}
-			strcat(lpTXTThisSyntax, pCommandName);
+			sTXTThisSyntax += pCommandName;
 			if(dwReturnParam>0)
-				strcat(lpTXTThisSyntax, "(");
+				sTXTThisSyntax += "(";
 			else
-				strcat(lpTXTThisSyntax, " ");
+				sTXTThisSyntax += " ";
 		}
 		else
 		{
 			// No return value command
-			strcat(lpTXTThisSyntax, pCommandName);
-			strcat(lpTXTThisSyntax, " ");
+			sTXTThisSyntax += pCommandName;
+			sTXTThisSyntax += " ";
 		}
 
 		if(dwParamCount>0)
@@ -1925,28 +1925,28 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 					{
 						switch(pParamStr[p])
 						{
-							case 'L' : strcat(lpTXTThisSyntax, "Integer");			break;
-							case 'F' : strcat(lpTXTThisSyntax, "Float");			break;
-							case 'S' : strcat(lpTXTThisSyntax, "String");			break;
-							case 'B' : strcat(lpTXTThisSyntax, "Flag");				break;
-							case 'Y' : strcat(lpTXTThisSyntax, "BYTE");				break;
-							case 'W' : strcat(lpTXTThisSyntax, "WORD");				break;
-							case 'D' : strcat(lpTXTThisSyntax, "DWORD");			break;
-							case 'O' : strcat(lpTXTThisSyntax, "Double Float");		break;
-							case 'R' : strcat(lpTXTThisSyntax, "Double Integer");	break;
+							case 'L' : sTXTThisSyntax += "Integer";			break;
+							case 'F' : sTXTThisSyntax += "Float";			break;
+							case 'S' : sTXTThisSyntax += "String";			break;
+							case 'B' : sTXTThisSyntax += "Flag";				break;
+							case 'Y' : sTXTThisSyntax += "BYTE";				break;
+							case 'W' : sTXTThisSyntax += "WORD";				break;
+							case 'D' : sTXTThisSyntax += "DWORD";			break;
+							case 'O' : sTXTThisSyntax += "Double Float";		break;
+							case 'R' : sTXTThisSyntax += "Double Integer";	break;
 						}
-						strcat(lpTXTThisSyntax, " Value");
-						if(p<dwParamCount-1) strcat(lpTXTThisSyntax, ", ");
+						sTXTThisSyntax += " Value";
+						if(p<dwParamCount-1) sTXTThisSyntax += ", ";
 					}
 				}
 			}
 			else
 			{
 				// Param Desc stored in DLL
-				strcat(lpTXTThisSyntax, pParamDesc);
+				sTXTThisSyntax += pParamDesc;
 			}
 		}
-		if(dwReturnParam>0) strcat(lpTXTThisSyntax, ")");
+		if(dwReturnParam>0) sTXTThisSyntax += ")";
 	}
 
 	// WRITE HELP TXT FILE
@@ -1959,15 +1959,15 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	char lpField[256];
 	while(dwField<998)
 	{
-		wsprintf(lpField, "SYNTAX%d", dwField);
+		snprintf(lpField, sizeof(lpField), "SYNTAX%d", dwField);
 		GetPrivateProfileString("COMMAND", lpField, "", lpTXTSyntax, 256, lpFilename);
 		if(strcmp(lpTXTSyntax,"")==NULL)
 		{
 			// Not there, so add it
-			WritePrivateProfileString("COMMAND", lpField, lpTXTThisSyntax, lpFilename);
+			WritePrivateProfileString("COMMAND", lpField, sTXTThisSyntax.c_str(), lpFilename);
 			break;
 		}
-		if(strcmp(lpTXTSyntax,lpTXTThisSyntax)==NULL)
+		if(strcmp(lpTXTSyntax,sTXTThisSyntax.c_str())==NULL)
 		{
 			// Already got it
 			break;
@@ -1976,42 +1976,41 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	}
 
 	// Add parameter types to command-data
-	wsprintf(lpField, "PARAM");
+	snprintf(lpField, sizeof(lpField), "%s", "PARAM");
 	char lpThisParamStr [ 256 ];
 	GetPrivateProfileString("COMMAND", lpField, "", lpThisParamStr, 256, lpFilename);
-	char lpNewParamStr [ 256 ];
-	strcpy ( lpNewParamStr, "" );
-	if ( dwReturnParam > 0 ) strcat ( lpNewParamStr, "(" );
+	std::string sNewParamStr;
+	if ( dwReturnParam > 0 ) sNewParamStr += "(";
 	switch(dwReturnParam)
 	{
-		case 1 : strcat(lpNewParamStr, "L");		break;
-		case 2 : strcat(lpNewParamStr, "F");		break;
-		case 3 : strcat(lpNewParamStr, "S");		break;
-		case 4 : strcat(lpNewParamStr, "B");		break;
-		case 5 : strcat(lpNewParamStr, "Y");		break;
-		case 6 : strcat(lpNewParamStr, "W");		break;
-		case 7 : strcat(lpNewParamStr, "D");		break;
-		case 8 : strcat(lpNewParamStr, "O");		break;
-		case 9 : strcat(lpNewParamStr, "R");		break;
+		case 1 : sNewParamStr += "L";		break;
+		case 2 : sNewParamStr += "F";		break;
+		case 3 : sNewParamStr += "S";		break;
+		case 4 : sNewParamStr += "B";		break;
+		case 5 : sNewParamStr += "Y";		break;
+		case 6 : sNewParamStr += "W";		break;
+		case 7 : sNewParamStr += "D";		break;
+		case 8 : sNewParamStr += "O";		break;
+		case 9 : sNewParamStr += "R";		break;
 	}
-	if ( pParamStr ) strcat ( lpNewParamStr, pParamStr );
-	if ( strlen(lpNewParamStr) > strlen(lpThisParamStr) )
-		WritePrivateProfileString("COMMAND", lpField, lpNewParamStr, lpFilename);
+	if ( pParamStr ) sNewParamStr += pParamStr;
+	if ( sNewParamStr.length() > strlen(lpThisParamStr) )
+		WritePrivateProfileString("COMMAND", lpField, sNewParamStr.c_str(), lpFilename);
 
 	// Add Unique Command To The IndexTXT (for the index.htm)
 	DWORD dwIndexField=1;
 	char lpIndexField[_MAX_PATH];
 	char lpIndexFieldData[_MAX_PATH];
 	char lpFilenameToCommand[_MAX_PATH];
-	wsprintf(lpFilenameToCommand, "commands\\%s\\%s.htm", pCategory, pCommandName);
+	snprintf(lpFilenameToCommand, sizeof(lpFilenameToCommand), "commands\\%s\\%s.htm", pCategory, pCommandName);
 	while(1)
 	{
-		wsprintf(lpIndexField, "ENTRY%d", dwIndexField);
+		snprintf(lpIndexField, sizeof(lpIndexField), "ENTRY%d", dwIndexField);
 		GetPrivateProfileString("INDEX", lpIndexField, "", lpIndexFieldData, _MAX_PATH, lpIndexFilename);
 		if(strcmp(lpIndexFieldData,"")==NULL)
 		{
 			WritePrivateProfileString("INDEX", lpIndexField, pCommandName, lpIndexFilename);
-			wsprintf(lpIndexField, "FILE%d", dwIndexField);
+			snprintf(lpIndexField, sizeof(lpIndexField), "FILE%d", dwIndexField);
 			WritePrivateProfileString("INDEX", lpIndexField, lpFilenameToCommand, lpIndexFilename);
 			break;
 		}
@@ -2029,11 +2028,11 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	// Update category sub-menu file
 	dwField=1;
 	bool bAlreadyExists=false;
-	strcpy(lpTXTThisCommand, pCommandName);
-	wsprintf(lpSubMenuFilename, "..\\commands\\%s.txt", pCategory);
+	snprintf(lpTXTThisCommand, sizeof(lpTXTThisCommand), "%s", pCommandName);
+	snprintf(lpSubMenuFilename, sizeof(lpSubMenuFilename), "..\\commands\\%s.txt", pCategory);
 	while(dwField<2000)
 	{
-		wsprintf(lpField, "MENU%d", dwField);
+		snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
 		GetPrivateProfileString("SUBMENU", lpField, "", lpTXTCommand, 256, lpSubMenuFilename);
 		if(strcmp(lpTXTCommand,lpTXTThisCommand)==NULL)
 		{
@@ -2055,12 +2054,12 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 		while(dwField<3000)
 		{
 			char pAnything[256];
-			wsprintf(lpField, "MENU%d", dwField);
+			snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
 			GetPrivateProfileString("SUBMENU", lpField, "", pAnything, 256, lpSubMenuFilename);
 			if(strcmp(pAnything,"")==NULL)
 			{
 				// Empty - Can put it here
-				wsprintf(lpField, "MENU%d", dwField);
+				snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
 				WritePrivateProfileString("SUBMENU", lpField, lpTXTThisCommand, lpSubMenuFilename);
 				break;
 			}
@@ -2073,11 +2072,11 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 
 	// Update Commands Menu
 	dwField=1;
-	strcpy(lpTXTThisCommand, pCategory);
-	wsprintf(lpMenuFilename, "..\\helptxt\\commands.txt", pCategory);
+	snprintf(lpTXTThisCommand, sizeof(lpTXTThisCommand), "%s", pCategory);
+	snprintf(lpMenuFilename, sizeof(lpMenuFilename), "..\\helptxt\\commands.txt");
 	while(1)
 	{
-		wsprintf(lpField, "MENU%d", dwField);
+		snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
 		GetPrivateProfileString("COMMANDSMENU", lpField, "", lpTXTCommand, 256, lpMenuFilename);
 		if(strcmp(lpTXTCommand,"")==NULL)
 		{
@@ -2096,18 +2095,18 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	chdir("..");
 }
 
-bool CInstructionTable::CheckTroubleCommandSyntax(LPSTR lpTXTThisSyntax, LPSTR pCommandName)
+bool CInstructionTable::CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, LPSTR pCommandName)
 {
 	bool bNotAnyTrouble=true;
 
 	if(stricmp(pCommandName,"print")==NULL)
 	{
-		strcpy(lpTXTThisSyntax, "PRINT Print Statements");
+		sTXTThisSyntax = "PRINT Print Statements";
 		bNotAnyTrouble=false;
 	}
 	if(stricmp(pCommandName,"input")==NULL)
 	{
-		strcpy(lpTXTThisSyntax, "INPUT Print Statements, Input Variable");
+		sTXTThisSyntax = "INPUT Print Statements, Input Variable";
 		bNotAnyTrouble=false;
 	}
 
@@ -2436,7 +2435,7 @@ bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPSTR pConstantName )
 						// leefix - 260604 - u54 - largest word rules
 						DWORD dwThisCompareSize = dwCompareSize;
 						if ( dwThisCompareSize<dwOneWordLength ) dwThisCompareSize=dwOneWordLength;
-						if ( strnicmp ( pPtrBegin, pConstantName, dwThisCompareSize )==NULL )
+						if ( _strnicmp ( pPtrBegin, pConstantName, dwThisCompareSize )==NULL )
 						{
 							// this word matches the one word from the command, leave!
 							return true;

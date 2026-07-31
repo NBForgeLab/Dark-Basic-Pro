@@ -115,3 +115,31 @@ TEST_F(ASMWriterEmissionTest, CompletesLeapMarker) {
 TEST_F(ASMWriterEmissionTest, RegistersDllCommandInTable) {
     EXPECT_GT(m_pWriter->AddCommandToTable((LPSTR)"@mycore.dll", (LPSTR)"@myfunc"), 0u);
 }
+
+// HideAnyHiddenCode replaces printable characters between HIDESTART and
+// HIDEEND markers with 'X', leaving the markers themselves and any code
+// outside the hidden region untouched.
+TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeReplacesBetweenMarkers) {
+    // "ABCHIDESTARTsecretHIDEENDXYZ"
+    //   markers stay, "secret" becomes "XXXXXX"
+    char data[] = "ABCHIDESTARTsecretHIDEENDXYZ";
+    DWORD len = (DWORD)strlen(data);
+    ASSERT_TRUE(m_pWriter->HideAnyHiddenCode(data, len));
+    EXPECT_STREQ(data, "ABCHIDESTARTXXXXXXHIDEENDXYZ");
+}
+
+// Without any markers the data is left untouched.
+TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeNoMarkersLeavesDataIntact) {
+    char data[] = "normal code here";
+    DWORD len = (DWORD)strlen(data);
+    ASSERT_TRUE(m_pWriter->HideAnyHiddenCode(data, len));
+    EXPECT_STREQ(data, "normal code here");
+}
+
+// Case-insensitive marker detection: "hidestart" / "hideend" also work.
+TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeCaseInsensitiveMarkers) {
+    char data[] = "beforehidestartSECREThideendafter";
+    DWORD len = (DWORD)strlen(data);
+    ASSERT_TRUE(m_pWriter->HideAnyHiddenCode(data, len));
+    EXPECT_STREQ(data, "beforehidestartXXXXXXhideendafter");
+}
