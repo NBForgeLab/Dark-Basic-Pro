@@ -18,6 +18,7 @@
 #include "Str.h"
 #include "ParserResultData.h"
 #include "Tokenizer.h"
+#include "ExpressionParser.h"
 
 // Token enum class (converted from #define constants)
 enum class Token : int {
@@ -378,8 +379,13 @@ class CMathOp
 		[[nodiscard]] CTokenizer& GetTokenizer() noexcept { return m_tokenizer; }
 		[[nodiscard]] const CTokenizer& GetTokenizer() const noexcept { return m_tokenizer; }
 
+		// ExpressionParser (extracted subsystem)
+		[[nodiscard]] CExpressionParser& GetExpressionParser() noexcept { return m_expressionParser; }
+		[[nodiscard]] const CExpressionParser& GetExpressionParser() const noexcept { return m_expressionParser; }
+
 	private:
-		CTokenizer		m_tokenizer;
+		CTokenizer m_tokenizer;
+		CExpressionParser m_expressionParser;
 
 		// Debug Data
 		DWORD			m_dwLineNumber;
