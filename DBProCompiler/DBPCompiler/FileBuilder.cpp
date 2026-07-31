@@ -10,6 +10,7 @@
 #include "macros.h"
 #include "wingdi.h"
 #include "TextConvert.h"
+#include "SafeDLLLoading.h"
 #include "dbp/package/ExecutableKeyResource.h"
 #include "dbp/package/RuntimeDescriptor.h"
 
@@ -156,31 +157,34 @@ bool CFileBuilder::AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile)
 	char pStoreBeforeWildScan[_MAX_PATH];
 	getcwd(pStoreBeforeWildScan, _MAX_PATH);
 
-	// Source media folder
-	char pSrcFolder[_MAX_PATH];
-	strcpy(pSrcFolder, pMediaRoot);
-	strcat(pSrcFolder, pMediaWidlcardFile);
-	for(DWORD e=strlen(pSrcFolder); e>0; e--)
-		if(pSrcFolder[e]=='\\' || pSrcFolder[e]=='/')
-			{ pSrcFolder[e+1]=0; break; }
+	// Source media folder (std::string for safe concatenation)
+	std::string srcFolderStr = std::string(pMediaRoot) + pMediaWidlcardFile;
+	// Trim to directory (strip trailing filename after last separator)
+	{
+		size_t lastSep = srcFolderStr.find_last_of("\\/");
+		if (lastSep != std::string::npos)
+			srcFolderStr = srcFolderStr.substr(0, lastSep + 1);
+	}
 
-	// Destination media folder
-	char pDestFolder[_MAX_PATH];
-	strcpy(pDestFolder, pMediaWidlcardFile);
-	for(DWORD d=strlen(pDestFolder); d>0; d--)
-		if(pDestFolder[d]=='\\' || pDestFolder[d]=='/')
-			{ pDestFolder[d+1]=0; break; }
+	// Destination media folder (strip leading directory from wildcard spec)
+	std::string destFolderStr(pMediaWidlcardFile);
+	{
+		size_t lastSep = destFolderStr.find_last_of("\\/");
+		if (lastSep != std::string::npos)
+			destFolderStr = destFolderStr.substr(0, lastSep + 1);
+		else
+			destFolderStr.clear();
+	}
 
-	// Wildcard Filename Only
-	char pWildcardOnly[_MAX_PATH];
-	strcpy(pWildcardOnly, pMediaWidlcardFile+strlen(pDestFolder));
+	// Wildcard filename only (portion after dest folder prefix)
+	std::string wildcardOnlyStr = std::string(pMediaWidlcardFile).substr(destFolderStr.size());
 
 	// Jump to source of media files
-	chdir(pSrcFolder);
+	chdir(srcFolderStr.c_str());
 
 	// Find specific file(s)
 	_finddata_t filedata;
-	long hFile = _findfirst(pWildcardOnly, &filedata);
+	long hFile = _findfirst(wildcardOnlyStr.c_str(), &filedata);
 	if(hFile!=-1L)
 	{
 		long endyet=0;
@@ -191,25 +195,17 @@ bool CFileBuilder::AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile)
 				// Nest Dir
 				if(strcmp(filedata.name,".")!=NULL && strcmp(filedata.name, "..")!=NULL)
 				{
-					char pNestMediaDir[_MAX_PATH];
-					strcpy(pNestMediaDir, pDestFolder);
-					strcat(pNestMediaDir, filedata.name);
-					strcat(pNestMediaDir, "\\");
-					strcat(pNestMediaDir, pWildcardOnly);
-					AddWildcardFiles(pMediaRoot, pNestMediaDir);
+					std::string nestMediaDir = destFolderStr + filedata.name + "\\";
+					std::string nestWildcard = nestMediaDir + wildcardOnlyStr;
+					AddWildcardFiles(const_cast<LPSTR>(pMediaRoot), const_cast<LPSTR>(nestWildcard.c_str()));
 				}
 			}
 			else
 			{
 				// Do File
-				char pMediaPath[_MAX_PATH];
-				char pAbsPathToMedia[_MAX_PATH];
-				strcpy(pMediaPath, "media\\");
-				strcat(pMediaPath, pDestFolder);
-				strcat(pMediaPath, filedata.name);
-				strcpy(pAbsPathToMedia, pSrcFolder);
-				strcat(pAbsPathToMedia, filedata.name);
-				AddFile(pAbsPathToMedia, pMediaPath);
+				std::string mediaPath = std::string("media\\") + destFolderStr + filedata.name;
+				std::string absPathToMedia = srcFolderStr + filedata.name;
+				AddFile(const_cast<LPSTR>(absPathToMedia.c_str()), const_cast<LPSTR>(mediaPath.c_str()));
 			}
 			endyet = _findnext(hFile, &filedata);
 		}
@@ -552,7 +548,7 @@ bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 	if(m_hfile==INVALID_HANDLE_VALUE)
 	{
 		char err[256];
-		wsprintf(err, "Could not create %s", EXEfilename);
+		snprintf(err, sizeof(err), "Could not create %s", EXEfilename);
 		g_pErrorReport->AddErrorString(err);
 		return false;
 	}
@@ -790,7 +786,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	for(short icon=1; icon<=0; icon++)
 	{
 		// Get Icon Rsource Size From Existing Resource
-		HMODULE hEXE = LoadLibrary(ModuleName);
+		HMODULE hEXE = dbp::dll::LoadApplicationDLLA(ModuleName);
 		LPCTSTR pResName = 0;
 
 		// Determined by icon order in EXE
@@ -960,26 +956,26 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	LPSTR pLargeIcon = const_cast<LPSTR>(m_FileTable[10].c_str());
 	LPSTR pSmallIcon = const_cast<LPSTR>(m_FileTable[11].c_str());
 
-	// Absolute Path for Modulename
-	char ModuleName[256];
+	// Absolute Path for Modulename (std::string for safe concatenation)
+	std::string moduleNameStr;
 	if(pFilenameEXE[1]==':')
 	{
 		// Filename is absolute
-		strcpy(ModuleName, pFilenameEXE);
+		moduleNameStr = pFilenameEXE;
 	}
 	else
 	{
 		// File is relative
-		getcwd(ModuleName, 256);
-		strcat(ModuleName, "\\");
-		strcat(ModuleName, pFilenameEXE);
+		char cwdBuf[_MAX_PATH];
+		getcwd(cwdBuf, _MAX_PATH);
+		moduleNameStr = std::string(cwdBuf) + "\\" + pFilenameEXE;
 	}
 
 	// Change VERSION INFORMATION
 	if(pVerComments)
 	{
 		// Access Resource from EXE
-		HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(ModuleName).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
+		HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(moduleNameStr.c_str()).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
 		HRSRC hRes=FindResource(hEXE, (LPCTSTR)1, RT_VERSION);
 		DWORD dwDataSize = SizeofResource(hEXE, hRes);
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
@@ -1053,7 +1049,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		FreeLibrary(hEXE);
 
 		// Works for all Operating Systems - replace VersionBlock
-		ReplaceVersionInfoBlockInEXE ( ModuleName, pVersonData, dwOffsetToFirstEntry, dwDataSize );
+		ReplaceVersionInfoBlockInEXE ( const_cast<LPSTR>(moduleNameStr.c_str()), pVersonData, dwOffsetToFirstEntry, dwDataSize );
 	}
 
 	// Progress Reporting Tool
@@ -1063,7 +1059,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	for(short icon=1; icon<=2; icon++)
 	{
 		// Get Icon Rsource Size From Existing Resource
-		HMODULE hEXE = LoadLibraryW(TextConvert::UTF8ToUTF16(ModuleName).c_str());
+		HMODULE hEXE = dbp::dll::LoadApplicationDLLW(TextConvert::UTF8ToUTF16(moduleNameStr.c_str()).c_str());
 		LPCTSTR pResName = 0;
 
 		// Determined by icon order in EXE
@@ -1105,13 +1101,12 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		DWORD dwLength = strlen(pFilename);
 		if(strnicmp(pFilename+dwLength-4, ".bmp", 4)==NULL)
 		{
-			// Make an ICO file from BMP
-			char pWorkIcon[_MAX_PATH];
-			strcpy(pWorkIcon, pPathToPluginFolderForBuilder);
-			MakeICOFromBMP(pFilename, pWorkIcon);
-			strcat(pWorkIcon, "workicon.ico");
-			if(icon==1) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pWorkIcon).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pWorkIcon).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			// Make an ICO file from BMP (std::string for safe concatenation)
+			std::string workIconStr = std::string(pPathToPluginFolderForBuilder);
+			MakeICOFromBMP(pFilename, const_cast<LPSTR>(workIconStr.c_str()));
+			workIconStr += "workicon.ico";
+			if(icon==1) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(workIconStr.c_str()).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(workIconStr.c_str()).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 		}
 		else
 		{
@@ -1174,7 +1169,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		if(icon==2) memcpy(pIconMem+MaskOffset, pMaskArray, (dwBitsSize/8)*2);
 
 		// Open EXE for editing (lee - 060406 - u6rc6 - win98/me cannot do this natively)
-		HANDLE hUpdateRes = BeginUpdateResourceW( TextConvert::UTF8ToUTF16(ModuleName).c_str(), FALSE);
+		HANDLE hUpdateRes = BeginUpdateResourceW( TextConvert::UTF8ToUTF16(moduleNameStr.c_str()).c_str(), FALSE);
 		if ( hUpdateRes )
 		{
 			// Add Icon to Executable
@@ -1206,16 +1201,12 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 
 bool CFileBuilder::MakeICOFromBMP(LPSTR pBMPFilename, LPSTR pDestICOPath)
 {
-	// Calc strings
-	char pRawIcon[_MAX_PATH];
-	char pWorkIcon[_MAX_PATH];
-	strcpy(pWorkIcon, pDestICOPath);
-	strcat(pWorkIcon, "workicon.ico");
-	strcpy(pRawIcon, pDestICOPath);
-	strcat(pRawIcon, "rawicon.ico");
+	// Calc strings (std::string for safe concatenation)
+	std::string workIconStr = std::string(pDestICOPath) + "workicon.ico";
+	std::string rawIconStr = std::string(pDestICOPath) + "rawicon.ico";
 
 	// Load raw icon
-	LPICONRESOURCE hIconRes = ReadIconFromICOFile( pRawIcon );
+	LPICONRESOURCE hIconRes = ReadIconFromICOFile( const_cast<LPSTR>(rawIconStr.c_str()) );
 	if(hIconRes)
 	{
 		// Loop through and copy bitmap to each icon
@@ -1234,7 +1225,7 @@ bool CFileBuilder::MakeICOFromBMP(LPSTR pBMPFilename, LPSTR pDestICOPath)
 		}
 
 		// Write out raw+image as work icon
-		if(WriteIconToICOFile( hIconRes, pWorkIcon ))
+		if(WriteIconToICOFile( hIconRes, const_cast<LPSTR>(workIconStr.c_str()) ))
 		{
 			// Successfully created icon file
 		}
@@ -1307,9 +1298,8 @@ bool CFileBuilder::SaveIconCursorFileFromInfo(	LPSTR pszFullFileName,
 
 bool CFileBuilder::MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename)
 {
-	// Calc strings
-	char pWorkCursor[_MAX_PATH];
-	strcpy(pWorkCursor, pDestCURFilename);
+	// Calc strings (std::string for safe handling)
+	std::string workCursorStr(pDestCURFilename);
 
 	// Load Bitmap
 	LPBITMAPINFO pDIB = (LPBITMAPINFO)ReadBMPFile ( pBMPFilename );
@@ -1349,7 +1339,7 @@ bool CFileBuilder::MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename)
 	int iColors = 2;//2 or 16
 
 	// Save CUR file using bitmap bits
-	if(SaveIconCursorFileFromInfo(	pWorkCursor, 32, 32, iColors, iHotspotX, iHotSpotY, pImg, dwImgSize ))
+	if(SaveIconCursorFileFromInfo(	const_cast<LPSTR>(workCursorStr.c_str()), 32, 32, iColors, iHotspotX, iHotSpotY, pImg, dwImgSize ))
 	{
 		// Successfully created CUR file
 	}

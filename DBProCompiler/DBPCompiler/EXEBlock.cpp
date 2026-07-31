@@ -9,6 +9,7 @@
 #include "VFSHooks.h"
 #include "MemoryPE.h"
 #include "CoreRuntimeApi.h"
+#include "SafeDLLLoading.h"
 #include <filesystem>
 #include <memory>
 #include "direct.h"
@@ -87,9 +88,8 @@ bool WriteStringToRegistry(char* PerfmonNamesKey, char* valuekey, char* string)
 	HKEY hKeyNames = 0;
 	DWORD Status;
 	DWORD dwDisposition;
-	char ObjectType[256];
-	strcpy(ObjectType,"Num");
-	Status = RegCreateKeyEx(HKEY_CURRENT_USER, PerfmonNamesKey, 0L, ObjectType, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
+	const char* ObjectType = "Num";
+	Status = RegCreateKeyEx(HKEY_CURRENT_USER, PerfmonNamesKey, 0L, const_cast<LPSTR>(ObjectType), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
 	if(dwDisposition==REG_OPENED_EXISTING_KEY)
 	{
 		RegCloseKey(hKeyNames);
@@ -107,11 +107,10 @@ void ReadStringFromRegistry(char* PerfmonNamesKey, char* valuekey, char* string)
 {
 	HKEY hKeyNames = 0;
 	DWORD Status;
-	char ObjectType[256];
+	const char* ObjectType = "Num";
 	DWORD Datavalue = 0;
 
-	strcpy(string,"");
-	strcpy(ObjectType,"Num");
+	string[0] = '\0';
 	Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
     if(Status==ERROR_SUCCESS)
 	{
@@ -765,7 +764,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 		m_pDLLFilenameArray = CreatePtrArray(1);
 		m_pDLLFilenameArray[0] = (uintptr_t)std::make_unique<char[]>(strlen(pCoreName)+1).release();
-		strcpy((char*)m_pDLLFilenameArray[0], pCoreName);
+		snprintf((char*)m_pDLLFilenameArray[0], strlen(pCoreName)+1, "%s", pCoreName);
 	}
 
 	// [EXE] - Detect if using Basic3D.DLL and if so, check for DX9!
@@ -841,7 +840,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						// Module can be in several places (RAII: freed on every exit path, including break/continue)
 						auto pTryDLLNameOwner = std::make_unique<char[]>((strlen(pDLLName)*2)+256);
 						LPSTR pTryDLLName = pTryDLLNameOwner.get();
-						strcpy(pTryDLLName, pDLLName);
+						snprintf(pTryDLLName, (strlen(pDLLName)*2)+256, "%s", pDLLName);
 
 						// leeadd - 270308 - if DLL local to exe, switch to that folder for this DLL
 						bool bSwitchedToLocalEXEfolder = false;
@@ -854,13 +853,11 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						// leefix - 120104 - DEBUG MODE - may use a plugins-licensed folder
 						if(FileExists(pTryDLLName)==false)
 						{
-							strcpy(pTryDLLName, "..\\plugins-user\\");
-							strcat(pTryDLLName, pDLLName);
+							snprintf(pTryDLLName, (strlen(pDLLName)*2)+256, "..\\plugins-user\\%s", pDLLName);
 						}
 						if(FileExists(pTryDLLName)==false)
 						{
-							strcpy(pTryDLLName, "..\\plugins-licensed\\");
-							strcat(pTryDLLName, pDLLName);
+							snprintf(pTryDLLName, (strlen(pDLLName)*2)+256, "..\\plugins-licensed\\%s", pDLLName);
 						}
 
 						// Module is a DLL
@@ -869,7 +866,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							hDLLMod[dllindex] = MemoryPE::LoadFromVFS(exe_get_filename_only(pTryDLLName));
 							if (hDLLMod[dllindex] == NULL)
 							{
-								hDLLMod[dllindex]=LoadLibraryW(TextConvert::UTF8ToUTF16(pTryDLLName).c_str());
+								hDLLMod[dllindex]=dbp::dll::LoadApplicationDLLW(TextConvert::UTF8ToUTF16(pTryDLLName).c_str());
 							}
 							if(hDLLMod[dllindex]==NULL)
 							{
@@ -1119,7 +1116,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	if(g_pGlob)
 	{
 		memset ( g_pGlob->pEXEUnpackDirectory, 0, _MAX_PATH );
-		strcpy(g_pGlob->pEXEUnpackDirectory, m_UnpackFolderName.c_str());
+		snprintf(g_pGlob->pEXEUnpackDirectory, _MAX_PATH, "%s", m_UnpackFolderName.c_str());
 		g_pGlob->ppEXEAbsFilename = (uintptr_t)m_AbsoluteAppFile.c_str();
 		g_pGlob->dwEncryptionUniqueKey = m_dwEncryptionKey;
 	}
@@ -1201,7 +1198,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							RETLPSTRNOPARAM GetDependencyID = ( RETLPSTRNOPARAM ) Hook_GetProcAddress( hDLLMod[dllindex], "?GetDependencyID@@YAPBDH@Z" );
 							if (!GetDependencyID)
 								GetDependencyID = (RETLPSTRNOPARAM)Hook_GetProcAddress(hDLLMod[dllindex], "GetDependencyID");
-							strcpy ( pDLLNameToFind, GetDependencyID(iD) );
+							const char* pDepName = GetDependencyID(iD);
+							if (pDepName) snprintf(pDLLNameToFind, sizeof(pDLLNameToFind), "%s", pDepName); else pDLLNameToFind[0] = '\0';
 
 							// find hModuleFound of that dependence
 							HINSTANCE hModuleFound = NULL;
@@ -1468,7 +1466,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					else
 					{
 						if(*pReturnError==NULL) *pReturnError = new char[1024];
-						strcpy(*pReturnError,"Could not find dynamic string during referencing");
+						snprintf(*pReturnError, 1024, "%s", "Could not find dynamic string during referencing");
 						bResult=false;
 					}
 				}
