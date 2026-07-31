@@ -614,9 +614,9 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 	db3::CProfile<> prof("CASMWriter::PrepareEXE()");
 
 	// Validate PE header alignment requirements via m_peBuilder
-	if (!m_peBuilder.ValidatePEHeaderRequirements(0x400000, 4096, 512))
+	if (!m_peBuilder.ValidatePEHeaderRequirements(0x400000, 4096, 512) || !m_peBuilder.BuildExecutable(pEXEFilename))
 	{
-		g_pErrorReport->AddErrorString("Failed to 'PrepareEXE' : Invalid PE Header Requirements");
+		g_pErrorReport->AddErrorString("Failed to 'PrepareEXE' : Invalid PE Header Requirements or Filename");
 		return false;
 	}
 

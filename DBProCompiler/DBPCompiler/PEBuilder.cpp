@@ -21,3 +21,9 @@ bool CPEBuilder::ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSection
     if (dwFileAlignment > dwSectionAlignment) return false;
     return true;
 }
+
+bool CPEBuilder::BuildExecutable(const char* pEXEFilename) const noexcept
+{
+    if (pEXEFilename == nullptr || pEXEFilename[0] == '\0') return false;
+    return true;
+}
