@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Injects the Microsoft.DXSDK.D3DX NuGet package paths into legacy SDK
+     vcxproj builds (DBDLLCore & friends) driven from the command line:
+     MSBuild.exe <project.vcxproj> /p:PlatformToolset=v143
+       /p:ForceImportBeforeCppTargets=<this file> -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DbpDxSdkRoot>D:\GitHub-repo\FPS-Creator-Classic\FPS Creator Editor\dxsdk\build\native</DbpDxSdkRoot>
+    <DbpRepoSdkRoot>D:\GitHub-repo\Dark-Basic-Pro\SDK</DbpRepoSdkRoot>
+    <IncludePath>$(DbpDxSdkRoot)\include;$(DbpRepoSdkRoot)\DB3;$(IncludePath)</IncludePath>
+    <LibraryPath>$(DbpDxSdkRoot)\release\lib\x86;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- DB3.h uses inline variables; match the modern toolchain baseline -->
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>
