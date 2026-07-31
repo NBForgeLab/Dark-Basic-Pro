@@ -220,12 +220,9 @@ class CStatement
 		LPSTR			ProduceNextToken(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas);
 		LPSTR			ProduceNextArrayToken(LPSTR* pOrigPointer);
 		LPSTR			ProduceFullSegment(LPSTR* pString);
-		LPSTR			SeperateInitFromType(LPSTR pPossibleTypeAndInit);
 		bool			SeekCharAsPrevChar(unsigned char c, int* piBacktrak);
 		bool			SeekCharAsNextChar(unsigned char c, DWORD* pdwAdvance);
 		LPSTR			GetStringToEndOfLine(void);
-		bool			SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrValue, bool bMustBeLiteralDim);
-		bool			ContainsAssignmentOperator(CStr* pString);
 		bool			RemoveEdgeBracketFromSegment(LPSTR pPointer, DWORD *pdwSPos, DWORD *pdwEPos);
 		bool			ExtractDetailsFromForNext(CStr* pVar, CStr* pInit, CStr* pEnd, CStr* pStep);
 		bool			ReplaceTHENandELSEwithSep(void);

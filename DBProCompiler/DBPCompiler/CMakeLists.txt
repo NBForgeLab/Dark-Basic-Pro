@@ -49,6 +49,7 @@ set(LIB_SOURCES
     SourceAssembler.cpp
     Statement.cpp
     StatementChain.cpp
+    StatementHelper.cpp
     StatementList.cpp
     Str.cpp
     StructTable.cpp
