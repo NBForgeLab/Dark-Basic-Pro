@@ -18,6 +18,7 @@
 #include "ICodeGenerator.h"
 #include "DebuggerInterface.h"
 #include "LeapMarkerManager.h"
+#include "MachineCodeBuffer.h"
 
 // ASM task codes (converted from #define constants)
 constexpr int ASMMAXCOUNT = 300;
@@ -347,7 +348,7 @@ class CASMWriter : public ICodeGenerator
 		bool CheckAndExpandMCBMemory(void);
 		bool CheckAndExpandREFMemory(void);
 
-		DWORD GetCurrentMCPosition(void) { return m_pMachineBlock-m_pProgramStart; }
+		DWORD GetCurrentMCPosition(void);
 
 		bool ReportAnyErrorsToCLI(void);
 		bool PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate);
@@ -430,11 +431,8 @@ class CASMWriter : public ICodeGenerator
 		bool					m_bArrayCheckFlag;
 		bool					m_bOneOffCondToggle;
 
-		// ASM Program Block
-		DWORD					m_dwMCBlockSize;
-		std::vector<char>		m_machineCodeStorage;
-		LPSTR					m_pProgramStart;
-		LPSTR					m_pMachineBlock;
+		// Machine Code Buffer (extracted subsystem)
+		CMachineCodeBuffer		m_machineCodeBuffer;
 
 		// Reference Tracking
 		DWORD					m_dwRefBufferSize;

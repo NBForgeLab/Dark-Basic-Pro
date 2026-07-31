@@ -62,7 +62,7 @@ void CLeapMarkerManager::RebaseForBufferExpansion(
 bool CLeapMarkerManager::WriteASMLeapMarkerTop(CASMWriter* pWriter)
 {
 	// Record Where We Are Now
-	m_pRecordTopBytePosition = pWriter->m_pMachineBlock;
+	m_pRecordTopBytePosition = pWriter->m_machineCodeBuffer.GetMachineBlock();
 
 	// Complete
 	return true;
@@ -80,7 +80,7 @@ bool CLeapMarkerManager::WriteASMLineLeapToTop(DWORD dwOp, CASMWriter* pWriter)
 	if (g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
 
 	// Calculate Offset For This Leap To Top
-	int iOffset = (m_pRecordTopBytePosition - pWriter->m_pMachineBlock) - 6;
+	int iOffset = (m_pRecordTopBytePosition - pWriter->m_machineCodeBuffer.GetMachineBlock()) - 6;
 
 	// ASM Code
 	CStr offsetStr;
@@ -123,7 +123,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerJump(DWORD dwOp, DWORD di, CASMWriter
 
 	// Record Where JUMP Offset Must Go
 	m_pRecordRefPosition[di] = 1 + pWriter->m_dwProgramRefPointer;
-	m_pRecordBytePosition[di] = pWriter->m_pMachineBlock;
+	m_pRecordBytePosition[di] = pWriter->m_machineCodeBuffer.GetMachineBlock();
 
 	// Complete
 	return true;
@@ -163,7 +163,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerEnd(DWORD di, CASMWriter* pWriter)
 		}
 
 		// Calculate Leap Offset
-		DWORD dwLeapOffset = pWriter->m_pMachineBlock - m_pRecordBytePosition[di];
+		DWORD dwLeapOffset = pWriter->m_machineCodeBuffer.GetMachineBlock() - m_pRecordBytePosition[di];
 
 		// Create NEW ref-string from offset value (tempStr is stack-owned; pRefStr keeps new[] ownership)
 		CStr tempStr;

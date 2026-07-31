@@ -48,11 +48,6 @@ extern GDI_RetVoidParamVoidPFN g_CORE_SyncRefresh;
 
 CASMWriter::CASMWriter()
 {
-	// ASM Program Block
-	m_dwMCBlockSize=0;
-	m_pProgramStart=NULL;
-	m_pMachineBlock=NULL;
-
 	// Reference Tracking
 	m_dwRefBufferSize=0;
 	m_dwProgramRefPointer=0;
@@ -387,19 +382,14 @@ void CASMWriter::DefineASM(DWORD dwASMCode, LPSTR pDebugStr, int iPreOp, int iOp
 
 bool CASMWriter::CreateASMHeader(void)
 {
-	// Create Empty MC Block
-	m_dwMCBlockSize=1024;
-	m_machineCodeStorage.assign(m_dwMCBlockSize, (char)0xC3);
-	m_pProgramStart = m_machineCodeStorage.data();
+	// Create Empty MC Block via machine code buffer
+	m_machineCodeBuffer.Initialize(1024);
 
 	// Prepare RefData
 	m_dwRefBufferSize=1024;
 	m_dwProgramRefPointer=0;
 	m_ProgramRefs.assign(m_dwRefBufferSize, 0);
 	m_ProgramRefLabels.assign(m_dwRefBufferSize, 0);
-
-	// Write Program Into MC Block
-	m_pMachineBlock = m_pProgramStart;
 
 	// In Debug Mode, hooks are always present
 	if(g_DebugInfo.DebugModeOn())
@@ -420,7 +410,7 @@ bool CASMWriter::CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPS
 
 bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPSTR lpOpData, LPSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize)
 {
-	if(m_pProgramStart==NULL || m_pMachineBlock==NULL)
+	if(m_machineCodeBuffer.GetProgramStart()==NULL || m_machineCodeBuffer.GetMachineBlock()==NULL)
 	{
 		if(g_pErrorReport)
 			g_pErrorReport->AddErrorString(
@@ -435,18 +425,15 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 	// Write OpCode(s)
 	if(iPreOpCode!=-1)
 	{
-		*(m_pMachineBlock) = iPreOpCode;
-		(m_pMachineBlock)++;
+		m_machineCodeBuffer.WriteByte(iPreOpCode);
 	}
 	if(iOpCode1!=-1)
 	{
-		*(m_pMachineBlock) = iOpCode1;
-		(m_pMachineBlock)++;
+		m_machineCodeBuffer.WriteByte(iOpCode1);
 	}
 	if(iOpCode2!=-1)
 	{
-		*(m_pMachineBlock) = iOpCode2;
-		(m_pMachineBlock)++;
+		m_machineCodeBuffer.WriteByte(iOpCode2);
 	}
 
 	// Write Optional OpData 1 and 2
@@ -466,23 +453,14 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 				{
 					// WRITE IMM INTO MC
 					DWORD dwDataAsDWORD = (DWORD)_atoi64(pData);
-					switch(dwSecondOpDataIMMSize)
-					{
-						case 0 :	*(DWORD*)(m_pMachineBlock) = dwDataAsDWORD;
-									(m_pMachineBlock)+=1;
-									break;
-						case 1 :	*(DWORD*)(m_pMachineBlock) = dwDataAsDWORD;
-									(m_pMachineBlock)+=2;
-									break;
-						case 2 :	*(DWORD*)(m_pMachineBlock) = dwDataAsDWORD;
-									(m_pMachineBlock)+=4;
-									break;
-					}
+					// Convert legacy size code (0=1byte, 1=2bytes, 2=4bytes) to actual byte size
+					DWORD dwByteSize = (dwSecondOpDataIMMSize == 0) ? 1 : (dwSecondOpDataIMMSize == 1) ? 2 : 4;
+					m_machineCodeBuffer.WriteDWORD(dwDataAsDWORD, dwByteSize);
 				}
 				else
 				{
 					// Work out where in program the replacement should take place
-					DWORD MCBBytePos = m_pMachineBlock-m_pProgramStart;
+					DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
 
 					// Record Reference Position at index
 					m_ProgramRefs[m_dwProgramRefPointer]=MCBBytePos;
@@ -499,8 +477,7 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 					m_dwProgramRefPointer++;
 
 					// WRITE BLANK(XXXX) INTO MB
-					*(DWORD*)(m_pMachineBlock) = (DWORD)0xFFFFFFFF;
-					(m_pMachineBlock)+=4;
+					m_machineCodeBuffer.WriteDWORD((DWORD)0xFFFFFFFF, 4);
 				}
 			}
 		}
@@ -513,43 +490,30 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 
 bool CASMWriter::CheckAndExpandMCBMemory(void)
 {
-	// If within 100 bytes of end, expand memory
-	LPSTR pMCBDataBarrier=(m_pProgramStart+m_dwMCBlockSize)-(100);
-	if(m_pMachineBlock>pMCBDataBarrier)
+	// Save leap marker relative offsets before expansion
+	LPSTR pOldStart = m_machineCodeBuffer.GetProgramStart();
+	DWORD dwByteOffset = 0;
+	DWORD dwLeapRelDiff[9];
+	if (pOldStart)
 	{
-		// Work out offset of pointer
-		DWORD dwOffset = m_pMachineBlock-m_pProgramStart;
-
-		// Save leap marker relative offsets before expansion
-		LPSTR pOldStart = m_pProgramStart;
-		DWORD dwByteOffset = m_leapManager.GetRecordTopBytePosition() - pOldStart;
-		DWORD dwLeapRelDiff[9];
+		dwByteOffset = m_leapManager.GetRecordTopBytePosition() - pOldStart;
 		for(DWORD di=0; di<9; di++)
 			dwLeapRelDiff[di] = m_leapManager.GetRecordBytePosition(di) - pOldStart;
-
-		// Expand memory (another 100K) via vector resize
-		DWORD dwNewSize = m_dwMCBlockSize+(102400);
-		DWORD dwOldSize = m_dwMCBlockSize;
-		m_machineCodeStorage.resize(dwNewSize);
-		// Fill new portion with RET codes
-		memset(m_machineCodeStorage.data() + dwOldSize, 0xC3, dwNewSize - dwOldSize);
-
-		// Rereference to new memory
-		m_dwMCBlockSize=dwNewSize;
-		m_pProgramStart=m_machineCodeStorage.data();
-		m_pMachineBlock=m_pProgramStart+dwOffset;
-
-		// If in middle of leap, ensure update via leap manager
-		m_leapManager.SetRecordTopBytePosition(m_pProgramStart+dwByteOffset);
-		for(DWORD di=0; di<9; di++)
-			m_leapManager.SetRecordBytePosition(di, m_pProgramStart+dwLeapRelDiff[di]);
-
-		// Mem was expanded
-		return true;
 	}
 
-	// Did not expand
-	return false;
+	// Delegate expansion to machine code buffer
+	bool bExpanded = m_machineCodeBuffer.CheckAndExpandMCBMemory();
+
+	// If expansion occurred, rebase leap markers
+	if (bExpanded)
+	{
+		LPSTR pNewStart = m_machineCodeBuffer.GetProgramStart();
+		m_leapManager.SetRecordTopBytePosition(pNewStart+dwByteOffset);
+		for(DWORD di=0; di<9; di++)
+			m_leapManager.SetRecordBytePosition(di, pNewStart+dwLeapRelDiff[di]);
+	}
+
+	return bExpanded;
 }
 
 bool CASMWriter::CheckAndExpandREFMemory(void)
@@ -683,8 +647,8 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 	if(bGotNewCode==true)
 	{
 		// Apply new machine code to EXEData
-		LPSTR pProgramEnd = m_pMachineBlock;
-		DWORD dwProgramSizeBytes = pProgramEnd-m_pProgramStart;
+		LPSTR pProgramEnd = m_machineCodeBuffer.GetMachineBlock();
+		DWORD dwProgramSizeBytes = pProgramEnd-m_machineCodeBuffer.GetProgramStart();
 
 		// Machine Code Block (MCB)
 		if(UpdateMCB(dwProgramSizeBytes)==false)
@@ -1495,7 +1459,7 @@ bool CASMWriter::UpdateMCB(DWORD dwProgramSizeBytes)
 		// Create Array(s)
 		DWORD dwNewSize = dwProgramSizeBytes;
 		LPSTR pNewArray = new char[dwProgramSizeBytes];
-		memcpy(pNewArray, m_pProgramStart, dwNewSize);
+		memcpy(pNewArray, m_machineCodeBuffer.GetProgramStart(), dwNewSize);
 
 		// Update pointers
 		g_pEXE->m_dwSizeOfMCB = dwNewSize;
@@ -1514,7 +1478,7 @@ bool CASMWriter::UpdateMCB(DWORD dwProgramSizeBytes)
 
 		// Fill New Array with Old+New, then delete Old
 		memcpy(pNewArray, pOldArray.get(), dwOldSize);
-		memcpy(pNewArray+dwOldSize, m_pProgramStart, dwProgramSizeBytes);
+		memcpy(pNewArray+dwOldSize, m_machineCodeBuffer.GetProgramStart(), dwProgramSizeBytes);
 
 		// Update pointers
 		g_pEXE->m_dwSizeOfMCB = dwNewSize;
@@ -2346,10 +2310,8 @@ void CASMWriter::TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dw
 
 void CASMWriter::FreeMachineBlock(void)
 {
-	// Clear Writer Data
-	m_machineCodeStorage.clear();
-	m_pProgramStart=NULL;
-	m_pMachineBlock=NULL;
+	// Clear machine code buffer
+	m_machineCodeBuffer.FreeMachineBlock();
 
 	// Free label strings stored as raw pointers in ref labels
 	for(DWORD n=0; n<m_dwRefBufferSize; n++)
@@ -2375,8 +2337,12 @@ void CASMWriter::FreeAll(void)
 
 DWORD CASMWriter::GetBytePosOfLastInstruction(void)
 {
-	DWORD MCBBytePos = m_pMachineBlock-m_pProgramStart;
-	return MCBBytePos;
+	return m_machineCodeBuffer.GetBytePosOfLastInstruction();
+}
+
+DWORD CASMWriter::GetCurrentMCPosition(void)
+{
+	return m_machineCodeBuffer.GetCurrentMCPosition();
 }
 
 DWORD CASMWriter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue)

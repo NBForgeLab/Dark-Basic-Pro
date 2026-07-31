@@ -5,6 +5,7 @@ set(LIB_SOURCES
     ASMWriter.cpp
     DebuggerInterface.cpp
     LeapMarkerManager.cpp
+    MachineCodeBuffer.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
     CompilationInput.cpp
