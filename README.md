@@ -14,8 +14,13 @@ A modern, open-source 32-bit/x86 game development language, compilation engine, 
 - [Overview \& Architectural Highlights](#-overview--architectural-highlights)
 - [Prerequisites \& Environment Setup](#-prerequisites--environment-setup)
 - [Building the Project](#-building-the-project)
+  - [Available CMake Presets](#available-cmake-presets)
+  - [Build Targets](#build-targets)
 - [Testing \& Quality Assurance](#-testing--quality-assurance)
-- [Automation \& Utility Scripts](#-automation--utility-scripts-scripts)
+  - [1. C++ Unit \& Integration Test Suite (`dbp_tests.exe`)](#1-c-unit--integration-test-suite-dbp_testsexe)
+  - [2. DarkBASIC Language Conformance Tests (`run-conformance.Tests.ps1`)](#2-darkbasic-language-conformance-tests-run-conformancetestsps1)
+  - [3. Code Coverage \& Sanitizers](#3-code-coverage--sanitizers)
+- [Automation \& Utility Scripts (`/scripts`)](#-automation--utility-scripts-scripts)
 - [Packaging \& Installation (CPack)](#-packaging--installation-cpack)
 - [Repository Structure](#-repository-structure)
 - [License \& Attribution](#-license--attribution)
@@ -51,15 +56,26 @@ To ensure long-term maintainability and high code quality, legacy monolithic cla
 
 ## 🔨 Building the Project
 
-### 1. Using CMake Presets (Recommended)
+### Available CMake Presets
 
-Configure and build using pre-defined CMake presets:
+The project includes pre-configured CMake presets in `CMakePresets.json`:
+
+| Preset Name | Configuration | Purpose |
+| :--- | :--- | :--- |
+| **`windows-x86-debug`** | Debug | Default compatibility baseline with compiler and CTest coverage. |
+| **`windows-x86-release`** | Release | Optimized release build with full runtime compiler. |
+| **`windows-x86-asan`** | Debug | MSVC AddressSanitizer instrumented build (`DBP_ENABLE_ASAN=ON`). |
+| **`windows-x86-ubsan`** | Debug | MSVC UndefinedBehaviorSanitizer instrumented build (`DBP_ENABLE_UBSAN=ON`). |
+| **`windows-x86-coverage`** | Debug | Code coverage instrumented build (`DBP_ENABLE_COVERAGE=ON`). |
+| **`windows-x86-clang-tidy`**| Debug | Static analysis build with `clang-tidy` integration (`DBP_ENABLE_CLANG_TIDY=ON`). |
+
+#### Building with CMake Presets:
 
 ```powershell
 # Configure Debug Preset
 cmake --preset windows-x86-debug
 
-# Build Target
+# Build Targets
 cmake --build --preset windows-x86-debug
 ```
 
@@ -70,21 +86,18 @@ cmake --preset windows-x86-release
 cmake --build --preset windows-x86-release
 ```
 
-### 2. Manual CMake Build
+#### Manual Build:
 
 ```powershell
-# Create build directory and configure
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
-
-# Compile all targets
 cmake --build build --config Debug
 ```
 
-### Output Executables & Libraries:
-* `DBPCompiler.exe` — Main DarkBasic Pro compiler executable.
-* `DarkEXE.exe` — Runtime executable runner stub embedded into output binaries.
-* `DBPDebugger.exe` — Official GUI debugger process.
-* `dbp_tests.exe` — GoogleTest unit and integration test suite (451+ tests).
+### Build Targets:
+* **`DBPCompiler`** (`DBPCompiler.exe`) — Main DarkBasic Pro compiler executable.
+* **`DarkEXE`** (`DarkEXE.exe`) — Runtime executable runner stub embedded into output binaries.
+* **`DBPDebugger`** (`DBPDebugger.exe`) — Official GUI debugger process.
+* **`dbp_tests`** (`dbp_tests.exe`) — GoogleTest unit and integration test suite (451+ tests).
 
 ---
 
@@ -99,6 +112,9 @@ Executes 451+ C++ unit tests covering AST parsing, IR lowering, memory protectio
 # Run via CTest:
 ctest -C Debug --output-on-failure
 
+# Or via CMake Test Preset:
+ctest --preset windows-x86-debug
+
 # Or execute directly:
 .\build\bin\Debug\dbp_tests.exe
 ```
@@ -110,6 +126,23 @@ Golden tests that compile real `.dba` language samples using `DBPCompiler.exe` a
 $env:DBP_CONFORMANCE_COMPILER = ".\build\bin\Debug\DBPCompiler.exe"
 $env:DBP_CONFORMANCE_RUNTIME_ROOT = ".\Install\Compiler"
 Invoke-Pester -Path .\tests\conformance\run-conformance.Tests.ps1
+```
+
+### 3. Code Coverage & Sanitizers
+
+Generate coverage reports or run memory/undefined-behavior sanitizers:
+
+```powershell
+# AddressSanitizer test run:
+cmake --preset windows-x86-asan
+cmake --build --preset windows-x86-asan
+ctest --preset windows-x86-asan
+
+# Coverage report generation:
+cmake --preset windows-x86-coverage
+cmake --build --preset windows-x86-coverage
+ctest --preset windows-x86-coverage
+.\scripts\coverage-report.ps1 -OutputFormat json
 ```
 
 ---
@@ -150,7 +183,7 @@ cpack -C Release -G ZIP
 ```
 Dark-Basic-Pro/
 ├── CMakeLists.txt              # Root CMake build configuration
-├── CMakePresets.json           # MSVC build presets (Debug, Release, ASan, Coverage)
+├── CMakePresets.json           # MSVC build presets (Debug, Release, ASan, Coverage, Clang-Tidy)
 ├── DBProCompiler/
 │   ├── DBPCompiler/            # Compiler core (ASMWriter, MachineCodeBuffer, Statement, AST)
 │   ├── DBPCompilerEXE/         # CLI wrapper & runtime package bootstrap
