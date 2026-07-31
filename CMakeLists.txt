@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 # يجب وضع إعداد المعمارية قبل تعريف المشروع
 set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Force Win32 Platform" FORCE)
 
-project(DarkBasicPro LANGUAGES C CXX ASM_MASM)
+project(DarkBasicPro VERSION 1.0.5 LANGUAGES C CXX ASM_MASM)
 
 include(CTest)
 include(cmake/ProjectOptions.cmake)
@@ -133,6 +133,59 @@ add_subdirectory(DBProCompiler/DBPDebugger)
 if(DBP_BUILD_FUZZERS)
     add_subdirectory(fuzz)
 endif()
+
+# Install and CPack configuration
+set(DBP_CPACK_CONFIGURED 1 CACHE INTERNAL "")
+set(DBP_INSTALL_RULES_DEFINED 1 CACHE INTERNAL "")
+
+# Install executables
+install(TARGETS DBPCompiler DarkEXE DBPDebugger
+        RUNTIME DESTINATION bin
+        COMPONENT Runtime)
+
+# Install data files from Install/ directory
+install(DIRECTORY Install/Help DESTINATION . COMPONENT Data)
+install(DIRECTORY Install/Editor DESTINATION . COMPONENT Data)
+install(DIRECTORY Install/Projects DESTINATION . COMPONENT Data)
+install(FILES Install/Launch.CFG Install/Launch.exe DESTINATION . COMPONENT Data)
+
+# Install legacy DLLs
+install(FILES Install/Compiler/BCGCB59.dll
+              Install/Compiler/MD5.dll
+              Install/Compiler/mfc71.dll
+              Install/Compiler/msvcr71.dll
+        DESTINATION bin
+        COMPONENT Runtime)
+
+# Install compiler support files
+install(FILES Install/Compiler/setup.ini DESTINATION bin COMPONENT Runtime)
+install(DIRECTORY Install/Compiler/lang DESTINATION bin COMPONENT Runtime)
+install(DIRECTORY Install/Compiler/effects DESTINATION bin COMPONENT Runtime)
+install(DIRECTORY Install/Compiler/plugins DESTINATION bin COMPONENT Runtime)
+install(DIRECTORY Install/Compiler/plugins-user DESTINATION bin COMPONENT Runtime)
+install(DIRECTORY Install/Compiler/plugins-licensed DESTINATION bin COMPONENT Runtime)
+
+# Install LICENSE
+install(FILES LICENSE DESTINATION . COMPONENT Documentation)
+
+# CPack configuration
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "The Game Creators")
+set(CPACK_PACKAGE_DESCRIPTION "Dark Basic Pro - BASIC game development environment")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+
+# Generator configuration (ZIP always available; NSIS if present)
+set(CPACK_GENERATOR "ZIP")
+find_program(NSIS_MAKE makensis)
+if(NSIS_MAKE)
+    list(APPEND CPACK_GENERATOR "NSIS")
+    set(CPACK_NSIS_DISPLAY_NAME "Dark Basic Pro ${PROJECT_VERSION}")
+    set(CPACK_NSIS_PACKAGE_NAME "DarkBasicPro")
+    set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES")
+endif()
+
+include(CPack)
 
 if(BUILD_TESTING)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)

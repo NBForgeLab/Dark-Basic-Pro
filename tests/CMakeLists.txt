@@ -67,6 +67,7 @@ add_executable(dbp_tests
     test_asmwriter_enum_values.cpp
     test_clang_tidy_integration.cpp
     test_coverage_integration.cpp
+    test_install_rules.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
@@ -103,6 +104,14 @@ target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"
+    "${CMAKE_CURRENT_BINARY_DIR}"  # generated InstallConfig.h
+)
+
+# Generate InstallConfig.h from template so tests can verify CMake config
+configure_file(
+    "${PROJECT_SOURCE_DIR}/cmake/InstallConfig.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/InstallConfig.h"
+    @ONLY
 )
 
 if(MSVC)
