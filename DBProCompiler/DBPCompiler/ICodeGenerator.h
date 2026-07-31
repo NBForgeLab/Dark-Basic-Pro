@@ -46,10 +46,6 @@ public:
     virtual void FreeMachineBlock(void) = 0;
     virtual void FreeAll(void) = 0;
 
-    virtual bool HideAnyHiddenCode(LPSTR pData, DWORD dwSize) = 0;
-    virtual LRESULT SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize) = 0;
-    virtual void GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwDataSize) = 0;
-
     virtual DWORD GetBytePosOfLastInstruction(void) = 0;
 
     virtual DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) = 0;

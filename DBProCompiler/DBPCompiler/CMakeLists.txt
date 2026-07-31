@@ -3,6 +3,8 @@ project(DBPCompiler LANGUAGES C CXX)
 # Source files for the static library (excluding Main.cpp and resources)
 set(LIB_SOURCES
     ASMWriter.cpp
+    DebuggerInterface.cpp
+    LeapMarkerManager.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
     CompilationInput.cpp
@@ -14,6 +16,7 @@ set(LIB_SOURCES
     DataTable.cpp
     DebugInfo.cpp
     Declaration.cpp
+    DebuggerInterface.cpp
     CodeGenVisitor.cpp
     SemanticVisitor.cpp
     IRLoweringVisitor.cpp

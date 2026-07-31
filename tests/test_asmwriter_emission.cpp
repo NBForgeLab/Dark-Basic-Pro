@@ -9,6 +9,7 @@
 #include "Error.h"
 
 #include "CompilerContext.h"
+#include "DebuggerInterface.h"
 
 // Declare compiler global pointers defined in dbp_compiler_lib
 extern CStructTable*     g_pStructTable;
@@ -124,7 +125,7 @@ TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeReplacesBetweenMarkers) {
     //   markers stay, "secret" becomes "XXXXXX"
     char data[] = "ABCHIDESTARTsecretHIDEENDXYZ";
     DWORD len = (DWORD)strlen(data);
-    ASSERT_TRUE(m_pWriter->HideAnyHiddenCode(data, len));
+    ASSERT_TRUE(CDebuggerInterface::HideAnyHiddenCode(data, len));
     EXPECT_STREQ(data, "ABCHIDESTARTXXXXXXHIDEENDXYZ");
 }
 
@@ -132,7 +133,7 @@ TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeReplacesBetweenMarkers) {
 TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeNoMarkersLeavesDataIntact) {
     char data[] = "normal code here";
     DWORD len = (DWORD)strlen(data);
-    ASSERT_TRUE(m_pWriter->HideAnyHiddenCode(data, len));
+    ASSERT_TRUE(CDebuggerInterface::HideAnyHiddenCode(data, len));
     EXPECT_STREQ(data, "normal code here");
 }
 
@@ -140,6 +141,6 @@ TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeNoMarkersLeavesDataIntact) {
 TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeCaseInsensitiveMarkers) {
     char data[] = "beforehidestartSECREThideendafter";
     DWORD len = (DWORD)strlen(data);
-    ASSERT_TRUE(m_pWriter->HideAnyHiddenCode(data, len));
+    ASSERT_TRUE(CDebuggerInterface::HideAnyHiddenCode(data, len));
     EXPECT_STREQ(data, "beforehidestartXXXXXXhideendafter");
 }

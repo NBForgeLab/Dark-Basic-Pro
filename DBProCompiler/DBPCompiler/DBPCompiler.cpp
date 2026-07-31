@@ -26,6 +26,7 @@
 #include "shlobj.h"
 #include "DBPLogger.h"
 #include "TextConvert.h"
+#include "DebuggerInterface.h"
 
 #include <DB3Time.h>
 #include <algorithm>
@@ -1369,7 +1370,7 @@ bool CDBPCompiler::MakeProgram(void)
 			// Load MiniCLI Text from debugger
 			pMiniData.reset();
 			LPSTR pMiniDataRaw = NULL;
-			g_pASMWriter->GetDataFromDebugger(51, &pMiniDataRaw, &dwMiniSize);
+			CDebuggerInterface::GetDataFromDebugger(51, &pMiniDataRaw, &dwMiniSize);
 			pMiniData.reset(pMiniDataRaw);
 
 			// Parse Mini Program
@@ -1379,7 +1380,7 @@ bool CDBPCompiler::MakeProgram(void)
 				LPSTR pData = g_pErrorReport->GetParserErrorString();
 				DWORD dwSize = 0;
 				if(pData) dwSize = strlen(pData);
-				g_pASMWriter->SendDataToDebugger(31, pData, dwSize);
+				CDebuggerInterface::SendDataToDebugger(31, pData, dwSize);
 
 				// Clear miniprogram for empty parse
 				g_pDBMWriter->SetNewCodeFlag(false);

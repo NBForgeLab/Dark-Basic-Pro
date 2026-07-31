@@ -15,6 +15,7 @@
 #include "DBPCompiler.h"
 #include "DBPLogger.h"
 #include "TextConvert.h"
+#include "DebuggerInterface.h"
 
 #include <DB3Time.h>
 
@@ -40,9 +41,6 @@ extern DWORD g_dwBreakOutPosition;
 extern LPSTR g_pVarSpaceAddressInUse;
 extern DWORD g_dwVarSpaceSizeInUse;
 extern GDI_RetVoidParamVoidPFN g_CORE_SyncRefresh;
-extern bool g_bIsInternalDebugger;
-extern PROCESS_INFORMATION g_InternalDebuggerProcessInfo;
-extern bool g_bExternaliseDLLS;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -72,18 +70,13 @@ CASMWriter::CASMWriter()
 		m_bASMOpData[i]=false;
 	}
 
-	for(DWORD di=0; di<9; di++)
-	{
-		m_pRecordRefPosition[di] = 0;
-		m_pRecordBytePosition[di] = 0;
-	}
+	// Leap marker state is managed by m_leapManager (constructed automatically)
 
 	// First task to create default ASM Codes
 	GenerateASMCodes();
 
 	// Clear Debug Mode Runner Vars
-	g_bIsInternalDebugger=false;
-	memset(&g_InternalDebuggerProcessInfo, 0, sizeof(PROCESS_INFORMATION));
+	CDebuggerInterface::InitDebuggerState();
 }
 
 CASMWriter::~CASMWriter()
@@ -526,11 +519,13 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 	{
 		// Work out offset of pointer
 		DWORD dwOffset = m_pMachineBlock-m_pProgramStart;
-		DWORD dwByteOffset = m_pRecordTopBytePosition-m_pProgramStart;
 
+		// Save leap marker relative offsets before expansion
+		LPSTR pOldStart = m_pProgramStart;
+		DWORD dwByteOffset = m_leapManager.GetRecordTopBytePosition() - pOldStart;
 		DWORD dwLeapRelDiff[9];
 		for(DWORD di=0; di<9; di++)
-			dwLeapRelDiff[di] = m_pRecordBytePosition[di]-m_pProgramStart;
+			dwLeapRelDiff[di] = m_leapManager.GetRecordBytePosition(di) - pOldStart;
 
 		// Expand memory (another 100K) via vector resize
 		DWORD dwNewSize = m_dwMCBlockSize+(102400);
@@ -544,9 +539,10 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 		m_pProgramStart=m_machineCodeStorage.data();
 		m_pMachineBlock=m_pProgramStart+dwOffset;
 
-		// If in middle of leap, ensure update
-		for(DWORD di=0; di<9; di++) m_pRecordBytePosition[di]=m_pProgramStart+dwLeapRelDiff[di];
-		m_pRecordTopBytePosition=m_pProgramStart+dwByteOffset;
+		// If in middle of leap, ensure update via leap manager
+		m_leapManager.SetRecordTopBytePosition(m_pProgramStart+dwByteOffset);
+		for(DWORD di=0; di<9; di++)
+			m_leapManager.SetRecordBytePosition(di, m_pProgramStart+dwLeapRelDiff[di]);
 
 		// Mem was expanded
 		return true;
@@ -582,7 +578,7 @@ void VarValueSenderHook(void)
 	// Send Message To Debugger
 	DWORD dwSize=0;
 	std::unique_ptr<char[]> pData(g_pASMWriter->MakeVarValuesForTransfer(&dwSize));
-	g_pASMWriter->SendDataToDebugger(21, pData.get(), dwSize);
+	CDebuggerInterface::SendDataToDebugger(21, pData.get(), dwSize);
 }
 
 LRESULT DebugHookStatementFunctionCall(DWORD dwProg, DWORD dwLine, DWORD dwStart, DWORD dwEnd)
@@ -595,7 +591,7 @@ LRESULT DebugHookStatementFunctionCall(DWORD dwProg, DWORD dwLine, DWORD dwStart
 	pData[3] = dwEnd;
 
 	// Report Progress In Program
-	LRESULT lResult = g_pASMWriter->SendDataToDebugger(11, (LPSTR)pData, sizeof(DWORD)*4);
+	LRESULT lResult = CDebuggerInterface::SendDataToDebugger(11, (LPSTR)pData, sizeof(DWORD)*4);
 
 	// The Return Value Controls the Debugger Flow
 	switch(lResult)
@@ -614,10 +610,10 @@ LRESULT DebugHookStatementFunctionCall(DWORD dwProg, DWORD dwLine, DWORD dwStart
 	}
 
 	// If compiler-loaded-debugger is closed, quit program
-	if(g_bIsInternalDebugger==true)
+	if(CDebuggerInterface::IsInternalDebuggerActive()==true)
 	{
 		DWORD uExitCode=0;
-		GetExitCodeProcess(g_InternalDebuggerProcessInfo.hProcess, &uExitCode);
+		GetExitCodeProcess(CDebuggerInterface::GetDebuggerProcessInfo().hProcess, &uExitCode);
 		if(uExitCode!=STILL_ACTIVE)
 		{
 			// Close program
@@ -640,14 +636,14 @@ void DebugHookJumpFunctionCall(DWORD dwProg, DWORD dwLine, DWORD dwStart, DWORD 
 	pData[1] = dwLine;
 	pData[2] = dwStart;
 	pData[3] = dwEnd;
-	g_pASMWriter->SendDataToDebugger(12, (LPSTR)pData, sizeof(DWORD)*4);
+	CDebuggerInterface::SendDataToDebugger(12, (LPSTR)pData, sizeof(DWORD)*4);
 }
 
 void DebugHookReturnFunctionCall(void)
 {
 	// Send Message To Debugger
 	DWORD dwData;
-	g_pASMWriter->SendDataToDebugger(13, (LPSTR)&dwData, 4);
+	CDebuggerInterface::SendDataToDebugger(13, (LPSTR)&dwData, 4);
 }
 
 bool CASMWriter::ReportAnyErrorsToCLI(void)
@@ -665,33 +661,11 @@ bool CASMWriter::ReportAnyErrorsToCLI(void)
 		else
 			snprintf(lpReturnError, sizeof(lpReturnError), "Runtime Error %d [%s]", dwRTError, pRuntimeErrorString);
 			
-		SendDataToDebugger(31, lpReturnError, strlen(lpReturnError));
+		CDebuggerInterface::SendDataToDebugger(31, lpReturnError, strlen(lpReturnError));
 
 		// Clear error
 		g_pEXE->m_dwRuntimeErrorDWORD=0;
 		g_pEXE->m_dwRuntimeErrorLineDWORD=0;
-	}
-
-	// Complete
-	return true;
-}
-
-bool CASMWriter::HideAnyHiddenCode(LPSTR pData, DWORD dwSize)
-{
-	LPSTR pPtr = pData;
-	LPSTR pPtrEnd = pData + dwSize;
-	bool bReplaceOn=false;
-	while(pPtr<pPtrEnd)
-	{
-		// Check ahead
-		if(_strnicmp(pPtr, "HIDESTART", 9)==NULL)	{ bReplaceOn=true;	pPtr+=9; }
-		if(_strnicmp(pPtr, "HIDEEND", 7)==NULL)		{ bReplaceOn=false;	pPtr+=7; }
-
-		// Replace
-		if(*pPtr>32 && bReplaceOn==true) *pPtr='X';
-
-		// Next char
-		pPtr++;
 	}
 
 	// Complete
@@ -784,7 +758,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 	{
 		// Find Debugger to send to
 		HWND hWnd = FindWindowW(NULL, L"DBProDebugger");
-		if(hWnd==NULL && g_bIsInternalDebugger==true)
+		if(hWnd==NULL && CDebuggerInterface::IsInternalDebuggerActive()==true)
 		{
 			// Internal Debugger has been termined, so terminate App too...
 			g_dwEscapeValueMem=2;
@@ -823,16 +797,16 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 				STARTUPINFO si;
 				ZeroMemory(&si, sizeof(STARTUPINFO));
 				si.cb=sizeof(STARTUPINFO);
-				ZeroMemory(&g_InternalDebuggerProcessInfo, sizeof(PROCESS_INFORMATION));
+				ZeroMemory(&CDebuggerInterface::GetDebuggerProcessInfo(), sizeof(PROCESS_INFORMATION));
 				std::wstring wCmdLine = TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetInternalFile(PATH_DEBUGGERFILE));
 				if(CreateProcessW(	NULL, &wCmdLine[0],
 									NULL, NULL, false,
 									NORMAL_PRIORITY_CLASS,
-									NULL, NULL,	&si, &g_InternalDebuggerProcessInfo))
+									NULL, NULL,	&si, &CDebuggerInterface::GetDebuggerProcessInfo()))
 				{
 					// Wait until Debugger fully loaded
-					WaitForInputIdle(g_InternalDebuggerProcessInfo.hProcess, 5000);
-					g_bIsInternalDebugger=true;
+					WaitForInputIdle(CDebuggerInterface::GetDebuggerProcessInfo().hProcess, 5000);
+					CDebuggerInterface::SetInternalDebuggerActive(true);
 				}
 
 				// Restore previous directory
@@ -849,13 +823,13 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 
 			// Transfer Compiler Info to Debugger
 			LPSTR pData = g_DebugInfo.GetProgramPtr();
-			HideAnyHiddenCode(pData, g_DebugInfo.GetProgramSize());
-			SendDataToDebugger(1, pData, g_DebugInfo.GetProgramSize());
+			CDebuggerInterface::HideAnyHiddenCode(pData, g_DebugInfo.GetProgramSize());
+			CDebuggerInterface::SendDataToDebugger(1, pData, g_DebugInfo.GetProgramSize());
 			DWORD dwDataSize=0;
 			std::unique_ptr<char[]> pVarGlobalData(MakeVarDataForTransfer(&dwDataSize));
-			SendDataToDebugger(2, pVarGlobalData.get(), dwDataSize);
+			CDebuggerInterface::SendDataToDebugger(2, pVarGlobalData.get(), dwDataSize);
 			LPSTR pNameData = g_pDBPCompiler->GetProgramName();
-			SendDataToDebugger(3, pNameData, strlen(pNameData));
+			CDebuggerInterface::SendDataToDebugger(3, pNameData, strlen(pNameData));
 
 			// Report Any Runtime Errors from previous run..
 			ReportAnyErrorsToCLI();
@@ -945,13 +919,13 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 			}
 
 			// Free Debugger When Done (when quit program)
-			if(g_bIsInternalDebugger==true)
+			if(CDebuggerInterface::IsInternalDebuggerActive()==true)
 			{
 				if(g_dwEscapeValueMem==2)
 				{
 					DWORD uExitCode=0;
-					GetExitCodeProcess(g_InternalDebuggerProcessInfo.hProcess, &uExitCode);
-					TerminateProcess(g_InternalDebuggerProcessInfo.hProcess,  (UINT)uExitCode );
+					GetExitCodeProcess(CDebuggerInterface::GetDebuggerProcessInfo().hProcess, &uExitCode);
+					TerminateProcess(CDebuggerInterface::GetDebuggerProcessInfo().hProcess,  (UINT)uExitCode );
 				}
 			}
 
@@ -1017,7 +991,7 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 	
 		// Add DLLs to Build
 		bool bFXFilesRequired = false;
-		if ( g_bExternaliseDLLS==false )
+		if ( CDebuggerInterface::ShouldExternaliseDLLs()==false )
 		{
 			// only if not entirely excluding DLLs
 			for(DWORD dll=0; dll<g_pEXE->m_dwNumberOfDLLs; dll++)
@@ -2368,77 +2342,6 @@ void CASMWriter::TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dw
 		pDecMain = pDecMain->GetNext();
 	}
 	*/
-}
-
-LRESULT CASMWriter::SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize)
-{
-	LRESULT lResult=0;
-
-	// Create Virtual File for Transfer
-	HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwDataSize+4,L"DBPRODEBUGGERMESSAGE");
-	if(hFileMap)
-	{
-		LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,dwDataSize+4);
-		if(lpVoid)
-		{
-			// Copy to Virtual File
-			*(DWORD*)lpVoid = dwDataSize;
-			memcpy((LPSTR)lpVoid+4, pData, dwDataSize);
-
-			// Find Debugger to send to
-			HWND hWnd = FindWindowW(NULL, L"DBProDebugger");
-			if(hWnd)
-			{
-				// Found - transmit
-				lResult = SendMessage(hWnd, WM_USER+10, iType, 0);
-			}
-
-			// Release virtual file
-			UnmapViewOfFile(lpVoid);
-		}
-		CloseHandle(hFileMap);
-	}
-
-	// May have result
-	return lResult;
-}
-
-void CASMWriter::GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwDataSize)
-{
-	// Wait for text to arrive by message (3 second timeout)
-	DWORD dwTime=timeGetTime();
-	while(g_DebugInfo.MessageArrived()==false)
-		if(timeGetTime()>dwTime+3000)
-			break;
-
-	// Act on any data received
-	switch(iType)
-	{
-		case 51 : // CLI Text Message
-			if(g_DebugInfo.GetCLIText())
-			{
-				*pData = new char[g_DebugInfo.GetCLISize()+2];
-				ZeroMemory(*pData, g_DebugInfo.GetCLISize()+2);
-				strcpy_s(*pData, g_DebugInfo.GetCLISize()+2, g_DebugInfo.GetCLIText());
-				*dwDataSize=strlen(*pData)+1;
-			}
-			else
-			{
-				*pData = new char[5];
-				ZeroMemory(*pData, 5);
-				*dwDataSize=4;
-			}
-			break;
-
-		default: // Empty Text Data
-			*pData = new char[5];
-			ZeroMemory(*pData, 5);
-			*dwDataSize=4;
-			break;
-	}
-
-	// Message Processed
-	g_DebugInfo.SetMessageArrived(false);
 }
 
 void CASMWriter::FreeMachineBlock(void)
@@ -4546,128 +4449,42 @@ bool CASMWriter::WriteASMComment(LPSTR pTitle, LPSTR pC1, LPSTR pC2, LPSTR pC3)
 
 bool CASMWriter::WriteASMLeapMarkerTop(void)
 {
-	// Record Where We Are Now
-	m_pRecordTopBytePosition = m_pMachineBlock;
-
-	// Complete
-	return true;
+	return m_leapManager.WriteASMLeapMarkerTop(this);
 }
 
 bool CASMWriter::WriteASMLineLeapToTop(DWORD dwOp)
 {
-	// DBM Code
-	CStr strDBMLine(256);
-	strDBMLine.SetNumericText(m_dwLineNumber);
-	strDBMLine.AddText(" ");
-	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
-	strDBMLine.AddText(" ");
-	strDBMLine.AddText("LEAP TO TOP");
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
-
-	// Calculate Offset For This Leap To Top
-	int iOffset=(m_pRecordTopBytePosition-m_pMachineBlock)-6;
-
-	// ASM Code
-	CStr offsetStr;
-	offsetStr.SetNumericText(iOffset);
-	CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], offsetStr.GetStr());
-
-	// Complete
-	return true;
+	return m_leapManager.WriteASMLineLeapToTop(dwOp, this);
 }
 
 bool CASMWriter::WriteASMLeapMarkerJumpToTop(void)
 {
-	WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
-	WriteASMLineLeapToTop(static_cast<DWORD>(ASMOp::JNE));
-	return true;
+	return m_leapManager.WriteASMLeapMarkerJumpToTop(this);
 }
 
 bool CASMWriter::WriteASMLineLeap(DWORD dwOp, DWORD di)
 {
-	// DBM Code
-	CStr strDBMLine(256);
-	strDBMLine.SetNumericText(m_dwLineNumber);
-	strDBMLine.AddText(" ");
-	strDBMLine.AddText(const_cast<LPSTR>(m_ASMDebugStrings[dwOp].c_str()));
-	strDBMLine.AddText(" ");
-	strDBMLine.AddText("LEAP");
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
-
-	// ASM Code
-	CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], "0");
-
-	// Complete
-	return true;
+	return m_leapManager.WriteASMLineLeap(dwOp, di, this);
 }
 
 bool CASMWriter::WriteASMLeapMarkerJump(DWORD dwOp, DWORD di)
 {
-	// Write Line As Normal
-	WriteASMLineLeap(dwOp, di);
-
-	// Record Where JUMP Offset Must Go
-	m_pRecordRefPosition[di] = 1+m_dwProgramRefPointer;
-	m_pRecordBytePosition[di] = m_pMachineBlock;
-
-	// Complete
-	return true;
+	return m_leapManager.WriteASMLeapMarkerJump(dwOp, di, this);
 }
 
 bool CASMWriter::WriteASMLeapMarkerJumpNotEqual(DWORD di)
 {
-	return WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JNE), di);
+	return m_leapManager.WriteASMLeapMarkerJumpNotEqual(di, this);
 }
 
 bool CASMWriter::WriteASMLeapForwardMarker(void)
 {
-	// Check if escape value is zero
-	WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_ESC_");
-	WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
-
-	// LEAP-FORWARDS Marker OpCode (different from leap-back)
-	WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 0);
-
-	// Complete
-	return true;
+	return m_leapManager.WriteASMLeapForwardMarker(this);
 }
 
 bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 {
-	if(m_pRecordRefPosition[di]>0)
-	{
-		// Prepare for actual indexing
-		m_pRecordRefPosition[di]-=2;
-
-		// Get old ref-string
-		LPSTR pRefStr = (LPSTR)m_ProgramRefLabels[m_pRecordRefPosition[di]];
-		if(pRefStr)
-		{
-			delete[] pRefStr;
-			pRefStr=NULL;
-		}
-
-		// Calculate Leap Offset 
-		DWORD dwLeapOffset = m_pMachineBlock-m_pRecordBytePosition[di];
-
-		// Create NEW ref-string from offset value (tempStr is stack-owned; pRefStr keeps new[] ownership)
-		CStr tempStr;
-		tempStr.SetNumericText(dwLeapOffset);
-		pRefStr = new char[strlen(tempStr.GetStr())+1];
-		strcpy_s(pRefStr, strlen(tempStr.GetStr())+1, tempStr.GetStr());
-		m_ProgramRefLabels[m_pRecordRefPosition[di]]=(uintptr_t)pRefStr;
-
-		// Clear leap flag
-		m_pRecordRefPosition[di]=0;
-		m_pRecordBytePosition[di]=0;
-	}
-	else
-	{
-		// No marker to complete
-	}
-
-	// Complete
-	return true;
+	return m_leapManager.WriteASMLeapMarkerEnd(di, this);
 }
 
 bool CASMWriter::WriteASMCheckBreakPointVar(void)
