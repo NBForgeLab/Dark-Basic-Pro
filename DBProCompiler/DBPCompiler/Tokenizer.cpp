@@ -379,3 +379,129 @@ LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 
 	return pProducedToken;
 }
+
+LPSTR CTokenizer::ProduceNextArrayToken(LPSTR* pOrigPointer) const
+{
+	int iBracketCount=0;
+	DWORD dwSpeechMarks=0;
+	LPSTR pPointer=*pOrigPointer;
+	LPSTR pStart=pPointer;
+	LPSTR pEndOfBracket=NULL;
+	DWORD dwInitGetStage=0;
+	while(true)
+	{
+		if(*(unsigned char*)(pPointer+0)==13
+		&& *(unsigned char*)(pPointer+1)==10)
+			break;
+
+		if(pPointer>=g_pStatementList->GetFileDataEnd())
+			break;
+
+		if(*(unsigned char*)pPointer=='"') dwSpeechMarks=1-dwSpeechMarks;
+
+		if(pEndOfBracket==NULL)
+		{
+			if(*(unsigned char*)pPointer=='(') iBracketCount++;
+			if(iBracketCount>0)
+			{
+				if(*(unsigned char*)pPointer==')') iBracketCount--;
+				if(iBracketCount==0)
+				{
+					pPointer++;
+					pEndOfBracket=pPointer;
+				}
+			}
+		}
+		if(pEndOfBracket)
+		{
+			if(dwInitGetStage==0)
+			{
+				if(*(unsigned char*)pPointer=='=')
+				{
+					dwInitGetStage=1;
+				}
+				else
+				{
+					if(*(unsigned char*)pPointer==' ')
+					{
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			if(dwInitGetStage==1)
+			{
+				if(*(unsigned char*)pPointer!=' ') dwInitGetStage=2;
+			}
+			if(dwInitGetStage==2)
+			{
+				if(*(unsigned char*)pPointer==' ')
+					break;
+			}
+		}
+
+		if(dwSpeechMarks==0)
+			if(*(unsigned char*)pPointer==':')
+				break;
+
+		pPointer++;
+	}
+
+	if(dwInitGetStage>0)
+	{
+	}
+	else
+		pPointer=pEndOfBracket;
+
+	if(pPointer)
+	{
+		unsigned int length = pPointer-pStart;
+		if(length>0)
+		{
+			LPSTR pProduceLine = new char[length+1];
+			memcpy(pProduceLine, pStart, length+1);
+			pProduceLine[length]=0;
+			*pOrigPointer=pPointer;
+			return pProduceLine;
+		}
+	}
+
+	return NULL;
+}
+
+LPSTR CTokenizer::ProduceFullSegment(LPSTR* pOrigPointer) const
+{
+	DWORD dwSpeechMarks=0;
+	LPSTR pPointer=*pOrigPointer;
+	LPSTR pStart=pPointer;
+	while(true)
+	{
+		if(*(unsigned char*)(pPointer+0)==13
+		&& *(unsigned char*)(pPointer+1)==10)
+			break;
+
+		if(pPointer>=g_pStatementList->GetFileDataEnd())
+			break;
+
+		if(*(unsigned char*)pPointer=='"') dwSpeechMarks=1-dwSpeechMarks;
+		if(dwSpeechMarks==0)
+			if(*(unsigned char*)pPointer==':')
+				break;
+
+		pPointer++;
+	}
+
+	unsigned int length = pPointer-pStart;
+	if(length>0)
+	{
+		LPSTR pProduceLine = new char[length+1];
+		memcpy(pProduceLine, pStart, length+1);
+		pProduceLine[length]=0;
+		*pOrigPointer=pPointer;
+		return pProduceLine;
+	}
+
+	return NULL;
+}
