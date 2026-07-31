@@ -17,376 +17,314 @@
 #include "Str.h"
 #include "ICodeGenerator.h"
 
-// ASKTask Defines
-#define ASMMAXCOUNT 300
-#define ASMTASK_ASSIGN 1
-#define ASMTASK_TEST 4
-#define ASMTASK_CALL 5
-#define ASMTASK_PUSH 6
-#define ASMTASK_POPEAX 7
-#define ASMTASK_POPEBX 8
-#define ASMTASK_UNKNOWN 9
-#define ASMTASK_CONDITION 10
-#define ASMTASK_CONDJUMPNE 11
-#define ASMTASK_CONDJUMPE 12
-#define ASMTASK_CONDGREATER 13
-#define ASMTASK_CONDLESS 14
-#define ASMTASK_JUMP 15
-#define ASMTASK_JUMPSUBROUTINE 16
-#define ASMTASK_RETURN 17
-#define ASMTASK_ASSIGNTOEAX 18
-#define ASMTASK_CONDITIONDATA 19
-#define ASMTASK_ADDESP 20
-#define ASMTASK_SUBESP 21
-#define ASMTASK_PUSHEBP 22
-#define ASMTASK_POPEBP 23
-#define ASMTASK_MOVEBPESP 24
-#define ASMTASK_MOVESPEBP 25
-#define ASMTASK_STOREESP 26
-#define ASMTASK_RESTOREESP 27
-#define ASMTASK_PUSHREGISTERS 28
-#define ASMTASK_POPREGISTERS 29
-#define ASMTASK_CLEARSTACK 30
-#define ASMTASK_DEBUGSTATEMENTHOOK 31
-#define ASMTASK_DEBUGJUMPHOOK 32
-#define ASMTASK_DEBUGRETURNHOOK 33
-#define ASMTASK_RUNTIMEERRORHOOK 34
-#define ASMTASK_BREAKPOINTRESUME 37
-#define ASMTASK_JUMPMEM 38
-#define ASMTASK_PUSHESP 39
-#define ASMTASK_PURERETURN 40
-#define ASMTASK_PUSHADDRESS 41
-#define ASMTASK_PUSHUDT 42
-
-#define ASMTASK_POWER			101
-#define ASMTASK_MUL				102
-#define ASMTASK_DIV				103
-#define ASMTASK_ADD				104
-#define ASMTASK_SUB				105
-#define ASMTASK_MOD				106
-
-#define ASMTASK_EQUAL			111
-#define ASMTASK_GREATER			112
-#define ASMTASK_LESS			113
-#define ASMTASK_NOTEQUAL		114
-#define ASMTASK_GREATEREQUAL	115
-#define ASMTASK_LESSEQUAL		116
-
-#define ASMTASK_SHL				131
-#define ASMTASK_SHR				132
-#define ASMTASK_AND				133
-#define ASMTASK_OR				134
-#define ASMTASK_NOT				135
-#define ASMTASK_XOR				136
-#define ASMTASK_BITNOT			137
-
-#define ASMTASK_SETNORETURNIFESPLEAK 501
-#define ASMTASK_CALCARRAYOFFSET		502
-#define ASMTASK_PUSHINTERNALARRAYINDEX 503
-
-#define ASMTASK_INCVAR		1001
-#define ASMTASK_DECVAR		1002
-
-
-// Defines (1-4/5-8 11-14/15-18 numerical layout important - see DetermineASM)
-#define ASM_MOVEAXMEM1 2
-#define ASM_MOVEAXMEM2 3
-#define ASM_MOVEAXMEM4 4
-#define ASM_MOVMEMEAX1 5
-#define ASM_MOVMEMEAX2 6
-#define ASM_MOVMEMEAX4 7
-
-#define ASM_MOVECXOFFEAX1 8
-#define ASM_MOVECXOFFEAX2 9
-#define ASM_MOVECXOFFEAX4 10
-
-#define ASM_RELMOVEAXIMM 11
-#define ASM_RELMOVEAXMEM1 12
-#define ASM_RELMOVEAXMEM2 13
-#define ASM_RELMOVEAXMEM4 14
-#define ASM_RELMOVMEMEAX1 15
-#define ASM_RELMOVMEMEAX2 16
-#define ASM_RELMOVMEMEAX4 17
-
-#define ASM_RELMOVEAXEDX1 18
-#define ASM_RELMOVEAXEDX2 19
-#define ASM_RELMOVEAXEDX4 20
-
-#define ASM_MOVEAXIMM1 21
-#define ASM_MOVEAXIMM2 22
-#define ASM_MOVEAXIMM4 23
-
-#define ASM_MOVEDXIMM4 24
-
-#define ASM_MOVEDXEAX4 26
-
-#define ASM_RELMOVEAXREDX1 27
-#define ASM_RELMOVEAXREDX2 28
-#define ASM_RELMOVEAXREDX4 29
-
-#define ASM_ADDEAX1 31
-#define ASM_ADDEAX2 32
-#define ASM_ADDEAX4 33
-#define ASM_ADDEAXEBX1 34
-#define ASM_ADDEAXEBX2 35
-#define ASM_ADDEAXEBX4 36
-
-#define ASM_ADDEAXECX4 37
-
-#define ASM_MOVEAXECXOFF1 38
-#define ASM_MOVEAXECXOFF2 39
-#define ASM_MOVEAXECXOFF4 40
-
-#define ASM_MOVMEMST08 41
-#define ASM_MOVST0MEM8 42
-#define ASM_MOVECXIMM4 43
-
-#define ASM_MOVST0ECXOFF8 44
-#define ASM_MOVECXOFFST08 45
-
-#define ASM_MOVMEMIMM1 46
-#define ASM_MOVMEMIMM2 47
-#define ASM_MOVMEMIMM4 48
-
-#define ASM_PUSHEAX 51
-#define ASM_PUSHEDX 52
-#define ASM_PUSHEBX 68
-
-#define ASM_PUSHRELEAX1 53
-#define ASM_PUSHRELEAX2 54
-#define ASM_PUSHRELEAX4 55
-
-#define ASM_POPEAX 57
-#define ASM_POPEBX 58
-#define ASM_CALLEAX 59
-#define ASM_CALLMEM 60
-#define ASM_RET 61
-
-#define ASM_ADDESP 62
-#define ASM_SUBESP 63
-#define ASM_PUSHEBP 64
-#define ASM_POPEBP 65
-#define ASM_MOVEBPESP 66
-#define ASM_MOVESPEBP 67
-
-#define ASM_UNKNOWN 71
-
-#define ASM_MOVEBPIMM1 72
-#define ASM_MOVEBPIMM2 73
-#define ASM_MOVEBPIMM4 74
-
-#define ASM_CMPEAX1 77
-#define ASM_CMPEAX2 78
-#define ASM_CMPEAX4 79
-
-#define ASM_JMP 81
-#define ASM_JNE 82
-#define ASM_JE 83
-
-
-#define ASM_MOVEAXSIB4 85
-#define ASM_MOVECXEAX4 86
-
-#define ASM_MOVEAXEBP1 87
-#define ASM_MOVEAXEBP2 88
-#define ASM_MOVEAXEBP4 89
-
-#define ASM_MOVEAXESP 90
-
-#define ASM_MOVEBPEAX1 91
-#define ASM_MOVEBPEAX2 92
-#define ASM_MOVEBPEAX4 93
-
-#define ASM_MOVEBPST08 94
-#define ASM_MOVST0EBP8 95
-
-#define ASM_PUSHEBP4 96
-
-#define ASM_MOVMEMESP4 97
-#define ASM_MOVESPMEM4 98
-
-#define ASM_MOVEAXOFFECX1 99
-#define ASM_MOVEAXOFFECX2 100
-#define ASM_MOVEAXOFFECX4 101
-
-#define ASM_MOVECXEAXOFF1 102
-#define ASM_MOVECXEAXOFF2 103
-#define ASM_MOVECXEAXOFF4 104
-
-#define ASM_MOVECXEDX4 106
-#define ASM_MOVEDXECX4 107
-
-#define ASM_MOVEAXST08 108
-#define ASM_MOVST0EAX8 109
-
-#define ASM_PUSHAD 110
-#define ASM_POPAD 111
-
-#define ASM_LOOP 112
-#define ASM_MOVSIB4IMM4 113
-#define ASM_MOVSIB4IMM1 114
-
-#define ASM_MOVEAXECX1 115
-#define ASM_MOVEAXECX2 116
-#define ASM_MOVEAXECX4 117
-
-#define ASM_PUSHIMM4 118
-
-#define ASM_MOVEBXMEM4 119
-
-#define ASM_INCMEM1 120
-#define ASM_INCMEM2 121
-#define ASM_INCMEM4 122
-#define ASM_DECMEM1 123
-#define ASM_DECMEM2 124
-#define ASM_DECMEM4 125
-
-#define ASM_CALLABS 126
-#define ASM_PUSHESP 127
-#define ASM_CALLEBX 128
-
-#define ASM_SUBESPEAX 129
-#define ASM_JMPREL 130
-#define ASM_JMPEBX 131
-
-#define ASM_MOVEBXEAXOFF1 135
-#define ASM_MOVEBXEAXOFF2 136
-#define ASM_MOVEBXEAXOFF4 137
-
-#define ASM_MOVEDXEAXOFF1 138
-#define ASM_MOVEDXEAXOFF2 139
-#define ASM_MOVEDXEAXOFF4 140
-
-#define ASM_CMPGREEDXEBX 141
-#define ASM_JGE 142
-#define ASM_JLE 143
-
-#define ASM_MOVEAXECXREL1 144
-#define ASM_MOVEAXECXREL2 145
-#define ASM_MOVEAXECXREL4 146
-
-#define ASM_MOVEAXEAXREL1 147
-#define ASM_MOVEAXEAXREL2 148
-#define ASM_MOVEAXEAXREL4 149
-
-#define ASM_MOVEBXEAX1 150
-#define ASM_MOVEBXEAX2 151
-#define ASM_MOVEBXEAX4 152
-
-#define ASM_SUBEAX1 153
-#define ASM_SUBEAX2 154
-#define ASM_SUBEAX4 155
-#define ASM_SUBEAXEBX1 156
-#define ASM_SUBEAXEBX2 157
-#define ASM_SUBEAXEBX4 158
-
-#define ASM_DIVEAXEBX1 159
-#define ASM_DIVEAXEBX2 160
-#define ASM_DIVEAXEBX4 161
-
-#define ASM_MULEAXEBX1 162
-#define ASM_MULEAXEBX2 163
-#define ASM_MULEAXEBX4 164
-
-#define ASM_MOVEBXIMM1 165
-#define ASM_MOVEBXIMM2 166
-#define ASM_MOVEBXIMM4 167
-
-#define ASM_CDQ 168
-
-#define ASM_CMPEDXEBX1 169
-#define ASM_CMPEDXEBX2 170
-#define ASM_CMPEDXEBX4 171
-
-#define ASM_SETE 172
-#define ASM_SETNE 173
-#define ASM_SETG 174
-#define ASM_SETGE 175
-#define ASM_SETL 176
-#define ASM_SETLE 177
-
-#define ASM_CMPEBX1 178
-#define ASM_CMPEBX2 179
-#define ASM_CMPEBX4 180
-
-#define ASM_ANDEAX1 181
-#define ASM_ANDEAX2 182
-#define ASM_ANDEAX4 183
-#define ASM_ANDEAXEBX1 184
-#define ASM_ANDEAXEBX2 185
-#define ASM_ANDEAXEBX4 186
-
-#define ASM_OREAX1 187
-#define ASM_OREAX2 188
-#define ASM_OREAX4 189
-#define ASM_OREAXEBX1 190
-#define ASM_OREAXEBX2 191
-#define ASM_OREAXEBX4 192
-
-#define ASM_NOTEAX1 193
-#define ASM_NOTEAX2 194
-#define ASM_NOTEAX4 195
-
-#define ASM_MOVEAXEDX1 196
-#define ASM_MOVEAXEDX2 197
-#define ASM_MOVEAXEDX4 198
-
-#define ASM_XOREAX1 199
-#define ASM_XOREAX2 200
-#define ASM_XOREAX4 201
-#define ASM_XOREAXEBX1 202
-#define ASM_XOREAXEBX2 203
-#define ASM_XOREAXEBX4 204
-
-#define ASM_SHREAX1 205
-#define ASM_SHREAX2 206
-#define ASM_SHREAX4 207
-#define ASM_SHLEAXCLC1 208
-#define ASM_SHLEAXCLC2 209
-#define ASM_SHLEAXCLC4 210
-
-#define ASM_SHLEAX1 211
-#define ASM_SHLEAX2 212
-#define ASM_SHLEAX4 213
-#define ASM_SHREAXCLC1 214
-#define ASM_SHREAXCLC2 215
-#define ASM_SHREAXCLC4 216
-
-#define ASM_MOVECXEBX1 217
-#define ASM_MOVECXEBX2 218
-#define ASM_MOVECXEBX4 219
-
-#define ASM_CMPEAXEBX4 220
-
-#define ASM_MOVEBXEBP1 221
-#define ASM_MOVEBXEBP2 222
-#define ASM_MOVEBXEBP4 223
-#define ASM_POPEDX 224
-#define ASM_POPECX 225
-#define ASM_PUSHECX 226
-
-#define ASM_MULECXEDX4 227
-#define ASM_ADDEBXEDX4 228
-#define ASM_MULEDXEAXOFF4 229
-
-#define ASM_MOVMEMEBX4 230
-#define ASM_MOVEAXEBX4 231
-
-#define ASM_PUSHFROMEAX 232
-#define ASM_MOVEAXEBP 233
-
-// ParamMode Defines
-#define PMODE_NONE 0
-#define PMODE_IMM 1
-#define PMODE_MEM 2
-#define PMODE_EBP 3
-#define PMODE_MEMOFF 4
-#define PMODE_EBPOFF 5
-#define PMODE_MEMARR 6
-#define PMODE_EBPARR 7
-#define PMODE_STACK 8
-#define PMODE_MEMREL 9
-#define PMODE_EBPREL 10
+// ASM task codes (converted from #define constants)
+constexpr int ASMMAXCOUNT = 300;
+
+enum class ASMTask : int {
+	Assign              = 1,
+	Test                = 4,
+	Call                = 5,
+	Push                = 6,
+	PopEax              = 7,
+	PopEbx              = 8,
+	Unknown             = 9,
+	Condition           = 10,
+	CondJumpNE          = 11,
+	CondJumpE           = 12,
+	CondGreater         = 13,
+	CondLess            = 14,
+	Jump                = 15,
+	JumpSubroutine      = 16,
+	Return              = 17,
+	AssignToEax         = 18,
+	ConditionData       = 19,
+	AddEsp              = 20,
+	SubEsp              = 21,
+	PushEbp             = 22,
+	PopEbp              = 23,
+	MovBpEsp            = 24,
+	MovSpEbp            = 25,
+	StoreEsp            = 26,
+	RestoreEsp          = 27,
+	PushRegisters       = 28,
+	PopRegisters        = 29,
+	ClearStack          = 30,
+	DebugStatementHook  = 31,
+	DebugJumpHook       = 32,
+	DebugReturnHook     = 33,
+	RuntimeErrorHook    = 34,
+	BreakpointResume    = 37,
+	JumpMem             = 38,
+	PushEsp             = 39,
+	PureReturn          = 40,
+	PushAddress         = 41,
+	PushUdt             = 42,
+
+	Power               = 101,
+	Mul                 = 102,
+	Div                 = 103,
+	Add                 = 104,
+	Sub                 = 105,
+	Mod                 = 106,
+
+	Equal               = 111,
+	Greater             = 112,
+	Less                = 113,
+	NotEqual            = 114,
+	GreaterEqual        = 115,
+	LessEqual           = 116,
+
+	Shl                 = 131,
+	Shr                 = 132,
+	And                 = 133,
+	Or                  = 134,
+	Not                 = 135,
+	Xor                 = 136,
+	BitNot              = 137,
+
+	SetNoReturnIfEspLeak = 501,
+	CalcArrayOffset     = 502,
+	PushInternalArrayIndex = 503,
+
+	IncVar              = 1001,
+	DecVar              = 1002,
+};
+
+// ASM operation codes (converted from #define constants)
+enum class ASMOp : int {
+	MOVEAXMEM1                = 2,
+	MOVEAXMEM2                = 3,
+	MOVEAXMEM4                = 4,
+	MOVMEMEAX1                = 5,
+	MOVMEMEAX2                = 6,
+	MOVMEMEAX4                = 7,
+	MOVECXOFFEAX1             = 8,
+	MOVECXOFFEAX2             = 9,
+	MOVECXOFFEAX4             = 10,
+	RELMOVEAXIMM              = 11,
+	RELMOVEAXMEM1             = 12,
+	RELMOVEAXMEM2             = 13,
+	RELMOVEAXMEM4             = 14,
+	RELMOVMEMEAX1             = 15,
+	RELMOVMEMEAX2             = 16,
+	RELMOVMEMEAX4             = 17,
+	RELMOVEAXEDX1             = 18,
+	RELMOVEAXEDX2             = 19,
+	RELMOVEAXEDX4             = 20,
+	MOVEAXIMM1                = 21,
+	MOVEAXIMM2                = 22,
+	MOVEAXIMM4                = 23,
+	MOVEDXIMM4                = 24,
+	MOVEDXEAX4                = 26,
+	RELMOVEAXREDX1            = 27,
+	RELMOVEAXREDX2            = 28,
+	RELMOVEAXREDX4            = 29,
+	ADDEAX1                   = 31,
+	ADDEAX2                   = 32,
+	ADDEAX4                   = 33,
+	ADDEAXEBX1                = 34,
+	ADDEAXEBX2                = 35,
+	ADDEAXEBX4                = 36,
+	ADDEAXECX4                = 37,
+	MOVEAXECXOFF1             = 38,
+	MOVEAXECXOFF2             = 39,
+	MOVEAXECXOFF4             = 40,
+	MOVMEMST08                = 41,
+	MOVST0MEM8                = 42,
+	MOVECXIMM4                = 43,
+	MOVST0ECXOFF8             = 44,
+	MOVECXOFFST08             = 45,
+	MOVMEMIMM1                = 46,
+	MOVMEMIMM2                = 47,
+	MOVMEMIMM4                = 48,
+	PUSHEAX                   = 51,
+	PUSHEDX                   = 52,
+	PUSHRELEAX1               = 53,
+	PUSHRELEAX2               = 54,
+	PUSHRELEAX4               = 55,
+	POPEAX                    = 57,
+	POPEBX                    = 58,
+	CALLEAX                   = 59,
+	CALLMEM                   = 60,
+	RET                       = 61,
+	ADDESP                    = 62,
+	SUBESP                    = 63,
+	PUSHEBP                   = 64,
+	POPEBP                    = 65,
+	MOVEBPESP                 = 66,
+	MOVESPEBP                 = 67,
+	PUSHEBX                   = 68,
+	UNKNOWN                   = 71,
+	MOVEBPIMM1                = 72,
+	MOVEBPIMM2                = 73,
+	MOVEBPIMM4                = 74,
+	CMPEAX1                   = 77,
+	CMPEAX2                   = 78,
+	CMPEAX4                   = 79,
+	JMP                       = 81,
+	JNE                       = 82,
+	JE                        = 83,
+	MOVEAXSIB4                = 85,
+	MOVECXEAX4                = 86,
+	MOVEAXEBP1                = 87,
+	MOVEAXEBP2                = 88,
+	MOVEAXEBP4                = 89,
+	MOVEAXESP                 = 90,
+	MOVEBPEAX1                = 91,
+	MOVEBPEAX2                = 92,
+	MOVEBPEAX4                = 93,
+	MOVEBPST08                = 94,
+	MOVST0EBP8                = 95,
+	PUSHEBP4                  = 96,
+	MOVMEMESP4                = 97,
+	MOVESPMEM4                = 98,
+	MOVEAXOFFECX1             = 99,
+	MOVEAXOFFECX2             = 100,
+	MOVEAXOFFECX4             = 101,
+	MOVECXEAXOFF1             = 102,
+	MOVECXEAXOFF2             = 103,
+	MOVECXEAXOFF4             = 104,
+	MOVECXEDX4                = 106,
+	MOVEDXECX4                = 107,
+	MOVEAXST08                = 108,
+	MOVST0EAX8                = 109,
+	PUSHAD                    = 110,
+	POPAD                     = 111,
+	LOOP                      = 112,
+	MOVSIB4IMM4               = 113,
+	MOVSIB4IMM1               = 114,
+	MOVEAXECX1                = 115,
+	MOVEAXECX2                = 116,
+	MOVEAXECX4                = 117,
+	PUSHIMM4                  = 118,
+	MOVEBXMEM4                = 119,
+	INCMEM1                   = 120,
+	INCMEM2                   = 121,
+	INCMEM4                   = 122,
+	DECMEM1                   = 123,
+	DECMEM2                   = 124,
+	DECMEM4                   = 125,
+	CALLABS                   = 126,
+	PUSHESP                   = 127,
+	CALLEBX                   = 128,
+	SUBESPEAX                 = 129,
+	JMPREL                    = 130,
+	JMPEBX                    = 131,
+	MOVEBXEAXOFF1             = 135,
+	MOVEBXEAXOFF2             = 136,
+	MOVEBXEAXOFF4             = 137,
+	MOVEDXEAXOFF1             = 138,
+	MOVEDXEAXOFF2             = 139,
+	MOVEDXEAXOFF4             = 140,
+	CMPGREEDXEBX              = 141,
+	JGE                       = 142,
+	JLE                       = 143,
+	MOVEAXECXREL1             = 144,
+	MOVEAXECXREL2             = 145,
+	MOVEAXECXREL4             = 146,
+	MOVEAXEAXREL1             = 147,
+	MOVEAXEAXREL2             = 148,
+	MOVEAXEAXREL4             = 149,
+	MOVEBXEAX1                = 150,
+	MOVEBXEAX2                = 151,
+	MOVEBXEAX4                = 152,
+	SUBEAX1                   = 153,
+	SUBEAX2                   = 154,
+	SUBEAX4                   = 155,
+	SUBEAXEBX1                = 156,
+	SUBEAXEBX2                = 157,
+	SUBEAXEBX4                = 158,
+	DIVEAXEBX1                = 159,
+	DIVEAXEBX2                = 160,
+	DIVEAXEBX4                = 161,
+	MULEAXEBX1                = 162,
+	MULEAXEBX2                = 163,
+	MULEAXEBX4                = 164,
+	MOVEBXIMM1                = 165,
+	MOVEBXIMM2                = 166,
+	MOVEBXIMM4                = 167,
+	CDQ                       = 168,
+	CMPEDXEBX1                = 169,
+	CMPEDXEBX2                = 170,
+	CMPEDXEBX4                = 171,
+	SETE                      = 172,
+	SETNE                     = 173,
+	SETG                      = 174,
+	SETGE                     = 175,
+	SETL                      = 176,
+	SETLE                     = 177,
+	CMPEBX1                   = 178,
+	CMPEBX2                   = 179,
+	CMPEBX4                   = 180,
+	ANDEAX1                   = 181,
+	ANDEAX2                   = 182,
+	ANDEAX4                   = 183,
+	ANDEAXEBX1                = 184,
+	ANDEAXEBX2                = 185,
+	ANDEAXEBX4                = 186,
+	OREAX1                    = 187,
+	OREAX2                    = 188,
+	OREAX4                    = 189,
+	OREAXEBX1                 = 190,
+	OREAXEBX2                 = 191,
+	OREAXEBX4                 = 192,
+	NOTEAX1                   = 193,
+	NOTEAX2                   = 194,
+	NOTEAX4                   = 195,
+	MOVEAXEDX1                = 196,
+	MOVEAXEDX2                = 197,
+	MOVEAXEDX4                = 198,
+	XOREAX1                   = 199,
+	XOREAX2                   = 200,
+	XOREAX4                   = 201,
+	XOREAXEBX1                = 202,
+	XOREAXEBX2                = 203,
+	XOREAXEBX4                = 204,
+	SHREAX1                   = 205,
+	SHREAX2                   = 206,
+	SHREAX4                   = 207,
+	SHLEAXCLC1                = 208,
+	SHLEAXCLC2                = 209,
+	SHLEAXCLC4                = 210,
+	SHLEAX1                   = 211,
+	SHLEAX2                   = 212,
+	SHLEAX4                   = 213,
+	SHREAXCLC1                = 214,
+	SHREAXCLC2                = 215,
+	SHREAXCLC4                = 216,
+	MOVECXEBX1                = 217,
+	MOVECXEBX2                = 218,
+	MOVECXEBX4                = 219,
+	CMPEAXEBX4                = 220,
+	MOVEBXEBP1                = 221,
+	MOVEBXEBP2                = 222,
+	MOVEBXEBP4                = 223,
+	POPEDX                    = 224,
+	POPECX                    = 225,
+	PUSHECX                   = 226,
+	MULECXEDX4                = 227,
+	ADDEBXEDX4                = 228,
+	MULEDXEAXOFF4             = 229,
+	MOVMEMEBX4                = 230,
+	MOVEAXEBX4                = 231,
+	PUSHFROMEAX               = 232,
+	MOVEAXEBP                 = 233,
+};
+
+// Parameter mode codes (converted from #define constants)
+enum class ParamMode : int {
+	None      = 0,
+	Imm       = 1,
+	Mem       = 2,
+	Ebp       = 3,
+	MemOff    = 4,
+	EbpOff    = 5,
+	MemArr    = 6,
+	EbpArr    = 7,
+	Stack     = 8,
+	MemRel    = 9,
+	EbpRel    = 10,
+};
 
 class CASMWriter : public ICodeGenerator  
 {

@@ -55,18 +55,18 @@ bool CParseInit::WriteDBMBit(DWORD dwLineNumber, LPSTR pText)
 			// Dynamic String Creation
 			CResultData* pVarItem = m_pMathOp->FindResultData();
 			CResultData* pDataItem = m_pDataParamList->GetMathItem()->FindResultData();
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_PUSH, pDataItem);
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_PUSH, pVarItem);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Push), pDataItem);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Push), pVarItem);
 			g_pASMWriter->WriteASMCall(dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_ASSIGN, pVarItem);
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_POPEBX, NULL);
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, ASMTASK_POPEBX, NULL);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), pVarItem);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 		}
 		else
 		{
 			// Simple Value Assignment
 			if ( m_pDataParamList )
-				if(g_pASMWriter->WriteASMTaskP2(dwLineNumber, ASMTASK_ASSIGN, m_pMathOp->GetResultData(), m_pDataParamList->GetMathItem()->FindResultData())==false) return false;
+				if(g_pASMWriter->WriteASMTaskP2(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), m_pMathOp->GetResultData(), m_pDataParamList->GetMathItem()->FindResultData())==false) return false;
 		}
 	}
 

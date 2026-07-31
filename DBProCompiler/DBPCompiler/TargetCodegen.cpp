@@ -15,7 +15,7 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
         switch (inst.opCode) {
             case IROpCode::LoadConst: {
                 CStr valStr(const_cast<LPSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMTaskCoreP1(m_lineNumber, ASMTASK_PUSH, &valStr, inst.typeVal);
+                m_codeGen->WriteASMTaskCoreP1(m_lineNumber, static_cast<DWORD>(ASMTask::Push), &valStr, inst.typeVal);
                 break;
             }
             case IROpCode::LoadVar: {
@@ -58,26 +58,26 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
 
                 DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
                 m_codeGen->WriteASMXtoEAX(dwAccessMode, &varName, NULL, dwType, dwOffset);
-                m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, dwType, dwOffset);
+                m_codeGen->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, dwType, dwOffset);
                 break;
             }
             case IROpCode::BinaryOp: {
-                m_codeGen->WriteASMLine(ASM_POPEBX, "");
-                m_codeGen->WriteASMLine(ASM_POPEAX, "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
                 if (inst.opType == BinaryOpType::Add) {
-                    m_codeGen->WriteASMLine(ASM_ADDEAXEBX4, "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAXEBX4), "");
                 } else if (inst.opType == BinaryOpType::Subtract) {
-                    m_codeGen->WriteASMLine(ASM_SUBEAXEBX4, "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::SUBEAXEBX4), "");
                 } else if (inst.opType == BinaryOpType::Multiply) {
-                    m_codeGen->WriteASMLine(ASM_MULEAXEBX4, "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::MULEAXEBX4), "");
                 } else if (inst.opType == BinaryOpType::Divide) {
-                    m_codeGen->WriteASMLine(ASM_DIVEAXEBX4, "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::DIVEAXEBX4), "");
                 }
-                m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, 1, 0);
+                m_codeGen->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, 1, 0);
                 break;
             }
             case IROpCode::StoreVar: {
-                m_codeGen->WriteASMLine(ASM_POPEAX, "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
                 LPSTR pScope = NULL;
                 if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
                     pScope = g_pUserFunctionWithin->GetName()->GetStr();
@@ -117,15 +117,15 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 break;
             }
             case IROpCode::JumpIfFalse: {
-                m_codeGen->WriteASMLine(ASM_POPEAX, "");
-                m_codeGen->WriteASMLine(ASM_CMPEAX4, "0");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
                 CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(ASM_JE, labelName.GetStr());
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JE), labelName.GetStr());
                 break;
             }
             case IROpCode::Jump: {
                 CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(ASM_JMP, labelName.GetStr());
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JMP), labelName.GetStr());
                 break;
             }
             case IROpCode::Label: {
@@ -135,7 +135,7 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
             }
             case IROpCode::Call: {
                 CStr funcLabel(const_cast<LPSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(ASM_CALLABS, funcLabel.GetStr());
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CALLABS), funcLabel.GetStr());
                 break;
             }
         }

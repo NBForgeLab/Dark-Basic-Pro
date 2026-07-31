@@ -100,282 +100,282 @@ void CASMWriter::SetDefaultCompileFlags ( bool bArraySafetyFlag )
 void CASMWriter::GenerateASMCodes(void)
 {
 	// Default ASM Codes for ASMWriting
-	DefineASM(ASM_MOVEAXIMM1,	"MOV EAX IMM1",		-1,		0xB0+0,	-1,		true);
-	DefineASM(ASM_MOVEAXIMM2,	"MOV EAX IMM2",		0x66,	0xB8+0,	-1,		true);
-	DefineASM(ASM_MOVEAXIMM4,	"MOV EAX IMM4",		-1,		0xB8+0,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXIMM1),	"MOV EAX IMM1",		-1,		0xB0+0,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXIMM2),	"MOV EAX IMM2",		0x66,	0xB8+0,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXIMM4),	"MOV EAX IMM4",		-1,		0xB8+0,	-1,		true);
 
-	DefineASM(ASM_MOVEBXIMM1,	"MOV EBX IMM1",		-1,		0xB0+3,	-1,		true);
-	DefineASM(ASM_MOVEBXIMM2,	"MOV EBX IMM2",		0x66,	0xB8+3,	-1,		true);
-	DefineASM(ASM_MOVEBXIMM4,	"MOV EBX IMM4",		-1,		0xB8+3,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXIMM1),	"MOV EBX IMM1",		-1,		0xB0+3,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXIMM2),	"MOV EBX IMM2",		0x66,	0xB8+3,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXIMM4),	"MOV EBX IMM4",		-1,		0xB8+3,	-1,		true);
 	
-	DefineASM(ASM_MOVEDXIMM4,	"MOV EDX IMM4",		-1,		0xB8+2,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEDXIMM4),	"MOV EDX IMM4",		-1,		0xB8+2,	-1,		true);
 
-	DefineASM(ASM_MOVEAXMEM1,	"MOV EAX MEM1",		-1,		0xA0,	-1,		true);
-	DefineASM(ASM_MOVEAXMEM2,	"MOV EAX MEM2",		0x66,	0xA1,	-1,		true);
-	DefineASM(ASM_MOVEAXMEM4,	"MOV EAX MEM4",		-1,		0xA1,	-1,		true);
-	DefineASM(ASM_MOVMEMEAX1,	"MOV MEM1 EAX",		-1,		0xA2,	-1,		true);
-	DefineASM(ASM_MOVMEMEAX2,	"MOV MEM2 EAX",		0x66,	0xA3,	-1,		true);
-	DefineASM(ASM_MOVMEMEAX4,	"MOV MEM4 EAX",		-1,		0xA3,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXMEM1),	"MOV EAX MEM1",		-1,		0xA0,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXMEM2),	"MOV EAX MEM2",		0x66,	0xA1,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXMEM4),	"MOV EAX MEM4",		-1,		0xA1,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMEAX1),	"MOV MEM1 EAX",		-1,		0xA2,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMEAX2),	"MOV MEM2 EAX",		0x66,	0xA3,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMEAX4),	"MOV MEM4 EAX",		-1,		0xA3,	-1,		true);
 
-	DefineASM(ASM_MOVECXOFFEAX1,"MOV [ECX+A] EAX1",	-1,		0x88,	0x81,	true);
-	DefineASM(ASM_MOVECXOFFEAX2,"MOV [ECX+A] EAX2",	0x66,	0x89,	0x81,	true);
-	DefineASM(ASM_MOVECXOFFEAX4,"MOV [ECX+A] EAX4",	-1,		0x89,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXOFFEAX1),"MOV [ECX+A] EAX1",	-1,		0x88,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXOFFEAX2),"MOV [ECX+A] EAX2",	0x66,	0x89,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXOFFEAX4),"MOV [ECX+A] EAX4",	-1,		0x89,	0x81,	true);
 
-	DefineASM(ASM_MOVEAXOFFECX1,"MOV [EAX+A] ECX1",	-1,		0x88,	0x88,	true);
-	DefineASM(ASM_MOVEAXOFFECX2,"MOV [EAX+A] ECX2",	0x66,	0x89,	0x88,	true);
-	DefineASM(ASM_MOVEAXOFFECX4,"MOV [EAX+A] ECX4",	-1,		0x89,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXOFFECX1),"MOV [EAX+A] ECX1",	-1,		0x88,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXOFFECX2),"MOV [EAX+A] ECX2",	0x66,	0x89,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXOFFECX4),"MOV [EAX+A] ECX4",	-1,		0x89,	0x88,	true);
 	
-	DefineASM(ASM_MOVEAXECXREL1,"MOV [EAX] ECX1",	-1,		0x88,	0x08,	false);
-	DefineASM(ASM_MOVEAXECXREL2,"MOV [EAX] ECX2",	0x66,	0x89,	0x08,	false);
-	DefineASM(ASM_MOVEAXECXREL4,"MOV [EAX] ECX4",	-1,		0x89,	0x08,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECXREL1),"MOV [EAX] ECX1",	-1,		0x88,	0x08,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECXREL2),"MOV [EAX] ECX2",	0x66,	0x89,	0x08,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECXREL4),"MOV [EAX] ECX4",	-1,		0x89,	0x08,	false);
 	
-	DefineASM(ASM_MOVEAXEAXREL1,"MOV EAX [EAX1]",	-1,		0x8A,	0x00,	false);
-	DefineASM(ASM_MOVEAXEAXREL2,"MOV EAX [EAX2]",	0x66,	0x8B,	0x00,	false);
-	DefineASM(ASM_MOVEAXEAXREL4,"MOV EAX [EAX4]",	-1,		0x8B,	0x00,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEAXREL1),"MOV EAX [EAX1]",	-1,		0x8A,	0x00,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEAXREL2),"MOV EAX [EAX2]",	0x66,	0x8B,	0x00,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEAXREL4),"MOV EAX [EAX4]",	-1,		0x8B,	0x00,	false);
 	
-	DefineASM(ASM_MOVECXEAXOFF1,"MOV ECX1 [EAX+A]",	-1,		0x8A,	0x88,	true);
-	DefineASM(ASM_MOVECXEAXOFF2,"MOV ECX2 [EAX+A]",	0x66,	0x8B,	0x88,	true);
-	DefineASM(ASM_MOVECXEAXOFF4,"MOV ECX4 [EAX+A]",	-1,		0x8B,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEAXOFF1),"MOV ECX1 [EAX+A]",	-1,		0x8A,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEAXOFF2),"MOV ECX2 [EAX+A]",	0x66,	0x8B,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEAXOFF4),"MOV ECX4 [EAX+A]",	-1,		0x8B,	0x88,	true);
 	
-	DefineASM(ASM_MOVEAXECXOFF1,"MOV EAX1 [ECX+A]",	-1,		0x8A,	0x81,	true);
-	DefineASM(ASM_MOVEAXECXOFF2,"MOV EAX2 [ECX+A]",	0x66,	0x8B,	0x81,	true);
-	DefineASM(ASM_MOVEAXECXOFF4,"MOV EAX4 [ECX+A]",	-1,		0x8B,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECXOFF1),"MOV EAX1 [ECX+A]",	-1,		0x8A,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECXOFF2),"MOV EAX2 [ECX+A]",	0x66,	0x8B,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECXOFF4),"MOV EAX4 [ECX+A]",	-1,		0x8B,	0x81,	true);
 	
-	DefineASM(ASM_MOVEDXEAXOFF1,"MOV EDX1 [EAX+A]",	-1,		0x8A,	0x90,	true);
-	DefineASM(ASM_MOVEDXEAXOFF2,"MOV EDX2 [EAX+A]",	0x66,	0x8B,	0x90,	true);
-	DefineASM(ASM_MOVEDXEAXOFF4,"MOV EDX4 [EAX+A]",	-1,		0x8B,	0x90,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEDXEAXOFF1),"MOV EDX1 [EAX+A]",	-1,		0x8A,	0x90,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEDXEAXOFF2),"MOV EDX2 [EAX+A]",	0x66,	0x8B,	0x90,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEDXEAXOFF4),"MOV EDX4 [EAX+A]",	-1,		0x8B,	0x90,	true);
 
-	DefineASM(ASM_MULEDXEAXOFF4,"MUL EDX4 [EAX+A]",	0x0F,	0xAF,	0x90,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MULEDXEAXOFF4),"MUL EDX4 [EAX+A]",	0x0F,	0xAF,	0x90,	true);
 
-	DefineASM(ASM_MOVEBXEAXOFF1,"MOV EBX1 [EAX+A]",	-1,		0x8A,	0x98,	true);
-	DefineASM(ASM_MOVEBXEAXOFF2,"MOV EBX2 [EAX+A]",	0x66,	0x8B,	0x98,	true);
-	DefineASM(ASM_MOVEBXEAXOFF4,"MOV EBX4 [EAX+A]",	-1,		0x8B,	0x98,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEAXOFF1),"MOV EBX1 [EAX+A]",	-1,		0x8A,	0x98,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEAXOFF2),"MOV EBX2 [EAX+A]",	0x66,	0x8B,	0x98,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEAXOFF4),"MOV EBX4 [EAX+A]",	-1,		0x8B,	0x98,	true);
 
-	DefineASM(ASM_MOVEAXEBP1,	"MOV EAX1 [EBP+A]",	-1,		0x8A,	0x85,	true);
-	DefineASM(ASM_MOVEAXEBP2,	"MOV EAX2 [EBP+A]",	0x66,	0x8B,	0x85,	true);
-	DefineASM(ASM_MOVEAXEBP4,	"MOV EAX4 [EBP+A]",	-1,		0x8B,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEBP1),	"MOV EAX1 [EBP+A]",	-1,		0x8A,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEBP2),	"MOV EAX2 [EBP+A]",	0x66,	0x8B,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEBP4),	"MOV EAX4 [EBP+A]",	-1,		0x8B,	0x85,	true);
 	
-	DefineASM(ASM_MOVEBXEBP1,	"MOV EBX1 [EBP+A]",	-1,		0x8A,	0x9D,	true);
-	DefineASM(ASM_MOVEBXEBP2,	"MOV EBX2 [EBP+A]",	0x66,	0x8B,	0x9D,	true);
-	DefineASM(ASM_MOVEBXEBP4,	"MOV EBX4 [EBP+A]",	-1,		0x8B,	0x9D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEBP1),	"MOV EBX1 [EBP+A]",	-1,		0x8A,	0x9D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEBP2),	"MOV EBX2 [EBP+A]",	0x66,	0x8B,	0x9D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEBP4),	"MOV EBX4 [EBP+A]",	-1,		0x8B,	0x9D,	true);
 	
-	DefineASM(ASM_MOVEBPEAX1,	"MOV [EBP+A] EAX1",	-1,		0x88,	0x85,	true);
-	DefineASM(ASM_MOVEBPEAX2,	"MOV [EBP+A] EAX2",	0x66,	0x89,	0x85,	true);
-	DefineASM(ASM_MOVEBPEAX4,	"MOV [EBP+A] EAX4",	-1,		0x89,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPEAX1),	"MOV [EBP+A] EAX1",	-1,		0x88,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPEAX2),	"MOV [EBP+A] EAX2",	0x66,	0x89,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPEAX4),	"MOV [EBP+A] EAX4",	-1,		0x89,	0x85,	true);
 	
-	DefineASM(ASM_MOVEDXEAX4,	"MOV EDX EAX",		-1,		0x8B,	0xD0,	false);
-	DefineASM(ASM_MOVECXIMM4,	"MOV ECX IMM4",		-1,		0xB8+1, -1,		true);
-	DefineASM(ASM_MOVECXEAX4,	"MOV ECX EAX",		-1,		0x8B,	0xC8,	false);
-	DefineASM(ASM_MOVECXEDX4,	"MOV ECX EDX",		-1,		0x8B,	0xCA,	false);
-	DefineASM(ASM_MOVEDXECX4,	"MOV EDX ECX",		-1,		0x8B,	0xD1,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEDXEAX4),	"MOV EDX EAX",		-1,		0x8B,	0xD0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXIMM4),	"MOV ECX IMM4",		-1,		0xB8+1, -1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEAX4),	"MOV ECX EAX",		-1,		0x8B,	0xC8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEDX4),	"MOV ECX EDX",		-1,		0x8B,	0xCA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEDXECX4),	"MOV EDX ECX",		-1,		0x8B,	0xD1,	false);
 
-	DefineASM(ASM_MOVEAXEBX4,	"MOV EAX EBX",		-1,		0x8B,	0xC3,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEBX4),	"MOV EAX EBX",		-1,		0x8B,	0xC3,	false);
 
-	DefineASM(ASM_MOVECXEBX1,	"MOV ECX EBX1",		-1,		0x8A,	0xCB,	false);
-	DefineASM(ASM_MOVECXEBX2,	"MOV ECX EBX2",		-1,		0x8B,	0xCB,	false);
-	DefineASM(ASM_MOVECXEBX4,	"MOV ECX EBX4",		-1,		0x8B,	0xCB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEBX1),	"MOV ECX EBX1",		-1,		0x8A,	0xCB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEBX2),	"MOV ECX EBX2",		-1,		0x8B,	0xCB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXEBX4),	"MOV ECX EBX4",		-1,		0x8B,	0xCB,	false);
 	
-	DefineASM(ASM_MOVEAXECX1,	"MOV EAX ECX1",		-1,		0x8A,	0xC1,	true);
-	DefineASM(ASM_MOVEAXECX2,	"MOV EAX ECX2",		0x66,	0x8B,	0xC1,	true);
-	DefineASM(ASM_MOVEAXECX4,	"MOV EAX ECX4",		-1,		0x8B,	0xC1,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECX1),	"MOV EAX ECX1",		-1,		0x8A,	0xC1,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECX2),	"MOV EAX ECX2",		0x66,	0x8B,	0xC1,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXECX4),	"MOV EAX ECX4",		-1,		0x8B,	0xC1,	true);
 
-	DefineASM(ASM_MOVEAXEDX1,	"MOV EAX EDX1",		-1,		0x8A,	0xC2,	true);
-	DefineASM(ASM_MOVEAXEDX2,	"MOV EAX EDX2",		0x66,	0x8B,	0xC2,	true);
-	DefineASM(ASM_MOVEAXEDX4,	"MOV EAX EDX4",		-1,		0x8B,	0xC2,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEDX1),	"MOV EAX EDX1",		-1,		0x8A,	0xC2,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEDX2),	"MOV EAX EDX2",		0x66,	0x8B,	0xC2,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEDX4),	"MOV EAX EDX4",		-1,		0x8B,	0xC2,	true);
 
-	DefineASM(ASM_MOVEBXEAX1,	"MOV EBX EAX1",		-1,		0x8A,	0xD8,	true);
-	DefineASM(ASM_MOVEBXEAX2,	"MOV EBX EAX2",		0x66,	0x8B,	0xD8,	true);
-	DefineASM(ASM_MOVEBXEAX4,	"MOV EBX EAX4",		-1,		0x8B,	0xD8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEAX1),	"MOV EBX EAX1",		-1,		0x8A,	0xD8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEAX2),	"MOV EBX EAX2",		0x66,	0x8B,	0xD8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXEAX4),	"MOV EBX EAX4",		-1,		0x8B,	0xD8,	true);
 
-	DefineASM(ASM_ADDEAXEBX1,	"ADD EAX EBX1",		-1,		0x00,	0xD8,	false);
-	DefineASM(ASM_ADDEAXEBX2,	"ADD EAX EBX2",		0x66,	0x01,	0xD8,	false);
-	DefineASM(ASM_ADDEAXEBX4,	"ADD EAX EBX4",		-1,		0x01,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAXEBX1),	"ADD EAX EBX1",		-1,		0x00,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAXEBX2),	"ADD EAX EBX2",		0x66,	0x01,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAXEBX4),	"ADD EAX EBX4",		-1,		0x01,	0xD8,	false);
 
-	DefineASM(ASM_ADDEAXECX4,	"ADD EAX ECX4",		-1,		0x01,	0xC8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAXECX4),	"ADD EAX ECX4",		-1,		0x01,	0xC8,	false);
 
-	DefineASM(ASM_ADDESP,		"ADD ESP",			-1,		0x81,	0xC4,	true);
-	DefineASM(ASM_SUBESP,		"SUB ESP",			-1,		0x81,	0xEC,	true);
-	DefineASM(ASM_SUBESPEAX,	"SUB ESP EAX",		-1,		0x29,	0xC4,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDESP),		"ADD ESP",			-1,		0x81,	0xC4,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBESP),		"SUB ESP",			-1,		0x81,	0xEC,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBESPEAX),	"SUB ESP EAX",		-1,		0x29,	0xC4,	false);
 
-	DefineASM(ASM_PUSHEBP,		"PUSH EBP",			-1,		0x55,	-1,		true);
-	DefineASM(ASM_POPEBP,		"POP EBP",			-1,		0x5D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHEBP),		"PUSH EBP",			-1,		0x55,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::POPEBP),		"POP EBP",			-1,		0x5D,	-1,		true);
 	
-	DefineASM(ASM_MOVEBPESP,	"MOV EBP ESP",		-1,		0x89,	0xE5,	true);
-	DefineASM(ASM_MOVESPEBP,	"MOV ESP EBP",		-1,		0x89,	0xEC,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPESP),	"MOV EBP ESP",		-1,		0x89,	0xE5,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVESPEBP),	"MOV ESP EBP",		-1,		0x89,	0xEC,	true);
 
-	DefineASM(ASM_MOVEAXESP,	"MOV EAX ESP",		-1,		0x89,	0xE0,	false);
-	DefineASM(ASM_MOVEAXEBP,	"MOV EAX EBP",		-1,		0x89,	0xE8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXESP),	"MOV EAX ESP",		-1,		0x89,	0xE0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXEBP),	"MOV EAX EBP",		-1,		0x89,	0xE8,	false);
 
-	DefineASM(ASM_MOVMEMIMM1,	"MOV MEM IMM1",		-1,		0xC6,	0x05,	true);
-	DefineASM(ASM_MOVMEMIMM2,	"MOV MEM IMM2",		0x66,	0xC7,	0x05,	true);
-	DefineASM(ASM_MOVMEMIMM4,	"MOV MEM IMM4",		-1,		0xC7,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMIMM1),	"MOV MEM IMM1",		-1,		0xC6,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMIMM2),	"MOV MEM IMM2",		0x66,	0xC7,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMIMM4),	"MOV MEM IMM4",		-1,		0xC7,	0x05,	true);
 
-	DefineASM(ASM_MOVEBPIMM1,	"MOV [EBP+A] IMM1",	-1,		0xC6,	0x85,	true);
-	DefineASM(ASM_MOVEBPIMM2,	"MOV [EBP+A] IMM2",	0x66,	0xC7,	0x85,	true);
-	DefineASM(ASM_MOVEBPIMM4,	"MOV [EBP+A] IMM4",	-1,		0xC7,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPIMM1),	"MOV [EBP+A] IMM1",	-1,		0xC6,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPIMM2),	"MOV [EBP+A] IMM2",	0x66,	0xC7,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPIMM4),	"MOV [EBP+A] IMM4",	-1,		0xC7,	0x85,	true);
 	
-	DefineASM(ASM_RELMOVEAXEDX1,"REL MOV [AX1] DX1",-1,		0x88,	0x10,	true);
-	DefineASM(ASM_RELMOVEAXEDX2,"REL MOV [AX2] DX2",0x66,	0x89,	0x10,	true);
-	DefineASM(ASM_RELMOVEAXEDX4,"REL MOV [EAX] EDX",-1,		0x89,	0x10,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::RELMOVEAXEDX1),"REL MOV [AX1] DX1",-1,		0x88,	0x10,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::RELMOVEAXEDX2),"REL MOV [AX2] DX2",0x66,	0x89,	0x10,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::RELMOVEAXEDX4),"REL MOV [EAX] EDX",-1,		0x89,	0x10,	true);
 
-	DefineASM(ASM_RELMOVEAXREDX1,"REL MOV AX1 [DX1]",-1,	0x8A,	0x02,	true);
-	DefineASM(ASM_RELMOVEAXREDX2,"REL MOV AX2 [DX2]",0x66,	0x8B,	0x02,	true);
-	DefineASM(ASM_RELMOVEAXREDX4,"REL MOV EAX [EDX]",-1,	0x8B,	0x02,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::RELMOVEAXREDX1),"REL MOV AX1 [DX1]",-1,	0x8A,	0x02,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::RELMOVEAXREDX2),"REL MOV AX2 [DX2]",0x66,	0x8B,	0x02,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::RELMOVEAXREDX4),"REL MOV EAX [EDX]",-1,	0x8B,	0x02,	true);
 
-	DefineASM(ASM_MOVMEMST08,	"FSTP [MEM] ST08",	-1,		0xDD,	0x1D,	true);
-	DefineASM(ASM_MOVST0MEM8,	"FLD ST08 [MEM]",	-1,		0xDD,	0x05,	true);
-	DefineASM(ASM_MOVEBPST08,	"FSTP [EBP+A] ST08",-1,		0xDD,	0x9D,	true);
-	DefineASM(ASM_MOVST0EBP8,	"FLD ST08 [EBP+A]",	-1,		0xDD,	0x85,	true);
-	DefineASM(ASM_MOVEAXST08,	"FSTP [EAX+A] ST08",-1,		0xDD,	0x98,	true);
-	DefineASM(ASM_MOVST0EAX8,	"FLD ST08 [EAX+A]",	-1,		0xDD,	0x80,	true);
-	DefineASM(ASM_MOVECXOFFST08,"FSTP [ECX+A] ST08",-1,		0xDD,	0x99,	true);
-	DefineASM(ASM_MOVST0ECXOFF8,"FLD ST08 [ECX+A]",	-1,		0xDD,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMST08),	"FSTP [MEM] ST08",	-1,		0xDD,	0x1D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVST0MEM8),	"FLD ST08 [MEM]",	-1,		0xDD,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBPST08),	"FSTP [EBP+A] ST08",-1,		0xDD,	0x9D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVST0EBP8),	"FLD ST08 [EBP+A]",	-1,		0xDD,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXST08),	"FSTP [EAX+A] ST08",-1,		0xDD,	0x98,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVST0EAX8),	"FLD ST08 [EAX+A]",	-1,		0xDD,	0x80,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVECXOFFST08),"FSTP [ECX+A] ST08",-1,		0xDD,	0x99,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVST0ECXOFF8),"FLD ST08 [ECX+A]",	-1,		0xDD,	0x81,	true);
 	
-	DefineASM(ASM_PUSHEAX,		"PUSH EAX",			-1,		0x50+0,	-1,		true);
-	DefineASM(ASM_PUSHEDX,		"PUSH EDX",			-1,		0x50+2,	-1,		true);
-	DefineASM(ASM_PUSHEBX,		"PUSH EBX",			-1,		0x50+3,	-1,		true);
-	DefineASM(ASM_PUSHESP,		"PUSH ESP",			-1,		0x50+4,	-1,		true);
-	DefineASM(ASM_PUSHECX,		"PUSH ECX",			-1,		0x50+1,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHEAX),		"PUSH EAX",			-1,		0x50+0,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHEDX),		"PUSH EDX",			-1,		0x50+2,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHEBX),		"PUSH EBX",			-1,		0x50+3,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHESP),		"PUSH ESP",			-1,		0x50+4,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHECX),		"PUSH ECX",			-1,		0x50+1,	-1,		true);
 
-	DefineASM(ASM_PUSHRELEAX1,	"PUSH REL AX1",		-1,		0xFF,	0x30,	true);
-	DefineASM(ASM_PUSHRELEAX2,	"PUSH REL AX2",		-1,		0xFF,	0x30,	true);
-	DefineASM(ASM_PUSHRELEAX4,	"PUSH REL EAX",		-1,		0xFF,	0x30,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHRELEAX1),	"PUSH REL AX1",		-1,		0xFF,	0x30,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHRELEAX2),	"PUSH REL AX2",		-1,		0xFF,	0x30,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHRELEAX4),	"PUSH REL EAX",		-1,		0xFF,	0x30,	true);
 
-	DefineASM(ASM_PUSHEBP4,		"PUSH [EBP+A]",		-1,		0xFF,	0xB5,	true);
-	DefineASM(ASM_PUSHFROMEAX,	"PUSH [EAX]",		-1,		0xFF,	0x30,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHEBP4),		"PUSH [EBP+A]",		-1,		0xFF,	0xB5,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHFROMEAX),	"PUSH [EAX]",		-1,		0xFF,	0x30,	false);
 
-	DefineASM(ASM_CALLEAX,		"CALL EAX",			-1,		0xFF,	0xD0,	false);
-	DefineASM(ASM_CALLEBX,		"CALL EBX",			-1,		0xFF,	0xD3,	false);
-	DefineASM(ASM_CALLMEM,		"CALL MEM",			-1,		0xE8,	-1,		true);
-	DefineASM(ASM_CALLABS,		"CALL REL",			-1,		0xE8,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::CALLEAX),		"CALL EAX",			-1,		0xFF,	0xD0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CALLEBX),		"CALL EBX",			-1,		0xFF,	0xD3,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CALLMEM),		"CALL MEM",			-1,		0xE8,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::CALLABS),		"CALL REL",			-1,		0xE8,	-1,		true);
 	
-	DefineASM(ASM_POPEAX,		"POP EAX",			-1,		0x58,	-1,		false);
-	DefineASM(ASM_POPEBX,		"POP EBX",			-1,		0x5B,	-1,		false);
-	DefineASM(ASM_RET,			"RET",				-1,		0xC3,	-1,		false);
-	DefineASM(ASM_POPEDX,		"POP EDX",			-1,		0x5A,	-1,		false);
-	DefineASM(ASM_POPECX,		"POP ECX",			-1,		0x59,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::POPEAX),		"POP EAX",			-1,		0x58,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::POPEBX),		"POP EBX",			-1,		0x5B,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::RET),			"RET",				-1,		0xC3,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::POPEDX),		"POP EDX",			-1,		0x5A,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::POPECX),		"POP ECX",			-1,		0x59,	-1,		false);
 
-	DefineASM(ASM_UNKNOWN,		"???",				-1,		-1,		-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::UNKNOWN),		"???",				-1,		-1,		-1,		false);
 
-	DefineASM(ASM_CMPEAX1,		"CMP EAX1",			-1,		0x3C,	-1,		true);
-	DefineASM(ASM_CMPEAX2,		"CMP EAX2",			0x66,	0x3D,	-1,		true);
-	DefineASM(ASM_CMPEAX4,		"CMP EAX4",			-1,		0x3D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEAX1),		"CMP EAX1",			-1,		0x3C,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEAX2),		"CMP EAX2",			0x66,	0x3D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEAX4),		"CMP EAX4",			-1,		0x3D,	-1,		true);
 
-	DefineASM(ASM_CMPEBX1,		"CMP EBX1",			-1,		0x80,	0xFB,	true);
-	DefineASM(ASM_CMPEBX2,		"CMP EBX2",			0x66,	0x81,	0xFB,	true);
-	DefineASM(ASM_CMPEBX4,		"CMP EBX4",			-1,		0x81,	0xFB,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEBX1),		"CMP EBX1",			-1,		0x80,	0xFB,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEBX2),		"CMP EBX2",			0x66,	0x81,	0xFB,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEBX4),		"CMP EBX4",			-1,		0x81,	0xFB,	true);
 	
-	DefineASM(ASM_CMPGREEDXEBX,	"CMP EDX EBX4",		-1,		0x3B,	0xDA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPGREEDXEBX),	"CMP EDX EBX4",		-1,		0x3B,	0xDA,	false);
 
-	DefineASM(ASM_CMPEDXEBX1,	"CMP EDX EBX1",		-1,		0x3A,	0xDA,	false);
-	DefineASM(ASM_CMPEDXEBX2,	"CMP EDX EBX2",		0x66,	0x3B,	0xDA,	false);
-	DefineASM(ASM_CMPEDXEBX4,	"CMP EDX EBX4",		-1,		0x3B,	0xDA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEDXEBX1),	"CMP EDX EBX1",		-1,		0x3A,	0xDA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEDXEBX2),	"CMP EDX EBX2",		0x66,	0x3B,	0xDA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEDXEBX4),	"CMP EDX EBX4",		-1,		0x3B,	0xDA,	false);
 
-	DefineASM(ASM_CMPEAXEBX4,	"CMP EAX EBX4",		-1,		0x3B,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPEAXEBX4),	"CMP EAX EBX4",		-1,		0x3B,	0xD8,	false);
 
-	DefineASM(ASM_SETE,			"SETE EAX",			0x0F,	0x94,	0xC0,	false);
-	DefineASM(ASM_SETNE,		"SETNE EAX",		0x0F,	0x95,	0xC0,	false);
-	DefineASM(ASM_SETG,			"SETG EAX",			0x0F,	0x9F,	0xC0,	false);
-	DefineASM(ASM_SETGE,		"SETGE EAX",		0x0F,	0x9D,	0xC0,	false);
-	DefineASM(ASM_SETL,			"SETL EAX",			0x0F,	0x9C,	0xC0,	false);
-	DefineASM(ASM_SETLE,		"SETLE EAX",		0x0F,	0x9E,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SETE),			"SETE EAX",			0x0F,	0x94,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SETNE),		"SETNE EAX",		0x0F,	0x95,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SETG),			"SETG EAX",			0x0F,	0x9F,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SETGE),		"SETGE EAX",		0x0F,	0x9D,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SETL),			"SETL EAX",			0x0F,	0x9C,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SETLE),		"SETLE EAX",		0x0F,	0x9E,	0xC0,	false);
 
-	DefineASM(ASM_JMP,			"JMP",				-1,		0xE9,	-1,		true);
-	DefineASM(ASM_JNE,			"JNE",				-1,		0x0F,	0x85,	true);
-	DefineASM(ASM_JE,			"JE",				-1,		0x0F,	0x84,	true);
-	DefineASM(ASM_JMPREL,		"JMP REL",			-1,		0xFF,	0x25,	true);
-	DefineASM(ASM_JMPEBX,		"JMP EBX",			-1,		0xFF,	0xE3,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::JMP),			"JMP",				-1,		0xE9,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::JNE),			"JNE",				-1,		0x0F,	0x85,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::JE),			"JE",				-1,		0x0F,	0x84,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::JMPREL),		"JMP REL",			-1,		0xFF,	0x25,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::JMPEBX),		"JMP EBX",			-1,		0xFF,	0xE3,	true);
 
-	DefineASM(ASM_JGE,			"JGE",				-1,		0x0F,	0x8D,	true);
-	DefineASM(ASM_JLE,			"JLE",				-1,		0x0F,	0x8E,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::JGE),			"JGE",				-1,		0x0F,	0x8D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::JLE),			"JLE",				-1,		0x0F,	0x8E,	true);
 
-	DefineASM(ASM_MOVMEMESP4,	"MOV MEM4 ESP",		-1,		0x89,	0x25,	true);
-	DefineASM(ASM_MOVESPMEM4,	"MOV ESP MEM4",		-1,		0x8B,	0x25,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMESP4),	"MOV MEM4 ESP",		-1,		0x89,	0x25,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVESPMEM4),	"MOV ESP MEM4",		-1,		0x8B,	0x25,	true);
 
-	DefineASM(ASM_MOVEBXMEM4,	"MOV EBX MEM4",		-1,		0x8B,	0x1D,	true);
-	DefineASM(ASM_MOVMEMEBX4,	"MOV MEM EBX4",		-1,		0x89,	0x1D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEBXMEM4),	"MOV EBX MEM4",		-1,		0x8B,	0x1D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMEBX4),	"MOV MEM EBX4",		-1,		0x89,	0x1D,	true);
 
-	DefineASM(ASM_MOVEAXSIB4,	"MOV EAX SIB[EAX:EBX*4]",	0x8B,	0x04,	0x98,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVEAXSIB4),	"MOV EAX SIB[EAX:EBX*4]",	0x8B,	0x04,	0x98,	false);
 
-	DefineASM(ASM_MOVSIB4IMM1,	"MOV SIB[EAX:ECX*1],IMM1",	0xC6,	0x04,	0x08,	true);
-	DefineASM(ASM_MOVSIB4IMM4,	"MOV SIB[EAX:ECX*4],IMM4",	0xC7,	0x04,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVSIB4IMM1),	"MOV SIB[EAX:ECX*1],IMM1",	0xC6,	0x04,	0x08,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVSIB4IMM4),	"MOV SIB[EAX:ECX*4],IMM4",	0xC7,	0x04,	0x88,	true);
 
-	DefineASM(ASM_PUSHAD,		"PUSH REGISTERS",	-1,		0x60,	-1,		false);
-	DefineASM(ASM_POPAD,		"POP REGISTERS",	-1,		0x61,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHAD),		"PUSH REGISTERS",	-1,		0x60,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::POPAD),		"POP REGISTERS",	-1,		0x61,	-1,		false);
 
-	DefineASM(ASM_LOOP,			"LOOP ECX",			-1,		0xE2,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::LOOP),			"LOOP ECX",			-1,		0xE2,	-1,		true);
 	
-	DefineASM(ASM_PUSHIMM4,		"PUSH IMM4",		-1,		0x68,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::PUSHIMM4),		"PUSH IMM4",		-1,		0x68,	-1,		true);
 
-	DefineASM(ASM_INCMEM1,		"INC MEM1",			-1,		0xFE,	0x05,	true);
-	DefineASM(ASM_INCMEM2,		"INC MEM2",			0x66,	0xFF,	0x05,	true);
-	DefineASM(ASM_INCMEM4,		"INC MEM4",			-1,		0xFF,	0x05,	true);
-	DefineASM(ASM_DECMEM1,		"DEC MEM1",			-1,		0xFE,	0x0D,	true);
-	DefineASM(ASM_DECMEM2,		"DEC MEM2",			0x66,	0xFF,	0x0D,	true);
-	DefineASM(ASM_DECMEM4,		"DEC MEM4",			-1,		0xFF,	0x0D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::INCMEM1),		"INC MEM1",			-1,		0xFE,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::INCMEM2),		"INC MEM2",			0x66,	0xFF,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::INCMEM4),		"INC MEM4",			-1,		0xFF,	0x05,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::DECMEM1),		"DEC MEM1",			-1,		0xFE,	0x0D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::DECMEM2),		"DEC MEM2",			0x66,	0xFF,	0x0D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::DECMEM4),		"DEC MEM4",			-1,		0xFF,	0x0D,	true);
 
-	DefineASM(ASM_ADDEAX1,		"ADD EAX IMM1",		-1,		0x04,	-1,		true);
-	DefineASM(ASM_ADDEAX2,		"ADD EAX IMM2",		0x66,	0x05,	-1,		true);
-	DefineASM(ASM_ADDEAX4,		"ADD EAX IMM4",		-1,		0x05,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAX1),		"ADD EAX IMM1",		-1,		0x04,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAX2),		"ADD EAX IMM2",		0x66,	0x05,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEAX4),		"ADD EAX IMM4",		-1,		0x05,	-1,		true);
 	
-	DefineASM(ASM_SUBEAX1,		"SUB EAX IMM1",		-1,		0x2C,	-1,		true);
-	DefineASM(ASM_SUBEAX2,		"SUB EAX IMM2",		0x66,	0x2D,	-1,		true);
-	DefineASM(ASM_SUBEAX4,		"SUB EAX IMM4",		-1,		0x2D,	-1,		true);
-	DefineASM(ASM_SUBEAXEBX1,	"SUB EAX EBX1",		-1,		0x28,	0xD8,	false);
-	DefineASM(ASM_SUBEAXEBX2,	"SUB EAX EBX2",		0x66,	0x29,	0xD8,	false);
-	DefineASM(ASM_SUBEAXEBX4,	"SUB EAX EBX4",		-1,		0x29,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBEAX1),		"SUB EAX IMM1",		-1,		0x2C,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBEAX2),		"SUB EAX IMM2",		0x66,	0x2D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBEAX4),		"SUB EAX IMM4",		-1,		0x2D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBEAXEBX1),	"SUB EAX EBX1",		-1,		0x28,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBEAXEBX2),	"SUB EAX EBX2",		0x66,	0x29,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBEAXEBX4),	"SUB EAX EBX4",		-1,		0x29,	0xD8,	false);
 
-	DefineASM(ASM_MULEAXEBX1,	"IMUL EAX EBX1",	-1,		0xF6,	0xEB,	false);
-	DefineASM(ASM_MULEAXEBX2,	"IMUL EAX EBX2",	0x66,	0xF7,	0xEB,	false);
-	DefineASM(ASM_MULEAXEBX4,	"IMUL EAX EBX4",	-1,		0xF7,	0xEB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MULEAXEBX1),	"IMUL EAX EBX1",	-1,		0xF6,	0xEB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MULEAXEBX2),	"IMUL EAX EBX2",	0x66,	0xF7,	0xEB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MULEAXEBX4),	"IMUL EAX EBX4",	-1,		0xF7,	0xEB,	false);
 
-	DefineASM(ASM_CDQ,			"CDQ",				-1,		0x99,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::CDQ),			"CDQ",				-1,		0x99,	-1,		false);
 
-	DefineASM(ASM_DIVEAXEBX1,	"IDIV EAX EBX1",	-1,		0xF6,	0xFB,	false);
-	DefineASM(ASM_DIVEAXEBX2,	"IDIV EAX EBX2",	0x66,	0xF7,	0xFB,	false);
-	DefineASM(ASM_DIVEAXEBX4,	"IDIV EAX EBX4",	-1,		0xF7,	0xFB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::DIVEAXEBX1),	"IDIV EAX EBX1",	-1,		0xF6,	0xFB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::DIVEAXEBX2),	"IDIV EAX EBX2",	0x66,	0xF7,	0xFB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::DIVEAXEBX4),	"IDIV EAX EBX4",	-1,		0xF7,	0xFB,	false);
 
-	DefineASM(ASM_ANDEAX1,		"AND EAX IMM1",		-1,		0x24,	-1,		true);
-	DefineASM(ASM_ANDEAX2,		"AND EAX IMM2",		0x66,	0x25,	-1,		true);
-	DefineASM(ASM_ANDEAX4,		"AND EAX IMM4",		-1,		0x25,	-1,		true);
-	DefineASM(ASM_ANDEAXEBX1,	"AND EAX EBX1",		-1,		0x20,	0xD8,	false);
-	DefineASM(ASM_ANDEAXEBX2,	"AND EAX EBX2",		0x66,	0x21,	0xD8,	false);
-	DefineASM(ASM_ANDEAXEBX4,	"AND EAX EBX4",		-1,		0x21,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDEAX1),		"AND EAX IMM1",		-1,		0x24,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDEAX2),		"AND EAX IMM2",		0x66,	0x25,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDEAX4),		"AND EAX IMM4",		-1,		0x25,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDEAXEBX1),	"AND EAX EBX1",		-1,		0x20,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDEAXEBX2),	"AND EAX EBX2",		0x66,	0x21,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDEAXEBX4),	"AND EAX EBX4",		-1,		0x21,	0xD8,	false);
 
-	DefineASM(ASM_OREAX1,		"OR EAX IMM1",		-1,		0x0C,	-1,		true);
-	DefineASM(ASM_OREAX2,		"OR EAX IMM2",		0x66,	0x0D,	-1,		true);
-	DefineASM(ASM_OREAX4,		"OR EAX IMM4",		-1,		0x0D,	-1,		true);
-	DefineASM(ASM_OREAXEBX1,	"OR EAX EBX1",		-1,		0x08,	0xD8,	false);
-	DefineASM(ASM_OREAXEBX2,	"OR EAX EBX2",		0x66,	0x09,	0xD8,	false);
-	DefineASM(ASM_OREAXEBX4,	"OR EAX EBX4",		-1,		0x09,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::OREAX1),		"OR EAX IMM1",		-1,		0x0C,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::OREAX2),		"OR EAX IMM2",		0x66,	0x0D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::OREAX4),		"OR EAX IMM4",		-1,		0x0D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::OREAXEBX1),	"OR EAX EBX1",		-1,		0x08,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::OREAXEBX2),	"OR EAX EBX2",		0x66,	0x09,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::OREAXEBX4),	"OR EAX EBX4",		-1,		0x09,	0xD8,	false);
 
-	DefineASM(ASM_NOTEAX1,		"NOT EAX1",			-1,		0xF6,	0xD0,	false);
-	DefineASM(ASM_NOTEAX2,		"NOT EAX2",			0x66,	0xF7,	0xD0,	false);
-	DefineASM(ASM_NOTEAX4,		"NOT EAX4",			-1,		0xF7,	0xD0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::NOTEAX1),		"NOT EAX1",			-1,		0xF6,	0xD0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::NOTEAX2),		"NOT EAX2",			0x66,	0xF7,	0xD0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::NOTEAX4),		"NOT EAX4",			-1,		0xF7,	0xD0,	false);
 
-	DefineASM(ASM_XOREAX1,		"XOR EAX IMM1",		-1,		0x34,	-1,		true);
-	DefineASM(ASM_XOREAX2,		"XOR EAX IMM2",		0x66,	0x35,	-1,		true);
-	DefineASM(ASM_XOREAX4,		"XOR EAX IMM4",		-1,		0x35,	-1,		true);
-	DefineASM(ASM_XOREAXEBX1,	"XOR EAX EBX1",		-1,		0x30,	0xD8,	false);
-	DefineASM(ASM_XOREAXEBX2,	"XOR EAX EBX2",		0x66,	0x31,	0xD8,	false);
-	DefineASM(ASM_XOREAXEBX4,	"XOR EAX EBX4",		-1,		0x31,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::XOREAX1),		"XOR EAX IMM1",		-1,		0x34,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::XOREAX2),		"XOR EAX IMM2",		0x66,	0x35,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::XOREAX4),		"XOR EAX IMM4",		-1,		0x35,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::XOREAXEBX1),	"XOR EAX EBX1",		-1,		0x30,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::XOREAXEBX2),	"XOR EAX EBX2",		0x66,	0x31,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::XOREAXEBX4),	"XOR EAX EBX4",		-1,		0x31,	0xD8,	false);
 	
-	DefineASM(ASM_SHLEAX1,		"SHL EAX1 IMM1",	-1,		0xC0,	0xE0,	true);
-	DefineASM(ASM_SHLEAX2,		"SHL EAX2 IMM2",	0x66,	0xC1,	0xE0,	true);
-	DefineASM(ASM_SHLEAX4,		"SHL EAX4 IMM4",	-1,		0xC1,	0xE0,	true);
-	DefineASM(ASM_SHLEAXCLC1,	"SHL EAX1 CL",		-1,		0xD2,	0xE0,	false);
-	DefineASM(ASM_SHLEAXCLC2,	"SHL EAX2 CL",		0x66,	0xD3,	0xE0,	false);
-	DefineASM(ASM_SHLEAXCLC4,	"SHL EAX4 CL",		-1,		0xD3,	0xE0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLEAX1),		"SHL EAX1 IMM1",	-1,		0xC0,	0xE0,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLEAX2),		"SHL EAX2 IMM2",	0x66,	0xC1,	0xE0,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLEAX4),		"SHL EAX4 IMM4",	-1,		0xC1,	0xE0,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLEAXCLC1),	"SHL EAX1 CL",		-1,		0xD2,	0xE0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLEAXCLC2),	"SHL EAX2 CL",		0x66,	0xD3,	0xE0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLEAXCLC4),	"SHL EAX4 CL",		-1,		0xD3,	0xE0,	false);
 
-	DefineASM(ASM_SHREAX1,		"SHR EAX1 IMM1",	-1,		0xC0,	0xE8,	true);
-	DefineASM(ASM_SHREAX2,		"SHR EAX2 IMM2",	0x66,	0xC1,	0xE8,	true);
-	DefineASM(ASM_SHREAX4,		"SHR EAX4 IMM4",	-1,		0xC1,	0xE8,	true);
-	DefineASM(ASM_SHREAXCLC1,	"SHR EAX1 CL",		-1,		0xD2,	0xE8,	false);
-	DefineASM(ASM_SHREAXCLC2,	"SHR EAX2 CL",		0x66,	0xD3,	0xE8,	false);
-	DefineASM(ASM_SHREAXCLC4,	"SHR EAX4 CL",		-1,		0xD3,	0xE8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHREAX1),		"SHR EAX1 IMM1",	-1,		0xC0,	0xE8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHREAX2),		"SHR EAX2 IMM2",	0x66,	0xC1,	0xE8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHREAX4),		"SHR EAX4 IMM4",	-1,		0xC1,	0xE8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHREAXCLC1),	"SHR EAX1 CL",		-1,		0xD2,	0xE8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHREAXCLC2),	"SHR EAX2 CL",		0x66,	0xD3,	0xE8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHREAXCLC4),	"SHR EAX4 CL",		-1,		0xD3,	0xE8,	false);
 
-	DefineASM(ASM_MULECXEDX4,	"IMUL ECX EDX4",	0x0F,	0xAF,	0x0A,	false);
-	DefineASM(ASM_ADDEBXEDX4,	"ADD EBX EDX4",		-1,		0x03,	0xDA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MULECXEDX4),	"IMUL ECX EDX4",	0x0F,	0xAF,	0x0A,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDEBXEDX4),	"ADD EBX EDX4",		-1,		0x03,	0xDA,	false);
 }
 
 void CASMWriter::DefineASM(DWORD dwASMCode, LPSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData)
@@ -2520,7 +2520,7 @@ bool CASMWriter::WriteASMCall(DWORD dwLine, LPSTR pDLL, LPSTR pDecoratedName)
 	CommandString.AddText(pDLL);
 	CommandString.AddText(",");
 	CommandString.AddText(pDecoratedName);
-	return g_pASMWriter->WriteASMTaskCoreP1(dwLine, ASMTASK_CALL, &CommandString, 1);
+	return g_pASMWriter->WriteASMTaskCoreP1(dwLine, static_cast<DWORD>(ASMTask::Call), &CommandString, 1);
 }
 
 DWORD CASMWriter::DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset)
@@ -2532,21 +2532,21 @@ DWORD CASMWriter::DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset)
 			if(pP->GetChar(1)==':')
 			{
 				if(dwPType==1001)
-					return PMODE_EBP;
+					return static_cast<DWORD>(ParamMode::Ebp);
 				else
 				{
 					if((dwPType>100 && dwPType<=199) || dwPType==1101)
-						return PMODE_EBPARR;
+						return static_cast<DWORD>(ParamMode::EbpArr);
 					else
 					{
 						if(dwPType>200 && dwPType<=299)
-							return PMODE_EBPREL;
+							return static_cast<DWORD>(ParamMode::EbpRel);
 						else
 						{
 							if(dwPOffset>0)
-								return PMODE_EBPOFF;
+								return static_cast<DWORD>(ParamMode::EbpOff);
 							else
-								return PMODE_EBP;
+								return static_cast<DWORD>(ParamMode::Ebp);
 						}
 					}
 				}
@@ -2554,30 +2554,30 @@ DWORD CASMWriter::DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset)
 			else
 			{
 				if(dwPType==1001)
-					return PMODE_MEM;
+					return static_cast<DWORD>(ParamMode::Mem);
 				else
 				{
 					if((dwPType>100 && dwPType<=199) || dwPType==1101)
-						return PMODE_MEMARR;
+						return static_cast<DWORD>(ParamMode::MemArr);
 					else
 					{
 						if(dwPType>200 && dwPType<=299)
-							return PMODE_MEMREL;
+							return static_cast<DWORD>(ParamMode::MemRel);
 						else
 						{
 							if(dwPOffset>0)
-								return PMODE_MEMOFF;
+								return static_cast<DWORD>(ParamMode::MemOff);
 							else
-								return PMODE_MEM;
+								return static_cast<DWORD>(ParamMode::Mem);
 						}
 					}
 				}
 			}
 		}
 		else
-			return PMODE_IMM;
+			return static_cast<DWORD>(ParamMode::Imm);
 	}
-	return PMODE_NONE;
+	return static_cast<DWORD>(ParamMode::None);
 }
 
 void CASMWriter::CalculateArrayOffsetInEBX ( CStr* pPIndex )
@@ -2589,13 +2589,13 @@ void CASMWriter::CalculateArrayOffsetInEBX ( CStr* pPIndex )
 		if(pPIndex->Length()==0)
 		{
 			// Internal unified list index
-			WriteASMLine(ASM_MOVEBXEAXOFF4, "-4");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXEAXOFF4), "-4");
 		}
 		else
 		{
 			/* moved to mathop to calc-array-offset
 			// Always have first dimension D1
-			WriteASMLine(ASM_POPEBX, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
 
 			// Loop through subsequent dimensions D2-D9
 			int iCount=0;
@@ -2605,9 +2605,9 @@ void CASMWriter::CalculateArrayOffsetInEBX ( CStr* pPIndex )
 				CStr* pValue = new CStr("");
 				int iHeaderOffset = (-56)+(iCount*4);
 				pValue->SetNumericText(iHeaderOffset);
-				WriteASMLine(ASM_POPEDX, "");
-				WriteASMLine(ASM_MULEDXEAXOFF4, pValue->GetStr());
-				WriteASMLine(ASM_ADDEBXEDX4, "");
+				WriteASMLine(static_cast<DWORD>(ASMOp::POPEDX), "");
+				WriteASMLine(static_cast<DWORD>(ASMOp::MULEDXEAXOFF4), pValue->GetStr());
+				WriteASMLine(static_cast<DWORD>(ASMOp::ADDEBXEDX4), "");
 				SAFE_DELETE(pValue);
 				iCount++;
 			}
@@ -2616,18 +2616,18 @@ void CASMWriter::CalculateArrayOffsetInEBX ( CStr* pPIndex )
 			{
 				if(pPIndex->GetChar(1)==':')
 				{
-					DWORD dwCorrectASMCode=DetermineASMCall(ASM_MOVEBXEBP1,1);
+					DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEBXEBP1),1);
 					WriteASMLine(dwCorrectASMCode, (pPIndex->GetStr()+2));	
 				}
 				else
 				{
-					WriteASMLine(ASM_MOVEBXMEM4, pPIndex->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXMEM4), pPIndex->GetStr());
 				}
 			}
 			else
 			{
 				// Normal specified index
-				WriteASMLine(ASM_MOVEBXIMM4, pPIndex->GetStr());
+				WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXIMM4), pPIndex->GetStr());
 			}
 		}
 
@@ -2635,17 +2635,17 @@ void CASMWriter::CalculateArrayOffsetInEBX ( CStr* pPIndex )
 		if(GetArrayCheckFlag())
 		{
 			// Perform array bounds (for user subscripts) check and leap over
-			WriteASMLine(ASM_PUSHEDX, "");//added 300305 - to stop EDX overwritten as it can store DOUBLE compoent!
-			WriteASMLine(ASM_MOVEDXEAXOFF4, "-16");
-			WriteASMLine(ASM_CMPGREEDXEBX, "");
-			WriteASMLine(ASM_POPEDX, "");//added 300305 - to stop EDX overwritten as it can store DOUBLE compoent!
-			WriteASMLeapMarkerJump(ASM_JGE, 2);
-			WriteASMLine(ASM_CMPEBX4, "-1");
-			WriteASMLeapMarkerJump(ASM_JLE, 3);
+			WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEDX), "");//added 300305 - to stop EDX overwritten as it can store DOUBLE compoent!
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAXOFF4), "-16");
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPGREEDXEBX), "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEDX), "");//added 300305 - to stop EDX overwritten as it can store DOUBLE compoent!
+			WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JGE), 2);
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEBX4), "-1");
+			WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JLE), 3);
 		}
 	}
 	else
-		WriteASMLine(ASM_MOVEBXIMM4, "0");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXIMM4), "0");
 }
 
 void CASMWriter::WriteASMARRtoEAX(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD dwPType, DWORD dwPOffset)
@@ -2666,44 +2666,44 @@ void CASMWriter::WriteASMARRtoEAX(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 	if(GetArrayCheckFlag())
 	{
 		// Make Sure Array Exists
-		WriteASMLine(ASM_CMPEAX4, "0");
+		WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 
 		// Leap Marker OpCode
-		WriteASMLeapMarkerJump(ASM_JE, 1);
+		WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 1);
 	}
 
 	// Locate Array Element
 	CalculateArrayOffsetInEBX(pOffset);
 
-	WriteASMLine(ASM_MOVEAXSIB4, "");
+	WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXSIB4), "");
 
 	// Read From Array
 	switch(dwPType-100)
 	{
 		case 1001:	// UDT ARRAY - Place EAX at Location of UDT Array Element
 					// EAX already pointing to array data index, just need to add dataoffset (.field part)
-					WriteASMLine(ASM_ADDEAX4, pOffset1Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), pOffset1Str->GetStr());
 					
 // leefix - 170403 - odd code, writes to ECX twice - replaced with above
-//					dwCorrectASMCode1=DetermineASMCallForREL(ASM_MOVECXEAXOFF1,dwPType);
+//					dwCorrectASMCode1=DetermineASMCallForREL(static_cast<DWORD>(ASMOp::MOVECXEAXOFF1),dwPType);
 //					WriteASMLine(dwCorrectASMCode1, pOffset1Str->GetStr());
-//					WriteASMLine(ASM_MOVECXEAX4, "");
+//					WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 					break;
 
 		case 8:		// MEMARR to ST08
-					WriteASMLine(ASM_MOVST0EAX8, pOffset1Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0EAX8), pOffset1Str->GetStr());
 					break;
 
 		case 9:		// MEMARR to EAX/EDX
-					WriteASMLine(ASM_MOVECXEAXOFF4, pOffset2Str->GetStr());
-					WriteASMLine(ASM_MOVEDXECX4, "");
-					WriteASMLine(ASM_MOVECXEAXOFF4, pOffset1Str->GetStr());
-					WriteASMLine(ASM_MOVEAXECX4, "");
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAXOFF4), pOffset2Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXECX4), "");
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAXOFF4), pOffset1Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECX4), "");
 					break;
 
 		default:	// MEMARR to EAX
-					dwCorrectASMCode1=DetermineASMCallForREL(ASM_MOVECXEAXOFF1,dwPType);
-					dwCorrectASMCode2=DetermineASMCallForREL(ASM_MOVEAXECX1,dwPType);
+					dwCorrectASMCode1=DetermineASMCallForREL(static_cast<DWORD>(ASMOp::MOVECXEAXOFF1),dwPType);
+					dwCorrectASMCode2=DetermineASMCallForREL(static_cast<DWORD>(ASMOp::MOVEAXECX1),dwPType);
 					WriteASMLine(dwCorrectASMCode1, pOffset1Str->GetStr());
 					WriteASMLine(dwCorrectASMCode2, "");
 					break;
@@ -2722,7 +2722,7 @@ void CASMWriter::WriteASMARRtoEAX(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 		// leap over error handling code for arrays (10 bytes)
 		char leapstring[32];
 		itoa ( iLeapSize, leapstring, 10 );
-		WriteASMLine(ASM_JMP, leapstring);
+		WriteASMLine(static_cast<DWORD>(ASMOp::JMP), leapstring);
 
 		// Complete Leap Marker (so we jump here)
 		WriteASMLeapMarkerEnd(1);
@@ -2730,10 +2730,10 @@ void CASMWriter::WriteASMARRtoEAX(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 		WriteASMLeapMarkerEnd(3);
 
 		// the array error (1=not there/2+3-out of bounds), else continue after this (+10)
-		WriteASMLine2(ASM_MOVMEMIMM4, "@$_ERR_", "118");
+		WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ERR_", "118");
 
 		// leefix - 300305 - ensure array errors reported immediately
-		WriteASMTaskCoreP2(m_dwLineNumber, ASMTASK_RUNTIMEERRORHOOK, NULL, 0, NULL, 0);
+		WriteASMTaskCoreP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::RuntimeErrorHook), NULL, 0, NULL, 0);
 	}
 }
 
@@ -2757,7 +2757,7 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 
 	switch(dwMode)
 	{
-		case PMODE_IMM:	// IMM to EAX
+		case static_cast<DWORD>(ParamMode::Imm):	// IMM to EAX
 
 			dwExtraDWORD=0;
 			dwDWORDRep = pP->GetDWORDRepresentation(dwPType, &dwExtraDWORD);
@@ -2768,80 +2768,80 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 				case 8:		// IMM to ST08
 							pTemp1Str->SetText("@$_TEMPA_");
 							pTemp2Str->SetText("@$_TEMPB_");
-							WriteASMLine2IMM(ASM_MOVMEMIMM4, pTemp1Str->GetStr(), pDWORD1Str->GetStr(),2);
-							WriteASMLine2IMM(ASM_MOVMEMIMM4, pTemp2Str->GetStr(), pDWORD2Str->GetStr(),2);
-							WriteASMLine(ASM_MOVST0MEM8, pTemp1Str->GetStr());
+							WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp1Str->GetStr(), pDWORD1Str->GetStr(),2);
+							WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp2Str->GetStr(), pDWORD2Str->GetStr(),2);
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0MEM8), pTemp1Str->GetStr());
 							break;
 
 				case 9:		// IMM to EAX/EDX
-							WriteASMLine(ASM_MOVEDXIMM4, pDWORD2Str->GetStr());
-							WriteASMLine(ASM_MOVEAXIMM4, pDWORD1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXIMM4), pDWORD2Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pDWORD1Str->GetStr());
 							break;
 
 				case 3:		// IMMSTR to EAX
-							WriteASMLine(ASM_MOVEAXIMM4, pP->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pP->GetStr());
 							break;
 
 				case 20:	// DATA LABEL POINTER to EAX
-							WriteASMLine(ASM_MOVEAXIMM4, pP->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pP->GetStr());
 							break;
 
 				default:	// IMM to EAX
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXIMM1,dwPType);
-							dwIMMSize=dwCorrectASMCode-ASM_MOVEAXIMM1;
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXIMM1),dwPType);
+							dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::MOVEAXIMM1);
 							WriteASMLine2IMM(dwCorrectASMCode, NULL, pDWORD1Str->GetStr(), dwIMMSize);
 							break;
 			}
 			break;
 			
-		case PMODE_MEM:	// MEM to EAX
+		case static_cast<DWORD>(ParamMode::Mem):	// MEM to EAX
 
 			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
 				case 8:		// MEM to ST08
-							WriteASMLine(ASM_MOVST0MEM8, pP->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0MEM8), pP->GetStr());
 							break;
 
 				case 9:		// MEM to EAX/EDX
-							WriteASMLine(ASM_MOVEAXMEM4, pDoubleStr->GetStr());
-							WriteASMLine(ASM_MOVEDXEAX4, "");
-							WriteASMLine(ASM_MOVEAXMEM4, pP->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pDoubleStr->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP->GetStr());
 							break;
 
 				default:	// MEM to EAX
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXMEM1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXMEM1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pP->GetStr());
 							break;
 			}
 			break;
 
-		case PMODE_MEMOFF:	// MEMOFF to EAX
+		case static_cast<DWORD>(ParamMode::MemOff):	// MEMOFF to EAX
 
 			pOffset1Str->SetDWORDNumericText(dwPOffset);
 			pOffset2Str->SetDWORDNumericText(dwPOffset+4);
-			WriteASMLine(ASM_MOVECXIMM4, pP->GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXIMM4), pP->GetStr());
 			switch(dwPType)
 			{
 				case 8:		// ST08 to MEM
-							WriteASMLine(ASM_MOVST0ECXOFF8, pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0ECXOFF8), pOffset1Str->GetStr());
 							break;
 
 				case 9:		// EAX/EDX to MEM
-							WriteASMLine(ASM_MOVEAXECXOFF4, pOffset2Str->GetStr());
-							WriteASMLine(ASM_MOVEDXEAX4, "");
-							WriteASMLine(ASM_MOVEAXECXOFF4, pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECXOFF4), pOffset2Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECXOFF4), pOffset1Str->GetStr());
 							break;
 	
 				default:	// EAX to MEM
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXECXOFF1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXECXOFF1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 							break;
 			}
 			break;
 
-		case PMODE_EBP:	// EBP to EAX
+		case static_cast<DWORD>(ParamMode::Ebp):	// EBP to EAX
 
 			pDoubleStr->SetText((pP->GetStr()+2));
 			iOffset=(int)pDoubleStr->GetValue();
@@ -2851,23 +2851,23 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 			switch(dwPType)
 			{
 				case 8:		// EBP to ST08
-							WriteASMLine(ASM_MOVST0EBP8, (pP->GetStr()+2));
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0EBP8), (pP->GetStr()+2));
 							break;
 
 				case 9:		// EBP to EAX/EDX
-							WriteASMLine(ASM_MOVEAXEBP4, pDoubleStr->GetStr());
-							WriteASMLine(ASM_MOVEDXEAX4, "");
-							WriteASMLine(ASM_MOVEAXEBP4, (pP->GetStr()+2));
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pDoubleStr->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), (pP->GetStr()+2));
 							break;
 
 				default:	// EBP to EAX
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEBP1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEBP1),dwPType);
 							WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));	
 							break;
 			}
 			break;
 
-		case PMODE_EBPOFF:	// EBP-OFFSET to EAX
+		case static_cast<DWORD>(ParamMode::EbpOff):	// EBP-OFFSET to EAX
 
 			pOffset2Str->SetText((pP->GetStr()+2));
 			iOffset=(int)pOffset2Str->GetValue();
@@ -2878,43 +2878,43 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 			switch(dwPType)
 			{
 				case 8:		// EBP to ST08
-							WriteASMLine(ASM_MOVST0EBP8, pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0EBP8), pOffset1Str->GetStr());
 							break;
 
 				case 9:		// EBP to EAX/EDX
-							WriteASMLine(ASM_MOVEAXEBP4, pOffset2Str->GetStr());
-							WriteASMLine(ASM_MOVEDXEAX4, "");
-							WriteASMLine(ASM_MOVEAXEBP4, pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pOffset2Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pOffset1Str->GetStr());
 							break;
 
 				default:	// EBP to EAX
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEBP1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEBP1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());	
 							break;
 			}
 			break;
 
-		case PMODE_MEMARR:	// MEMARR to EAX
+		case static_cast<DWORD>(ParamMode::MemArr):	// MEMARR to EAX
 
 			// Find Array location
-			WriteASMLine(ASM_MOVEAXMEM4, pP->GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP->GetStr());
 
 			// Copy Array Data to EAX
 			WriteASMARRtoEAX(dwMode, pP, pPIndex, dwPType, dwPOffset);
 
 			break;
 
-		case PMODE_EBPARR:	// EBPARR to EAX
+		case static_cast<DWORD>(ParamMode::EbpArr):	// EBPARR to EAX
 
 			// Find Array location
-			WriteASMLine(ASM_MOVEAXEBP4, (pP->GetStr()+2));
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), (pP->GetStr()+2));
 
 			// Copy Array Data to EAX
 			WriteASMARRtoEAX(dwMode, pP, pPIndex, dwPType, dwPOffset);
 
 			break;
 
-		case PMODE_MEMREL:	// [MEM] to EAX
+		case static_cast<DWORD>(ParamMode::MemRel):	// [MEM] to EAX
 
 			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
@@ -2927,17 +2927,17 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							break;
 
 				default:	// MEM to EAX
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXMEM1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXMEM1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pP->GetStr());
 							// leefix - 280305 - passing the memaddr as the offset is very odd,
 							// changed it to use the actual data ofset passed in, possible typo
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEAXREL1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEAXREL1),dwPType);
 							WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
 			break;
 
-		case PMODE_EBPREL:	// [MEM] to EAX (that is, value pointed by EBP+x to EAX)
+		case static_cast<DWORD>(ParamMode::EbpRel):	// [MEM] to EAX (that is, value pointed by EBP+x to EAX)
 
 			switch(dwPType)
 			{
@@ -2948,9 +2948,9 @@ void CASMWriter::WriteASMXtoEAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							break;
 
 				default:	// MEM to EAX
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEBP1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEBP1),dwPType);
 							WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEAXREL1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEAXREL1),dwPType);
 // 280305 - as above fix	WriteASMLine(dwCorrectASMCode, pP->GetStr());
 							WriteASMLine(dwCorrectASMCode, "");
 							break;
@@ -2976,39 +2976,39 @@ void CASMWriter::WriteASMEAXtoARR(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 	if(GetArrayCheckFlag())
 	{
 		// Make Sure Array Exists
-		WriteASMLine(ASM_CMPEAX4, "0");
+		WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 
 		// Leap Marker OpCode
-		WriteASMLeapMarkerJump(ASM_JE, 1);
+		WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 1);
 	}
 
 	// Locate Array Element (EBX)
 	CalculateArrayOffsetInEBX(pOffset);
 
 	// Perform extraction of data to EAX
-	WriteASMLine(ASM_MOVEAXSIB4, "");
+	WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXSIB4), "");
 
 	// Write To Element
 	switch(dwPType-100)
 	{
 		case 1001:	// UDT ARRAY
-//					dwCorrectASMCode=DetermineASMCallForREL(ASM_MOVEAXOFFECX1,dwPType);
+//					dwCorrectASMCode=DetermineASMCallForREL(static_cast<DWORD>(ASMOp::MOVEAXOFFECX1),dwPType);
 //					WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
-					WriteASMLine(ASM_ADDEAXECX4, "");
+					WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAXECX4), "");
 					break;
 
 		case 8:		// ST08 to MEMARR
-					WriteASMLine(ASM_MOVEAXST08, pOffset1Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXST08), pOffset1Str->GetStr());
 					break;
 
 		case 9:		// EAX/EDX to MEMARR
-					WriteASMLine(ASM_MOVEAXOFFECX4, pOffset1Str->GetStr());
-					WriteASMLine(ASM_MOVECXEDX4, "");
-					WriteASMLine(ASM_MOVEAXOFFECX4, pOffset2Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXOFFECX4), pOffset1Str->GetStr());
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEDX4), "");
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXOFFECX4), pOffset2Str->GetStr());
 					break;
 
 		default:	// EAX to MEMARR
-					dwCorrectASMCode=DetermineASMCallForREL(ASM_MOVEAXOFFECX1,dwPType);
+					dwCorrectASMCode=DetermineASMCallForREL(static_cast<DWORD>(ASMOp::MOVEAXOFFECX1),dwPType);
 					WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 					break;
 	}
@@ -3026,7 +3026,7 @@ void CASMWriter::WriteASMEAXtoARR(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 		// leap over error handling code for arrays (10 bytes)
 		char leapstring[32];
 		itoa ( iLeapSize, leapstring, 10 );
-		WriteASMLine(ASM_JMP, leapstring);
+		WriteASMLine(static_cast<DWORD>(ASMOp::JMP), leapstring);
 
 		// Complete Leap Marker (so we jump here)
 		WriteASMLeapMarkerEnd(1);
@@ -3034,10 +3034,10 @@ void CASMWriter::WriteASMEAXtoARR(DWORD dwMode, CStr* pP, CStr* pOffset, DWORD d
 		WriteASMLeapMarkerEnd(3);
 
 		// the array error (1=not there/2+3-out of bounds), else continue after this (+10)
-		WriteASMLine2(ASM_MOVMEMIMM4, "@$_ERR_", "118");
+		WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ERR_", "118");
 
 		// leefix - 300305 - ensure array errors reported immediately
-		WriteASMTaskCoreP2(m_dwLineNumber, ASMTASK_RUNTIMEERRORHOOK, NULL, 0, NULL, 0);
+		WriteASMTaskCoreP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::RuntimeErrorHook), NULL, 0, NULL, 0);
 	}
 }
 
@@ -3056,52 +3056,52 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 
 	switch(dwMode)
 	{
-		case PMODE_MEM:		// EAX to MEM
+		case static_cast<DWORD>(ParamMode::Mem):		// EAX to MEM
 			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
 				case 8:		// ST08 to MEM
-							WriteASMLine(ASM_MOVMEMST08, pP->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMST08), pP->GetStr());
 							break;
 
 				case 9:		// EAX/EDX to MEM
-							WriteASMLine(ASM_MOVMEMEAX4, pP->GetStr());
-							WriteASMLine(ASM_MOVEAXEDX4, "");
-							WriteASMLine(ASM_MOVMEMEAX4, pDoubleStr->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX4), pP->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX4), pDoubleStr->GetStr());
 							break;
 	
 				default:	// EAX to MEM
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVMEMEAX1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVMEMEAX1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pP->GetStr());
 							break;
 			}
 			break;
 
-		case PMODE_MEMOFF:	// EAX to MEM-OFFSET
+		case static_cast<DWORD>(ParamMode::MemOff):	// EAX to MEM-OFFSET
 			pOffset1Str->SetDWORDNumericText(dwPOffset);
 			pOffset2Str->SetDWORDNumericText(dwPOffset+4);
-			WriteASMLine(ASM_MOVECXIMM4, pP->GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXIMM4), pP->GetStr());
 			switch(dwPType)
 			{
 				case 8:		// ST08 to MEMFF
-							WriteASMLine(ASM_MOVECXOFFST08, pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFST08), pOffset1Str->GetStr());
 							break;
 
 				case 9:		// EAX/EDX to MEMFF
-							WriteASMLine(ASM_MOVECXOFFEAX4, pOffset1Str->GetStr());
-							WriteASMLine(ASM_MOVEAXEDX4, "");
-							WriteASMLine(ASM_MOVECXOFFEAX4, pOffset2Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFEAX4), pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFEAX4), pOffset2Str->GetStr());
 							break;
 	
 				default:	// EAX to MEMFF
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVECXOFFEAX1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVECXOFFEAX1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 							break;
 			}
 			break;
 
-		case PMODE_EBP:		// EAX to EBP
+		case static_cast<DWORD>(ParamMode::Ebp):		// EAX to EBP
 
 			pDoubleStr->SetText((pP->GetStr()+2));
 			iOffset=(int)pDoubleStr->GetValue();
@@ -3111,23 +3111,23 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 			switch(dwPType)
 			{
 				case 8:		// ST08 to EBP
-							WriteASMLine(ASM_MOVEBPST08, (pP->GetStr()+2));
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPST08), (pP->GetStr()+2));
 							break;
 
 				case 9:		// EAX/EDX to EBP
-							WriteASMLine(ASM_MOVEBPEAX4, (pP->GetStr()+2));
-							WriteASMLine(ASM_MOVEAXEDX4, "");
-							WriteASMLine(ASM_MOVEBPEAX4, pDoubleStr->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), (pP->GetStr()+2));
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), pDoubleStr->GetStr());
 							break;
 
 				default:	// EAX to EBP
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEBPEAX1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEBPEAX1),dwPType);
 							WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
 							break;
 			}
 			break;
 
-		case PMODE_EBPOFF:	// EAX to EBP-OFFSET
+		case static_cast<DWORD>(ParamMode::EbpOff):	// EAX to EBP-OFFSET
 
 			pOffset2Str->SetText((pP->GetStr()+2));
 			iOffset=(int)pOffset2Str->GetValue();
@@ -3138,49 +3138,49 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 			switch(dwPType)
 			{
 				case 8:		// ST08 to EBP
-							WriteASMLine(ASM_MOVEBPST08, pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPST08), pOffset1Str->GetStr());
 							break;
 
 				case 9:		// EAX/EDX to EBP
-							WriteASMLine(ASM_MOVEBPEAX4, pOffset1Str->GetStr());
-							WriteASMLine(ASM_MOVEAXEDX4, "");
-							WriteASMLine(ASM_MOVEBPEAX4, pOffset2Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), pOffset1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), pOffset2Str->GetStr());
 							break;
 
 				default:	// EAX to EBP
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEBPEAX1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEBPEAX1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 							break;
 			}
 			break;
 
-		case PMODE_MEMARR:	// EAX to MEMARR
+		case static_cast<DWORD>(ParamMode::MemArr):	// EAX to MEMARR
 
 			// Store EAX safely in ECX
-			WriteASMLine(ASM_MOVECXEAX4, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 
 			// Find Location of Array
-			WriteASMLine(ASM_MOVEAXMEM4, pP->GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP->GetStr());
 
 			// Store EAX in Array
 			WriteASMEAXtoARR(dwMode, pP, pPIndex, dwPType, dwPOffset);
 
 			break;
 
-		case PMODE_EBPARR:	// EAX to EBPARR
+		case static_cast<DWORD>(ParamMode::EbpArr):	// EAX to EBPARR
 
 			// Store EAX safely in ECX
-			WriteASMLine(ASM_MOVECXEAX4, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 
 			// Find Location of Array
-			WriteASMLine(ASM_MOVEAXEBP4, (pP->GetStr()+2));
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), (pP->GetStr()+2));
 
 			// Store EAX in Array
 			WriteASMEAXtoARR(dwMode, pP, pPIndex, dwPType, dwPOffset);
 
 			break;
 
-		case PMODE_STACK:	// EAX to STACK
+		case static_cast<DWORD>(ParamMode::Stack):	// EAX to STACK
 
 			switch(dwPType)
 			{
@@ -3188,57 +3188,57 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 				case 108:	// ST08 to STACK
 							pTemp1Str->SetText("@$_TEMPA_");
 							pTemp2Str->SetText("@$_TEMPB_");
-							WriteASMLine(ASM_MOVMEMST08, pTemp1Str->GetStr());
-							WriteASMLine(ASM_MOVEAXMEM4, pTemp2Str->GetStr());
-							WriteASMLine(ASM_PUSHEAX, "");
-							WriteASMLine(ASM_MOVEAXMEM4, pTemp1Str->GetStr());
-							WriteASMLine(ASM_PUSHEAX, "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMST08), pTemp1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pTemp2Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pTemp1Str->GetStr());
+							WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 							break;
 
 				case 9:		
 				case 109:	// EAX/EDX to STACK
-							WriteASMLine(ASM_PUSHEDX, "");
-							WriteASMLine(ASM_PUSHEAX, "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEDX), "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 							break;
 
 				default:	// EAX to STACK
-							WriteASMLine(ASM_PUSHEAX, "");
+							WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 							break;
 			}
 			break;
 
-		case PMODE_MEMREL:	// EAX to [MEM]
+		case static_cast<DWORD>(ParamMode::MemRel):	// EAX to [MEM]
 
 			// Store EAX (as using EAX to get seg-memaddress)
-			WriteASMLine(ASM_MOVECXEAX4, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 
 			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
 			{
 				case 8:		// ST08 to MEM
-//							WriteASMLine(ASM_MOVMEMST08, pP->GetStr());
+//							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMST08), pP->GetStr());
 							break;
 
 				case 9:		// EAX/EDX to MEM
-//							WriteASMLine(ASM_MOVMEMEAX4, pP->GetStr());
-//							WriteASMLine(ASM_MOVEAXEDX4, "");
-//							WriteASMLine(ASM_MOVMEMEAX4, pDoubleStr->GetStr());
+//							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX4), pP->GetStr());
+//							WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
+//							WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX4), pDoubleStr->GetStr());
 							break;
 	
 				default:	// EAX to MEM
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXMEM1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXMEM1),dwPType);
 							WriteASMLine(dwCorrectASMCode, pP->GetStr());
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXECXREL1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXECXREL1),dwPType);
 							WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
 			break;
 
-		case PMODE_EBPREL: 	// EAX to [MEM] (that is, the memory pointed to by EBP+x)
+		case static_cast<DWORD>(ParamMode::EbpRel): 	// EAX to [MEM] (that is, the memory pointed to by EBP+x)
 
 			// Store EAX (as using EAX to get seg-memaddress)
-			WriteASMLine(ASM_MOVECXEAX4, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 
 			switch(dwPType)
 			{
@@ -3249,9 +3249,9 @@ void CASMWriter::WriteASMEAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwP
 							break;
 	
 				default:	// EAX to MEM
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEBP1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEBP1),dwPType);
 							WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXECXREL1,dwPType);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXECXREL1),dwPType);
 							WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
@@ -3367,12 +3367,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset);
 
 	// Batches of ASM Ops to perform a single task
-	if(dwTask==ASMTASK_ASSIGNTOEAX)
+	if(dwTask==static_cast<DWORD>(ASMTask::AssignToEax))
 	{
 		WriteASMXtoEAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
 		WriteASMComment("ASSIGN X TO EAX", "", "", "");
 	}
-	if(dwTask==ASMTASK_ASSIGN)
+	if(dwTask==static_cast<DWORD>(ASMTask::Assign))
 	{
 		if(pP2)
 		{
@@ -3395,7 +3395,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			WriteASMComment("ASSIGN EAX TO X", "", "", "");
 		}
 	}
-	if(dwTask==ASMTASK_PUSH)
+	if(dwTask==static_cast<DWORD>(ASMTask::Push))
 	{
 		if(pP1)
 		{
@@ -3405,31 +3405,31 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			}
 		}
 		WriteASMXtoEAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
-		WriteASMEAXtoX(PMODE_STACK, NULL, NULL, dwP1Type, dwP1Offset);
+		WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, dwP1Type, dwP1Offset);
 		WriteASMComment("PUSH TO STACK", "", "", "");
 	}
-	if(dwTask==ASMTASK_PUSHADDRESS)
+	if(dwTask==static_cast<DWORD>(ASMTask::PushAddress))
 	{
 		// leefix - include dataofsfet if any
-		if ( dwP1Mode==PMODE_MEM )
+		if ( dwP1Mode==static_cast<DWORD>(ParamMode::Mem) )
 		{
-			WriteASMLine(ASM_MOVEAXIMM4, pP1->GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pP1->GetStr());
 		}
-		if ( dwP1Mode==PMODE_EBP )
+		if ( dwP1Mode==static_cast<DWORD>(ParamMode::Ebp) )
 		{
-			WriteASMLine(ASM_MOVEAXEBP, NULL );
-			WriteASMLine(ASM_ADDEAX4, pP1->GetStr()+2 );
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP), NULL );
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), pP1->GetStr()+2 );
 		}
 		if ( dwP1Offset>0 )
 		{
 			CStr num("");
 			num.SetNumericText(dwP1Offset);
-			WriteASMLine(ASM_ADDEAX4, num.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), num.GetStr());
 		}
-		WriteASMLine(ASM_PUSHEAX, NULL);
+		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), NULL);
 		WriteASMComment("PUSH ADDRESS TO STACK", "", "", "");
 	}
-	if(dwTask==ASMTASK_CALL)
+	if(dwTask==static_cast<DWORD>(ASMTask::Call))
 	{
 		// Cut Full Param into DLL and COMMAND Strings#
 		// GetLeft/RightOfPosition return new[] buffers; own them with unique_ptr<char[]>
@@ -3444,17 +3444,17 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		bool bProtectedByESPDetection = false;
 		if ( AddProtectionToSelectedDLLs ( pDLLString.get() ) ) 
 		{
-			WriteASMLine(ASM_MOVEBXMEM4, "@$_SLN_");
-			WriteASMLine(ASM_MOVMEMEBX4, "@$_TEMPA_");
-			WriteASMLine(ASM_MOVMEMESP4, "@$_SLN_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXMEM4), "@$_SLN_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEBX4), "@$_TEMPA_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMESP4), "@$_SLN_");
 			bProtectedByESPDetection=true;
 		}
 
 		// Produce token Command Call token
 		CStr tokenCommandStr("[");
 		tokenCommandStr.AddNumericText(dwIndex);
-		WriteASMLine(ASM_MOVEBXIMM4, tokenCommandStr.GetStr());
-		WriteASMLine(ASM_CALLEBX, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXIMM4), tokenCommandStr.GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::CALLEBX), "");
 
 		// Comment Details
 		WriteASMComment("CALL", pDLLString.get(), pCommandString.get(), "");
@@ -3462,55 +3462,55 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		// Restore SLN after CALL for RTE tracing
 		if ( bProtectedByESPDetection ) 
 		{
-			WriteASMLine(ASM_MOVEBXMEM4, "@$_TEMPA_");
-			WriteASMLine(ASM_MOVMEMEBX4, "@$_SLN_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXMEM4), "@$_TEMPA_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEBX4), "@$_SLN_");
 		}
 	}
-	if(dwTask==ASMTASK_POPEAX)
+	if(dwTask==static_cast<DWORD>(ASMTask::PopEax))
 	{
-		WriteASMLine(ASM_POPEAX, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
 		WriteASMComment("POP EAX FROM STACK", "", "", "");
 	}
-	if(dwTask==ASMTASK_POPEBX)
+	if(dwTask==static_cast<DWORD>(ASMTask::PopEbx))
 	{
-		WriteASMLine(ASM_POPEBX, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
 		WriteASMComment("POP EBX FROM STACK", "", "", "");
 	}
-	if(dwTask==ASMTASK_UNKNOWN)
+	if(dwTask==static_cast<DWORD>(ASMTask::Unknown))
 	{
-		WriteASMLine(ASM_UNKNOWN, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::UNKNOWN), "");
 		WriteASMComment("NOT IMPLEMENTED", "", "", "");
 	}
-	if(dwTask==ASMTASK_CONDITION)
+	if(dwTask==static_cast<DWORD>(ASMTask::Condition))
 	{
 		if(pP1)
 		{
 			if(pP1->GetChar(0)=='@')
 			{
 				WriteASMXtoEAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
-				if ( GetCondToggle() ) WriteASMLine ( ASM_NOTEAX4, 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
-				WriteASMLine(ASM_CMPEAX4, "0");
+				if ( GetCondToggle() ) WriteASMLine ( static_cast<DWORD>(ASMOp::NOTEAX4), 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
+				WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 			}
 			else
 			{
 				// IMM
 				if(pP1->GetValue()==0)
 				{
-					WriteASMLine(ASM_MOVEAXIMM4, "0");
-					if ( GetCondToggle() ) WriteASMLine ( ASM_NOTEAX4, 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
-					WriteASMLine(ASM_CMPEAX4, "0");
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
+					if ( GetCondToggle() ) WriteASMLine ( static_cast<DWORD>(ASMOp::NOTEAX4), 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
+					WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 				}
 				else
 				{
-					WriteASMLine(ASM_MOVEAXIMM4, "1");
-					if ( GetCondToggle() ) WriteASMLine ( ASM_NOTEAX4, 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
-					WriteASMLine(ASM_CMPEAX4, "0");
+					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "1");
+					if ( GetCondToggle() ) WriteASMLine ( static_cast<DWORD>(ASMOp::NOTEAX4), 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
+					WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 				}
 			}
 		}
 		WriteASMComment("CONDITION COMPARE", "", "", "");
 	}
-	if(dwTask==ASMTASK_CONDITIONDATA)
+	if(dwTask==static_cast<DWORD>(ASMTask::ConditionData))
 	{
 		if(pP1)
 		{
@@ -3524,123 +3524,123 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 				dword1Str.SetDWORDNumericText(dwDWORDRep);			
 
 				// IMM
-				WriteASMLine(ASM_CMPEAX4, dword1Str.GetStr());
+				WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), dword1Str.GetStr());
 			}
 		}
 		WriteASMComment("CONDITION COMPARE", "", "", "");
 	}
-	if(dwTask==ASMTASK_CONDJUMPNE)
+	if(dwTask==static_cast<DWORD>(ASMTask::CondJumpNE))
 	{
-		WriteASMLine(ASM_JNE, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::JNE), pP1->GetStr());
 		WriteASMComment("JUMP IF NOT EQUAL", "", "", "");
 	}
-	if(dwTask==ASMTASK_CONDJUMPE)
+	if(dwTask==static_cast<DWORD>(ASMTask::CondJumpE))
 	{
-		WriteASMLine(ASM_JE, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::JE), pP1->GetStr());
 		WriteASMComment("JUMP IF EQUAL", "", "", "");
 	}
-	if(dwTask==ASMTASK_JUMP)
+	if(dwTask==static_cast<DWORD>(ASMTask::Jump))
 	{
-		WriteASMLine(ASM_JMP, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::JMP), pP1->GetStr());
 		WriteASMComment("DIRECT JUMP", "", "", "");
 	}
-	if(dwTask==ASMTASK_JUMPSUBROUTINE)
+	if(dwTask==static_cast<DWORD>(ASMTask::JumpSubroutine))
 	{
-		WriteASMLine(ASM_CALLMEM, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::CALLMEM), pP1->GetStr());
 		WriteASMComment("DIRECT SUBCALL", "", "", "");
 	}
-	if(dwTask==ASMTASK_RETURN)
+	if(dwTask==static_cast<DWORD>(ASMTask::Return))
 	{
 		// Unscheduled RETs are dangerous=crash, so default is safe return
 		if(1)
 		{
 			// Get ESP into EAX
-			WriteASMLine(ASM_MOVEAXESP, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXESP), "");
 			// Get _ESP_ into EBX
-			WriteASMLine(ASM_MOVEBXMEM4, "@$_ESP_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXMEM4), "@$_ESP_");
 			// Compare the values
-			WriteASMLine(ASM_CMPEAXEBX4, NULL);
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAXEBX4), NULL);
 			// Jump over line that sets the flag
-			WriteASMLine(ASM_JNE, "5");
+			WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "5");
 			// Line that exits the program due to illegal RETURN CALL
-			WriteASMLine(ASM_JMP, "$labelend");
+			WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "$labelend");
 			// oh and the actual return!
-			WriteASMLine(ASM_RET, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::RET), "");
 			// Comment for safe return
 			WriteASMComment("SAFERETURN", "", "", "");
 		}
 		else
 		{
 			// Hard RET
-			WriteASMLine(ASM_RET, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::RET), "");
 			WriteASMComment("RETURN", "", "", "");
 		}
 	}
-	if(dwTask==ASMTASK_PURERETURN)
+	if(dwTask==static_cast<DWORD>(ASMTask::PureReturn))
 	{
 		// Hard RET
-		WriteASMLine(ASM_RET, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::RET), "");
 		WriteASMComment("RETURN", "", "", "");
 	}
-	if(dwTask==ASMTASK_ADDESP)
+	if(dwTask==static_cast<DWORD>(ASMTask::AddEsp))
 	{
-		WriteASMLine(ASM_ADDESP, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::ADDESP), pP1->GetStr());
 		WriteASMComment("ADD ESP", "", "", "");
 	}
-	if(dwTask==ASMTASK_SUBESP)
+	if(dwTask==static_cast<DWORD>(ASMTask::SubEsp))
 	{
-		WriteASMLine(ASM_SUBESP, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::SUBESP), pP1->GetStr());
 		WriteASMComment("SUB ESP", "", "", "");
 	}
-	if(dwTask==ASMTASK_STOREESP)
+	if(dwTask==static_cast<DWORD>(ASMTask::StoreEsp))
 	{
-		WriteASMLine(ASM_MOVMEMESP4, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMESP4), pP1->GetStr());
 		WriteASMComment("STORE STACK IN MEM", "", "", "");
 	}
-	if(dwTask==ASMTASK_RESTOREESP)
+	if(dwTask==static_cast<DWORD>(ASMTask::RestoreEsp))
 	{
-		WriteASMLine(ASM_MOVESPMEM4, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVESPMEM4), pP1->GetStr());
 		WriteASMComment("RESTORE STACK FROM MEM", "", "", "");
 	}
-	if(dwTask==ASMTASK_PUSHEBP)
+	if(dwTask==static_cast<DWORD>(ASMTask::PushEbp))
 	{
-		WriteASMLine(ASM_PUSHEBP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), "");
 		WriteASMComment("PUSH EBP", "", "", "");
 	}
-	if(dwTask==ASMTASK_PUSHESP)
+	if(dwTask==static_cast<DWORD>(ASMTask::PushEsp))
 	{
-		WriteASMLine(ASM_PUSHESP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHESP), "");
 		WriteASMComment("PUSH ESP", "", "", "");
 	}
-	if(dwTask==ASMTASK_POPEBP)
+	if(dwTask==static_cast<DWORD>(ASMTask::PopEbp))
 	{
-		WriteASMLine(ASM_POPEBP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::POPEBP), "");
 		WriteASMComment("POP EBP", "", "", "");
 	}
-	if(dwTask==ASMTASK_MOVEBPESP)
+	if(dwTask==static_cast<DWORD>(ASMTask::MovBpEsp))
 	{
-		WriteASMLine(ASM_MOVEBPESP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPESP), "");
 		WriteASMComment("MOV EBP ESP", "", "", "");
 	}
-	if(dwTask==ASMTASK_MOVESPEBP)
+	if(dwTask==static_cast<DWORD>(ASMTask::MovSpEbp))
 	{
-		WriteASMLine(ASM_MOVESPEBP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVESPEBP), "");
 		WriteASMComment("MOV ESP EBP", "", "", "");
 	}
-	if(dwTask==ASMTASK_PUSHREGISTERS)
+	if(dwTask==static_cast<DWORD>(ASMTask::PushRegisters))
 	{
-		WriteASMLine(ASM_PUSHAD, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHAD), "");
 		WriteASMComment("PUSH REGISTERS", "", "", "");
 	}
-	if(dwTask==ASMTASK_POPREGISTERS)
+	if(dwTask==static_cast<DWORD>(ASMTask::PopRegisters))
 	{
-		WriteASMLine(ASM_POPAD, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::POPAD), "");
 		WriteASMComment("POP REGISTERS", "", "", "");
 	}	
-	if(dwTask==ASMTASK_CLEARSTACK)
+	if(dwTask==static_cast<DWORD>(ASMTask::ClearStack))
 	{
 		// SET EAX base
-		WriteASMLine(ASM_MOVEAXESP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXESP), "");
 
 		// BATCHES OF DWORDS
 		DWORD dwTotalToClear = pP1->GetDWORDRepresentation(1, NULL);
@@ -3652,62 +3652,62 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			iterations.SetNumericText(dwDWORDSteps);
 
 			// SET ECX max
-			WriteASMLine(ASM_MOVECXIMM4, iterations.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXIMM4), iterations.GetStr());
 
 			// MOV SIB[EAX:ECX*4], 0
-			WriteASMLine2IMM(ASM_MOVSIB4IMM4, NULL, "0", 2);
+			WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVSIB4IMM4), NULL, "0", 2);
 
 			// LOOP BACK
-			WriteASMLine2IMM(ASM_LOOP, NULL, "-9", 0);
+			WriteASMLine2IMM(static_cast<DWORD>(ASMOp::LOOP), NULL, "-9", 0);
 		}
 		if(dwDWORDLeft>0)
 		{
 			// Advance EAX base to skip zero'd batch areas
 			CStr advance;
 			advance.SetNumericText(((dwDWORDSteps+1)*4)-1);
-			WriteASMLine(ASM_ADDEAX4, advance.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), advance.GetStr());
 
 			CStr iterations;
 			iterations.SetNumericText(dwDWORDLeft);
 
 			// SET ECX max
-			WriteASMLine(ASM_MOVECXIMM4, iterations.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXIMM4), iterations.GetStr());
 
 			// MOV SIB[EAX:ECX*4], 0
-			WriteASMLine2IMM(ASM_MOVSIB4IMM1, NULL, "0", 0);
+			WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVSIB4IMM1), NULL, "0", 0);
 
 			// LOOP BACK
-			WriteASMLine2IMM(ASM_LOOP, NULL, "-6", 0);
+			WriteASMLine2IMM(static_cast<DWORD>(ASMOp::LOOP), NULL, "-6", 0);
 		}
 
 		// Comment
 		WriteASMComment("CLEAR STACK", "", "", "");
 	}
-	if(dwTask==ASMTASK_SETNORETURNIFESPLEAK)
+	if(dwTask==static_cast<DWORD>(ASMTask::SetNoReturnIfEspLeak))
 	{
 		// Get ESP into EAX
-		WriteASMLine(ASM_MOVEAXESP, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXESP), "");
 
 		// Get _ESP_ into EBX
-		WriteASMLine(ASM_MOVEBXMEM4, pP1->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXMEM4), pP1->GetStr());
 
 		// Compare the values
-		WriteASMLine(ASM_CMPEAXEBX4, NULL);
+		WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAXEBX4), NULL);
 
 		// Jump over line that sets the flag
-		WriteASMLine(ASM_JE, "10");
+		WriteASMLine(static_cast<DWORD>(ASMOp::JE), "10");
 
 		// Line that sets the flag to say 'no return'
-		WriteASMLine2(ASM_MOVMEMIMM4, "@$_ESC_", "3");
+		WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ESC_", "3");
 
 		// Comment
 		WriteASMComment("FLAG NORETURN IF ESP<>STOREDESP", "", "", "");
 	}
-	if(dwTask==ASMTASK_DEBUGSTATEMENTHOOK
-	|| dwTask==ASMTASK_DEBUGJUMPHOOK
-	|| dwTask==ASMTASK_DEBUGRETURNHOOK)
+	if(dwTask==static_cast<DWORD>(ASMTask::DebugStatementHook)
+	|| dwTask==static_cast<DWORD>(ASMTask::DebugJumpHook)
+	|| dwTask==static_cast<DWORD>(ASMTask::DebugReturnHook))
 	{
-		if(dwTask!=ASMTASK_DEBUGRETURNHOOK)
+		if(dwTask!=static_cast<DWORD>(ASMTask::DebugReturnHook))
 		{
 			// Push Four Debug Items to Stack
 			DWORD iProgID = 0;
@@ -3722,31 +3722,31 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			lineStr.SetDWORDNumericText(iLineNum);
 			startStr.SetDWORDNumericText(iStartChar);
 			endStr.SetDWORDNumericText(iEndChar);
-			WriteASMLine1IMM(ASM_PUSHIMM4, endStr.GetStr(), 2);
-			WriteASMLine1IMM(ASM_PUSHIMM4, startStr.GetStr(), 2);
-			WriteASMLine1IMM(ASM_PUSHIMM4, lineStr.GetStr(), 2);
-			WriteASMLine1IMM(ASM_PUSHIMM4, progStr.GetStr(), 2);
+			WriteASMLine1IMM(static_cast<DWORD>(ASMOp::PUSHIMM4), endStr.GetStr(), 2);
+			WriteASMLine1IMM(static_cast<DWORD>(ASMOp::PUSHIMM4), startStr.GetStr(), 2);
+			WriteASMLine1IMM(static_cast<DWORD>(ASMOp::PUSHIMM4), lineStr.GetStr(), 2);
+			WriteASMLine1IMM(static_cast<DWORD>(ASMOp::PUSHIMM4), progStr.GetStr(), 2);
 		}
 
 		// Produce token Command Call token
-		if(dwTask==ASMTASK_DEBUGSTATEMENTHOOK) WriteASMLine(ASM_MOVEAXIMM4, "[1");
-		if(dwTask==ASMTASK_DEBUGJUMPHOOK) WriteASMLine(ASM_MOVEAXIMM4, "[2");
-		if(dwTask==ASMTASK_DEBUGRETURNHOOK) WriteASMLine(ASM_MOVEAXIMM4, "[3");
-		WriteASMLine(ASM_CALLEAX, "");
+		if(dwTask==static_cast<DWORD>(ASMTask::DebugStatementHook)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "[1");
+		if(dwTask==static_cast<DWORD>(ASMTask::DebugJumpHook)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "[2");
+		if(dwTask==static_cast<DWORD>(ASMTask::DebugReturnHook)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "[3");
+		WriteASMLine(static_cast<DWORD>(ASMOp::CALLEAX), "");
 
 		// Free stack items
-		if(dwTask!=ASMTASK_DEBUGRETURNHOOK)
+		if(dwTask!=static_cast<DWORD>(ASMTask::DebugReturnHook))
 		{
-			WriteASMLine(ASM_POPEBX, "");
-			WriteASMLine(ASM_POPEBX, "");
-			WriteASMLine(ASM_POPEBX, "");
-			WriteASMLine(ASM_POPEBX, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
 		}
 
 		// Comment Details
 		WriteASMComment("CALL", "Debug Hook", "", "");
 	}
-	if(dwTask==ASMTASK_RUNTIMEERRORHOOK)
+	if(dwTask==static_cast<DWORD>(ASMTask::RuntimeErrorHook))
 	{
 		// Move Line Number to register for RTE trace
 		CStr lineStr("");
@@ -3754,34 +3754,34 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		if ( dwLine>0 )
 		{
 			lineStr.SetNumericText(dwNeverZero);
-			WriteASMLine2(ASM_MOVMEMIMM4, "@$_SLN_", lineStr.GetStr());
+			WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_SLN_", lineStr.GetStr());
 		}
 		else
 		{
 			// do NOT erase _SLN_ value with zero (can use last valid one)
 			// but STILL NEED to fill in an instruction here to preserve jump distances
-			WriteASMLine2(ASM_MOVMEMIMM4, "@$_ESC_", "1");
+			WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ESC_", "1");
 		}
 
 		// Debug Mode requires break, not quit..
 		if(g_DebugInfo.DebugModeOn())
 		{
 			// If runtime error DWORD is not zero, error occurred
-			WriteASMLine(ASM_MOVEAXMEM4, "@$_ERR_");
-			WriteASMLine(ASM_CMPEAX4, "0");
-			WriteASMLine(ASM_JE, "25");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_ERR_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+			WriteASMLine(static_cast<DWORD>(ASMOp::JE), "25");
 
 			// Work out BREAK Position
 			CStr data("");
 			DWORD dwPosition=g_DebugInfo.GetLastBreakPoint();
 			data.SetNumericText(dwPosition);
-			WriteASMLine2(ASM_MOVMEMIMM4, "@$_REK_", data.GetStr());
+			WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_REK_", data.GetStr());
 
 			// Set Escape value so Debugger is entered
-			WriteASMLine2(ASM_MOVMEMIMM4, "@$_ESC_", "1");
+			WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ESC_", "1");
 
 			// Jump To End of Program (it will skil quit because of breakvalue)
-			WriteASMLine(ASM_JMP, "$labelend");
+			WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "$labelend");
 
 			// Comment Details
 			WriteASMComment("CALL", "Debug Runtime Error Hook", "", "");
@@ -3789,9 +3789,9 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		else
 		{
 			// If runtime error DWORD is not zero, error occurred
-			WriteASMLine(ASM_MOVEAXMEM4, "@$_ERR_");
-			WriteASMLine(ASM_CMPEAX4, "0");
-			WriteASMLine(ASM_JNE, "$labelend");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_ERR_");
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+			WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "$labelend");
 
 			// Comment Details
 			WriteASMComment("CALL", "Normal Runtime Error Hook", "", "");
@@ -3805,14 +3805,14 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	// If INC uses non-memory, must use ADD instead
 	// Stack-owned IMM value (RAII); aliased into pP2 and consumed by the ASM section below
 	CStr localStrForSwitch;
-	if((dwTask==ASMTASK_INCVAR && dwP1Mode!=PMODE_MEM)
-	|| (dwTask==ASMTASK_DECVAR && dwP1Mode!=PMODE_MEM))
+	if((dwTask==static_cast<DWORD>(ASMTask::IncVar) && dwP1Mode!=static_cast<DWORD>(ParamMode::Mem))
+	|| (dwTask==static_cast<DWORD>(ASMTask::DecVar) && dwP1Mode!=static_cast<DWORD>(ParamMode::Mem)))
 	{
-		if(dwTask==ASMTASK_INCVAR) dwTask=ASMTASK_ADD;
-		if(dwTask==ASMTASK_DECVAR) dwTask=ASMTASK_SUB;
+		if(dwTask==static_cast<DWORD>(ASMTask::IncVar)) dwTask=static_cast<DWORD>(ASMTask::Add);
+		if(dwTask==static_cast<DWORD>(ASMTask::DecVar)) dwTask=static_cast<DWORD>(ASMTask::Sub);
 
 		// P2 becomes an IMM=1 value
-		dwP2Mode=PMODE_IMM;
+		dwP2Mode=static_cast<DWORD>(ParamMode::Imm);
 		localStrForSwitch.SetText("1");
 		pP2=&localStrForSwitch;
 		pP2Off=NULL;
@@ -3831,11 +3831,11 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	// HARDCODED ASM COMMANDS
 	//
 
-	if(dwTask==ASMTASK_ADD || dwTask==ASMTASK_SUB
-	|| dwTask==ASMTASK_MUL || dwTask==ASMTASK_DIV || dwTask==ASMTASK_MOD
-	|| dwTask==ASMTASK_AND || dwTask==ASMTASK_OR || dwTask==ASMTASK_NOT
-	|| dwTask==ASMTASK_SHR || dwTask==ASMTASK_SHL || dwTask==ASMTASK_XOR
-	|| dwTask==ASMTASK_BITNOT)
+	if(dwTask==static_cast<DWORD>(ASMTask::Add) || dwTask==static_cast<DWORD>(ASMTask::Sub)
+	|| dwTask==static_cast<DWORD>(ASMTask::Mul) || dwTask==static_cast<DWORD>(ASMTask::Div) || dwTask==static_cast<DWORD>(ASMTask::Mod)
+	|| dwTask==static_cast<DWORD>(ASMTask::And) || dwTask==static_cast<DWORD>(ASMTask::Or) || dwTask==static_cast<DWORD>(ASMTask::Not)
+	|| dwTask==static_cast<DWORD>(ASMTask::Shr) || dwTask==static_cast<DWORD>(ASMTask::Shl) || dwTask==static_cast<DWORD>(ASMTask::Xor)
+	|| dwTask==static_cast<DWORD>(ASMTask::BitNot))
 	{
 		// MATH Machine Code
 		if(dwP1Type==3 || dwP1Type==8 || dwP1Type==9)
@@ -3850,7 +3850,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			// Treat FLOAT bitwize & logic as DWORD
 			if(dwP1Type==2) dwP1Type=7;
 
-			if(dwP2Mode==PMODE_IMM)
+			if(dwP2Mode==static_cast<DWORD>(ParamMode::Imm))
 			{
 				// Ensure IMM is DWORD
 				DWORD dwExtraDWORD=0;
@@ -3862,126 +3862,126 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 
 				switch(dwTask)
 				{
-					case ASMTASK_ADD:
+					case static_cast<DWORD>(ASMTask::Add):
 					{
 						// add eax,imm
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_ADDEAX1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_ADDEAX1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::ADDEAX1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::ADDEAX1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
 					break;
 
-					case ASMTASK_SUB:
+					case static_cast<DWORD>(ASMTask::Sub):
 					{
 						// sub eax,imm
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_SUBEAX1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_SUBEAX1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SUBEAX1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::SUBEAX1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
 					break;
 
-					case ASMTASK_MUL:
+					case static_cast<DWORD>(ASMTask::Mul):
 					{
 						// mov ebx,imm + mul eax,ebx
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_MOVEBXIMM1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_MOVEBXIMM1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEBXIMM1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::MOVEBXIMM1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
-						dwCorrectASMCode=DetermineASMCall(ASM_MULEAXEBX1,dwP1Type);
+						dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MULEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_DIV:
-					case ASMTASK_MOD:
+					case static_cast<DWORD>(ASMTask::Div):
+					case static_cast<DWORD>(ASMTask::Mod):
 					{
 						// mov ebx,imm + div eax,ebx
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_MOVEBXIMM1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_MOVEBXIMM1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEBXIMM1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::MOVEBXIMM1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 
 						// leefix - 250604 - u54 - avoid division by zero with RT error
-						WriteASMLine(ASM_CMPEBX4, "0");
-						WriteASMLine(ASM_JNE, "15");
+						WriteASMLine(static_cast<DWORD>(ASMOp::CMPEBX4), "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "15");
 
 						// runtime error if not leaped over
-						WriteASMLine2(ASM_MOVMEMIMM4, "@$_ERR_", "119");
-						WriteASMLine(ASM_JMP, "3");
+						WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ERR_", "119");
+						WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "3");
 
 						// actual division
-						WriteASMLine(ASM_CDQ, "");
-						dwCorrectASMCode=DetermineASMCall(ASM_DIVEAXEBX1,dwP1Type);
+						WriteASMLine(static_cast<DWORD>(ASMOp::CDQ), "");
+						dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DIVEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 
 						// mod takes only the remainder
-						if(dwTask==ASMTASK_MOD)
+						if(dwTask==static_cast<DWORD>(ASMTask::Mod))
 						{
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEDX1,dwP1Type);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEDX1),dwP1Type);
 							WriteASMLine(dwCorrectASMCode, "");
 						}
 					}
 					break;
 
-					case ASMTASK_AND:
+					case static_cast<DWORD>(ASMTask::And):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_ANDEAX1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_ANDEAX1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::ANDEAX1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::ANDEAX1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
 					break;
 
-					case ASMTASK_OR:
+					case static_cast<DWORD>(ASMTask::Or):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_OREAX1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_OREAX1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::OREAX1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::OREAX1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
 					break;
 
-					case ASMTASK_NOT:
+					case static_cast<DWORD>(ASMTask::Not):
 					{
 						// LEEFIX - 041002 - NOT is a boolean task, so screen out all but first bit
-//						DWORD dwCorrectASMCode=DetermineASMCall(ASM_NOTEAX1,dwP1Type);
+//						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
 //						WriteASMLine(dwCorrectASMCode, "");
-//						dwCorrectASMCode=DetermineASMCall(ASM_ANDEAX1,dwP1Type);
-//						DWORD dwIMMSize=dwCorrectASMCode-ASM_ANDEAX1;
+//						dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::ANDEAX1),dwP1Type);
+//						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::ANDEAX1);
 //						WriteASMLine2IMM(dwCorrectASMCode, NULL, "1", dwIMMSize);
 
 						// lee - 010306 - u60 - actually toggle condition which reads EAX to JNE
 						SetCondToggle(true);
 
 						// lee - 240306 - u6b4 - also, NOT as well for legacy support (above flag NOTs it back)
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_NOTEAX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_BITNOT:
+					case static_cast<DWORD>(ASMTask::BitNot):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_NOTEAX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
 
-					case ASMTASK_XOR:
+					case static_cast<DWORD>(ASMTask::Xor):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_XOREAX1,dwP1Type);
-						DWORD dwIMMSize=dwCorrectASMCode-ASM_XOREAX1;
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::XOREAX1),dwP1Type);
+						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::XOREAX1);
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
 					break;
 
-					case ASMTASK_SHL:
+					case static_cast<DWORD>(ASMTask::Shl):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_SHLEAX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SHLEAX1),dwP1Type);
 						DWORD dwIMMSize=0;//can only be IMM8
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
 					break;
 
-					case ASMTASK_SHR:
+					case static_cast<DWORD>(ASMTask::Shr):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_SHREAX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SHREAX1),dwP1Type);
 						DWORD dwIMMSize=0;//can only be IMM8
 						WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 					}
@@ -3994,12 +3994,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			else
 			{
 				// Where DIV/MOD task, all 4bytes of EBX are CMP'd so clear EAX now
-				if(dwTask==ASMTASK_DIV || dwTask==ASMTASK_MOD)
+				if(dwTask==static_cast<DWORD>(ASMTask::Div) || dwTask==static_cast<DWORD>(ASMTask::Mod))
 				{
 					// and only if sub-4byte EAX op used
 					if(dwP2Type==4 || dwP2Type==5 || dwP2Type==6)//bool,byte,word only
 					{
-						WriteASMLine(ASM_MOVEAXIMM4, "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
 					}
 				}
 
@@ -4007,129 +4007,129 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 				WriteASMXtoEAX(dwP2Mode, pP2, pP2Off, dwP2Type, dwP2Offset);
 
 				// mov [b] to stack
-				WriteASMLine(ASM_PUSHEAX, "");
+				WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 
 				// mov eax,[a]
 				WriteASMXtoEAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
 
 				// put [b] into EBX from stack
-				WriteASMLine(ASM_POPEBX, "");
+				WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
 
 				switch(dwTask)
 				{
-					case ASMTASK_ADD:
+					case static_cast<DWORD>(ASMTask::Add):
 					{
 						// add eax,ebx
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_ADDEAXEBX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::ADDEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_SUB:
+					case static_cast<DWORD>(ASMTask::Sub):
 					{
 						// sub eax,ebx
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_SUBEAXEBX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SUBEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_MUL:
+					case static_cast<DWORD>(ASMTask::Mul):
 					{
 						// mul eax,ebx
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_MULEAXEBX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MULEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_DIV:
-					case ASMTASK_MOD:
+					case static_cast<DWORD>(ASMTask::Div):
+					case static_cast<DWORD>(ASMTask::Mod):
 					{
 						// avoid divide by zero
 // leefix - 350604 - old way was silent skip, new way is runtime error
-//						WriteASMLine(ASM_CMPEBX4, "0");
-//						WriteASMLine(ASM_JE, "3");
-						WriteASMLine(ASM_CMPEBX4, "0");
-						WriteASMLine(ASM_JNE, "15");
+//						WriteASMLine(static_cast<DWORD>(ASMOp::CMPEBX4), "0");
+//						WriteASMLine(static_cast<DWORD>(ASMOp::JE), "3");
+						WriteASMLine(static_cast<DWORD>(ASMOp::CMPEBX4), "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "15");
 
 						// runtime error if not leaped over
-						WriteASMLine2(ASM_MOVMEMIMM4, "@$_ERR_", "119");
-						WriteASMLine(ASM_JMP, "3");
+						WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ERR_", "119");
+						WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "3");
 						
 						// div eax,ebx
-						WriteASMLine(ASM_CDQ, "");
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_DIVEAXEBX1,dwP1Type);
+						WriteASMLine(static_cast<DWORD>(ASMOp::CDQ), "");
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DIVEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 
 						// mod takes only the remainder
-						if(dwTask==ASMTASK_MOD)
+						if(dwTask==static_cast<DWORD>(ASMTask::Mod))
 						{
-							dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXEDX1,dwP1Type);
+							dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXEDX1),dwP1Type);
 							WriteASMLine(dwCorrectASMCode, "");
 						}
 					}
 					break;
 
-					case ASMTASK_AND:
+					case static_cast<DWORD>(ASMTask::And):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_ANDEAXEBX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::ANDEAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_OR:
+					case static_cast<DWORD>(ASMTask::Or):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_OREAXEBX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::OREAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_NOT:
+					case static_cast<DWORD>(ASMTask::Not):
 					{
 						// NOT is a boolean task, so screen out all but first bit
-//						DWORD dwCorrectASMCode=DetermineASMCall(ASM_NOTEAX1,dwP1Type);
+//						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
 //						WriteASMLine(dwCorrectASMCode, "");
 
 						// lee - 010306 - u60 - defer to witching JE to JNE below..
 						SetCondToggle(true);
 
 						// lee - 240306 - u6b4 - also, NOT as well for legacy support (above flag NOTs it back)
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_NOTEAX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_BITNOT:
+					case static_cast<DWORD>(ASMTask::BitNot):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_NOTEAX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_XOR:
+					case static_cast<DWORD>(ASMTask::Xor):
 					{
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_XOREAXEBX1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::XOREAXEBX1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
 
-					case ASMTASK_SHL:
-					{
-						// mov ebx to CL (ecx byte part)
-						WriteASMLine(ASM_MOVECXEBX4, "");
-
-						// do shift 0-31 limit
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_SHLEAXCLC1,dwP1Type);
-						WriteASMLine(dwCorrectASMCode, "");
-					}
-					break;
-
-					case ASMTASK_SHR:
+					case static_cast<DWORD>(ASMTask::Shl):
 					{
 						// mov ebx to CL (ecx byte part)
-						WriteASMLine(ASM_MOVECXEBX4, "");
+						WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEBX4), "");
 
 						// do shift 0-31 limit
-						DWORD dwCorrectASMCode=DetermineASMCall(ASM_SHREAXCLC1,dwP1Type);
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SHLEAXCLC1),dwP1Type);
+						WriteASMLine(dwCorrectASMCode, "");
+					}
+					break;
+
+					case static_cast<DWORD>(ASMTask::Shr):
+					{
+						// mov ebx to CL (ecx byte part)
+						WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEBX4), "");
+
+						// do shift 0-31 limit
+						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SHREAXCLC1),dwP1Type);
 						WriteASMLine(dwCorrectASMCode, "");
 					}
 					break;
@@ -4140,24 +4140,24 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			}
 
 			// Comment
-			if(dwTask==ASMTASK_ADD) WriteASMComment("ADD", "", "", "");
-			if(dwTask==ASMTASK_SUB) WriteASMComment("SUB", "", "", "");
-			if(dwTask==ASMTASK_MUL) WriteASMComment("MUL", "", "", "");
-			if(dwTask==ASMTASK_DIV) WriteASMComment("DIV", "", "", "");
-			if(dwTask==ASMTASK_MOD) WriteASMComment("MOD", "", "", "");
-			if(dwTask==ASMTASK_AND) WriteASMComment("AND", "", "", "");
-			if(dwTask==ASMTASK_OR)  WriteASMComment("OR", "", "", "");
-			if(dwTask==ASMTASK_NOT) WriteASMComment("NOT", "", "", "");
-			if(dwTask==ASMTASK_XOR) WriteASMComment("XOR", "", "", "");
-			if(dwTask==ASMTASK_BITNOT) WriteASMComment("BIT NOT", "", "", "");
-			if(dwTask==ASMTASK_SHL) WriteASMComment("SHL", "", "", "");
-			if(dwTask==ASMTASK_SHR) WriteASMComment("SHR", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Add)) WriteASMComment("ADD", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Sub)) WriteASMComment("SUB", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Mul)) WriteASMComment("MUL", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Div)) WriteASMComment("DIV", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Mod)) WriteASMComment("MOD", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::And)) WriteASMComment("AND", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Or))  WriteASMComment("OR", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Not)) WriteASMComment("NOT", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Xor)) WriteASMComment("XOR", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::BitNot)) WriteASMComment("BIT NOT", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Shl)) WriteASMComment("SHL", "", "", "");
+			if(dwTask==static_cast<DWORD>(ASMTask::Shr)) WriteASMComment("SHR", "", "", "");
 		}
 	}
 
-	if(dwTask==ASMTASK_EQUAL || dwTask==ASMTASK_NOTEQUAL
-	|| dwTask==ASMTASK_GREATER || dwTask==ASMTASK_GREATEREQUAL
-	|| dwTask==ASMTASK_LESS || dwTask==ASMTASK_LESSEQUAL )
+	if(dwTask==static_cast<DWORD>(ASMTask::Equal) || dwTask==static_cast<DWORD>(ASMTask::NotEqual)
+	|| dwTask==static_cast<DWORD>(ASMTask::Greater) || dwTask==static_cast<DWORD>(ASMTask::GreaterEqual)
+	|| dwTask==static_cast<DWORD>(ASMTask::Less) || dwTask==static_cast<DWORD>(ASMTask::LessEqual) )
 	{
 		// COMPARE Machine Code
 		if(dwP1Type==3 || dwP1Type==8 || dwP1Type==9)
@@ -4172,7 +4172,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			// Treat FLOAT bitwize & logic as DWORD
 			if(dwP1Type==2) dwP1Type=7;
 
-			if(dwP2Mode==PMODE_IMM)
+			if(dwP2Mode==static_cast<DWORD>(ParamMode::Imm))
 			{
 				// Ensure IMM is DWORD
 				DWORD dwExtraDWORD=0;
@@ -4180,8 +4180,8 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 				pP2->SetNumericText(dwDWORDRep);
 
 				// mov eax,imm
-				DWORD dwCorrectASMCode=DetermineASMCall(ASM_MOVEAXIMM1,dwP1Type);
-				DWORD dwIMMSize=dwCorrectASMCode-ASM_MOVEAXIMM1;
+				DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::MOVEAXIMM1),dwP1Type);
+				DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::MOVEAXIMM1);
 				WriteASMLine2IMM(dwCorrectASMCode, NULL, pP2->GetStr(), dwIMMSize);
 			}
 			else
@@ -4191,29 +4191,29 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			}
 
 			// push [b] to stack
-			WriteASMLine(ASM_PUSHEAX, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 
 			// mov eax,[a]
 			WriteASMXtoEAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
 
 			// mov ebx,eax
-			WriteASMLine(ASM_MOVEBXEAX4, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXEAX4), "");
 
 			// pop [b] from stack to EDX
-			WriteASMLine(ASM_POPEDX, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEDX), "");
 
 			// cmp and setcc
-			WriteASMLine(ASM_MOVEAXIMM4, "0");
-			DWORD dwCorrectASMCode=DetermineASMCall(ASM_CMPEDXEBX1,dwP1Type);
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
+			DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::CMPEDXEBX1),dwP1Type);
 			WriteASMLine(dwCorrectASMCode, "");
 			switch(dwTask)
 			{
-				case ASMTASK_EQUAL: WriteASMLine(ASM_SETE, ""); break;
-				case ASMTASK_NOTEQUAL: WriteASMLine(ASM_SETNE, ""); break;
-				case ASMTASK_GREATER: WriteASMLine(ASM_SETG, ""); break;
-				case ASMTASK_GREATEREQUAL: WriteASMLine(ASM_SETGE, ""); break;
-				case ASMTASK_LESS: WriteASMLine(ASM_SETL, ""); break;
-				case ASMTASK_LESSEQUAL: WriteASMLine(ASM_SETLE, ""); break;
+				case static_cast<DWORD>(ASMTask::Equal): WriteASMLine(static_cast<DWORD>(ASMOp::SETE), ""); break;
+				case static_cast<DWORD>(ASMTask::NotEqual): WriteASMLine(static_cast<DWORD>(ASMOp::SETNE), ""); break;
+				case static_cast<DWORD>(ASMTask::Greater): WriteASMLine(static_cast<DWORD>(ASMOp::SETG), ""); break;
+				case static_cast<DWORD>(ASMTask::GreaterEqual): WriteASMLine(static_cast<DWORD>(ASMOp::SETGE), ""); break;
+				case static_cast<DWORD>(ASMTask::Less): WriteASMLine(static_cast<DWORD>(ASMOp::SETL), ""); break;
+				case static_cast<DWORD>(ASMTask::LessEqual): WriteASMLine(static_cast<DWORD>(ASMOp::SETLE), ""); break;
 			}
 
 			// mov [r],eax
@@ -4221,15 +4221,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		}
 
 		// Comment
-		if(dwTask==ASMTASK_EQUAL) WriteASMComment("EQUAL", "", "", "");
-		if(dwTask==ASMTASK_NOTEQUAL) WriteASMComment("NOTEQUAL", "", "", "");
-		if(dwTask==ASMTASK_GREATER) WriteASMComment("GREATER", "", "", "");
-		if(dwTask==ASMTASK_GREATEREQUAL) WriteASMComment("GREATEREQUAL", "", "", "");
-		if(dwTask==ASMTASK_LESS) WriteASMComment("LESS", "", "", "");
-		if(dwTask==ASMTASK_LESSEQUAL) WriteASMComment("LESSEQUAL", "", "", "");
+		if(dwTask==static_cast<DWORD>(ASMTask::Equal)) WriteASMComment("EQUAL", "", "", "");
+		if(dwTask==static_cast<DWORD>(ASMTask::NotEqual)) WriteASMComment("NOTEQUAL", "", "", "");
+		if(dwTask==static_cast<DWORD>(ASMTask::Greater)) WriteASMComment("GREATER", "", "", "");
+		if(dwTask==static_cast<DWORD>(ASMTask::GreaterEqual)) WriteASMComment("GREATEREQUAL", "", "", "");
+		if(dwTask==static_cast<DWORD>(ASMTask::Less)) WriteASMComment("LESS", "", "", "");
+		if(dwTask==static_cast<DWORD>(ASMTask::LessEqual)) WriteASMComment("LESSEQUAL", "", "", "");
 	}
 
-	if(dwTask==ASMTASK_INCVAR)
+	if(dwTask==static_cast<DWORD>(ASMTask::IncVar))
 	{
 		// INC Machine Code
 		if(dwP1Type==3 || dwP1Type==8 || dwP1Type==9)
@@ -4243,15 +4243,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			// Treat FLOAT as DWORD (replace with float ADD)
 			if(dwP1Type==2) dwP1Type=7;
 
-			if(dwP1Mode==PMODE_MEM)
+			if(dwP1Mode==static_cast<DWORD>(ParamMode::Mem))
 			{
-				DWORD dwCorrectASMCode=DetermineASMCall(ASM_INCMEM1,dwP1Type);
+				DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::INCMEM1),dwP1Type);
 				WriteASMLine(dwCorrectASMCode, pP1->GetStr());
 			}
 			WriteASMComment("INC VAR", "", "", "");
 		}
 	}
-	if(dwTask==ASMTASK_DECVAR)
+	if(dwTask==static_cast<DWORD>(ASMTask::DecVar))
 	{
 		if(dwP1Type==3 || dwP1Type==8 || dwP1Type==9)
 		{
@@ -4265,36 +4265,36 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			if(dwP1Type==2) dwP1Type=7;
 
 			// DEC Machine Code
-			if(dwP1Mode==PMODE_MEM)
+			if(dwP1Mode==static_cast<DWORD>(ParamMode::Mem))
 			{
-				DWORD dwCorrectASMCode=DetermineASMCall(ASM_DECMEM1,dwP1Type);
+				DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DECMEM1),dwP1Type);
 				WriteASMLine(dwCorrectASMCode, pP1->GetStr());
 			}
 			WriteASMComment("DEC VAR", "", "", "");
 		}
 	}
-	if(dwTask==ASMTASK_BREAKPOINTRESUME)
+	if(dwTask==static_cast<DWORD>(ASMTask::BreakpointResume))
 	{
 		// Check if breakpoint active
 		WriteASMCheckBreakPointVar();
 
 		// LEAP-FORWARDS Marker OpCode to skip breakpoint-resume
-		WriteASMLeapMarkerJump(ASM_JE, 0);
+		WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 0);
 
 //		Cannot Resume in deep nest of stack - new m/c means stack data useless
 //		// Restore stack as it was before we left the program
 //		WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?StackSnapshotRestore@@YAKXZ");
 	
 //		// When return, EAX holds the stack-ptr-adjustment value
-//		WriteASMLine(ASM_SUBESPEAX, NULL);
+//		WriteASMLine(static_cast<DWORD>(ASMOp::SUBESPEAX), NULL);
 
 //		// Reload registers with all values as it was before we left
-//		WriteASMLine(ASM_POPAD, "");
+//		WriteASMLine(static_cast<DWORD>(ASMOp::POPAD), "");
 
 		// Jump to breakpoint
-		WriteASMLine(ASM_MOVEBXMEM4, "@$_REK_");
-		WriteASMLine2(ASM_MOVMEMIMM4, "@$_REK_", "0");
-		WriteASMLine(ASM_JMPEBX, 0);
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBXMEM4), "@$_REK_");
+		WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_REK_", "0");
+		WriteASMLine(static_cast<DWORD>(ASMOp::JMPEBX), 0);
 
 		// Complete LEAP-FORWARD Marker (jump here if skip breakpoint resume)
 		g_pASMWriter->WriteASMLeapMarkerEnd(0);
@@ -4302,28 +4302,28 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		// Comment on this task
 		WriteASMComment("BREAKPOINT RESUME", "", "", "");
 	}
-	if(dwTask==ASMTASK_PUSHINTERNALARRAYINDEX)
+	if(dwTask==static_cast<DWORD>(ASMTask::PushInternalArrayIndex))
 	{
 		// Find Array location (in EAX)
-		if(dwP1Mode==PMODE_MEMARR) WriteASMLine(ASM_MOVEAXMEM4, pP1->GetStr());
-		if(dwP1Mode==PMODE_EBPARR) WriteASMLine(ASM_MOVEAXEBP4, pP1->GetStr()+2);
+		if(dwP1Mode==static_cast<DWORD>(ParamMode::MemArr)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP1->GetStr());
+		if(dwP1Mode==static_cast<DWORD>(ParamMode::EbpArr)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pP1->GetStr()+2);
 
 		/* old code crashes when safe array switched off and A() used instead of A( ) when A was not DIMMED
 		// If Array Check Active
 		if(GetArrayCheckFlag())
 		{
 			// Make Sure Array Exists
-			WriteASMLine(ASM_CMPEAX4, "0");
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 
 			// Leap Marker OpCode
-			WriteASMLeapMarkerJump(ASM_JE, 4);
+			WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 4);
 		}
 
 		// Get array index from -4 location within array header - put in EDX
-		WriteASMLine(ASM_MOVEDXEAXOFF4, "-4");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAXOFF4), "-4");
 
 		// Copy Push EDX to stack
-		WriteASMLine(ASM_PUSHEDX, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEDX), "");
 
 		// If Array Check Active
 		if(GetArrayCheckFlag())
@@ -4334,33 +4334,33 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		*/
 
 		// Force a check of the array as we NEED it to find the array index (safe arrays or no)
-		WriteASMLine(ASM_CMPEAX4, "0");
-		WriteASMLeapMarkerJump(ASM_JE, 4);
-		WriteASMLine(ASM_MOVEDXEAXOFF4, "-4");
-		WriteASMLine(ASM_PUSHEDX, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+		WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 4);
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAXOFF4), "-4");
+		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEDX), "");
 		WriteASMLeapMarkerEnd(4);
 
 		// Comment on this task
 		WriteASMComment("PUSH INT. ARRAY INDEX TO STACK", "", "", "");
 	}
-	if(dwTask==ASMTASK_CALCARRAYOFFSET)
+	if(dwTask==static_cast<DWORD>(ASMTask::CalcArrayOffset))
 	{
 		// Find Array location (in EAX)
-		if(dwP2Mode==PMODE_MEMARR) WriteASMLine(ASM_MOVEAXMEM4, pP2->GetStr());
-		if(dwP2Mode==PMODE_EBPARR) WriteASMLine(ASM_MOVEAXEBP4, pP2->GetStr()+2);
+		if(dwP2Mode==static_cast<DWORD>(ParamMode::MemArr)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP2->GetStr());
+		if(dwP2Mode==static_cast<DWORD>(ParamMode::EbpArr)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pP2->GetStr()+2);
 
 		// If Array Check Active
 		if(GetArrayCheckFlag())
 		{
 			// Make Sure Array Exists
-			WriteASMLine(ASM_CMPEAX4, "0");
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 
 			// Leap Marker OpCode
-			WriteASMLeapMarkerJump(ASM_JE, 4);
+			WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 4);
 		}
 
 		// Always have first dimension D1
-		WriteASMLine(ASM_POPEBX, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
 
 		// Loop through subsequent dimensions D2-D9 (dwP1Offset used as carrier)
 		int iCount=0;
@@ -4370,14 +4370,14 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			CStr value;
 			int iHeaderOffset = (-56)+(iCount*4);
 			value.SetNumericText(iHeaderOffset);
-			WriteASMLine(ASM_POPEDX, "");
-			WriteASMLine(ASM_MULEDXEAXOFF4, value.GetStr());
-			WriteASMLine(ASM_ADDEBXEDX4, "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEDX), "");
+			WriteASMLine(static_cast<DWORD>(ASMOp::MULEDXEAXOFF4), value.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEBXEDX4), "");
 			iCount++;
 		}
 
 		// Store EBX in Offset variable
-		WriteASMLine(ASM_MOVEAXEBX4, "");
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBX4), "");
 		WriteASMEAXtoX(dwP1Mode, pP1, NULL, 7, 0);
 
 		// If Array Check Active
@@ -4390,39 +4390,39 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		// Comment on this task
 		WriteASMComment("CALCULATE ARRAY OFFSET", "", "", "");
 	}
-	if(dwTask==ASMTASK_PUSHUDT)
+	if(dwTask==static_cast<DWORD>(ASMTask::PushUdt))
 	{
 		// UDT address to EAX
 
 // did not account for pasing UCTs from with user functions
-//		WriteASMLine(ASM_MOVEAXIMM4, pP1->GetStr());
-		if ( dwP1Mode==PMODE_MEM )
+//		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pP1->GetStr());
+		if ( dwP1Mode==static_cast<DWORD>(ParamMode::Mem) )
 		{
-			WriteASMLine(ASM_MOVEAXIMM4, pP1->GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pP1->GetStr());
 		}
-		if ( dwP1Mode==PMODE_EBP )
+		if ( dwP1Mode==static_cast<DWORD>(ParamMode::Ebp) )
 		{
-			WriteASMLine(ASM_MOVEAXEBP, NULL );
-			WriteASMLine(ASM_ADDEAX4, pP1->GetStr()+2 );
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP), NULL );
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), pP1->GetStr()+2 );
 		}
 		if ( dwP1Offset>0 )
 		{
 			CStr num;
 			num.SetNumericText(dwP1Offset);
-			WriteASMLine(ASM_ADDEAX4, num.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), num.GetStr());
 		}
 
 		// Advance EAX to end of UDT data (UDT Size)
-		WriteASMLine(ASM_ADDEAX4, pP2->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAX4), pP2->GetStr());
 
 		// advance to last data element
 		for ( DWORD n=0; n<dwP2Offset; n++)
 		{
 			// decrement udtptr
-			WriteASMLine(ASM_SUBEAX4, "4");
+			WriteASMLine(static_cast<DWORD>(ASMOp::SUBEAX4), "4");
 
 			// push udtptr to stack
-			WriteASMLine(ASM_PUSHFROMEAX, NULL);
+			WriteASMLine(static_cast<DWORD>(ASMOp::PUSHFROMEAX), NULL);
 		}
 
 		// Comment on this task
@@ -4578,8 +4578,8 @@ bool CASMWriter::WriteASMLineLeapToTop(DWORD dwOp)
 
 bool CASMWriter::WriteASMLeapMarkerJumpToTop(void)
 {
-	WriteASMLine(ASM_CMPEAX4, "0");
-	WriteASMLineLeapToTop(ASM_JNE);
+	WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+	WriteASMLineLeapToTop(static_cast<DWORD>(ASMOp::JNE));
 	return true;
 }
 
@@ -4616,17 +4616,17 @@ bool CASMWriter::WriteASMLeapMarkerJump(DWORD dwOp, DWORD di)
 
 bool CASMWriter::WriteASMLeapMarkerJumpNotEqual(DWORD di)
 {
-	return WriteASMLeapMarkerJump(ASM_JNE, di);
+	return WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JNE), di);
 }
 
 bool CASMWriter::WriteASMLeapForwardMarker(void)
 {
 	// Check if escape value is zero
-	WriteASMLine(ASM_MOVEAXMEM4, "@$_ESC_");
-	WriteASMLine(ASM_CMPEAX4, "0");
+	WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_ESC_");
+	WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 
 	// LEAP-FORWARDS Marker OpCode (different from leap-back)
-	WriteASMLeapMarkerJump(ASM_JE, 0);
+	WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 0);
 
 	// Complete
 	return true;
@@ -4672,15 +4672,15 @@ bool CASMWriter::WriteASMLeapMarkerEnd(DWORD di)
 
 bool CASMWriter::WriteASMCheckBreakPointVar(void)
 {
-	WriteASMLine(ASM_MOVEAXMEM4, "@$_REK_");
-	WriteASMLine(ASM_CMPEAX4, "0");
+	WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_REK_");
+	WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 	return true;
 }
 
 bool CASMWriter::WriteASMForceEscapeAtCodeBREAK(void)
 {
 	// Force an escape by setting ec to 1
-	WriteASMLine2(ASM_MOVMEMIMM4, "@$_ESC_", "1");
+	WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ESC_", "1");
 
 	// Complete
 	return true;
@@ -4688,7 +4688,7 @@ bool CASMWriter::WriteASMForceEscapeAtCodeBREAK(void)
 
 void CASMWriter::SetBreakPointValue(void)
 {
-	WriteASMLine2(ASM_MOVMEMIMM4, "@$_REK_", "1");
+	WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_REK_", "1");
 }
 
 DWORD CASMWriter::AddCommandToTable(LPSTR pDLLString, LPSTR pCommandString)

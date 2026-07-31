@@ -33,7 +33,7 @@ void CodeGenVisitor::Visit(ASTAssignmentNode* node) {
     }
 
     // 2. Pop value from stack into EAX
-    m_codeGen->WriteASMLine(ASM_POPEAX, "");
+    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
 
     // 3. Find variable information in symbol table
     CVarTable* pVar = g_pVarTable->FindVariable(NULL, const_cast<LPSTR>(node->m_varName.c_str()), 0);
@@ -60,7 +60,7 @@ void CodeGenVisitor::Visit(ASTLiteralNode* node) {
     DBP_TRACE("ASTCodeGen: Visiting ASTLiteralNode: {}", node->m_value);
     CStr literalVal(const_cast<LPSTR>(node->m_value.c_str()));
     // Directly push the literal onto the stack
-    m_codeGen->WriteASMTaskCoreP1(m_lineNumber, ASMTASK_PUSH, &literalVal, node->m_type);
+    m_codeGen->WriteASMTaskCoreP1(m_lineNumber, static_cast<DWORD>(ASMTask::Push), &literalVal, node->m_type);
 }
 
 void CodeGenVisitor::Visit(ASTVariableNode* node) {
@@ -77,21 +77,21 @@ void CodeGenVisitor::Visit(ASTVariableNode* node) {
     CStr varName(const_cast<LPSTR>(node->m_varName.c_str()));
     DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
     m_codeGen->WriteASMXtoEAX(dwAccessMode, &varName, NULL, dwType, dwOffset);
-    m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, dwType, dwOffset);
+    m_codeGen->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, dwType, dwOffset);
 }
 
 void CodeGenVisitor::Visit(ASTBinaryOpNode* node) {
     DBP_TRACE("ASTCodeGen: Visiting ASTBinaryOpNode");
     if (node->m_left) node->m_left->Accept(this);
     if (node->m_right) node->m_right->Accept(this);
-    m_codeGen->WriteASMLine(ASM_POPEBX, "");
-    m_codeGen->WriteASMLine(ASM_POPEAX, "");
+    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
+    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
     if (node->m_op == BinaryOpType::Add) {
-        m_codeGen->WriteASMLine(ASM_ADDEAXEBX4, "");
+        m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAXEBX4), "");
     } else if (node->m_op == BinaryOpType::Subtract) {
-        m_codeGen->WriteASMLine(ASM_SUBEAXEBX4, "");
+        m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::SUBEAXEBX4), "");
     }
-    m_codeGen->WriteASMEAXtoX(PMODE_STACK, NULL, NULL, 1, 0);
+    m_codeGen->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, 1, 0);
 }
 
 void CodeGenVisitor::Visit(ASTIfNode* node) {
