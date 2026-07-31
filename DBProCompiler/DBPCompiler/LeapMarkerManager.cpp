@@ -20,17 +20,13 @@ CLeapMarkerManager::CLeapMarkerManager()
 	Reset();
 }
 
-CLeapMarkerManager::~CLeapMarkerManager()
+void CLeapMarkerManager::Reset() noexcept
 {
-}
-
-void CLeapMarkerManager::Reset()
-{
-	m_pRecordTopBytePosition = NULL;
+	m_pRecordTopBytePosition = nullptr;
 	for (DWORD di = 0; di < MAX_LEAP_MARKERS; di++)
 	{
 		m_pRecordRefPosition[di] = 0;
-		m_pRecordBytePosition[di] = 0;
+		m_pRecordBytePosition[di] = nullptr;
 	}
 }
 
@@ -38,18 +34,16 @@ void CLeapMarkerManager::RebaseForBufferExpansion(
 	LPSTR pNewProgramStart,
 	DWORD dwNewMCBlockSize)
 {
+	if (!pNewProgramStart)
+		return;
+
 	// Save relative offsets
-	DWORD dwByteOffset = m_pRecordTopBytePosition - pNewProgramStart;
+	DWORD dwByteOffset = static_cast<DWORD>(m_pRecordTopBytePosition - pNewProgramStart);
 	DWORD dwLeapRelDiff[MAX_LEAP_MARKERS];
 	for (DWORD di = 0; di < MAX_LEAP_MARKERS; di++)
-		dwLeapRelDiff[di] = m_pRecordBytePosition[di] - pNewProgramStart;
+		dwLeapRelDiff[di] = static_cast<DWORD>(m_pRecordBytePosition[di] - pNewProgramStart);
 
-	// Note: The caller (CASMWriter::CheckAndExpandMCBMemory) is responsible
-	// for actually resizing the buffer and updating pNewProgramStart.
-	// After the resize, the caller must update our pointers using the
-	// saved relative offsets via the Set methods.
-
-	// Rebase using the new program start (caller provides the already-updated pointer)
+	// Rebase using the new program start
 	m_pRecordTopBytePosition = pNewProgramStart + dwByteOffset;
 	for (DWORD di = 0; di < MAX_LEAP_MARKERS; di++)
 		m_pRecordBytePosition[di] = pNewProgramStart + dwLeapRelDiff[di];
@@ -61,6 +55,8 @@ void CLeapMarkerManager::RebaseForBufferExpansion(
 
 bool CLeapMarkerManager::WriteASMLeapMarkerTop(CASMWriter* pWriter)
 {
+	if (!pWriter) return false;
+
 	// Record Where We Are Now
 	m_pRecordTopBytePosition = pWriter->m_machineCodeBuffer.GetMachineBlock();
 
@@ -70,6 +66,8 @@ bool CLeapMarkerManager::WriteASMLeapMarkerTop(CASMWriter* pWriter)
 
 bool CLeapMarkerManager::WriteASMLineLeapToTop(DWORD dwOp, CASMWriter* pWriter)
 {
+	if (!pWriter) return false;
+
 	// DBM Code
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(pWriter->m_dwLineNumber);
@@ -77,10 +75,10 @@ bool CLeapMarkerManager::WriteASMLineLeapToTop(DWORD dwOp, CASMWriter* pWriter)
 	strDBMLine.AddText(const_cast<LPSTR>(pWriter->m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText("LEAP TO TOP");
-	if (g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
+	if (g_pDBMWriter && g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
 
 	// Calculate Offset For This Leap To Top
-	int iOffset = (m_pRecordTopBytePosition - pWriter->m_machineCodeBuffer.GetMachineBlock()) - 6;
+	int iOffset = static_cast<int>((m_pRecordTopBytePosition - pWriter->m_machineCodeBuffer.GetMachineBlock()) - 6);
 
 	// ASM Code
 	CStr offsetStr;
@@ -93,6 +91,8 @@ bool CLeapMarkerManager::WriteASMLineLeapToTop(DWORD dwOp, CASMWriter* pWriter)
 
 bool CLeapMarkerManager::WriteASMLeapMarkerJumpToTop(CASMWriter* pWriter)
 {
+	if (!pWriter) return false;
+
 	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 	WriteASMLineLeapToTop(static_cast<DWORD>(ASMOp::JNE), pWriter);
 	return true;
@@ -100,6 +100,8 @@ bool CLeapMarkerManager::WriteASMLeapMarkerJumpToTop(CASMWriter* pWriter)
 
 bool CLeapMarkerManager::WriteASMLineLeap(DWORD dwOp, DWORD di, CASMWriter* pWriter)
 {
+	if (!pWriter) return false;
+
 	// DBM Code
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(pWriter->m_dwLineNumber);
@@ -107,7 +109,7 @@ bool CLeapMarkerManager::WriteASMLineLeap(DWORD dwOp, DWORD di, CASMWriter* pWri
 	strDBMLine.AddText(const_cast<LPSTR>(pWriter->m_ASMDebugStrings[dwOp].c_str()));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText("LEAP");
-	if (g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
+	if (g_pDBMWriter && g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
 
 	// ASM Code
 	pWriter->CreateASMMiddle(pWriter->m_iASMPreOp[dwOp], pWriter->m_iASMOp1[dwOp], pWriter->m_iASMOp2[dwOp], "0");
@@ -118,6 +120,8 @@ bool CLeapMarkerManager::WriteASMLineLeap(DWORD dwOp, DWORD di, CASMWriter* pWri
 
 bool CLeapMarkerManager::WriteASMLeapMarkerJump(DWORD dwOp, DWORD di, CASMWriter* pWriter)
 {
+	if (!pWriter || di >= MAX_LEAP_MARKERS) return false;
+
 	// Write Line As Normal
 	WriteASMLineLeap(dwOp, di, pWriter);
 
@@ -136,6 +140,8 @@ bool CLeapMarkerManager::WriteASMLeapMarkerJumpNotEqual(DWORD di, CASMWriter* pW
 
 bool CLeapMarkerManager::WriteASMLeapForwardMarker(CASMWriter* pWriter)
 {
+	if (!pWriter) return false;
+
 	// Check if escape value is zero
 	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_ESC_");
 	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
@@ -149,36 +155,34 @@ bool CLeapMarkerManager::WriteASMLeapForwardMarker(CASMWriter* pWriter)
 
 bool CLeapMarkerManager::WriteASMLeapMarkerEnd(DWORD di, CASMWriter* pWriter)
 {
+	if (!pWriter || di >= MAX_LEAP_MARKERS) return false;
+
 	if (m_pRecordRefPosition[di] > 0)
 	{
 		// Prepare for actual indexing
 		m_pRecordRefPosition[di] -= 2;
 
 		// Get old ref-string
-		LPSTR pRefStr = (LPSTR)pWriter->m_ProgramRefLabels[m_pRecordRefPosition[di]];
+		LPSTR pRefStr = reinterpret_cast<LPSTR>(pWriter->m_ProgramRefLabels[m_pRecordRefPosition[di]]);
 		if (pRefStr)
 		{
 			delete[] pRefStr;
-			pRefStr = NULL;
+			pRefStr = nullptr;
 		}
 
 		// Calculate Leap Offset
-		DWORD dwLeapOffset = pWriter->m_machineCodeBuffer.GetMachineBlock() - m_pRecordBytePosition[di];
+		DWORD dwLeapOffset = static_cast<DWORD>(pWriter->m_machineCodeBuffer.GetMachineBlock() - m_pRecordBytePosition[di]);
 
-		// Create NEW ref-string from offset value (tempStr is stack-owned; pRefStr keeps new[] ownership)
+		// Create NEW ref-string from offset value
 		CStr tempStr;
 		tempStr.SetNumericText(dwLeapOffset);
 		pRefStr = new char[strlen(tempStr.GetStr()) + 1];
 		strcpy_s(pRefStr, strlen(tempStr.GetStr()) + 1, tempStr.GetStr());
-		pWriter->m_ProgramRefLabels[m_pRecordRefPosition[di]] = (uintptr_t)pRefStr;
+		pWriter->m_ProgramRefLabels[m_pRecordRefPosition[di]] = reinterpret_cast<uintptr_t>(pRefStr);
 
 		// Clear leap flag
 		m_pRecordRefPosition[di] = 0;
-		m_pRecordBytePosition[di] = 0;
-	}
-	else
-	{
-		// No marker to complete
+		m_pRecordBytePosition[di] = nullptr;
 	}
 
 	// Complete

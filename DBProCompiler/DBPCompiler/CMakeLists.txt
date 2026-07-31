@@ -17,7 +17,6 @@ set(LIB_SOURCES
     DataTable.cpp
     DebugInfo.cpp
     Declaration.cpp
-    DebuggerInterface.cpp
     CodeGenVisitor.cpp
     SemanticVisitor.cpp
     IRLoweringVisitor.cpp

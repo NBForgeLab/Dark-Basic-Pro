@@ -9,16 +9,9 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CMachineCodeBuffer::CMachineCodeBuffer()
-{
-	m_dwMCBlockSize = 0;
-	m_pProgramStart = NULL;
-	m_pMachineBlock = NULL;
-}
+CMachineCodeBuffer::CMachineCodeBuffer() = default;
 
-CMachineCodeBuffer::~CMachineCodeBuffer()
-{
-}
+CMachineCodeBuffer::~CMachineCodeBuffer() = default;
 
 //////////////////////////////////////////////////////////////////////
 // Buffer Management
@@ -27,7 +20,7 @@ CMachineCodeBuffer::~CMachineCodeBuffer()
 bool CMachineCodeBuffer::Initialize(DWORD dwInitialSize)
 {
 	m_dwMCBlockSize = dwInitialSize;
-	m_machineCodeStorage.assign(m_dwMCBlockSize, (char)0xC3);
+	m_machineCodeStorage.assign(m_dwMCBlockSize, static_cast<char>(0xC3));
 	m_pProgramStart = m_machineCodeStorage.data();
 	m_pMachineBlock = m_pProgramStart;
 	return true;
@@ -35,19 +28,22 @@ bool CMachineCodeBuffer::Initialize(DWORD dwInitialSize)
 
 bool CMachineCodeBuffer::CheckAndExpandMCBMemory()
 {
+	if (!m_pProgramStart || !m_pMachineBlock)
+		return false;
+
 	// If within 100 bytes of end, expand memory
 	LPSTR pMCBDataBarrier = (m_pProgramStart + m_dwMCBlockSize) - EXPANSION_THRESHOLD;
 	if (m_pMachineBlock > pMCBDataBarrier)
 	{
 		// Work out offset of pointer
-		DWORD dwOffset = m_pMachineBlock - m_pProgramStart;
+		DWORD dwOffset = static_cast<DWORD>(m_pMachineBlock - m_pProgramStart);
 
 		// Expand memory (another 100K) via vector resize
 		DWORD dwNewSize = m_dwMCBlockSize + EXPANSION_CHUNK;
 		DWORD dwOldSize = m_dwMCBlockSize;
 		m_machineCodeStorage.resize(dwNewSize);
-		// Fill new portion with RET codes
-		memset(m_machineCodeStorage.data() + dwOldSize, 0xC3, dwNewSize - dwOldSize);
+		// Fill new portion with RET codes (0xC3)
+		std::memset(m_machineCodeStorage.data() + dwOldSize, 0xC3, dwNewSize - dwOldSize);
 
 		// Rereference to new memory
 		m_dwMCBlockSize = dwNewSize;
@@ -62,21 +58,21 @@ bool CMachineCodeBuffer::CheckAndExpandMCBMemory()
 	return false;
 }
 
-DWORD CMachineCodeBuffer::GetCurrentMCPosition() const
+DWORD CMachineCodeBuffer::GetCurrentMCPosition() const noexcept
 {
-	return m_pMachineBlock - m_pProgramStart;
+	return m_pProgramStart ? static_cast<DWORD>(m_pMachineBlock - m_pProgramStart) : 0;
 }
 
-DWORD CMachineCodeBuffer::GetBytePosOfLastInstruction() const
+DWORD CMachineCodeBuffer::GetBytePosOfLastInstruction() const noexcept
 {
-	return m_pMachineBlock - m_pProgramStart;
+	return GetCurrentMCPosition();
 }
 
-void CMachineCodeBuffer::FreeMachineBlock()
+void CMachineCodeBuffer::FreeMachineBlock() noexcept
 {
 	m_machineCodeStorage.clear();
-	m_pProgramStart = NULL;
-	m_pMachineBlock = NULL;
+	m_pProgramStart = nullptr;
+	m_pMachineBlock = nullptr;
 	m_dwMCBlockSize = 0;
 }
 
@@ -86,12 +82,18 @@ void CMachineCodeBuffer::FreeMachineBlock()
 
 void CMachineCodeBuffer::WriteByte(int byte)
 {
-	*(m_pMachineBlock) = byte;
-	(m_pMachineBlock)++;
+	if (m_pMachineBlock)
+	{
+		*(m_pMachineBlock) = static_cast<char>(byte);
+		(m_pMachineBlock)++;
+	}
 }
 
 void CMachineCodeBuffer::WriteDWORD(DWORD value, DWORD dwSize)
 {
-	*(DWORD*)(m_pMachineBlock) = value;
-	(m_pMachineBlock) += dwSize;
+	if (m_pMachineBlock)
+	{
+		*reinterpret_cast<DWORD*>(m_pMachineBlock) = value;
+		(m_pMachineBlock) += dwSize;
+	}
 }

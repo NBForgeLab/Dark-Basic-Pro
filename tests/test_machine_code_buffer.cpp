@@ -172,8 +172,6 @@ TEST_F(MachineCodeBufferTest, DataPreservedAfterExpansion) {
     buf.WriteByte(0xBB);
     buf.WriteByte(0xCC);
 
-    LPSTR pOldStart = buf.GetProgramStart();
-
     // Force expansion
     for (int i = 0; i < 30; i++) {
         buf.WriteByte(0x90);

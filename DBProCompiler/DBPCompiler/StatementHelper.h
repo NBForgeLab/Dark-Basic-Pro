@@ -9,8 +9,8 @@ namespace StatementHelper {
     // Separates initialization value from type in declarations
     // Modifies pPossibleTypeAndInit in place (truncates at '=')
     // Returns heap-allocated copy of init value (caller owns, free with delete[])
-    // Returns NULL if no assignment found
-    LPSTR SeperateInitFromType(LPSTR pPossibleTypeAndInit);
+    // Returns nullptr if no assignment found
+    [[nodiscard]] LPSTR SeperateInitFromType(LPSTR pPossibleTypeAndInit);
 
     // Separates array value from array string
     // Extracts value inside (...) into *pArrValue (caller owns, free with delete[])
@@ -18,5 +18,5 @@ namespace StatementHelper {
     bool SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrValue, bool bMustBeLiteralDim);
 
     // Checks if string contains assignment operator with valid L-value
-    bool ContainsAssignmentOperator(CStr* pString);
+    [[nodiscard]] bool ContainsAssignmentOperator(CStr* pString);
 }

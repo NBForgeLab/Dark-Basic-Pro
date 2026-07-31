@@ -17,10 +17,10 @@ extern CDebugInfo g_DebugInfo;
 // Initialisation
 //////////////////////////////////////////////////////////////////////
 
-void CDebuggerInterface::InitDebuggerState()
+void CDebuggerInterface::InitDebuggerState() noexcept
 {
 	g_bIsInternalDebugger = false;
-	memset(&g_InternalDebuggerProcessInfo, 0, sizeof(PROCESS_INFORMATION));
+	std::memset(&g_InternalDebuggerProcessInfo, 0, sizeof(PROCESS_INFORMATION));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -32,18 +32,18 @@ LRESULT CDebuggerInterface::SendDataToDebugger(int iType, LPSTR pData, DWORD dwD
 	LRESULT lResult = 0;
 
 	// Create Virtual File for Transfer
-	HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF, NULL, PAGE_READWRITE, 0, dwDataSize + 4, L"DBPRODEBUGGERMESSAGE");
+	HANDLE hFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, dwDataSize + 4, L"DBPRODEBUGGERMESSAGE");
 	if (hFileMap)
 	{
 		LPVOID lpVoid = MapViewOfFile(hFileMap, FILE_MAP_WRITE, 0, 0, dwDataSize + 4);
 		if (lpVoid)
 		{
 			// Copy to Virtual File
-			*(DWORD*)lpVoid = dwDataSize;
-			memcpy((LPSTR)lpVoid + 4, pData, dwDataSize);
+			*reinterpret_cast<DWORD*>(lpVoid) = dwDataSize;
+			std::memcpy(reinterpret_cast<LPSTR>(lpVoid) + 4, pData, dwDataSize);
 
 			// Find Debugger to send to
-			HWND hWnd = FindWindowW(NULL, L"DBProDebugger");
+			HWND hWnd = FindWindowW(nullptr, L"DBProDebugger");
 			if (hWnd)
 			{
 				// Found - transmit
@@ -62,6 +62,8 @@ LRESULT CDebuggerInterface::SendDataToDebugger(int iType, LPSTR pData, DWORD dwD
 
 void CDebuggerInterface::GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwDataSize)
 {
+	if (!pData || !dwDataSize) return;
+
 	// Wait for text to arrive by message (3 second timeout)
 	DWORD dwTime = timeGetTime();
 	while (g_DebugInfo.MessageArrived() == false)
@@ -77,7 +79,7 @@ void CDebuggerInterface::GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwD
 				*pData = new char[g_DebugInfo.GetCLISize() + 2];
 				ZeroMemory(*pData, g_DebugInfo.GetCLISize() + 2);
 				strcpy_s(*pData, g_DebugInfo.GetCLISize() + 2, g_DebugInfo.GetCLIText());
-				*dwDataSize = strlen(*pData) + 1;
+				*dwDataSize = static_cast<DWORD>(strlen(*pData) + 1);
 			}
 			else
 			{
@@ -104,14 +106,16 @@ void CDebuggerInterface::GetDataFromDebugger(int iType, LPSTR* pData, DWORD* dwD
 
 bool CDebuggerInterface::HideAnyHiddenCode(LPSTR pData, DWORD dwSize)
 {
+	if (!pData) return false;
+
 	LPSTR pPtr = pData;
 	LPSTR pPtrEnd = pData + dwSize;
 	bool bReplaceOn = false;
 	while (pPtr < pPtrEnd)
 	{
 		// Check ahead
-		if (_strnicmp(pPtr, "HIDESTART", 9) == NULL) { bReplaceOn = true;  pPtr += 9; }
-		if (_strnicmp(pPtr, "HIDEEND", 7) == NULL)   { bReplaceOn = false; pPtr += 7; }
+		if (_strnicmp(pPtr, "HIDESTART", 9) == 0) { bReplaceOn = true;  pPtr += 9; }
+		if (_strnicmp(pPtr, "HIDEEND", 7) == 0)   { bReplaceOn = false; pPtr += 7; }
 
 		// Replace
 		if (*pPtr > 32 && bReplaceOn == true) *pPtr = 'X';
@@ -128,22 +132,22 @@ bool CDebuggerInterface::HideAnyHiddenCode(LPSTR pData, DWORD dwSize)
 // State Accessors
 //////////////////////////////////////////////////////////////////////
 
-bool CDebuggerInterface::IsInternalDebuggerActive()
+bool CDebuggerInterface::IsInternalDebuggerActive() noexcept
 {
 	return g_bIsInternalDebugger;
 }
 
-void CDebuggerInterface::SetInternalDebuggerActive(bool bActive)
+void CDebuggerInterface::SetInternalDebuggerActive(bool bActive) noexcept
 {
 	g_bIsInternalDebugger = bActive;
 }
 
-PROCESS_INFORMATION& CDebuggerInterface::GetDebuggerProcessInfo()
+PROCESS_INFORMATION& CDebuggerInterface::GetDebuggerProcessInfo() noexcept
 {
 	return g_InternalDebuggerProcessInfo;
 }
 
-bool CDebuggerInterface::ShouldExternaliseDLLs()
+bool CDebuggerInterface::ShouldExternaliseDLLs() noexcept
 {
 	return g_bExternaliseDLLS;
 }

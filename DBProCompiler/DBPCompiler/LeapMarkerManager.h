@@ -3,7 +3,7 @@
 // LeapMarkerManager.h - Leap marker / backpatching subsystem extracted from CASMWriter.
 // Handles forward references and backpatching in x86 machine code emission.
 
-#include "windows.h"
+#include <windows.h>
 
 // Forward declarations to avoid circular dependency with ASMWriter.h
 class CASMWriter;
@@ -11,10 +11,10 @@ class CASMWriter;
 class CLeapMarkerManager {
 public:
 	CLeapMarkerManager();
-	~CLeapMarkerManager();
+	~CLeapMarkerManager() = default;
 
 	// Reset all leap marker state
-	void Reset();
+	void Reset() noexcept;
 
 	// Rebase internal pointers after machine code buffer expansion.
 	// Preserves relative offsets when the underlying storage is relocated.
@@ -34,16 +34,16 @@ public:
 	bool WriteASMLeapMarkerEnd(DWORD di, CASMWriter* pWriter);
 
 	// Access to leap state for CheckAndExpandMCBMemory
-	LPSTR GetRecordTopBytePosition() const { return m_pRecordTopBytePosition; }
-	LPSTR GetRecordBytePosition(DWORD index) const { return m_pRecordBytePosition[index]; }
-	void SetRecordTopBytePosition(LPSTR pos) { m_pRecordTopBytePosition = pos; }
-	void SetRecordBytePosition(DWORD index, LPSTR pos) { m_pRecordBytePosition[index] = pos; }
+	[[nodiscard]] LPSTR GetRecordTopBytePosition() const noexcept { return m_pRecordTopBytePosition; }
+	[[nodiscard]] LPSTR GetRecordBytePosition(DWORD index) const noexcept { return index < MAX_LEAP_MARKERS ? m_pRecordBytePosition[index] : nullptr; }
+	void SetRecordTopBytePosition(LPSTR pos) noexcept { m_pRecordTopBytePosition = pos; }
+	void SetRecordBytePosition(DWORD index, LPSTR pos) noexcept { if (index < MAX_LEAP_MARKERS) m_pRecordBytePosition[index] = pos; }
 
 private:
 	static constexpr DWORD MAX_LEAP_MARKERS = 9;
 
 	// Leap Marker State
-	LPSTR  m_pRecordTopBytePosition;
-	DWORD  m_pRecordRefPosition[MAX_LEAP_MARKERS];
-	LPSTR  m_pRecordBytePosition[MAX_LEAP_MARKERS];
+	LPSTR  m_pRecordTopBytePosition = nullptr;
+	DWORD  m_pRecordRefPosition[MAX_LEAP_MARKERS] = {0};
+	LPSTR  m_pRecordBytePosition[MAX_LEAP_MARKERS] = {nullptr};
 };

@@ -9,7 +9,7 @@ class CDebuggerInterface
 {
 public:
 	// Initialise global debugger state (called once from CASMWriter constructor)
-	static void InitDebuggerState();
+	static void InitDebuggerState() noexcept;
 
 	// Send data to the debugger process via shared memory mapping.
 	// Returns the LRESULT from SendMessage, or 0 if no debugger window found.
@@ -23,8 +23,8 @@ public:
 	static bool HideAnyHiddenCode(LPSTR pData, DWORD dwSize);
 
 	// Static accessors for global debugger state
-	static bool IsInternalDebuggerActive();
-	static void SetInternalDebuggerActive(bool bActive);
-	static PROCESS_INFORMATION& GetDebuggerProcessInfo();
-	static bool ShouldExternaliseDLLs();
+	[[nodiscard]] static bool IsInternalDebuggerActive() noexcept;
+	static void SetInternalDebuggerActive(bool bActive) noexcept;
+	[[nodiscard]] static PROCESS_INFORMATION& GetDebuggerProcessInfo() noexcept;
+	[[nodiscard]] static bool ShouldExternaliseDLLs() noexcept;
 };
