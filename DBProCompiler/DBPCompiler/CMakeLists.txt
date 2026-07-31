@@ -1,22 +1,5 @@
 project(DBPCompiler LANGUAGES C CXX)
 
-# Preprocessor definitions
-add_compile_definitions(
-    WIN32
-    _WINDOWS
-    NOGETDXVERSIONCODE
-)
-
-if(MSVC)
-    add_compile_options(/EHa /W3)
-endif()
-
-# Additional include directories
-include_directories(
-    .
-    icons
-)
-
 # Source files for the static library (excluding Main.cpp and resources)
 set(LIB_SOURCES
     ASMWriter.cpp
@@ -90,14 +73,25 @@ endif()
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
 set_target_properties(dbp_compiler_lib PROPERTIES UNITY_BUILD ON)
 dbp_apply_legacy_cpp_options(dbp_compiler_lib)
-target_compile_definitions(dbp_compiler_lib PRIVATE UNICODE _UNICODE)
+target_compile_definitions(dbp_compiler_lib PRIVATE WIN32 _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
 target_link_libraries(dbp_compiler_lib PUBLIC
     dbp_package
     winmm
     dbghelp
     spdlog::spdlog
 )
-target_include_directories(dbp_compiler_lib PUBLIC . icons)
+target_include_directories(dbp_compiler_lib PUBLIC
+    .
+    icons
+    ${CMAKE_SOURCE_DIR}/SDK/DB3
+    ${CMAKE_SOURCE_DIR}/SDK/BaseClasses
+    ${CMAKE_SOURCE_DIR}/SDK/EAX2/Include
+    ${CMAKE_SOURCE_DIR}/SDK/NVAPI
+    ${DXSDK_INCLUDE_DIR}
+)
+target_link_directories(dbp_compiler_lib PUBLIC
+    ${DXSDK_LIBRARY_DIR}
+)
 
 # Generate the resource script from the historical UI resources while binding
 # the executable stub to the DarkEXE target produced by this exact build.
@@ -143,7 +137,7 @@ add_executable(
 )
 add_dependencies(DBPCompiler DarkEXE)
 dbp_apply_legacy_cpp_options(DBPCompiler)
-target_compile_definitions(DBPCompiler PRIVATE UNICODE _UNICODE)
+target_compile_definitions(DBPCompiler PRIVATE WIN32 _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
 
 # A compiler build is only usable when its host command database, localized

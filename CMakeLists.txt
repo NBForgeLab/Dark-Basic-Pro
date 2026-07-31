@@ -108,19 +108,8 @@ else()
         "targets that include D3DX headers may not build.")
 endif()
 
-# مسارات التضمين العامة (Global Includes)
-include_directories(
-    ${PROJECT_SOURCE_DIR}/SDK/DB3
-    ${PROJECT_SOURCE_DIR}/SDK/BaseClasses
-    ${PROJECT_SOURCE_DIR}/SDK/EAX2/Include
-    ${PROJECT_SOURCE_DIR}/SDK/NVAPI
-    ${DXSDK_INCLUDE_DIR}
-)
-
-# مسارات المكتبات العامة
-link_directories(
-    ${DXSDK_LIBRARY_DIR}
-)
+# Target-specific include and library paths are configured per-target in their
+# own CMakeLists.txt files (see dbp_compiler_lib in DBProCompiler/DBPCompiler).
 
 # إضافة المشاريع الفرعية للترجمة والمشغل والمصحح
 add_subdirectory(DBProShared/Package)
