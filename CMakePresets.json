@@ -36,6 +36,33 @@
       "cacheVariables": {
         "DBP_ENABLE_ASAN": "ON"
       }
+    },
+    {
+      "name": "windows-x86-ubsan",
+      "inherits": "windows-x86-base",
+      "displayName": "Windows x86 UndefinedBehaviorSanitizer",
+      "description": "Compatibility baseline instrumented with MSVC UndefinedBehaviorSanitizer",
+      "cacheVariables": {
+        "DBP_ENABLE_UBSAN": "ON"
+      }
+    },
+    {
+      "name": "windows-x86-coverage",
+      "inherits": "windows-x86-base",
+      "displayName": "Windows x86 Code Coverage",
+      "description": "Compatibility baseline instrumented with code coverage",
+      "cacheVariables": {
+        "DBP_ENABLE_COVERAGE": "ON"
+      }
+    },
+    {
+      "name": "windows-x86-clang-tidy",
+      "inherits": "windows-x86-base",
+      "displayName": "Windows x86 clang-tidy",
+      "description": "Static analysis build with clang-tidy integration",
+      "cacheVariables": {
+        "DBP_ENABLE_CLANG_TIDY": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -62,9 +89,43 @@
       ]
     },
     {
+      "name": "windows-x86-ubsan",
+      "configurePreset": "windows-x86-ubsan",
+      "configuration": "Debug",
+      "jobs": 8,
+      "targets": [
+        "DBPCompiler",
+        "DarkEXE",
+        "dbp_tests",
+        "dbp_ubsan_probe_tests"
+      ]
+    },
+    {
       "name": "windows-x86-release",
       "configurePreset": "windows-x86-release",
       "configuration": "Release",
+      "jobs": 8,
+      "targets": [
+        "DBPCompiler",
+        "DarkEXE",
+        "dbp_tests"
+      ]
+    },
+    {
+      "name": "windows-x86-coverage",
+      "configurePreset": "windows-x86-coverage",
+      "configuration": "Debug",
+      "jobs": 8,
+      "targets": [
+        "DBPCompiler",
+        "DarkEXE",
+        "dbp_tests"
+      ]
+    },
+    {
+      "name": "windows-x86-clang-tidy",
+      "configurePreset": "windows-x86-clang-tidy",
+      "configuration": "Debug",
       "jobs": 8,
       "targets": [
         "DBPCompiler",
@@ -100,9 +161,45 @@
       }
     },
     {
+      "name": "windows-x86-ubsan",
+      "configurePreset": "windows-x86-ubsan",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      },
+      "environment": {
+        "UBSAN_OPTIONS": "halt_on_error=1:abort_on_error=1:print_stacktrace=1"
+      }
+    },
+    {
       "name": "windows-x86-release",
       "configurePreset": "windows-x86-release",
       "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-x86-coverage",
+      "configurePreset": "windows-x86-coverage",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "windows-x86-clang-tidy",
+      "configurePreset": "windows-x86-clang-tidy",
+      "configuration": "Debug",
       "output": {
         "outputOnFailure": true
       },

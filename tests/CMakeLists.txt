@@ -64,6 +64,8 @@ add_executable(dbp_tests
     test_token_enum_values.cpp
     test_instruction_table_enum_values.cpp
     test_asmwriter_enum_values.cpp
+    test_clang_tidy_integration.cpp
+    test_coverage_integration.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
@@ -90,6 +92,10 @@ target_compile_definitions(dbp_tests PRIVATE
     DBP_TEST_SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
 )
 
+if(DBP_ENABLE_COVERAGE)
+    target_compile_definitions(dbp_tests PRIVATE DBP_COVERAGE_ENABLED)
+endif()
+
 target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompiler"
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPDebugger"
@@ -110,10 +116,52 @@ if(DBP_ENABLE_ASAN AND MSVC)
         "PATH=path_list_prepend:${dbp_msvc_runtime_directory}"
     )
 endif()
+if(DBP_ENABLE_UBSAN AND MSVC)
+    get_filename_component(dbp_msvc_runtime_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    list(APPEND dbp_test_properties
+        ENVIRONMENT_MODIFICATION
+        "PATH=path_list_prepend:${dbp_msvc_runtime_directory}"
+    )
+endif()
 
 # Running the suite as one CTest process avoids CMake's finite capture limit for
 # large `--gtest_list_tests` output. It also exercises process-global compiler
 # state across tests instead of accidentally hiding lifecycle bugs behind one
 # process per case.
+# ---------------------------------------------------------------------------
+# UBSan probe tests — separate executable so that a UBSan abort does not
+# take down the main dbp_tests suite.  Only built when UBSan is enabled.
+# ---------------------------------------------------------------------------
+if(DBP_ENABLE_UBSAN AND MSVC_VERSION GREATER_EQUAL 1936)
+    add_executable(dbp_ubsan_probe_tests
+        test_ubsan_detection.cpp
+    )
+    target_compile_features(dbp_ubsan_probe_tests PRIVATE cxx_std_17)
+    target_link_libraries(dbp_ubsan_probe_tests PRIVATE GTest::gtest)
+
+    # MSVC currently ignores /fsanitize=undefined (D9002).  The probe tests
+    # detect UBSan absence at runtime and GTEST_SKIP() gracefully.
+    # When MSVC adds real UBSan support the flag will activate automatically.
+    if(NOT MSVC)
+        target_compile_options(dbp_ubsan_probe_tests PRIVATE
+            -fsanitize=undefined -fno-omit-frame-pointer
+        )
+        target_link_options(dbp_ubsan_probe_tests PRIVATE
+            -fsanitize=undefined
+        )
+    endif()
+
+    add_test(NAME dbp_ubsan_probe_tests COMMAND dbp_ubsan_probe_tests)
+    set(dbp_ubsan_probe_properties TIMEOUT 60)
+    if(MSVC)
+        get_filename_component(dbp_msvc_rt_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        list(APPEND dbp_ubsan_probe_properties
+            ENVIRONMENT_MODIFICATION
+            "PATH=path_list_prepend:${dbp_msvc_rt_dir}"
+        )
+    endif()
+    set_tests_properties(dbp_ubsan_probe_tests PROPERTIES ${dbp_ubsan_probe_properties})
+endif()
+
 add_test(NAME dbp_tests COMMAND dbp_tests)
 set_tests_properties(dbp_tests PROPERTIES ${dbp_test_properties})

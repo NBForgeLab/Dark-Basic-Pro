@@ -1,6 +1,8 @@
 include_guard(GLOBAL)
 
 option(DBP_ENABLE_ASAN "Enable AddressSanitizer for project-owned C/C++ targets" OFF)
+option(DBP_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer for project-owned C/C++ targets" OFF)
+option(DBP_ENABLE_COVERAGE "Enable code coverage instrumentation for project-owned C/C++ targets" OFF)
 option(DBP_BUILD_FUZZERS "Build optional Clang/libFuzzer package targets" OFF)
 
 function(dbp_enable_parallel_msvc target)
@@ -35,6 +37,60 @@ function(dbp_enable_sanitizers target)
     endif()
 endfunction()
 
+function(dbp_enable_ubsan target)
+    if(NOT DBP_ENABLE_UBSAN)
+        return()
+    endif()
+
+    if(MSVC)
+        # MSVC 17.6+ (cl 19.36+) is the minimum version for UBSan support.
+        # Current MSVC silently ignores /fsanitize=undefined (D9002).
+        # We still record the intent; when MSVC ships real UBSan the flag
+        # can be uncommented.
+        if(MSVC_VERSION LESS 1936)
+            message(STATUS "MSVC ${MSVC_VERSION} < 19.36 — /fsanitize=undefined not available, UBSan skipped for ${target}")
+            return()
+        endif()
+        message(STATUS "UBSan requested but MSVC does not yet implement /fsanitize=undefined — probe tests will SKIP at runtime [${target}]")
+    else()
+        target_compile_options(${target} PRIVATE
+            -fsanitize=undefined -fno-omit-frame-pointer
+        )
+        target_link_options(${target} PRIVATE
+            -fsanitize=undefined
+        )
+    endif()
+endfunction()
+
+function(dbp_enable_coverage target)
+    if(NOT DBP_ENABLE_COVERAGE)
+        return()
+    endif()
+
+    if(MSVC)
+        # MSVC 17.1+ (cl 19.29+) supports /coverage for code instrumentation.
+        # Older versions silently ignore the flag, so we gate on MSVC_VERSION.
+        if(MSVC_VERSION LESS 1929)
+            message(STATUS "MSVC ${MSVC_VERSION} < 19.29 — /coverage not available, skipped for ${target}")
+            return()
+        endif()
+        target_compile_options(${target} PRIVATE
+            $<$<COMPILE_LANGUAGE:C,CXX>:/coverage>
+        )
+        target_link_options(${target} PRIVATE
+            /coverage
+        )
+    else()
+        # GCC / Clang
+        target_compile_options(${target} PRIVATE
+            --coverage -fprofile-arcs -ftest-coverage
+        )
+        target_link_options(${target} PRIVATE
+            --coverage
+        )
+    endif()
+endfunction()
+
 function(dbp_apply_legacy_cpp_options target)
     target_compile_features(${target} PRIVATE cxx_std_17)
 
@@ -47,6 +103,8 @@ function(dbp_apply_legacy_cpp_options target)
 
     dbp_enable_parallel_msvc(${target})
     dbp_enable_sanitizers(${target})
+    dbp_enable_ubsan(${target})
+    dbp_enable_coverage(${target})
 endfunction()
 
 function(dbp_apply_modern_cpp_options target)
@@ -64,4 +122,6 @@ function(dbp_apply_modern_cpp_options target)
 
     dbp_enable_parallel_msvc(${target})
     dbp_enable_sanitizers(${target})
+    dbp_enable_ubsan(${target})
+    dbp_enable_coverage(${target})
 endfunction()
