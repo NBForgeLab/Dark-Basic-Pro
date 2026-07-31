@@ -134,7 +134,7 @@ bool CStatementList::MakeStatements(LPSTR pData, DWORD Size)
 	// PreScan (handles recording of user function names, labels, data, etc)
 	m_iNestCount = 0;
 	SetImplementationParse(false);
-	if(m_pPreScanStatements->DoPreScanBlock(ENDTK)==false)
+	if(m_pPreScanStatements->DoPreScanBlock(static_cast<DWORD>(Token::End))==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoPreScanBlock(0)'");
 		return false;
@@ -160,7 +160,7 @@ bool CStatementList::MakeStatements(LPSTR pData, DWORD Size)
 	// Process all statements starting at beginning
 	m_iNestCount = 0;
 	SetImplementationParse(true);
-	if(m_pProgramStatements->DoBlock(ENDTK,NULL)==false)
+	if(m_pProgramStatements->DoBlock(static_cast<DWORD>(Token::End),NULL)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoBlock(0)'");
 		return false;
@@ -205,7 +205,7 @@ bool CStatementList::AddMiniStatements(LPSTR pData, DWORD Size)
 
 	// Process all statements starting at beginning
 	SetImplementationParse(true);
-	if(m_pMiniStatements->DoBlock(ENDTK,NULL)==false)
+	if(m_pMiniStatements->DoBlock(static_cast<DWORD>(Token::End),NULL)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to m_pMiniStatements 'DoBlock(0)'");
 		return false;

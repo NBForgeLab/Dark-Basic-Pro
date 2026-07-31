@@ -18,67 +18,82 @@
 #include "Str.h"
 #include "ParserResultData.h"
 
-// Token Def
-#define			COMMATK				10001
-#define			CRTK				10002
+// Token enum class (converted from #define constants)
+enum class Token : int {
+	// General
+	Comma           = 10001,
+	Crt             = 10002,
 
-#define			ENDTK				10010
-#define			EXITTK				10011
+	// End / Exit
+	End             = 10010,
+	Exit            = 10011,
 
-#define			DOTK				10021
-#define			LOOPTK				10022
-#define			WHILETK				10023
-#define			ENDWHILETK			10024
-#define			REPEATTK			10025
-#define			UNTILTK				10026
-#define			FORTK				10031
-#define			NEXTTK				10032
+	// Loop
+	Do              = 10021,
+	Loop            = 10022,
+	While           = 10023,
+	EndWhile        = 10024,
+	Repeat          = 10025,
+	Until           = 10026,
+	For             = 10031,
+	Next            = 10032,
 
-#define			USERFUNCTIONTK		10101
-#define			EXITUSERFUNCTIONTK	10102
-#define			ENDUSERFUNCTIONTK	10103
-#define			USERFUNCTIONCALLTK	10104
+	// User function
+	UserFunction      = 10101,
+	ExitUserFunction  = 10102,
+	EndUserFunction   = 10103,
+	UserFunctionCall  = 10104,
 
-#define			IFTK				10151
-#define			ELSETK				10152
-#define			ENDIFTK				10153
-#define			ELSEENDIFTK			10154
-#define			ELSECRTK			10155
+	// If / Else
+	If              = 10151,
+	Else            = 10152,
+	EndIf           = 10153,
+	ElseEndIf       = 10154,
+	ElseCrt         = 10155,
 
-#define			GOTOTK				10201
-#define			GOSUBTK				10202
+	// Jump
+	Goto            = 10201,
+	Gosub           = 10202,
 
-#define			SELECTTK			10211
-#define			ENDSELECTTK			10212
-#define			CASETK				10213
-#define			ENDCASETK			10214
-#define			CASEDEFAULTTK		10215
+	// Select / Case
+	Select          = 10211,
+	EndSelect       = 10212,
+	Case            = 10213,
+	EndCase         = 10214,
+	CaseDefault     = 10215,
 
-#define			TYPETK				10301
-#define			ENDTYPETK			10302
-#define			GLOBALTK			10303
-#define			LOCALTK				10304
-#define			DIMTK				10305
-#define			UNDIMTK				10306
-#define			ASTK				10307
-#define			BOOLEANTK			10311
-#define			BYTETK				10312
-#define			WORDTK				10313
-#define			DWORDTK				10314
-#define			INTEGERTK			10315
-#define			FLOATTK				10316
-#define			STRINGTK			10317
-#define			DOUBLETK			10318
+	// Type / Declaration
+	Type            = 10301,
+	EndType         = 10302,
+	Global          = 10303,
+	Local           = 10304,
+	Dim             = 10305,
+	Undim           = 10306,
+	Asterisk        = 10307,
 
-#define			REMLINETK			10501
-#define			REMSTARTTK			10502
-#define			REMENDTK			10503
+	// Data types
+	Boolean         = 10311,
+	Byte            = 10312,
+	Word            = 10313,
+	Dword           = 10314,
+	Integer         = 10315,
+	Float           = 10316,
+	String          = 10317,
+	Double          = 10318,
 
-#define			LABELTK				10701
-#define			DATATK				10702
+	// Remarks
+	RemLine         = 10501,
+	RemStart        = 10502,
+	RemEnd          = 10503,
 
-#define			ASSIGNMENTTK		11001
-#define			INSTRUCTIONTK		11004
+	// Label / Data
+	Label           = 10701,
+	Data            = 10702,
+
+	// Statement types
+	Assignment      = 11001,
+	Instruction     = 11004,
+};
 
 // Class Prototypes
 class CParameter;

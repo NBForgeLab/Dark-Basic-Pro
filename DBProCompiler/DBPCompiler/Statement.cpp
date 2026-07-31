@@ -145,11 +145,11 @@ bool CStatement::DoPreScanBlock(DWORD RequiredTerminator)
 	while(1)
 	{
 		// Terminate if condition met
-		if(TokenID==RequiredTerminator || TokenID==ENDTK || TokenID==0)
+		if(TokenID==RequiredTerminator || TokenID==static_cast<DWORD>(Token::End) || TokenID==0)
 			break;
 
-		// Respond to pre-scan items (lee: double check DIMTK in prescan!!)
-		if(TokenID==DIMTK || TokenID==GLOBALTK || TokenID==USERFUNCTIONTK || TokenID==LABELTK || TokenID==TYPETK)
+		// Respond to pre-scan items (lee: double check static_cast<DWORD>(Token::Dim) in prescan!!)
+		if(TokenID==static_cast<DWORD>(Token::Dim) || TokenID==static_cast<DWORD>(Token::Global) || TokenID==static_cast<DWORD>(Token::UserFunction) || TokenID==static_cast<DWORD>(Token::Label) || TokenID==static_cast<DWORD>(Token::Type))
 		{
 			// Parse valid pre-scan item
 			if(DoStatement(TokenID)==false)
@@ -167,7 +167,7 @@ bool CStatement::DoPreScanBlock(DWORD RequiredTerminator)
 		}
 
 		// Advance past REMSTART/REMEND Blocks
-		if(TokenID==REMSTARTTK)
+		if(TokenID==static_cast<DWORD>(Token::RemStart))
 		{
 			// Comment eveyrthing before remend
 			LPSTR pPointer=g_pStatementList->GetFileDataPointer();
@@ -209,12 +209,12 @@ bool CStatement::DoLocalScanBlock(DWORD RequiredTerminator)
 	while(1)
 	{
 		// Terminate if condition met
-		if(TokenID==RequiredTerminator || TokenID==ENDTK || TokenID==0)
+		if(TokenID==RequiredTerminator || TokenID==static_cast<DWORD>(Token::End) || TokenID==0)
 			break;
 
 		// Only look for local defs (to determine return type)
 		// lee - 130206 - it seems DIM inside function is GLOBAL by legacy demands, so add GLOBAL too (for u60 bugfix)
-		if(TokenID==LOCALTK || TokenID==LABELTK || TokenID==DIMTK || TokenID==GLOBALTK )
+		if(TokenID==static_cast<DWORD>(Token::Local) || TokenID==static_cast<DWORD>(Token::Label) || TokenID==static_cast<DWORD>(Token::Dim) || TokenID==static_cast<DWORD>(Token::Global) )
 		{
 			// Perform parsing of statement
 			if(DoStatement(TokenID)==false)
@@ -242,7 +242,7 @@ bool CStatement::DoLocalScanBlock(DWORD RequiredTerminator)
 bool CStatement::DoInitCode(void)
 {
 	// Add a STORE STACK statement here
-	AddInternalStatement(0, IT_INTERNAL_STARTPROGRAM);
+	AddInternalStatement(0, static_cast<DWORD>(InternalInstruction::StartProgram));
 
 	// Complete
 	return true;
@@ -254,11 +254,11 @@ bool CStatement::DoEndCode(void)
 	DWORD dwCodeIndex = g_pStatementList->GetLineNumber();
 
 	// Add a RESTORE STACK statement here
-	CStatement *pRESTORECodeForStopper = AddInternalStatement(dwCodeIndex, IT_INTERNAL_ENDPROGRAM);
+	CStatement *pRESTORECodeForStopper = AddInternalStatement(dwCodeIndex, static_cast<DWORD>(InternalInstruction::EndProgram));
 	pRESTORECodeForStopper->SurpressJumpChecks();
 
 	// Add a RETURN statement here
-	CStatement* pRetStat = AddInternalStatement(dwCodeIndex, IT_INTERNAL_PURERETURN);
+	CStatement* pRetStat = AddInternalStatement(dwCodeIndex, static_cast<DWORD>(InternalInstruction::PureReturn));
 	pRetStat->SurpressJumpChecks();
 
 	// Create string and keep for usage later on
@@ -331,9 +331,9 @@ void CStatement::SetLineAndCharPos(DWORD dwLine, int iFlag)
 
 bool CStatement::DoBlock(DWORD RequiredTerminator, DWORD* dwLastToken)
 {
-	// If terminator is CRTK, can exit when line changes too
+	// If terminator is static_cast<DWORD>(Token::Crt), can exit when line changes too
 	int iMustStayOnThisLineOrTerminate=-1;
-	if(RequiredTerminator==CRTK || RequiredTerminator==ELSECRTK)
+	if(RequiredTerminator==static_cast<DWORD>(Token::Crt) || RequiredTerminator==static_cast<DWORD>(Token::ElseCrt))
 		iMustStayOnThisLineOrTerminate=g_pStatementList->GetLineNumber();
 
 	// Get Next Token from File Data
@@ -350,18 +350,18 @@ bool CStatement::DoBlock(DWORD RequiredTerminator, DWORD* dwLastToken)
 			}
 
 		// Terminate if no choice
-		if(TokenID==ENDTK || TokenID==0)
+		if(TokenID==static_cast<DWORD>(Token::End) || TokenID==0)
 		{
 			break;
 		}
 
 		// Terminate if combination terminator
-		if(RequiredTerminator==ELSEENDIFTK && (TokenID==ELSETK || TokenID==ENDIFTK))
+		if(RequiredTerminator==static_cast<DWORD>(Token::ElseEndIf) && (TokenID==static_cast<DWORD>(Token::Else) || TokenID==static_cast<DWORD>(Token::EndIf)))
 		{
 			bCloseNestValid=true;
 			break;
 		}
-		if(RequiredTerminator==ELSECRTK && TokenID==ELSETK)
+		if(RequiredTerminator==static_cast<DWORD>(Token::ElseCrt) && TokenID==static_cast<DWORD>(Token::Else))
 		{
 			bCloseNestValid=true;
 			break;
@@ -460,55 +460,55 @@ bool CStatement::DoStatement(DWORD TokenID)
 	DWORD dwStatementTypeData=0;
 	switch(TokenID)
 	{
-		case DOTK:
-		case WHILETK:			
-		case REPEATTK:			
-		case FORTK:				
-		case EXITTK:			dwStatementType=1;
+		case static_cast<DWORD>(Token::Do):
+		case static_cast<DWORD>(Token::While):			
+		case static_cast<DWORD>(Token::Repeat):			
+		case static_cast<DWORD>(Token::For):				
+		case static_cast<DWORD>(Token::Exit):			dwStatementType=1;
 								break;
 
-		case TYPETK:			dwStatementType=2;
+		case static_cast<DWORD>(Token::Type):			dwStatementType=2;
 								break;
 
-		case GLOBALTK:			dwStatementTypeData=1;
+		case static_cast<DWORD>(Token::Global):			dwStatementTypeData=1;
 								dwStatementType=3;
 								break;
 
-		case LOCALTK:			dwStatementTypeData=2;
+		case static_cast<DWORD>(Token::Local):			dwStatementTypeData=2;
 								dwStatementType=3;
 								break;
 
 
-		case DIMTK:				dwStatementType=4;
+		case static_cast<DWORD>(Token::Dim):				dwStatementType=4;
 								break;
 
-		case UNDIMTK:			dwStatementType=13;
+		case static_cast<DWORD>(Token::Undim):			dwStatementType=13;
 								break;
 
-		case ASSIGNMENTTK:		dwStatementType=5;
+		case static_cast<DWORD>(Token::Assignment):		dwStatementType=5;
 								break;
 
-		case USERFUNCTIONTK:	dwStatementType=6;
+		case static_cast<DWORD>(Token::UserFunction):	dwStatementType=6;
 								break;
 
-		case USERFUNCTIONCALLTK:dwStatementType=7;
+		case static_cast<DWORD>(Token::UserFunctionCall):dwStatementType=7;
 								break;
 
-		case EXITUSERFUNCTIONTK:dwStatementType=14;
+		case static_cast<DWORD>(Token::ExitUserFunction):dwStatementType=14;
 								break;
 
-		case IFTK:				
-		case GOTOTK:			
-		case GOSUBTK:			
-		case SELECTTK:			dwStatementType=8;
+		case static_cast<DWORD>(Token::If):				
+		case static_cast<DWORD>(Token::Goto):			
+		case static_cast<DWORD>(Token::Gosub):			
+		case static_cast<DWORD>(Token::Select):			dwStatementType=8;
 								break;
 
-		case LABELTK :			dwStatementType=9;
+		case static_cast<DWORD>(Token::Label) :			dwStatementType=9;
 								break;
 
 
 
-		case REMLINETK:			if(g_pStatementList->GetDisableParsingFull()==false)
+		case static_cast<DWORD>(Token::RemLine):			if(g_pStatementList->GetDisableParsingFull()==false)
 								{
 									g_pStatementList->SetDisableParsingToCR(true);	
 									g_pStatementList->SetDisableParsingFull(true);
@@ -516,27 +516,27 @@ bool CStatement::DoStatement(DWORD TokenID)
 								}
 								break;
 
-		case REMSTARTTK:		if(g_pStatementList->GetDisableParsingFull()==false)
+		case static_cast<DWORD>(Token::RemStart):		if(g_pStatementList->GetDisableParsingFull()==false)
 								{
 									g_pStatementList->SetDisableParsingFull(true);
 									dwStatementType=10;
 								}
 								break;
 
-		case REMENDTK:			if(g_pStatementList->GetDisableParsingFull()==true)
+		case static_cast<DWORD>(Token::RemEnd):			if(g_pStatementList->GetDisableParsingFull()==true)
 								{
 									g_pStatementList->SetDisableParsingFull(false);
 									dwStatementType=10;
 								}
 								break;
 
-		case INSTRUCTIONTK :	dwStatementType=11;
+		case static_cast<DWORD>(Token::Instruction) :	dwStatementType=11;
 								break;
 
-		case DATATK :			dwStatementType=12;
+		case static_cast<DWORD>(Token::Data) :			dwStatementType=12;
 								break;
 
-		case ENDTK :			dwStatementType=99;
+		case static_cast<DWORD>(Token::End) :			dwStatementType=99;
 								break;
 	}
 
@@ -561,7 +561,7 @@ bool CStatement::DoStatement(DWORD TokenID)
 							// leefix - 290703 - a DIM in a userfunction is GLOBAL unless otherwise regarded
 							bIsGlobal=true;
 						}
-						bool bDecOK = DoDeclaration(true, CRTK, &pRawDecChain, bDoneDim, true, bIsGlobal, false);
+						bool bDecOK = DoDeclaration(true, static_cast<DWORD>(Token::Crt), &pRawDecChain, bDoneDim, true, bIsGlobal, false);
 						// RAII owner: this temporary declaration chain is freed on both the
 						// success and error return paths (the declarations themselves are
 						// copied into the persistent chain inside DoDeclaration).
@@ -607,7 +607,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	DWORD dwStatementType=1;
 
 	// Terminator leaves current loop
-	if(TokenID==EXITTK) 
+	if(TokenID==static_cast<DWORD>(Token::Exit)) 
 	{
 		// If within a parsing loop, give exit label to exit statement
 		if(g_pStatementList->GetLatestLoopExitLabel())
@@ -654,10 +654,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Determine Type Of Loop
 	DWORD dwLoopType=0, dwEndToken=0;
-	if(TokenID==DOTK)		{ dwLoopType=LOOPTYPE_DO;		dwEndToken=LOOPTK;		}
-	if(TokenID==WHILETK)	{ dwLoopType=LOOPTYPE_WHILE;	dwEndToken=ENDWHILETK;	}
-	if(TokenID==REPEATTK)	{ dwLoopType=LOOPTYPE_REPEAT;	dwEndToken=UNTILTK;		}
-	if(TokenID==FORTK)		{ dwLoopType=LOOPTYPE_FORNEXT;	dwEndToken=NEXTTK;		}
+	if(TokenID==static_cast<DWORD>(Token::Do))		{ dwLoopType=LOOPTYPE_DO;		dwEndToken=static_cast<DWORD>(Token::Loop);		}
+	if(TokenID==static_cast<DWORD>(Token::While))	{ dwLoopType=LOOPTYPE_WHILE;	dwEndToken=static_cast<DWORD>(Token::EndWhile);	}
+	if(TokenID==static_cast<DWORD>(Token::Repeat))	{ dwLoopType=LOOPTYPE_REPEAT;	dwEndToken=static_cast<DWORD>(Token::Until);		}
+	if(TokenID==static_cast<DWORD>(Token::For))		{ dwLoopType=LOOPTYPE_FORNEXT;	dwEndToken=static_cast<DWORD>(Token::Next);		}
 
 	// Parse off any trailing parameters of loop starter (WHILE xxxx)
 	// RAII owners: freed automatically on error paths, released at ownership transfer
@@ -665,7 +665,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	std::unique_ptr<CParameter> pForNextInitParameter;
 	std::unique_ptr<CParameter> pForNextIncParameter;
 	std::unique_ptr<CParameter> pForNextCheckParameter;
-	if(TokenID==FORTK) 
+	if(TokenID==static_cast<DWORD>(Token::For)) 
 	{
 		// Gather fornext details (stack CStr: RAII on every exit path)
 		CStr var("");
@@ -869,7 +869,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	}
 	else
 	{
-		if(TokenID==WHILETK) 
+		if(TokenID==static_cast<DWORD>(Token::While)) 
 		{
 			// Create Parameter Object (adopt allocation immediately so it is never leaked)
 			bool bMoreParams=false;
@@ -878,7 +878,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			pConditionParameter.reset(pRawCondition);
 			if(bListOK==false)
 			{
-				g_pErrorReport->AddErrorString("Failed to 'WHILETK::Do ExpressionList'");
+				g_pErrorReport->AddErrorString("Failed to 'static_cast<DWORD>(Token::While)::Do ExpressionList'");
 				return false;
 			}
 			// Not one param, fail
@@ -914,7 +914,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	DWORD dwBottomOfLoopLine = g_pStatementList->GetLineNumber();
 
 	// Parse off any trailing parameters of loop terminator (UNTIL xxxx)
-	if(dwEndToken==UNTILTK) 
+	if(dwEndToken==static_cast<DWORD>(Token::Until)) 
 	{
 		// Create Parameter Object (adopt allocation immediately so it is never leaked)
 		bool bMoreParams=false;
@@ -923,7 +923,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		pConditionParameter.reset(pRawCondition);
 		if(bListOK==false)
 		{
-			g_pErrorReport->AddErrorString("Failed to 'UNTILTK::Do ExpressionList'");
+			g_pErrorReport->AddErrorString("Failed to 'static_cast<DWORD>(Token::Until)::Do ExpressionList'");
 			return false;
 		}
 		// If Not one param, fail
@@ -933,7 +933,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			return false;
 		}
 	}
-	if(dwEndToken==NEXTTK) 
+	if(dwEndToken==static_cast<DWORD>(Token::Next)) 
 	{
 		// Parse off variable (owned locally, always discarded)
 		bool bMoreParams=false;
@@ -942,7 +942,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		std::unique_ptr<CParameter> pNextVarParameter(pRawNextVar);
 		if(bListOK==false)
 		{
-			g_pErrorReport->AddErrorString("Failed to 'NEXTTK::Do ExpressionList'");
+			g_pErrorReport->AddErrorString("Failed to 'static_cast<DWORD>(Token::Next)::Do ExpressionList'");
 			return false;
 		}
 		// If Not one param, fail
@@ -1039,14 +1039,14 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Determine Type Of Jump
 	DWORD dwJumpType=0, dwEndToken=0;
-	if(TokenID==IFTK) { dwJumpType=JUMPTYPE_IF;			dwEndToken=ENDIFTK;		}
-	if(TokenID==GOTOTK) { dwJumpType=JUMPTYPE_GOTO;		dwEndToken=0;		}
-	if(TokenID==GOSUBTK) { dwJumpType=JUMPTYPE_GOSUB;	dwEndToken=0;		}
-	if(TokenID==SELECTTK) { dwJumpType=JUMPTYPE_SELECT;	dwEndToken=ENDSELECTTK;		}
+	if(TokenID==static_cast<DWORD>(Token::If)) { dwJumpType=JUMPTYPE_IF;			dwEndToken=static_cast<DWORD>(Token::EndIf);		}
+	if(TokenID==static_cast<DWORD>(Token::Goto)) { dwJumpType=JUMPTYPE_GOTO;		dwEndToken=0;		}
+	if(TokenID==static_cast<DWORD>(Token::Gosub)) { dwJumpType=JUMPTYPE_GOSUB;	dwEndToken=0;		}
+	if(TokenID==static_cast<DWORD>(Token::Select)) { dwJumpType=JUMPTYPE_SELECT;	dwEndToken=static_cast<DWORD>(Token::EndSelect);		}
 
 	// Make THEN a seperator
 	bool bOneLineIfThen=false;
-	if(TokenID==IFTK)
+	if(TokenID==static_cast<DWORD>(Token::If))
 	{
 		// Modify THEN line into seperator
 		if(ReplaceTHENandELSEwithSep()==true)
@@ -1086,7 +1086,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	}
 
 	// leeadd - 280305 - condition datatype must result as an integer
-	if ( TokenID==IFTK || TokenID==SELECTTK )
+	if ( TokenID==static_cast<DWORD>(Token::If) || TokenID==static_cast<DWORD>(Token::Select) )
 	{
 		// Ensure select variable is casted out of types 4,5,6
 		if ( (pConditionParameter->GetMathItem()->FindResultTypeValueForDBM() % 100 )>=4
@@ -1106,7 +1106,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	std::string internalLabelStringA;	// empty = no label (value semantics)
 	std::string internalLabelStringB;	// empty = no label (value semantics)
 	DWORD StatementElseLineNumber=0;
-	if(TokenID==IFTK)
+	if(TokenID==static_cast<DWORD>(Token::If))
 	{
 		// Create BLOCK Object for A Block
 		pJumpBlockA = std::make_unique<CStatement>();
@@ -1115,9 +1115,9 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		DWORD dwlastToken=0;
 
 		if(bOneLineIfThen)
-			dwEndToken=ELSECRTK;
+			dwEndToken=static_cast<DWORD>(Token::ElseCrt);
 		else
-			dwEndToken=ELSEENDIFTK;
+			dwEndToken=static_cast<DWORD>(Token::ElseEndIf);
 
 		TheObject->SetLineAndCharPos(StatementLineNumber,1);
 		if(pJumpBlockA->DoBlock(dwEndToken,&dwlastToken)==false)
@@ -1127,12 +1127,12 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// If Next token is ELSE, parse a B Block
-		if(dwlastToken==ELSETK)
+		if(dwlastToken==static_cast<DWORD>(Token::Else))
 		{
 			if(bOneLineIfThen)
-				dwEndToken=CRTK;
+				dwEndToken=static_cast<DWORD>(Token::Crt);
 			else
-				dwEndToken=ENDIFTK;
+				dwEndToken=static_cast<DWORD>(Token::EndIf);
 
 			// BlockB statement is else marker for jump
 			pJumpBlockB = std::make_unique<CStatement>();
@@ -1156,7 +1156,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			}
 		}
 	}
-	if(TokenID==GOTOTK || TokenID==GOSUBTK)
+	if(TokenID==static_cast<DWORD>(Token::Goto) || TokenID==static_cast<DWORD>(Token::Gosub))
 	{
 		// Make label from passed parameter
 		CStr* pParamStr = pConditionParameter->GetMathItem()->GetResultStringToken();
@@ -1197,7 +1197,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		TheObject->SetLineAndCharPos(StatementLineNumber,1);
 		pConditionParameter = std::move(pJumpToLabel);
 	}
-	if(TokenID==SELECTTK)
+	if(TokenID==static_cast<DWORD>(Token::Select))
 	{
 		// Get Case Value
 		DWORD dwlastToken=0;
@@ -1220,14 +1220,14 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			dwToken = FindToken(pPointer, true);
 
 			// lee - 240306 - end case found in wrong order
-			if(dwToken==ENDCASETK)
+			if(dwToken==static_cast<DWORD>(Token::EndCase))
 			{
 				// provoke error
 				dwToken = 0;
 			}
 
 			// Proceed if CASE block
-			if(dwToken==CASETK)
+			if(dwToken==static_cast<DWORD>(Token::Case))
 			{
 				// Get Pointer
 				bTokenUsed=true;
@@ -1245,7 +1245,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					// CASE DEFAULT
 					g_pStatementList->SetFileDataPointer(pPointer+7);
 					bCaseDefaultProcessed=true;
-					dwToken=CASEDEFAULTTK;
+					dwToken=static_cast<DWORD>(Token::CaseDefault);
 				}
 				else
 				{
@@ -1306,7 +1306,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					}
 				
 					// Get Case Code
-					dwEndToken=ENDCASETK;
+					dwEndToken=static_cast<DWORD>(Token::EndCase);
 					pJumpBlockA = std::make_unique<CStatement>();
 					pJumpBlockA->SetLineAndCharPos(StatementLineNumber);
 					if(pJumpBlockA->DoBlock(dwEndToken,&dwlastToken)==false)
@@ -1356,7 +1356,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			}
 
 			// Peek next, if another case go around ahain
-			if(dwToken==ENDSELECTTK || bCaseDefaultProcessed==true)
+			if(dwToken==static_cast<DWORD>(Token::EndSelect) || bCaseDefaultProcessed==true)
 			{
 				bTokenUsed=true;
 				break;
@@ -1387,8 +1387,8 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				SkipToCR();
 			}
 
-			// Not found token error (lee - 240306 - u6b4 - added dwToken==ENDTK)
-			if ( dwToken==0 || dwToken==ENDTK )
+			// Not found token error (lee - 240306 - u6b4 - added dwToken==static_cast<DWORD>(Token::End))
+			if ( dwToken==0 || dwToken==static_cast<DWORD>(Token::End) )
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+20);
@@ -1396,10 +1396,10 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			}
 		}
 
-		// If Next token is CASEDEFAULTTK, parse a B Block 'kindofelse'
+		// If Next token is static_cast<DWORD>(Token::CaseDefault), parse a B Block 'kindofelse'
 		if(bCaseDefaultProcessed==true)
 		{
-			dwEndToken=ENDCASETK;
+			dwEndToken=static_cast<DWORD>(Token::EndCase);
 			pJumpBlockB = std::make_unique<CStatement>();
 			pJumpBlockB->SetLineAndCharPos(StatementLineNumber);
 			if(pJumpBlockB->DoBlock(dwEndToken, &dwlastToken)==false)
@@ -1416,10 +1416,10 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// LEEFIX - 141102 - Ensure no comments here
-		while(dwToken==REMLINETK || dwToken==REMSTARTTK)
+		while(dwToken==static_cast<DWORD>(Token::RemLine) || dwToken==static_cast<DWORD>(Token::RemStart))
 		{
 			LPSTR pPointer;
-			if(dwToken==REMLINETK)
+			if(dwToken==static_cast<DWORD>(Token::RemLine))
 			{
 				// Skip to end of line
 				SkipToCR();
@@ -1435,10 +1435,10 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			dwToken = FindToken(pPointer, true);
 		}
 
-		if(dwToken!=ENDSELECTTK)
+		if(dwToken!=static_cast<DWORD>(Token::EndSelect))
 		{
 			// If another case after case default alert of ordering error
-			if(dwToken==CASETK && bCaseDefaultProcessed==true)
+			if(dwToken==static_cast<DWORD>(Token::Case) && bCaseDefaultProcessed==true)
 			{
 				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+21);
@@ -1527,9 +1527,9 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Now Parse Declaration from File Data
 	CDeclaration* pDecChainRaw = NULL;
-	if(pTypeBlock->DoDeclaration(false, ENDTYPETK, &pDecChainRaw, false, true, true, true)==false)
+	if(pTypeBlock->DoDeclaration(false, static_cast<DWORD>(Token::EndType), &pDecChainRaw, false, true, true, true)==false)
 	{
-		g_pErrorReport->AddErrorString("Failed to 'pTypeBlock->Do Declaration(ENDTYPETK)'");
+		g_pErrorReport->AddErrorString("Failed to 'pTypeBlock->Do Declaration(static_cast<DWORD>(Token::EndType))'");
 		delete pDecChainRaw;
 		return false;
 	}
@@ -1718,7 +1718,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 
 	// Determine terminator state for parse
 	bool bTerminatorIsCRTK=false;
-	if(dwTerminatorType==CRTK) bTerminatorIsCRTK=true;
+	if(dwTerminatorType==static_cast<DWORD>(Token::Crt)) bTerminatorIsCRTK=true;
 
 	// Get token string from filedata (if not already from a DIKTK)
 	// RAII owner for the current token buffer (token producers return new char[])
@@ -1728,7 +1728,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	if(bDoneDim)
 	{
 		// DIM Declared at runtime can use dynamic size
-		dwToken=DIMTK;
+		dwToken=static_cast<DWORD>(Token::Dim);
 		bMustBeLiteralDim=false;
 	}
 	else
@@ -1741,7 +1741,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		dwToken = DetermineToken(pString.get());
 
 		// leeadd - 210604 - bypass all line remarks
-		while(dwToken==REMLINETK || dwToken==CRTK)
+		while(dwToken==static_cast<DWORD>(Token::RemLine) || dwToken==static_cast<DWORD>(Token::Crt))
 		{
 			// Ignore rest of line and find next dec string
 			SkipToCR();
@@ -1754,7 +1754,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		}
 
 		// Go through declaration for tokens
-		if(bVariableDeclaration==true && dwToken>0 && dwToken!=DIMTK)
+		if(bVariableDeclaration==true && dwToken>0 && dwToken!=static_cast<DWORD>(Token::Dim))
 		{
 			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+24, pString.get());
@@ -1771,7 +1771,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	}
 
 	// If params in declatation, parse them...
-	while(dwToken!=dwTerminatorType && dwToken!=ENDTK)
+	while(dwToken!=dwTerminatorType && dwToken!=static_cast<DWORD>(Token::End))
 	{
 		// Declaration Data required (RAII owners: freed automatically on all paths)
 		DWORD dwDecArr=0;
@@ -1782,7 +1782,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		DWORD LineNumberRef=0;
 
 		// Handle declaration token (ie DIM)
-		if(dwToken==DIMTK)
+		if(dwToken==static_cast<DWORD>(Token::Dim))
 		{
 			// Array Name (ie MYARR(5))
 			pString.reset();
@@ -1823,8 +1823,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			}
 		}
 
-		// lee - 270-306 - u6b5 - if type saturate with REM CRTK, skip over them
-		if(dwToken!=CRTK)
+		// lee - 270-306 - u6b5 - if type saturate with REM static_cast<DWORD>(Token::Crt), skip over them
+		if(dwToken!=static_cast<DWORD>(Token::Crt))
 		{
 			// Ensure dec name is valid (stack CStr: RAII on every exit path)
 			CStr tempNameStr(pDecName.get());
@@ -1848,14 +1848,14 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		std::unique_ptr<char[]> pTypeSpecifier(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
 		dwToken = DetermineToken(pTypeSpecifier.get());
 		g_pStatementList->SetFileDataPointer(pPointer);
-		if(dwToken==ASTK)
+		if(dwToken==static_cast<DWORD>(Token::Asterisk))
 		{
 			// Type (ie INTEGER)
 			pTypeSpecifier.reset();
 			std::unique_ptr<char[]> pWhatType(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
 			dwToken = DetermineToken(pWhatType.get());
 			g_pStatementList->SetFileDataPointer(pPointer);
-			if(dwToken==DOUBLETK)
+			if(dwToken==static_cast<DWORD>(Token::Double))
 			{
 				// Pre-Declaration Token (ie DOUBLE INTEGER)
 				std::unique_ptr<char[]> pWhatTypeMore(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
@@ -1938,7 +1938,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			pDecType=std::move(pWhatType);
 			pDecInit=std::move(pInitValue);
 
-			// Next Item Of Data - until no more (token may produce CRTK)
+			// Next Item Of Data - until no more (token may produce static_cast<DWORD>(Token::Crt))
 			pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
 			dwToken = DetermineToken(pString.get());
 
@@ -1955,7 +1955,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		else
 		{
 			// LEEFIX-REMARK HANDLER WAS HERE-040803
-			if(dwToken==REMLINETK)
+			if(dwToken==static_cast<DWORD>(Token::RemLine))
 			{
 				// done later on in code
 			}
@@ -1967,22 +1967,22 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		}
 
 		// leefix-040803-handle a comment after type declaration line
-		if ( dwTerminatorType==ENDTYPETK )
+		if ( dwTerminatorType==static_cast<DWORD>(Token::EndType) )
 		{
 			// LEEFIX-REMARK HANDLER MOVED HERE TO HANDLE BOTH (field `comment and field as integer `comment)
-			if(dwToken==CRTK)
+			if(dwToken==static_cast<DWORD>(Token::Crt))
 			{
-				// Next Item Of Data, either next type field or remark (reset frees the CRTK token)
+				// Next Item Of Data, either next type field or remark (reset frees the static_cast<DWORD>(Token::Crt) token)
 				pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
 				dwToken = DetermineToken(pString.get());
 			}
 		}
 
 		// handle remarks by skipping line
-		if(dwToken==REMLINETK)
+		if(dwToken==static_cast<DWORD>(Token::RemLine))
 		{
-			// Bypass all line remarks (can be muiltiple lines (210604 - added dwToken==CRTK)
-			while(dwToken==REMLINETK || dwToken==CRTK)
+			// Bypass all line remarks (can be muiltiple lines (210604 - added dwToken==static_cast<DWORD>(Token::Crt))
+			while(dwToken==static_cast<DWORD>(Token::RemLine) || dwToken==static_cast<DWORD>(Token::Crt))
 			{
 				// Ignore rest of line and find next dec string
 				SkipToCR();
@@ -2219,7 +2219,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	}
 
 	// leefix - 240604 - u54 - END in TYPE struct, invalid!
-	if ( dwToken==ENDTK )
+	if ( dwToken==static_cast<DWORD>(Token::End) )
 	{
 		// and not end of program
 		if(pPointer<g_pStatementList->GetFileDataEnd()-2)
@@ -2231,7 +2231,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	}
 
 	// lee - 270206 - u60 - Check for ENDTYPE
-	if ( dwTerminatorType==ENDTYPETK && dwToken!=ENDTYPETK )
+	if ( dwTerminatorType==static_cast<DWORD>(Token::EndType) && dwToken!=static_cast<DWORD>(Token::EndType) )
 	{
 		// TYPE / ENDTYPE needs correct terminator - end found in type
 		g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+61);
@@ -2294,7 +2294,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	bool bMustNotCastIntoAssignment=false;
 	DWORD dwValidInstructionToUse=0;
 	DWORD dwValidInstructionValue=0, dwValidParamMax=0;
-	if(dwInstructionType==2 && dwInstructionValue==g_pInstructionTable->GetIIValue(IT_INTERNAL_ASSIGNLL))
+	if(dwInstructionType==2 && dwInstructionValue==g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::AssignLL)))
 	{
 		// If too many parameters than instruction requires
 		if ( dwParamCount > dwInstructionParamMax )
@@ -2330,38 +2330,38 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		DWORD dwUseNewInstruction=0;
 		switch(dwLValueTypeValue)
 		{
-			case 1 : dwUseNewInstruction=IT_INTERNAL_ASSIGNLL;			break;
-			case 2 : dwUseNewInstruction=IT_INTERNAL_ASSIGNFF;			break;
-			case 3 : dwUseNewInstruction=IT_INTERNAL_ASSIGNSS;			break;
-			case 4 : dwUseNewInstruction=IT_INTERNAL_ASSIGNBB;			break;
-			case 5 : dwUseNewInstruction=IT_INTERNAL_ASSIGNYY;			break;
-			case 6 : dwUseNewInstruction=IT_INTERNAL_ASSIGNWW;			break;
-			case 7 : dwUseNewInstruction=IT_INTERNAL_ASSIGNDD;			break;
-			case 8 : dwUseNewInstruction=IT_INTERNAL_ASSIGNOO;			break;
-			case 9 : dwUseNewInstruction=IT_INTERNAL_ASSIGNRR;			break;
+			case 1 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignLL);			break;
+			case 2 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignFF);			break;
+			case 3 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignSS);			break;
+			case 4 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignBB);			break;
+			case 5 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignYY);			break;
+			case 6 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignWW);			break;
+			case 7 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignDD);			break;
+			case 8 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignOO);			break;
+			case 9 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignRR);			break;
 
-			case 101 : dwUseNewInstruction=IT_INTERNAL_ASSIGNLL;			break;
-			case 102 : dwUseNewInstruction=IT_INTERNAL_ASSIGNFF;			break;
-			case 103 : dwUseNewInstruction=IT_INTERNAL_ASSIGNSS;			break;
-			case 104 : dwUseNewInstruction=IT_INTERNAL_ASSIGNBB;			break;
-			case 105 : dwUseNewInstruction=IT_INTERNAL_ASSIGNYY;			break;
-			case 106 : dwUseNewInstruction=IT_INTERNAL_ASSIGNWW;			break;
-			case 107 : dwUseNewInstruction=IT_INTERNAL_ASSIGNDD;			break;
-			case 108 : dwUseNewInstruction=IT_INTERNAL_ASSIGNOO;			break;
-			case 109 : dwUseNewInstruction=IT_INTERNAL_ASSIGNRR;			break;
+			case 101 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignLL);			break;
+			case 102 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignFF);			break;
+			case 103 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignSS);			break;
+			case 104 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignBB);			break;
+			case 105 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignYY);			break;
+			case 106 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignWW);			break;
+			case 107 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignDD);			break;
+			case 108 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignOO);			break;
+			case 109 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignRR);			break;
 
-			case 201 : dwUseNewInstruction=IT_INTERNAL_ASSIGNLL;			break;
-			case 202 : dwUseNewInstruction=IT_INTERNAL_ASSIGNFF;			break;
-			case 203 : dwUseNewInstruction=IT_INTERNAL_ASSIGNSS;			break;
-			case 204 : dwUseNewInstruction=IT_INTERNAL_ASSIGNBB;			break;
-			case 205 : dwUseNewInstruction=IT_INTERNAL_ASSIGNYY;			break;
-			case 206 : dwUseNewInstruction=IT_INTERNAL_ASSIGNWW;			break;
-			case 207 : dwUseNewInstruction=IT_INTERNAL_ASSIGNDD;			break;
-			case 208 : dwUseNewInstruction=IT_INTERNAL_ASSIGNOO;			break;
-			case 209 : dwUseNewInstruction=IT_INTERNAL_ASSIGNRR;			break;
+			case 201 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignLL);			break;
+			case 202 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignFF);			break;
+			case 203 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignSS);			break;
+			case 204 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignBB);			break;
+			case 205 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignYY);			break;
+			case 206 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignWW);			break;
+			case 207 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignDD);			break;
+			case 208 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignOO);			break;
+			case 209 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignRR);			break;
 
-			case 1001 : dwUseNewInstruction=IT_INTERNAL_ASSIGNUDT;			break;
-			case 1101 : dwUseNewInstruction=IT_INTERNAL_ASSIGNUDT;			break;
+			case 1001 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignUdt);			break;
+			case 1101 : dwUseNewInstruction=static_cast<DWORD>(InternalInstruction::AssignUdt);			break;
 		}
 		if(dwUseNewInstruction==0)
 		{
@@ -2388,7 +2388,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// Ensure second param is identical type to first if UserDefinedType Assignment used
-		if(dwUseNewInstruction==IT_INTERNAL_ASSIGNUDT)
+		if(dwUseNewInstruction==static_cast<DWORD>(InternalInstruction::AssignUdt))
 		{
 			// same-flag - leefix - 170403 - new way to check for type names ( lee, lee.fred lee(5), lee(5).fred, etc)
 			bool bTypesSame=false;
@@ -2881,8 +2881,8 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Assignment instruction
 	g_pStatementList->SetInstructionType(2);
-	g_pStatementList->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_ASSIGNLL));
-	g_pStatementList->SetInstructionValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_ASSIGNLL));
+	g_pStatementList->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::AssignLL)));
+	g_pStatementList->SetInstructionValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::AssignLL)));
 	g_pStatementList->SetInstructionParamMax(2);
 	if(DoInstruction(StatementLineNumber, TokenID)==false)
 	{
@@ -3068,8 +3068,8 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Complete Object Data
 	pInstruction->SetType(2);
-	pInstruction->SetValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_ALLOC));
-	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_ALLOC));
+	pInstruction->SetValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::Alloc)));
+	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::Alloc)));
 	pInstruction->SetParamMax(10);
 	pInstruction->SetParameter(pFirstParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
@@ -3136,8 +3136,8 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 
 	// Complete Object Data
 	pInstruction->SetType(2);
-	pInstruction->SetValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_FREE));
-	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_FREE));
+	pInstruction->SetValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::Free)));
+	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::Free)));
 	pInstruction->SetParamMax(2);
 	pInstruction->SetReturnParameter(NULL); // legacy contract: the return token was already freed here, so NULL is pinned
 	pInstruction->SetParameter(pReturnParameter.release());
@@ -3280,7 +3280,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		else
 		{
 			auto pDecBlock = std::make_unique<CStatement>(); // user function params are local, not global
-			if(pDecBlock->DoDeclaration(false, CRTK, &pDecChain, false, false, false, false)==false)
+			if(pDecBlock->DoDeclaration(false, static_cast<DWORD>(Token::Crt), &pDecChain, false, false, false, false)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::Do Declaration'");
 				return false;
@@ -3293,7 +3293,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// Now Parse Block from File Data
-		DWORD dwEndToken = ENDUSERFUNCTIONTK;
+		DWORD dwEndToken = static_cast<DWORD>(Token::EndUserFunction);
 		auto pCodeBlock = std::make_unique<CStatement>();
 		if(pCodeBlock->DoLocalScanBlock(dwEndToken)==false)
 		{
@@ -3417,7 +3417,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		else
 		{
 			auto pDecBlock = std::make_unique<CStatement>(); //as above, params in user function are local not global
-			if(pDecBlock->DoDeclaration(false, CRTK, &pDecChain, false, false, false, false)==false)
+			if(pDecBlock->DoDeclaration(false, static_cast<DWORD>(Token::Crt), &pDecChain, false, false, false, false)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::Do Declaration'");
 				return false;
@@ -3442,7 +3442,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// Now Parse Block from File Data
-		DWORD dwEndToken = ENDUSERFUNCTIONTK;
+		DWORD dwEndToken = static_cast<DWORD>(Token::EndUserFunction);
 		if(pCodeBlockOwner->DoBlock(dwEndToken,NULL)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::DoBlock'");
@@ -3504,7 +3504,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Add an END statement here
 		// leeadd - 270206 - u60 - users hitting this and gettin confused, add error
-		AddInternalStatement(StatementLineNumber, IT_INTERNAL_ENDERROR);
+		AddInternalStatement(StatementLineNumber, static_cast<DWORD>(InternalInstruction::EndError));
 
 		// Add The Object To This Statement
 		TheUserFunctionObject->SetObject(pUserFunction);
@@ -3610,8 +3610,8 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 
 	// Complete Object Data
 	pInstruction->SetType(2);
-	pInstruction->SetValue(g_pInstructionTable->GetIIValue(IT_INTERNAL_USERFUNCTIONEXIT));
-	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(IT_INTERNAL_USERFUNCTIONEXIT));
+	pInstruction->SetValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::UserFunctionExit)));
+	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::UserFunctionExit)));
 	pInstruction->SetParamMax(2);
 	pInstruction->SetParameter(pParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
@@ -4042,7 +4042,7 @@ LPSTR CStatement::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 
 		if(bQuickQuit==true)
 		{
-			// Produce CRTK if flagged
+			// Produce static_cast<DWORD>(Token::Crt) if flagged
 			LPSTR pProducedToken = new char[3];
 			pProducedToken[0]=13;
 			pProducedToken[1]=10;
@@ -4070,12 +4070,12 @@ LPSTR CStatement::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 
 		if(bLineSeperatorFlag==true)
 		{
-			// If producing CRTK and reach one, if token filled, leave without absorbing CR
+			// If producing static_cast<DWORD>(Token::Crt) and reach one, if token filled, leave without absorbing CR
 			if(bProduceCRTK && pStringPointer>(*pString))
 			{
 				if(pFindStartOfToken==NULL)
 				{
-					// Produce CRTK if flagged
+					// Produce static_cast<DWORD>(Token::Crt) if flagged
 					LPSTR pProducedToken = new char[3];
 					pProducedToken[0]=13;
 					pProducedToken[1]=10;
@@ -4086,13 +4086,13 @@ LPSTR CStatement::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 					break;
 			}
 
-			// If producing CRTK and reach one, if token starts with CR, pass it out
+			// If producing static_cast<DWORD>(Token::Crt) and reach one, if token starts with CR, pass it out
 			if(bProduceCRTK && pStringPointer==(*pString))
 			{
 				if(bIncrementLineNumber)
 					g_pStatementList->IncLineNumber();
 
-				// Produce CRTK if flagged
+				// Produce static_cast<DWORD>(Token::Crt) if flagged
 				LPSTR pProducedToken = new char[3];
 				pProducedToken[0]=13;
 				pProducedToken[1]=10;
@@ -4708,7 +4708,7 @@ DWORD CStatement::GetMainToken(void)
 		if(pPointer>=g_pStatementList->GetFileDataEnd()-2)
 		{
 			// Reached End of Program (file data)
-			return ENDTK;
+			return static_cast<DWORD>(Token::End);
 		}
 
 		// Is it a label:
@@ -4725,7 +4725,7 @@ DWORD CStatement::GetMainToken(void)
 		if(g_pInstructionTable->FindInstruction(true, pPointer, 0, &dwTokenData, &dwParamMax, &dwLength, &pRef))
 		{
 			// Yes, token is instruction
-			dwToken=INSTRUCTIONTK;
+			dwToken=static_cast<DWORD>(Token::Instruction);
 
 			// Record start position of this token (instruction)
 			g_pStatementList->SetTokenLineNumber(dwStoreLineOfToken);
@@ -4775,13 +4775,13 @@ DWORD CStatement::GetMainToken(void)
 					// Check if it qualifies as a variable declaration or assignment
 					if(ContainsAssignmentOperator(&lineStr))
 					{
-						dwToken=ASSIGNMENTTK;
+						dwToken=static_cast<DWORD>(Token::Assignment);
 					}
 					if(dwToken==0)
 					{
 						if(lineStr.ContainsASOperator())
 						{
-							dwToken=LOCALTK;
+							dwToken=static_cast<DWORD>(Token::Local);
 						}
 					}
 				}
@@ -4789,7 +4789,7 @@ DWORD CStatement::GetMainToken(void)
 				{
 					// If in prescan, do not process userfunction calls
 					if(g_pStatementList->GetImplementationParse()==false)
-						return CRTK;
+						return static_cast<DWORD>(Token::Crt);
 
 					// Check if a user defined function
 					dwTokenData=0;
@@ -4798,7 +4798,7 @@ DWORD CStatement::GetMainToken(void)
 					if(g_pInstructionTable->FindUserFunction(pPointer, 0, &dwTokenData, &dwParamMax, &dwLength))
 					{
 						// Yes, token is userfunction
-						dwToken=USERFUNCTIONCALLTK;
+						dwToken=static_cast<DWORD>(Token::UserFunctionCall);
 
 						// Record instruction data
 						g_pStatementList->SetInstructionRef(NULL);
@@ -4819,7 +4819,7 @@ DWORD CStatement::GetMainToken(void)
 	else
 	{
 		// Reached End of Program (file data)
-		dwToken=ENDTK;
+		dwToken=static_cast<DWORD>(Token::End);
 	}
 
 	// Return TokenID if any
@@ -4849,7 +4849,7 @@ DWORD CStatement::GetToken(void)
 	else
 	{
 		// Reached End of Program (file data)
-		dwToken=ENDTK;
+		dwToken=static_cast<DWORD>(Token::End);
 	}
 
 	// Return TokenID if any
@@ -5165,7 +5165,7 @@ DWORD CStatement::PeekLabel(LPSTR pPointer)
 		{
 			// must not be a reserved word
 			if ( !DetermineIfReservedWord ( checkWord.GetStr() ) )
-				dwToken=LABELTK;
+				dwToken=static_cast<DWORD>(Token::Label);
 		}
 	}
 
@@ -5470,66 +5470,66 @@ DWORD CStatement::DetermineNameToken(LPSTR pToken)
 	DWORD dwToken=0;
 
 	// Determine if LOOP
-	if(dwToken==0 && stricmp(pToken, "DO")==NULL) dwToken=DOTK;
-	if(dwToken==0 && stricmp(pToken, "LOOP")==NULL) dwToken=LOOPTK;
-	if(dwToken==0 && stricmp(pToken, "WHILE")==NULL) dwToken=WHILETK;
-	if(dwToken==0 && stricmp(pToken, "ENDWHILE")==NULL) dwToken=ENDWHILETK;
-	if(dwToken==0 && stricmp(pToken, "REPEAT")==NULL) dwToken=REPEATTK;
-	if(dwToken==0 && stricmp(pToken, "UNTIL")==NULL) dwToken=UNTILTK;
+	if(dwToken==0 && stricmp(pToken, "DO")==NULL) dwToken=static_cast<DWORD>(Token::Do);
+	if(dwToken==0 && stricmp(pToken, "LOOP")==NULL) dwToken=static_cast<DWORD>(Token::Loop);
+	if(dwToken==0 && stricmp(pToken, "WHILE")==NULL) dwToken=static_cast<DWORD>(Token::While);
+	if(dwToken==0 && stricmp(pToken, "ENDWHILE")==NULL) dwToken=static_cast<DWORD>(Token::EndWhile);
+	if(dwToken==0 && stricmp(pToken, "REPEAT")==NULL) dwToken=static_cast<DWORD>(Token::Repeat);
+	if(dwToken==0 && stricmp(pToken, "UNTIL")==NULL) dwToken=static_cast<DWORD>(Token::Until);
 
 	// Determine if FOR NEXT
-	if(dwToken==0 && stricmp(pToken, "FOR")==NULL) dwToken=FORTK;
-	if(dwToken==0 && stricmp(pToken, "NEXT")==NULL) dwToken=NEXTTK;
+	if(dwToken==0 && stricmp(pToken, "FOR")==NULL) dwToken=static_cast<DWORD>(Token::For);
+	if(dwToken==0 && stricmp(pToken, "NEXT")==NULL) dwToken=static_cast<DWORD>(Token::Next);
 
 	// Determine if USER FUNCTION
-	if(dwToken==0 && stricmp(pToken, "FUNCTION")==NULL) dwToken=USERFUNCTIONTK;
-	if(dwToken==0 && stricmp(pToken, "EXITFUNCTION")==NULL) dwToken=EXITUSERFUNCTIONTK;
-	if(dwToken==0 && stricmp(pToken, "ENDFUNCTION")==NULL) dwToken=ENDUSERFUNCTIONTK;
+	if(dwToken==0 && stricmp(pToken, "FUNCTION")==NULL) dwToken=static_cast<DWORD>(Token::UserFunction);
+	if(dwToken==0 && stricmp(pToken, "EXITFUNCTION")==NULL) dwToken=static_cast<DWORD>(Token::ExitUserFunction);
+	if(dwToken==0 && stricmp(pToken, "ENDFUNCTION")==NULL) dwToken=static_cast<DWORD>(Token::EndUserFunction);
 
 	// Determine if TERMINATOR
-	if(dwToken==0 && stricmp(pToken, "EXIT")==NULL) dwToken=EXITTK;
+	if(dwToken==0 && stricmp(pToken, "EXIT")==NULL) dwToken=static_cast<DWORD>(Token::Exit);
 
 	// Determine if JUMP
-	if(dwToken==0 && stricmp(pToken, "IF")==NULL) dwToken=IFTK;
-	if(dwToken==0 && stricmp(pToken, "ELSE")==NULL) dwToken=ELSETK;
-	if(dwToken==0 && stricmp(pToken, "ENDIF")==NULL) dwToken=ENDIFTK;
-	if(dwToken==0 && stricmp(pToken, "GOTO")==NULL) dwToken=GOTOTK;
-	if(dwToken==0 && stricmp(pToken, "GOSUB")==NULL) dwToken=GOSUBTK;
-	if(dwToken==0 && stricmp(pToken, "SELECT")==NULL) dwToken=SELECTTK;
-	if(dwToken==0 && stricmp(pToken, "ENDSELECT")==NULL) dwToken=ENDSELECTTK;
-	if(dwToken==0 && stricmp(pToken, "CASE")==NULL) dwToken=CASETK;
-	if(dwToken==0 && stricmp(pToken, "ENDCASE")==NULL) dwToken=ENDCASETK;
-	if(dwToken==0 && stricmp(pToken, "END")==NULL) dwToken=ENDTK;
+	if(dwToken==0 && stricmp(pToken, "IF")==NULL) dwToken=static_cast<DWORD>(Token::If);
+	if(dwToken==0 && stricmp(pToken, "ELSE")==NULL) dwToken=static_cast<DWORD>(Token::Else);
+	if(dwToken==0 && stricmp(pToken, "ENDIF")==NULL) dwToken=static_cast<DWORD>(Token::EndIf);
+	if(dwToken==0 && stricmp(pToken, "GOTO")==NULL) dwToken=static_cast<DWORD>(Token::Goto);
+	if(dwToken==0 && stricmp(pToken, "GOSUB")==NULL) dwToken=static_cast<DWORD>(Token::Gosub);
+	if(dwToken==0 && stricmp(pToken, "SELECT")==NULL) dwToken=static_cast<DWORD>(Token::Select);
+	if(dwToken==0 && stricmp(pToken, "ENDSELECT")==NULL) dwToken=static_cast<DWORD>(Token::EndSelect);
+	if(dwToken==0 && stricmp(pToken, "CASE")==NULL) dwToken=static_cast<DWORD>(Token::Case);
+	if(dwToken==0 && stricmp(pToken, "ENDCASE")==NULL) dwToken=static_cast<DWORD>(Token::EndCase);
+	if(dwToken==0 && stricmp(pToken, "END")==NULL) dwToken=static_cast<DWORD>(Token::End);
 
 	// Determine if TYPE
-	if(dwToken==0 && stricmp(pToken, "TYPE")==NULL) dwToken=TYPETK;
-	if(dwToken==0 && stricmp(pToken, "ENDTYPE")==NULL) dwToken=ENDTYPETK;
-	if(dwToken==0 && stricmp(pToken, "GLOBAL")==NULL) dwToken=GLOBALTK;
-	if(dwToken==0 && stricmp(pToken, "LOCAL")==NULL) dwToken=LOCALTK;
-	if(dwToken==0 && stricmp(pToken, "DIM")==NULL) dwToken=DIMTK;
-	if(dwToken==0 && stricmp(pToken, "UNDIM")==NULL) dwToken=UNDIMTK;
-	if(dwToken==0 && stricmp(pToken, "AS")==NULL) dwToken=ASTK;
-	if(dwToken==0 && stricmp(pToken, "BOOLEAN")==NULL) dwToken=BOOLEANTK;
-	if(dwToken==0 && stricmp(pToken, "BYTE")==NULL) dwToken=BYTETK;
-	if(dwToken==0 && stricmp(pToken, "WORD")==NULL) dwToken=WORDTK;
-	if(dwToken==0 && stricmp(pToken, "DWORD")==NULL) dwToken=DWORDTK;
-	if(dwToken==0 && stricmp(pToken, "INTEGER")==NULL) dwToken=INTEGERTK;
-	if(dwToken==0 && stricmp(pToken, "FLOAT")==NULL) dwToken=FLOATTK;
-	if(dwToken==0 && stricmp(pToken, "STRING")==NULL) dwToken=STRINGTK;
-	if(dwToken==0 && stricmp(pToken, "DOUBLE")==NULL) dwToken=DOUBLETK;
+	if(dwToken==0 && stricmp(pToken, "TYPE")==NULL) dwToken=static_cast<DWORD>(Token::Type);
+	if(dwToken==0 && stricmp(pToken, "ENDTYPE")==NULL) dwToken=static_cast<DWORD>(Token::EndType);
+	if(dwToken==0 && stricmp(pToken, "GLOBAL")==NULL) dwToken=static_cast<DWORD>(Token::Global);
+	if(dwToken==0 && stricmp(pToken, "LOCAL")==NULL) dwToken=static_cast<DWORD>(Token::Local);
+	if(dwToken==0 && stricmp(pToken, "DIM")==NULL) dwToken=static_cast<DWORD>(Token::Dim);
+	if(dwToken==0 && stricmp(pToken, "UNDIM")==NULL) dwToken=static_cast<DWORD>(Token::Undim);
+	if(dwToken==0 && stricmp(pToken, "AS")==NULL) dwToken=static_cast<DWORD>(Token::Asterisk);
+	if(dwToken==0 && stricmp(pToken, "BOOLEAN")==NULL) dwToken=static_cast<DWORD>(Token::Boolean);
+	if(dwToken==0 && stricmp(pToken, "BYTE")==NULL) dwToken=static_cast<DWORD>(Token::Byte);
+	if(dwToken==0 && stricmp(pToken, "WORD")==NULL) dwToken=static_cast<DWORD>(Token::Word);
+	if(dwToken==0 && stricmp(pToken, "DWORD")==NULL) dwToken=static_cast<DWORD>(Token::Dword);
+	if(dwToken==0 && stricmp(pToken, "INTEGER")==NULL) dwToken=static_cast<DWORD>(Token::Integer);
+	if(dwToken==0 && stricmp(pToken, "FLOAT")==NULL) dwToken=static_cast<DWORD>(Token::Float);
+	if(dwToken==0 && stricmp(pToken, "STRING")==NULL) dwToken=static_cast<DWORD>(Token::String);
+	if(dwToken==0 && stricmp(pToken, "DOUBLE")==NULL) dwToken=static_cast<DWORD>(Token::Double);
 
 	// Determine if COMMENTS
-	if(dwToken==0 && stricmp(pToken, "REMSTART")==NULL) dwToken=REMSTARTTK;
-	if(dwToken==0 && stricmp(pToken, "REM")==NULL) dwToken=REMLINETK;
-	if(dwToken==0 && stricmp(pToken, "//")==NULL) dwToken=REMLINETK;
-	if(dwToken==0 && stricmp(pToken, "`")==NULL) dwToken=REMLINETK;
-	if(dwToken==0 && stricmp(pToken, "'")==NULL) dwToken=REMLINETK;
-	if(dwToken==0 && stricmp(pToken, "REMEND")==NULL) dwToken=REMENDTK;
-	if(dwToken==0 && stricmp(pToken, "HIDESTART")==NULL) dwToken=REMLINETK;
-	if(dwToken==0 && stricmp(pToken, "HIDEEND")==NULL) dwToken=REMLINETK;
+	if(dwToken==0 && stricmp(pToken, "REMSTART")==NULL) dwToken=static_cast<DWORD>(Token::RemStart);
+	if(dwToken==0 && stricmp(pToken, "REM")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
+	if(dwToken==0 && stricmp(pToken, "//")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
+	if(dwToken==0 && stricmp(pToken, "`")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
+	if(dwToken==0 && stricmp(pToken, "'")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
+	if(dwToken==0 && stricmp(pToken, "REMEND")==NULL) dwToken=static_cast<DWORD>(Token::RemEnd);
+	if(dwToken==0 && stricmp(pToken, "HIDESTART")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
+	if(dwToken==0 && stricmp(pToken, "HIDEEND")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
 
 	// Determine if DATA Statements
-	if(dwToken==0 && stricmp(pToken, "DATA")==NULL) dwToken=DATATK;
+	if(dwToken==0 && stricmp(pToken, "DATA")==NULL) dwToken=static_cast<DWORD>(Token::Data);
 
 	return dwToken;
 }
@@ -5540,8 +5540,8 @@ DWORD CStatement::DetermineToken(LPSTR pToken)
 	DWORD dwToken=0;
 	if(pToken!=NULL)
 	{
-		// Determine if CRTK
-		if(dwToken==0 && pToken[0]==13 && pToken[1]==10) dwToken=CRTK;
+		// Determine if static_cast<DWORD>(Token::Crt)
+		if(dwToken==0 && pToken[0]==13 && pToken[1]==10) dwToken=static_cast<DWORD>(Token::Crt);
 
 		// Determine if name token
 		if(dwToken==0) dwToken=DetermineNameToken(pToken);
@@ -5550,7 +5550,7 @@ DWORD CStatement::DetermineToken(LPSTR pToken)
 	// Ensure pointer within file data
 	if(g_pStatementList->GetFileDataPointer()>=g_pStatementList->GetFileDataEnd()-2)
 	{
-		dwToken=ENDTK;
+		dwToken=static_cast<DWORD>(Token::End);
 	}
 
 	// Return with token value result if any
@@ -5661,7 +5661,7 @@ bool CStatement::WriteDBM(void)
 				CParseInstruction* pTempInstr = new CParseInstruction();
 				pTempInstr->SetLineNumber(m_dwLineNumber);
 				pTempInstr->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
-				pTempInstr->WriteDBMHardCode(BUILD_SYNC, NULL, NULL, NULL);
+				pTempInstr->WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), NULL, NULL, NULL);
 				delete pTempInstr;
 
 				// statement should contain actual char data!!!
@@ -5670,7 +5670,7 @@ bool CStatement::WriteDBM(void)
 				int iEndChar=m_dwEndChar;
 
 				// Write Debug Hook
-				g_pASMWriter->WriteASMTaskCoreP2(iLineNumber, ASMTASK_DEBUGSTATEMENTHOOK, NULL, iStartChar, NULL, iEndChar);
+				g_pASMWriter->WriteASMTaskCoreP2(iLineNumber, static_cast<DWORD>(ASMTask::DebugStatementHook), NULL, iStartChar, NULL, iEndChar);
 
 				// If EAX is zero, leap back
 				g_pASMWriter->WriteASMLeapMarkerJumpToTop();
@@ -5754,7 +5754,7 @@ bool CStatement::WriteDBM(void)
 			if(m_bPerformJumpChecks && g_pDBPCompiler->GetRuntimeErrorMode())
 			{
 				// Write Runtime Error Jump Hook
-				g_pASMWriter->WriteASMTaskCoreP2(m_dwLineNumber, ASMTASK_RUNTIMEERRORHOOK, NULL, 0, NULL, 0);
+				g_pASMWriter->WriteASMTaskCoreP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::RuntimeErrorHook), NULL, 0, NULL, 0);
 			}
 		}
 	}

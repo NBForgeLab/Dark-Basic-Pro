@@ -61,6 +61,9 @@ add_executable(dbp_tests
     test_safe_dll_loading.cpp
     test_error.cpp
     test_unsafe_string_patterns.cpp
+    test_token_enum_values.cpp
+    test_instruction_table_enum_values.cpp
+    test_asmwriter_enum_values.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
