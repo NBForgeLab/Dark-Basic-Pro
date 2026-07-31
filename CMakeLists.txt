@@ -18,10 +18,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "هذا المشروع مخصص حالياً للعمل كـ 32-bit (x86). يرجى تشغيل تهيئة CMake باستخدام خيار المعمارية المناسب: cmake -A Win32 ..")
 endif()
 
-# إعداد خيارات لغة C++
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 # Dependency revisions are immutable commits corresponding to the upstream
 # v1.17.0 releases (Apache-2.0 for spdlog, BSD-3-Clause for GoogleTest).
 include(FetchContent)

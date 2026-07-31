@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.25)
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR

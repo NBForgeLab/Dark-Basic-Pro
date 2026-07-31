@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.20)
 project(DBPCompiler LANGUAGES C CXX)
 
 # Preprocessor definitions
