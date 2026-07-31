@@ -1,4 +1,5 @@
 #include "Tokenizer.h"
+#include "Statement.h"
 #include <cctype>
 #include <cstring>
 
@@ -114,6 +115,50 @@ int CTokenizer::DetermineNameToken(const char* pNameStr) const noexcept
     if (lastChar == '$') return 1; // String
     if (lastChar == '#') return 2; // Float
     return 3; // Integer or Default
+}
+
+DWORD CTokenizer::DetermineKeywordToken(const char* pToken) const noexcept
+{
+    if (pToken == nullptr || pToken[0] == '\0') return 0;
+
+    // Loop keywords
+    if (_stricmp(pToken, "DO") == 0) return static_cast<DWORD>(Token::Do);
+    if (_stricmp(pToken, "LOOP") == 0) return static_cast<DWORD>(Token::Loop);
+    if (_stricmp(pToken, "WHILE") == 0) return static_cast<DWORD>(Token::While);
+    if (_stricmp(pToken, "ENDWHILE") == 0) return static_cast<DWORD>(Token::EndWhile);
+    if (_stricmp(pToken, "REPEAT") == 0) return static_cast<DWORD>(Token::Repeat);
+    if (_stricmp(pToken, "UNTIL") == 0) return static_cast<DWORD>(Token::Until);
+
+    // For Next
+    if (_stricmp(pToken, "FOR") == 0) return static_cast<DWORD>(Token::For);
+    if (_stricmp(pToken, "NEXT") == 0) return static_cast<DWORD>(Token::Next);
+
+    // Function
+    if (_stricmp(pToken, "FUNCTION") == 0) return static_cast<DWORD>(Token::UserFunction);
+    if (_stricmp(pToken, "EXITFUNCTION") == 0) return static_cast<DWORD>(Token::ExitUserFunction);
+    if (_stricmp(pToken, "ENDFUNCTION") == 0) return static_cast<DWORD>(Token::EndUserFunction);
+
+    // Jump & Control
+    if (_stricmp(pToken, "EXIT") == 0) return static_cast<DWORD>(Token::Exit);
+    if (_stricmp(pToken, "IF") == 0) return static_cast<DWORD>(Token::If);
+    if (_stricmp(pToken, "ELSE") == 0) return static_cast<DWORD>(Token::Else);
+    if (_stricmp(pToken, "ENDIF") == 0) return static_cast<DWORD>(Token::EndIf);
+    if (_stricmp(pToken, "GOTO") == 0) return static_cast<DWORD>(Token::Goto);
+    if (_stricmp(pToken, "GOSUB") == 0) return static_cast<DWORD>(Token::Gosub);
+    if (_stricmp(pToken, "SELECT") == 0) return static_cast<DWORD>(Token::Select);
+    if (_stricmp(pToken, "ENDSELECT") == 0) return static_cast<DWORD>(Token::EndSelect);
+    if (_stricmp(pToken, "CASE") == 0) return static_cast<DWORD>(Token::Case);
+    if (_stricmp(pToken, "ENDCASE") == 0) return static_cast<DWORD>(Token::EndCase);
+    if (_stricmp(pToken, "END") == 0) return static_cast<DWORD>(Token::End);
+
+    // Declaration & Types
+    if (_stricmp(pToken, "TYPE") == 0) return static_cast<DWORD>(Token::Type);
+    if (_stricmp(pToken, "ENDTYPE") == 0) return static_cast<DWORD>(Token::EndType);
+    if (_stricmp(pToken, "GLOBAL") == 0) return static_cast<DWORD>(Token::Global);
+    if (_stricmp(pToken, "LOCAL") == 0) return static_cast<DWORD>(Token::Local);
+    if (_stricmp(pToken, "DIM") == 0) return static_cast<DWORD>(Token::Dim);
+
+    return 0;
 }
 
 bool CTokenizer::DetermineIfReservedWord(const char* pToken) const noexcept

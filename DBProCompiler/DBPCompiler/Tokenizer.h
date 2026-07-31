@@ -27,6 +27,7 @@ public:
 
     [[nodiscard]] std::string GetStringToEndOfLine();
     [[nodiscard]] int DetermineNameToken(const char* pNameStr) const noexcept;
+    [[nodiscard]] DWORD DetermineKeywordToken(const char* pToken) const noexcept;
     [[nodiscard]] bool DetermineIfReservedWord(const char* pToken) const noexcept;
     [[nodiscard]] bool DetermineIfFunctionName(const char* pToken) const noexcept;
 

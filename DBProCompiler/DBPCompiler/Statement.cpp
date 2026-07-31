@@ -5336,71 +5336,33 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 
 DWORD CStatement::DetermineNameToken(LPSTR pToken)
 {
-	DWORD dwToken=0;
+	DWORD dwToken = m_tokenizer.DetermineKeywordToken(pToken);
+	if (dwToken != 0) return dwToken;
 
-	// Determine if LOOP
-	if(dwToken==0 && stricmp(pToken, "DO")==NULL) dwToken=static_cast<DWORD>(Token::Do);
-	if(dwToken==0 && stricmp(pToken, "LOOP")==NULL) dwToken=static_cast<DWORD>(Token::Loop);
-	if(dwToken==0 && stricmp(pToken, "WHILE")==NULL) dwToken=static_cast<DWORD>(Token::While);
-	if(dwToken==0 && stricmp(pToken, "ENDWHILE")==NULL) dwToken=static_cast<DWORD>(Token::EndWhile);
-	if(dwToken==0 && stricmp(pToken, "REPEAT")==NULL) dwToken=static_cast<DWORD>(Token::Repeat);
-	if(dwToken==0 && stricmp(pToken, "UNTIL")==NULL) dwToken=static_cast<DWORD>(Token::Until);
+	// Fallback for remaining type/data keywords
+	if (stricmp(pToken, "UNDIM") == NULL) return static_cast<DWORD>(Token::Undim);
+	if (stricmp(pToken, "AS") == NULL) return static_cast<DWORD>(Token::Asterisk);
+	if (stricmp(pToken, "BOOLEAN") == NULL) return static_cast<DWORD>(Token::Boolean);
+	if (stricmp(pToken, "BYTE") == NULL) return static_cast<DWORD>(Token::Byte);
+	if (stricmp(pToken, "WORD") == NULL) return static_cast<DWORD>(Token::Word);
+	if (stricmp(pToken, "DWORD") == NULL) return static_cast<DWORD>(Token::Dword);
+	if (stricmp(pToken, "INTEGER") == NULL) return static_cast<DWORD>(Token::Integer);
+	if (stricmp(pToken, "FLOAT") == NULL) return static_cast<DWORD>(Token::Float);
+	if (stricmp(pToken, "STRING") == NULL) return static_cast<DWORD>(Token::String);
+	if (stricmp(pToken, "DOUBLE") == NULL) return static_cast<DWORD>(Token::Double);
 
-	// Determine if FOR NEXT
-	if(dwToken==0 && stricmp(pToken, "FOR")==NULL) dwToken=static_cast<DWORD>(Token::For);
-	if(dwToken==0 && stricmp(pToken, "NEXT")==NULL) dwToken=static_cast<DWORD>(Token::Next);
+	if (stricmp(pToken, "REMSTART") == NULL) return static_cast<DWORD>(Token::RemStart);
+	if (stricmp(pToken, "REM") == NULL) return static_cast<DWORD>(Token::RemLine);
+	if (stricmp(pToken, "//") == NULL) return static_cast<DWORD>(Token::RemLine);
+	if (stricmp(pToken, "`") == NULL) return static_cast<DWORD>(Token::RemLine);
+	if (stricmp(pToken, "'") == NULL) return static_cast<DWORD>(Token::RemLine);
+	if (stricmp(pToken, "REMEND") == NULL) return static_cast<DWORD>(Token::RemEnd);
+	if (stricmp(pToken, "HIDESTART") == NULL) return static_cast<DWORD>(Token::RemLine);
+	if (stricmp(pToken, "HIDEEND") == NULL) return static_cast<DWORD>(Token::RemLine);
 
-	// Determine if USER FUNCTION
-	if(dwToken==0 && stricmp(pToken, "FUNCTION")==NULL) dwToken=static_cast<DWORD>(Token::UserFunction);
-	if(dwToken==0 && stricmp(pToken, "EXITFUNCTION")==NULL) dwToken=static_cast<DWORD>(Token::ExitUserFunction);
-	if(dwToken==0 && stricmp(pToken, "ENDFUNCTION")==NULL) dwToken=static_cast<DWORD>(Token::EndUserFunction);
+	if (stricmp(pToken, "DATA") == NULL) return static_cast<DWORD>(Token::Data);
 
-	// Determine if TERMINATOR
-	if(dwToken==0 && stricmp(pToken, "EXIT")==NULL) dwToken=static_cast<DWORD>(Token::Exit);
-
-	// Determine if JUMP
-	if(dwToken==0 && stricmp(pToken, "IF")==NULL) dwToken=static_cast<DWORD>(Token::If);
-	if(dwToken==0 && stricmp(pToken, "ELSE")==NULL) dwToken=static_cast<DWORD>(Token::Else);
-	if(dwToken==0 && stricmp(pToken, "ENDIF")==NULL) dwToken=static_cast<DWORD>(Token::EndIf);
-	if(dwToken==0 && stricmp(pToken, "GOTO")==NULL) dwToken=static_cast<DWORD>(Token::Goto);
-	if(dwToken==0 && stricmp(pToken, "GOSUB")==NULL) dwToken=static_cast<DWORD>(Token::Gosub);
-	if(dwToken==0 && stricmp(pToken, "SELECT")==NULL) dwToken=static_cast<DWORD>(Token::Select);
-	if(dwToken==0 && stricmp(pToken, "ENDSELECT")==NULL) dwToken=static_cast<DWORD>(Token::EndSelect);
-	if(dwToken==0 && stricmp(pToken, "CASE")==NULL) dwToken=static_cast<DWORD>(Token::Case);
-	if(dwToken==0 && stricmp(pToken, "ENDCASE")==NULL) dwToken=static_cast<DWORD>(Token::EndCase);
-	if(dwToken==0 && stricmp(pToken, "END")==NULL) dwToken=static_cast<DWORD>(Token::End);
-
-	// Determine if TYPE
-	if(dwToken==0 && stricmp(pToken, "TYPE")==NULL) dwToken=static_cast<DWORD>(Token::Type);
-	if(dwToken==0 && stricmp(pToken, "ENDTYPE")==NULL) dwToken=static_cast<DWORD>(Token::EndType);
-	if(dwToken==0 && stricmp(pToken, "GLOBAL")==NULL) dwToken=static_cast<DWORD>(Token::Global);
-	if(dwToken==0 && stricmp(pToken, "LOCAL")==NULL) dwToken=static_cast<DWORD>(Token::Local);
-	if(dwToken==0 && stricmp(pToken, "DIM")==NULL) dwToken=static_cast<DWORD>(Token::Dim);
-	if(dwToken==0 && stricmp(pToken, "UNDIM")==NULL) dwToken=static_cast<DWORD>(Token::Undim);
-	if(dwToken==0 && stricmp(pToken, "AS")==NULL) dwToken=static_cast<DWORD>(Token::Asterisk);
-	if(dwToken==0 && stricmp(pToken, "BOOLEAN")==NULL) dwToken=static_cast<DWORD>(Token::Boolean);
-	if(dwToken==0 && stricmp(pToken, "BYTE")==NULL) dwToken=static_cast<DWORD>(Token::Byte);
-	if(dwToken==0 && stricmp(pToken, "WORD")==NULL) dwToken=static_cast<DWORD>(Token::Word);
-	if(dwToken==0 && stricmp(pToken, "DWORD")==NULL) dwToken=static_cast<DWORD>(Token::Dword);
-	if(dwToken==0 && stricmp(pToken, "INTEGER")==NULL) dwToken=static_cast<DWORD>(Token::Integer);
-	if(dwToken==0 && stricmp(pToken, "FLOAT")==NULL) dwToken=static_cast<DWORD>(Token::Float);
-	if(dwToken==0 && stricmp(pToken, "STRING")==NULL) dwToken=static_cast<DWORD>(Token::String);
-	if(dwToken==0 && stricmp(pToken, "DOUBLE")==NULL) dwToken=static_cast<DWORD>(Token::Double);
-
-	// Determine if COMMENTS
-	if(dwToken==0 && stricmp(pToken, "REMSTART")==NULL) dwToken=static_cast<DWORD>(Token::RemStart);
-	if(dwToken==0 && stricmp(pToken, "REM")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
-	if(dwToken==0 && stricmp(pToken, "//")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
-	if(dwToken==0 && stricmp(pToken, "`")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
-	if(dwToken==0 && stricmp(pToken, "'")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
-	if(dwToken==0 && stricmp(pToken, "REMEND")==NULL) dwToken=static_cast<DWORD>(Token::RemEnd);
-	if(dwToken==0 && stricmp(pToken, "HIDESTART")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
-	if(dwToken==0 && stricmp(pToken, "HIDEEND")==NULL) dwToken=static_cast<DWORD>(Token::RemLine);
-
-	// Determine if DATA Statements
-	if(dwToken==0 && stricmp(pToken, "DATA")==NULL) dwToken=static_cast<DWORD>(Token::Data);
-
-	return dwToken;
+	return 0;
 }
 
 DWORD CStatement::DetermineToken(LPSTR pToken)
