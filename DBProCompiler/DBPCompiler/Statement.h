@@ -17,6 +17,7 @@
 #include "Declaration.h"
 #include "Str.h"
 #include "ParserResultData.h"
+#include "Tokenizer.h"
 
 // Token enum class (converted from #define constants)
 enum class Token : int {
@@ -365,7 +366,12 @@ class CMathOp
 		bool WriteDBMBit(DWORD dwLineNumber);
 		bool WriteDBMLine(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
 
+		// Tokenizer (extracted subsystem)
+		[[nodiscard]] CTokenizer& GetTokenizer() noexcept { return m_tokenizer; }
+		[[nodiscard]] const CTokenizer& GetTokenizer() const noexcept { return m_tokenizer; }
+
 	private:
+		CTokenizer		m_tokenizer;
 
 		// Debug Data
 		DWORD			m_dwLineNumber;

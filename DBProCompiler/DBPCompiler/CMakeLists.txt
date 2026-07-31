@@ -7,6 +7,7 @@ set(LIB_SOURCES
     LeapMarkerManager.cpp
     MachineCodeBuffer.cpp
     ReferenceTracker.cpp
+    Tokenizer.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
     CompilationInput.cpp
