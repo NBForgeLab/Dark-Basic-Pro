@@ -21,3 +21,15 @@ TEST(TaskEmitterTest, ResetClearsState) {
     emitter.Reset();
     EXPECT_EQ(emitter.GetTaskCount(), 0u);
 }
+
+TEST(TaskEmitterTest, DetermineASMCallForRELResolvesTypes) {
+    CTaskEmitter emitter;
+    EXPECT_EQ(emitter.DetermineASMCallForREL(10, 104), 10u);
+    EXPECT_EQ(emitter.DetermineASMCallForREL(10, 106), 11u);
+    EXPECT_EQ(emitter.DetermineASMCallForREL(10, 107), 12u);
+}
+
+TEST(TaskEmitterTest, DetermineParamModeResolvesModes) {
+    CTaskEmitter emitter;
+    EXPECT_EQ(emitter.DetermineParamMode(nullptr, 0, 0), 0u); // ParamMode::None
+}

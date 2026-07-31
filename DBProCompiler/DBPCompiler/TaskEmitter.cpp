@@ -17,6 +17,84 @@ DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) 
     return dwAddressSizeCode;
 }
 
+DWORD CTaskEmitter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept
+{
+	DWORD dwAddressSizeCode=0;
+	switch(dwTypeValue)
+	{
+		case 104 :	dwAddressSizeCode=0;	break;	// RELATIVE ADDRESS TO A BYTE
+		case 105 :	dwAddressSizeCode=0;	break;	// RELATIVE ADDRESS TO A BYTE
+		case 106 :	dwAddressSizeCode=1;	break;	// RELATIVE ADDRESS TO A WORD
+		case 101 :	
+		case 102 :	
+		case 103 :	
+		case 107 :	dwAddressSizeCode=2;	break;	// RELATIVE ADDRESS TO A DWORD
+		case 108 :	dwAddressSizeCode=3;	break;	// RELATIVE ADDRESS TO A DWORDx2
+		case 109 :	dwAddressSizeCode=3;	break;	// RELATIVE ADDRESS TO A DWORDx2
+		default:	dwAddressSizeCode=2;	break;	// RELATIVE ADDRESS TO A DWORD
+	}
+	return dwASMCodeAsAByte+dwAddressSizeCode;
+}
+
+#include "Str.h"
+
+DWORD CTaskEmitter::DetermineParamMode(CStr* pP, DWORD dwPType, DWORD dwPOffset) const noexcept
+{
+	if(pP)
+	{
+		if(pP->GetChar(0)=='@')
+		{
+			if(pP->GetChar(1)==':')
+			{
+				if(dwPType==1001)
+					return static_cast<DWORD>(ParamMode::Ebp);
+				else
+				{
+					if((dwPType>100 && dwPType<=199) || dwPType==1101)
+						return static_cast<DWORD>(ParamMode::EbpArr);
+					else
+					{
+						if(dwPType>200 && dwPType<=299)
+							return static_cast<DWORD>(ParamMode::EbpRel);
+						else
+						{
+							if(dwPOffset>0)
+								return static_cast<DWORD>(ParamMode::EbpOff);
+							else
+								return static_cast<DWORD>(ParamMode::Ebp);
+						}
+					}
+				}
+			}
+			else
+			{
+				if(dwPType==1001)
+					return static_cast<DWORD>(ParamMode::Mem);
+				else
+				{
+					if((dwPType>100 && dwPType<=199) || dwPType==1101)
+						return static_cast<DWORD>(ParamMode::MemArr);
+					else
+					{
+						if(dwPType>200 && dwPType<=299)
+							return static_cast<DWORD>(ParamMode::MemRel);
+						else
+						{
+							if(dwPOffset>0)
+								return static_cast<DWORD>(ParamMode::MemOff);
+							else
+								return static_cast<DWORD>(ParamMode::Mem);
+						}
+					}
+				}
+			}
+		}
+		else
+			return static_cast<DWORD>(ParamMode::Imm);
+	}
+	return static_cast<DWORD>(ParamMode::None);
+}
+
 DWORD CTaskEmitter::CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept
 {
     return dwPassNumber * dwBaseOffset;

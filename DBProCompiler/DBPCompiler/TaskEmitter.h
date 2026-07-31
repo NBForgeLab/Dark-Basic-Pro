@@ -19,6 +19,8 @@ public:
     [[nodiscard]] DWORD GetTaskCount() const noexcept { return m_dwTaskCount; }
 
     [[nodiscard]] DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept;
+    [[nodiscard]] DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept;
+    [[nodiscard]] DWORD DetermineParamMode(class CStr* pP, DWORD dwPType, DWORD dwPOffset) const noexcept;
     [[nodiscard]] DWORD CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept;
     [[nodiscard]] bool EmitCoreTask(DWORD dwLine, DWORD dwTask) const noexcept;
     [[nodiscard]] bool EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWORD dwP2Mode, DWORD dwP3Mode) const noexcept;
