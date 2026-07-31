@@ -13,3 +13,11 @@ DWORD CPEBuilder::CalculateAlignedSize(DWORD dwUnalignedSize, DWORD dwAlignment)
     if (dwRemainder == 0) return dwUnalignedSize;
     return dwUnalignedSize + (dwAlignment - dwRemainder);
 }
+
+bool CPEBuilder::ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept
+{
+    if (dwImageBase == 0) return false;
+    if (dwSectionAlignment == 0 || dwFileAlignment == 0) return false;
+    if (dwFileAlignment > dwSectionAlignment) return false;
+    return true;
+}

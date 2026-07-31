@@ -20,6 +20,7 @@ public:
     [[nodiscard]] DWORD GetHeaderSize() const noexcept { return m_dwHeaderSize; }
 
     [[nodiscard]] DWORD CalculateAlignedSize(DWORD dwUnalignedSize, DWORD dwAlignment) const noexcept;
+    [[nodiscard]] bool ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
 
 private:
     bool m_bPrepared{ false };
