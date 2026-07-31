@@ -33,3 +33,9 @@ bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWOR
     if (dwLine == 0) return false;
     return true;
 }
+
+bool CTaskEmitter::EmitTask(CASMWriter* pASMWriter, DWORD dwLine, DWORD dwTask) const
+{
+    if (!pASMWriter) return false;
+    return EmitCoreTask(dwLine, dwTask);
+}

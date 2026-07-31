@@ -3037,7 +3037,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	DWORD dwP2Mode=DetMode(pP2, dwP2Type, dwP2Offset);
 	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset);
 
-	if (!m_taskEmitter.EmitCoreTask(dwLine, dwTask, dwP1Mode, dwP2Mode, dwP3Mode))
+	if (!m_taskEmitter.EmitCoreTask(dwLine, dwTask, dwP1Mode, dwP2Mode, dwP3Mode) || !m_taskEmitter.EmitTask(this, dwLine, dwTask))
 	{
 		return false;
 	}
