@@ -21,3 +21,9 @@ DWORD CTaskEmitter::CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffs
 {
     return dwPassNumber * dwBaseOffset;
 }
+
+bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask) const noexcept
+{
+    if (dwLine == 0) return false;
+    return true;
+}

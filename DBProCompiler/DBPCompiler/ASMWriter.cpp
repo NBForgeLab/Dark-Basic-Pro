@@ -3027,6 +3027,11 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 																CStr* pP2, CStr* pP2Off, DWORD dwP2Type, DWORD dwP2Offset,
 																CStr* pP3, CStr* pP3Off, DWORD dwP3Type, DWORD dwP3Offset )
 {
+	if (!m_taskEmitter.EmitCoreTask(dwLine, dwTask))
+	{
+		return false;
+	}
+
 	// Assign Line for DBM Code
 	m_dwLineNumber = dwLine;
 
