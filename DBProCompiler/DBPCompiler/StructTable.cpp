@@ -38,6 +38,8 @@ CStructTable::CStructTable()
 	m_pTypeName=nullptr;
 	m_cTypeChar=0;
 	m_dwSize=0;
+	m_dwTargetAddressSize =
+		static_cast<DWORD>(dbp::abi::ActiveTargetAbi::address_size);
 
 	m_pDecChain=NULL;
 	m_pDecBlock=NULL;
@@ -88,10 +90,17 @@ void CStructTable::Add(CStructTable* pNew)
 
 void CStructTable::SetStructDefaults(void)
 {
+	SetStructDefaultsFor<dbp::abi::ActiveTargetAbi>();
+}
+
+void CStructTable::SetStructDefaults(DWORD dwTargetAddressSize)
+{
+	m_dwTargetAddressSize = dwTargetAddressSize;
+
 	// Default datatypes and sizes
 	SetStruct(1, "integer",					'L', 4);
 	AddStruct(2, "float",					'F', 4);
-	AddStruct(3, "string",					'S', 4);
+	AddStruct(3, "string",					'S', dwTargetAddressSize);
 	AddStruct(4, "boolean",					'B', 1);
 	AddStruct(5, "byte",					'Y', 1);
 	AddStruct(6, "word",					'W', 2);
@@ -100,18 +109,18 @@ void CStructTable::SetStructDefaults(void)
 	AddStruct(9, "double integer",			'R', 8);
 	AddStruct(10,"label",					'P', 4);
 	AddStruct(20,"dabel",					'Q', 4);
-	AddStruct(101, "integer array",			'm', 4);
-	AddStruct(102, "float array",			'g', 4);
-	AddStruct(103, "string array",			't', 4);
-	AddStruct(104, "boolean array",			'c', 4);
-	AddStruct(105, "byte array",			'z', 4);
-	AddStruct(106, "word array",			'x', 4);
-	AddStruct(107, "dword array",			'e', 4);
-	AddStruct(108, "double float array",	'u', 4);
-	AddStruct(109, "double integer array",	'v', 4);
+	AddStruct(101, "integer array",			'm', dwTargetAddressSize);
+	AddStruct(102, "float array",			'g', dwTargetAddressSize);
+	AddStruct(103, "string array",			't', dwTargetAddressSize);
+	AddStruct(104, "boolean array",			'c', dwTargetAddressSize);
+	AddStruct(105, "byte array",			'z', dwTargetAddressSize);
+	AddStruct(106, "word array",			'x', dwTargetAddressSize);
+	AddStruct(107, "dword array",			'e', dwTargetAddressSize);
+	AddStruct(108, "double float array",	'u', dwTargetAddressSize);
+	AddStruct(109, "double integer array",	'v', dwTargetAddressSize);
 	AddStruct(501, "anytype non casted",	'X', 4);
-	AddStruct(1001, "userdefined var ptr",	'E', 4);
-	AddStruct(1101, "userdefined array ptr",'e', 4);
+	AddStruct(1001, "userdefined var ptr",	'E', dwTargetAddressSize);
+	AddStruct(1101, "userdefined array ptr",'e', dwTargetAddressSize);
 }
 
 bool CStructTable::SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize)

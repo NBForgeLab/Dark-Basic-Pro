@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <windows.h>
@@ -14,6 +15,7 @@
 #include "IncludeTable.h"
 #include "ASMWriter.h"
 #include "DBMWriter.h"
+#include "TargetABI.h"
 
 #include "CompilerContext.h"
 
@@ -127,4 +129,53 @@ TEST_F(VarTableTest, MakeDefaultVarTypeMapsSuffixToType) {
 
 TEST_F(VarTableTest, MakeDefaultVarTypeHandlesNullName) {
     EXPECT_TRUE(g_pVarTable->MakeDefaultVarType(nullptr).empty());
+}
+
+TEST(TargetAbiLayoutTest, PointerLikeTypesFollowConfiguredTargetAbi) {
+    auto table = std::make_unique<CStructTable>();
+    table->SetStructDefaultsFor<dbp::abi::TargetAbi64>();
+
+    const auto sizeOf = [&table](const char* typeName) {
+        return table->GetSizeOfType(const_cast<char*>(typeName));
+    };
+
+    EXPECT_EQ(sizeOf("integer"), 4U);
+    EXPECT_EQ(sizeOf("double integer"), 8U);
+    EXPECT_EQ(sizeOf("string"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("integer array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("float array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("string array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("boolean array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("byte array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("word array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("dword array"), dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("double float array"),
+              dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("double integer array"),
+              dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("userdefined var ptr"),
+              dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(sizeOf("userdefined array ptr"),
+              dbp::abi::TargetAbi64::address_size);
+
+    table.release()->Free();
+}
+
+TEST(TargetAbiLayoutTest, ArrayOffsetsUseConfiguredTargetAbi) {
+    auto targetTable = std::make_unique<CStructTable>();
+    targetTable->SetStructDefaultsFor<dbp::abi::TargetAbi64>();
+
+    CStructTable* const originalTable = g_pStructTable;
+    g_pStructTable = targetTable.get();
+
+    CVarTable arrayVariable("array");
+    arrayVariable.SetArrFlag(1);
+    DWORD offset = 0;
+    const DWORD result = arrayVariable.EstablishVarOffsets(&offset);
+
+    g_pStructTable = originalTable;
+    targetTable.release()->Free();
+
+    EXPECT_EQ(result, dbp::abi::TargetAbi64::address_size);
+    EXPECT_EQ(offset, dbp::abi::TargetAbi64::address_size);
 }

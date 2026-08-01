@@ -53,7 +53,7 @@ template <typename Abi>
 
     if constexpr (sizeof(TargetAddress) > sizeof(std::uintptr_t)) {
         if (value > static_cast<TargetAddress>(
-                        std::numeric_limits<std::uintptr_t>::max())) {
+                        (std::numeric_limits<std::uintptr_t>::max)())) {
             return std::nullopt;
         }
     }

@@ -781,7 +781,10 @@ DWORD CVarTable::EstablishVarOffsets(DWORD* pdwOffsetValue)
 				// Work out size of variable datatype
 				DWORD dwAddSize=0;
 				if(m_dwArrFlag)
-					dwAddSize = 4; // Pointer Only
+					dwAddSize = g_pStructTable
+						? g_pStructTable->GetTargetAddressSize()
+						: static_cast<DWORD>(
+							dbp::abi::ActiveTargetAbi::address_size);
 				else
 				{
 					if(GetVarType())

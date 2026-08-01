@@ -5,6 +5,7 @@
 #if !defined(AFX_STRUCTTABLE_H__0EDF6884_E537_492E_806D_71DD644FE9B4__INCLUDED_)
 #define AFX_STRUCTTABLE_H__0EDF6884_E537_492E_806D_71DD644FE9B4__INCLUDED_
 #include "ParserHeader.h"
+#include "TargetABI.h"
 
 #include "PerfMacros.h"
 
@@ -24,6 +25,18 @@ class CStructTable
 		[[nodiscard]] CStructTable* GetNext(void) const noexcept { return m_pNext; }
 
 		void			SetStructDefaults(void);
+		template <typename TargetAbi>
+		void			SetStructDefaultsFor(void)
+		{
+			static_assert(
+				TargetAbi::address_size == 4 || TargetAbi::address_size == 8,
+				"Only PE32 and PE32+ target address widths are supported.");
+			SetStructDefaults(static_cast<DWORD>(TargetAbi::address_size));
+		}
+		[[nodiscard]] DWORD GetTargetAddressSize(void) const noexcept
+		{
+			return m_dwTargetAddressSize;
+		}
 
 		bool			SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize);
 		bool			AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize);
@@ -62,6 +75,7 @@ class CStructTable
 		bool			WriteDBM(void);
 
 	private:
+		void			SetStructDefaults(DWORD dwTargetAddressSize);
 
 		// Structure Type Data
 		DWORD			m_dwTypeMode;
@@ -69,6 +83,7 @@ class CStructTable
 		std::unique_ptr<CStr> m_pTypeName;
 		unsigned char	m_cTypeChar;
 		DWORD			m_dwSize;
+		DWORD			m_dwTargetAddressSize;
 		DWORD			m_dwParamInUserFunction;
 
 		// Chaining Pointer
