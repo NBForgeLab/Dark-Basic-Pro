@@ -370,7 +370,7 @@ class CASMWriter : public ICodeGenerator
 		LPSTR MakeVarValuesForTransfer(DWORD* dwDataSize);
 
 		void TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dwPatternArrayCounter, DWORD* dwSizeOfUserTypePattern, CDeclaration* pDecMain);
-		void FreeMachineBlock(void);
+		void FreeMachineBlock(void) noexcept;
 		void FreeAll(void);
 
 		DWORD GetBytePosOfLastInstruction(void);

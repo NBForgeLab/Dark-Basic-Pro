@@ -1,18 +1,21 @@
 #include <gtest/gtest.h>
 #include "../DBProCompiler/DBPCompiler/PEBuilder.h"
 
-TEST(PEBuilderGenerationTest, ReturnsFalseWhenFilenameIsNull) {
+TEST(PEBuilderGenerationTest, ResetClearsPreparedImageState) {
     CPEBuilder builder;
-    EXPECT_FALSE(builder.BuildExecutable(nullptr));
+    builder.SetPrepared(true);
+    builder.SetHeaderSize(4096U);
+
+    builder.Reset();
+
+    EXPECT_FALSE(builder.IsPrepared());
+    EXPECT_EQ(builder.GetHeaderSize(), 0U);
 }
 
-TEST(PEBuilderGenerationTest, ReturnsFalseWhenFilenameIsEmpty) {
+TEST(PEBuilderGenerationTest, RejectsInvalidAlignmentRelationships) {
     CPEBuilder builder;
-    EXPECT_FALSE(builder.BuildExecutable(""));
-}
-
-TEST(PEBuilderGenerationTest, ValidatesPackageBuilding) {
-    CPEBuilder builder;
-    EXPECT_FALSE(builder.BuildEXEPackage(nullptr, true, true));
-    EXPECT_TRUE(builder.BuildEXEPackage("output.exe", true, true));
+    EXPECT_FALSE(builder.ValidatePEHeaderRequirements(
+        0x00400000U, 512U, 4096U));
+    EXPECT_FALSE(builder.ValidatePEHeaderRequirements(
+        0x00400000U, 4096U, 0U));
 }

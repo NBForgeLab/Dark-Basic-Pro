@@ -1,8 +1,6 @@
 #pragma once
 #include <windows.h>
 
-class CASMWriter;
-
 /**
  * @file PEBuilder.h
  * @brief Subsystem for executable packaging, PE header validation, and data section updates.
@@ -41,15 +39,6 @@ public:
 
     /** @brief Validates PE image base, section alignment, and file alignment constraints. */
     [[nodiscard]] bool ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
-
-    /** @brief Builds final executable file. */
-    [[nodiscard]] bool BuildExecutable(const char* pEXEFilename) const noexcept;
-
-    /** @brief Packages EXE package with validation and building. */
-    [[nodiscard]] bool BuildEXEPackage(const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const noexcept;
-
-    /** @brief Packages EXE package for given CASMWriter instance. */
-    [[nodiscard]] bool BuildEXEPackage(CASMWriter* pASMWriter, const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode) const;
 
     /** @brief Updates DLL index and filename tables for executable. */
     [[nodiscard]] bool UpdateDLLData() const;

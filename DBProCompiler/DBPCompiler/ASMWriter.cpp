@@ -17,6 +17,9 @@
 #include "TextConvert.h"
 #include "DebuggerInterface.h"
 #include "TargetABI.h"
+#include "ASMWriterPreparationServices.h"
+#include "ExecutablePreparationPipeline.h"
+#include "ScopeExit.h"
 
 #include <DB3Time.h>
 
@@ -614,13 +617,23 @@ bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool b
 {
 	db3::CProfile<> prof("CASMWriter::PrepareEXE()");
 
-	if (!m_peBuilder.BuildEXEPackage(this, pEXEFilename, bParsingMainProgram, bGotNewCode))
+	const auto cleanup = MakeScopeExit(
+		[this]() noexcept { FreeMachineBlock(); });
+	ASMWriterPreparationServices services(*this);
+	const ExecutablePreparationRequest request{
+		pEXEFilename,
+		bParsingMainProgram,
+		bGotNewCode,
+		g_DebugInfo.DebugModeOn()
+			? ExecutableOutputMode::debug
+			: ExecutableOutputMode::standalone};
+	const auto result = ExecutablePreparationPipeline{}.Run(
+		request, services);
+	if (!result)
 	{
-		g_pErrorReport->AddErrorString("Failed to 'PrepareEXE' : Invalid PE Header Requirements or Filename");
+		services.ReportFailure(result);
 		return false;
 	}
-
-	FreeMachineBlock();
 	return true;
 }
 
@@ -886,7 +899,7 @@ void CASMWriter::TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dw
 {
 }
 
-void CASMWriter::FreeMachineBlock(void)
+void CASMWriter::FreeMachineBlock(void) noexcept
 {
 	// Clear machine code buffer
 	m_machineCodeBuffer.FreeMachineBlock();
