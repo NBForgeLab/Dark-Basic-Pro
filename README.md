@@ -1,11 +1,11 @@
 # Dark-Basic-Pro Engine & Compiler
 
-[![Build & Test Status](https://img.shields.io/badge/tests-451%20passed%20%7C%20100%25-brightgreen.svg)]()
+[![Build & Test Status](https://img.shields.io/badge/tests-CMake%20%2B%20CTest-brightgreen.svg)]()
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-17%20%2F%2020-blue.svg)]()
-[![Platform](https://img.shields.io/badge/platform-Windows%20x86%20%2F%20x64-lightgrey.svg)]()
+[![Target](https://img.shields.io/badge/active%20target-Windows%20PE32%20%2F%20x86-lightgrey.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A modern, open-source 32-bit/x86 game development language, compilation engine, and toolchain suite for Windows.
+A modernizing, open-source game development language, compilation engine, and toolchain suite for Windows. The active executable target remains PE32/x86 while the compiler architecture is being prepared for a deliberate PE32+/x64 port.
 
 ---
 
@@ -30,6 +30,12 @@ A modern, open-source 32-bit/x86 game development language, compilation engine, 
 ## 🚀 Overview & Architectural Highlights
 
 DarkBasic Pro is a complete language implementation that compiles high-level BASIC source code (`.dba`) directly into standalone Windows Portable Executable (`.exe`) binaries with raw x86 machine code emission.
+
+### Target ABI and x64 Roadmap
+
+The compiler now models the generated program's ABI independently from the host process that runs the compiler. `TargetAbi32` is the explicit active target, while `TargetAbi64` provides a testable layout model for the future port. Serialized addresses are decoded through bounded byte operations instead of host-pointer casts, and target-dependent variable layouts derive their address width from the selected ABI.
+
+This foundation does **not** claim complete x64 output support. A production PE32+/x64 target still requires x64 machine-code emission, PE32+ image generation, Windows x64 calling-convention and unwind metadata support, and a compatible 64-bit runtime/plugin ABI. Keeping these concerns explicit prevents a 64-bit compiler host from silently changing the format of 32-bit generated programs.
 
 ### Core Extracted Subsystems (God-Class Refactoring)
 To ensure long-term maintainability and high code quality, legacy monolithic classes (`CASMWriter`, `CStatement`) have been refactored into focused, decoupled subsystems adhering to modern C++17/C++20 standards:
@@ -97,7 +103,7 @@ cmake --build build --config Debug
 * **`DBPCompiler`** (`DBPCompiler.exe`) — Main DarkBasic Pro compiler executable.
 * **`DarkEXE`** (`DarkEXE.exe`) — Runtime executable runner stub embedded into output binaries.
 * **`DBPDebugger`** (`DBPDebugger.exe`) — Official GUI debugger process.
-* **`dbp_tests`** (`dbp_tests.exe`) — GoogleTest unit and integration test suite (451+ tests).
+* **`dbp_tests`** (`dbp_tests.exe`) — GoogleTest unit and integration test suite.
 
 ---
 
@@ -106,7 +112,7 @@ cmake --build build --config Debug
 The codebase features comprehensive diagnostic gates and multi-layer test suites:
 
 ### 1. C++ Unit & Integration Test Suite (`dbp_tests.exe`)
-Executes 451+ C++ unit tests covering AST parsing, IR lowering, memory protection, statement handling, and MachineCodeBuffer isolation:
+Executes the C++ unit and integration suite covering AST parsing, IR lowering, target-ABI serialization and layout, memory protection, statement handling, and MachineCodeBuffer isolation:
 
 ```powershell
 # Run via CTest:
