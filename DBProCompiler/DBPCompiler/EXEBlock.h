@@ -95,6 +95,8 @@ class CEXEBlock
 		void			Free(void);
 		void			FreeUptoDisplay(void);
 
+		[[nodiscard]] uint8_t* GetMachineCodeBlockBytePointer() const noexcept { return reinterpret_cast<uint8_t*>(m_pMachineCodeBlock); }
+
 	public:
 
 		// General Flags

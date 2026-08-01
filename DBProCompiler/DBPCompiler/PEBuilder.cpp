@@ -327,7 +327,7 @@ bool CPEBuilder::UpdateDataData() const
 				strcpy_s(pDynamicString, strlen(pDataItem)+1, pDataItem);
 
 				DWORD dwStrIndex=d/10;
-				*(DWORD*)&g_pEXE->m_pDataArray[d+2] = (DWORD)dwStrIndex;
+				*(uintptr_t*)&g_pEXE->m_pDataArray[d+2] = static_cast<uintptr_t>(dwStrIndex);
 				g_pEXE->m_pDataStringsArray[dwStrIndex]=(uintptr_t)pDynamicString;
 			}
 		}

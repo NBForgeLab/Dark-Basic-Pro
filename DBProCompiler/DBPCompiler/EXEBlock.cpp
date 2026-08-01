@@ -1344,7 +1344,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(m_pDataArray[(d*10)+0]==2)
 					{
 						char* pStr = (char*)m_pDataStringsArray[d];
-						*(DWORD*)&m_pDataSpace[(d*10)+2] = (DWORD)pStr;
+						*(uintptr_t*)&m_pDataSpace[(d*10)+2] = (uintptr_t)pStr;
 					}
 				}
 				g_CORE_PassDataPtrs(m_pDataSpace, m_pDataSpace+m_dwDataSpaceSize);
@@ -1394,7 +1394,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(m_pDataArray[(d*10)+0]==2)
 					{
 						char* pStr = (char*)m_pDataStringsArray[d];
-						*(DWORD*)&m_pDataSpace[(d*10)+2] = (DWORD)pStr;
+						*(uintptr_t*)&m_pDataSpace[(d*10)+2] = (uintptr_t)pStr;
 					}
 				}
 
