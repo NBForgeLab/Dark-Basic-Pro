@@ -1,18 +1,20 @@
 #include <gtest/gtest.h>
-#include "../DBProCompiler/DBPCompiler/EXEBlock.h"
+#include <limits>
 
-TEST(EXEBlockX64Test, MachineCodeBlockUsesByteAlignment) {
+#include "EXEBlock.h"
+
+TEST(EXEBlockPointerStorageTest, MachineCodeBlockUsesByteAlignment) {
     CEXEBlock exeBlock;
     // Verify machine code block operates on byte array (uint8_t*)
     uint8_t* pMCB = exeBlock.GetMachineCodeBlockBytePointer();
     EXPECT_EQ(pMCB, nullptr);
 }
 
-TEST(EXEBlockX64Test, PointerArrayAllocationsSupport64BitPointers) {
+TEST(EXEBlockPointerStorageTest, PointerArrayPreservesHostPointerValues) {
     CEXEBlock exeBlock;
     uintptr_t* pArray = exeBlock.CreatePtrArray(10);
     ASSERT_NE(pArray, nullptr);
-    uintptr_t dummyAddr = 0x7FFFFFFF12345678ULL;
+    const uintptr_t dummyAddr = (std::numeric_limits<uintptr_t>::max)() - 0x1234u;
     pArray[0] = dummyAddr;
     EXPECT_EQ(pArray[0], dummyAddr);
     delete[] pArray;
