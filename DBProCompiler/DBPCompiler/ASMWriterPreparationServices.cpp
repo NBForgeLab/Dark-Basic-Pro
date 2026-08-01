@@ -5,6 +5,7 @@
 #include "EXEBlock.h"
 #include "Error.h"
 #include "PEBuilder.h"
+#include "PreparedExecutableDebugger.h"
 #include "StatementList.h"
 
 #include <utility>
@@ -120,8 +121,13 @@ bool ASMWriterPreparationServices::FinalizeSpaceSizes() noexcept {
 
 bool ASMWriterPreparationServices::RunDebug(
     const ExecutablePreparationRequest& request) noexcept {
-    return outputServices_ != nullptr &&
-           outputServices_->RunDebug(writer_, request);
+    if (outputServices_ != nullptr) {
+        return outputServices_->RunDebug(writer_, request);
+    }
+
+    ASMWriterDebugRuntime runtime(writer_);
+    return PreparedExecutableDebugger{}.Run(
+        {request.parsingMainProgram, request.hasNewCode}, runtime);
 }
 
 bool ASMWriterPreparationServices::PackageStandalone(
