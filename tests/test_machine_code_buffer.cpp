@@ -213,6 +213,16 @@ TEST_F(MachineCodeBufferTest, GetMachineBlockForWriteReturnsCurrentPosition) {
     EXPECT_EQ(buf.GetMachineBlockForWrite(), pExpected + 1);
 }
 
+// WritePointer writes a 64-bit/32-bit pointer-width value.
+TEST_F(MachineCodeBufferTest, WritePointerEmitsFullPointer) {
+    CMachineCodeBuffer buf;
+    ASSERT_TRUE(buf.Initialize(1024));
+
+    uintptr_t ptrValue = static_cast<uintptr_t>(0x1234567887654321ULL);
+    buf.WritePointer(ptrValue, sizeof(uintptr_t));
+    EXPECT_EQ(buf.GetCurrentMCPosition(), sizeof(uintptr_t));
+}
+
 // Initialize can be called again after FreeMachineBlock (re-init cycle).
 TEST_F(MachineCodeBufferTest, ReinitializeAfterFree) {
     CMachineCodeBuffer buf;

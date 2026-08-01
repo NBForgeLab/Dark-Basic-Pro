@@ -97,3 +97,12 @@ void CMachineCodeBuffer::WriteDWORD(DWORD value, DWORD dwSize)
 		(m_pMachineBlock) += dwSize;
 	}
 }
+
+void CMachineCodeBuffer::WritePointer(uintptr_t value, DWORD dwSize)
+{
+	if (m_pMachineBlock)
+	{
+		*reinterpret_cast<uintptr_t*>(m_pMachineBlock) = value;
+		(m_pMachineBlock) += dwSize;
+	}
+}

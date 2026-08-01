@@ -61,6 +61,13 @@ public:
 	 */
 	void WriteDWORD(DWORD value, DWORD dwSize);
 
+	/**
+	 * @brief Writes a pointer-width (32-bit / 64-bit) value at the current position and advances by @p dwSize bytes.
+	 * @param[in] value   The pointer-sized value to write.
+	 * @param[in] dwSize  Number of bytes to advance (typically sizeof(uintptr_t)).
+	 */
+	void WritePointer(uintptr_t value, DWORD dwSize);
+
 	/** @brief Returns the program start pointer (beginning of the MC buffer). */
 	[[nodiscard]] LPSTR GetProgramStart() const noexcept { return m_pProgramStart; }
 

@@ -124,6 +124,15 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
                         DWORD* patchAddr = (DWORD*)(baseAddress + rva);
                         *patchAddr += (DWORD)delta;
                     }
+                    else if (type == IMAGE_REL_BASED_DIR64) {
+                        DWORD rva = reloc->VirtualAddress + offset;
+                        if (rva + 8 > destNtHeaders->OptionalHeader.SizeOfImage) {
+                            VirtualFree(baseAddress, 0, MEM_RELEASE);
+                            return nullptr;
+                        }
+                        uintptr_t* patchAddr = (uintptr_t*)(baseAddress + rva);
+                        *patchAddr += (uintptr_t)delta;
+                    }
                 }
                 parsedBytes += sizeOfBlock;
                 reloc = (IMAGE_BASE_RELOCATION*)((BYTE*)reloc + sizeOfBlock);
