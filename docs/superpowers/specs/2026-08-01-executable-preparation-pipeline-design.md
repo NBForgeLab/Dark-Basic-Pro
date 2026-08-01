@@ -247,3 +247,36 @@ After this recovery is verified, implement the target-neutral PE image model:
 4. PE header serialization tests;
 5. an x64 compiler-host preset that still targets PE32;
 6. native x64 code generation and runtime ABI work.
+
+## Implementation status (2026-08-01)
+
+The recovery is implemented and verified for the active PE32/x86 target. The
+compiler now has one executable-preparation coordinator, focused debugger and
+standalone-publication adapters, stage-specific diagnostics, and unconditional
+transient-code cleanup.
+
+The implementation also repaired the coupled defects exposed by end-to-end
+TDD:
+
+- reference labels are owned strings and are resolved without converting host
+  addresses to 32-bit values;
+- project manifests accept LF, CRLF, and CR line endings;
+- compiler-generated line-zero prologue tasks are emitted normally;
+- AST assignments reach target code generation, statement failures propagate,
+  and operand-size selection preserves the base x86 opcode;
+- multidimensional array offsets emit their complete target instruction
+  sequence;
+- word operators are ASCII case-insensitive and comparisons bind before
+  logical operators as required by the language;
+- DLL metadata is compacted from the actual table entries, validated as
+  unsigned data against the 256-slot PE32 runtime contract, and rejected before
+  any out-of-bounds dispatch-table access;
+- the in-memory PE loader validates section ranges and protects the complete
+  mapped section extent before execution.
+
+The executable smoke test compiles and runs an integer addition/file-output
+program, returns exit code zero, and writes the expected `Sum: 15` result. This
+is backed by all language conformance cases, including arrays, precedence,
+user-defined types, strings, and suffix-typed variables. This is a PE32
+compatibility baseline, not a claim of native x64 output support. The next
+architectural milestone remains the target-neutral PE image model listed above.

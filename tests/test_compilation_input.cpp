@@ -4,6 +4,7 @@
 #include "Str.h"
 #include "DBPCompiler.h"
 
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -140,6 +141,33 @@ TEST(CompilationInputTest, EmptyMediaRootResolvesToProjectDirectory) {
     ASSERT_NE(mediaRoot, nullptr);
     EXPECT_TRUE(std::filesystem::equivalent(mediaRoot, fixture.directory()));
     delete[] mediaRoot;
+}
+
+TEST(CompilationInputTest, ProjectFieldsAcceptModernAndLegacyLineEndings) {
+    CompilationInputFixture fixture;
+    const std::array<std::pair<const char*, const char*>, 3> variants{{
+        {"ProjectLF.dbpro", "\n"},
+        {"ProjectCRLF.dbpro", "\r\n"},
+        {"ProjectCR.dbpro", "\r"},
+    }};
+
+    for (const auto& [name, newline] : variants) {
+        const auto project = fixture.Write(
+            name,
+            std::string{"main=Main.dba"} + newline +
+                "executable=Game.exe" + newline +
+                "final source=_Temp.dbsource" + newline);
+        std::string compilerPath =
+            (fixture.directory() / "DBPCompiler.exe").string();
+        CDBPCompiler compiler(&compilerPath[0]);
+        std::string mutableProject = project.string();
+
+        ASSERT_TRUE(compiler.LoadProjectFile(&mutableProject[0])) << name;
+        std::unique_ptr<char[]> executable(
+            compiler.GetProjectField("executable"));
+        ASSERT_NE(executable, nullptr) << name;
+        EXPECT_STREQ(executable.get(), "Game.exe") << name;
+    }
 }
 
 TEST(CompilationInputTest, CompilerPreparesDirectDbaAsOwnedInput) {

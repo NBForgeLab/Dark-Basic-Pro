@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <memory>
+#include <vector>
 #include "EXEBlock.h"
 
 // Memory-safety specification for CEXEBlock::Clear():
@@ -121,4 +124,91 @@ TEST(EXEBlockMemoryTest, DestructorAfterClearDoesNotDoubleFree) {
     exe->Clear();
     exe.reset(); // no crash / heap corruption expected
     SUCCEED();
+}
+
+TEST(EXEBlockMemoryTest, SaveDoesNotReadPastAShortApplicationName) {
+    SYSTEM_INFO systemInfo{};
+    GetSystemInfo(&systemInfo);
+    const auto pageSize = static_cast<std::size_t>(systemInfo.dwPageSize);
+    auto* pages = static_cast<char*>(VirtualAlloc(
+        nullptr,
+        pageSize * 2,
+        MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE));
+    ASSERT_NE(pages, nullptr);
+    DWORD previousProtection = 0;
+    ASSERT_TRUE(VirtualProtect(
+        pages + pageSize,
+        pageSize,
+        PAGE_NOACCESS,
+        &previousProtection));
+
+    auto* guardedName = pages + pageSize - 4;
+    std::memcpy(guardedName, "app", 4);
+    wchar_t temporaryDirectory[MAX_PATH]{};
+    wchar_t temporaryFile[MAX_PATH]{};
+    ASSERT_NE(GetTempPathW(MAX_PATH, temporaryDirectory), 0u);
+    ASSERT_NE(GetTempFileNameW(
+        temporaryDirectory,
+        L"dbp",
+        0,
+        temporaryFile), 0u);
+
+    CEXEBlock exe;
+    exe.m_pInitialAppName = guardedName;
+    const auto utf8Path = std::filesystem::path(temporaryFile).string();
+    EXPECT_TRUE(exe.Save(const_cast<char*>(utf8Path.c_str())));
+    exe.m_pInitialAppName = nullptr;
+    EXPECT_TRUE(VirtualFree(pages, 0, MEM_RELEASE));
+
+    std::ifstream input(temporaryFile, std::ios::binary);
+    const std::vector<char> serializedBlock{
+        std::istreambuf_iterator<char>(input),
+        std::istreambuf_iterator<char>()};
+    EXPECT_GE(serializedBlock.size(), 276u);
+    if (serializedBlock.size() >= 276u) {
+        DWORD dllCount = 1;
+        std::memcpy(
+            &dllCount,
+            serializedBlock.data() + 272,
+            sizeof(dllCount));
+        EXPECT_EQ(dllCount, 0u);
+    }
+    input.close();
+    EXPECT_TRUE(DeleteFileW(temporaryFile));
+}
+
+TEST(EXEBlockMemoryTest, LoadRejectsTruncatedSerializedBlock) {
+    wchar_t temporaryDirectory[MAX_PATH]{};
+    wchar_t temporaryFile[MAX_PATH]{};
+    ASSERT_NE(GetTempPathW(MAX_PATH, temporaryDirectory), 0u);
+    ASSERT_NE(GetTempFileNameW(
+        temporaryDirectory,
+        L"dbp",
+        0,
+        temporaryFile), 0u);
+
+    CEXEBlock saved;
+    PopulateExeBlock(saved);
+    const auto utf8Path = std::filesystem::path(temporaryFile).string();
+    ASSERT_TRUE(saved.Save(const_cast<char*>(utf8Path.c_str())));
+
+    std::ifstream input(temporaryFile, std::ios::binary);
+    const std::vector<char> originalBytes{
+        std::istreambuf_iterator<char>(input),
+        std::istreambuf_iterator<char>()};
+    input.close();
+    ASSERT_GT(originalBytes.size(), 1u);
+
+    std::ofstream truncated(
+        temporaryFile,
+        std::ios::binary | std::ios::trunc);
+    truncated.write(
+        originalBytes.data(),
+        static_cast<std::streamsize>(originalBytes.size() - 1u));
+    truncated.close();
+
+    CEXEBlock loaded;
+    EXPECT_FALSE(loaded.Load(const_cast<char*>(utf8Path.c_str())));
+    EXPECT_TRUE(DeleteFileW(temporaryFile));
 }

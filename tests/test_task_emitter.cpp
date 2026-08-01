@@ -8,10 +8,12 @@ TEST(TaskEmitterTest, InitialStateIsClean) {
 
 TEST(TaskEmitterTest, DetermineASMCallResolvesTypes) {
     CTaskEmitter emitter;
-    DWORD sizeCodeByte = emitter.DetermineASMCall(1, 4); // BYTE
-    DWORD sizeCodeDword = emitter.DetermineASMCall(1, 8); // DWORDx2
-    EXPECT_EQ(sizeCodeByte, 0u);
-    EXPECT_EQ(sizeCodeDword, 3u);
+    constexpr DWORD baseOpcode = 100;
+
+    EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 4), baseOpcode);
+    EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 6), baseOpcode + 1);
+    EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 1), baseOpcode + 2);
+    EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 8), baseOpcode + 3);
 }
 
 TEST(TaskEmitterTest, ResetClearsState) {

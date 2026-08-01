@@ -143,3 +143,20 @@ TEST_F(MathOpExpressionTest, IsFunctionRejectsPlainLiteral) {
     CStr expr("42");
     EXPECT_FALSE(op.IsFunction(&expr));
 }
+
+TEST_F(MathOpExpressionTest, ComparisonsBindBeforeLogicalAnd) {
+    DWORD action = 0;
+    ASSERT_TRUE(g_pVarTable->AddVariable(
+        "d", "integer", 0, 1, true, &action, false));
+    ASSERT_TRUE(g_pVarTable->AddVariable(
+        "e", "integer", 0, 1, true, &action, false));
+    CMathOp op;
+    CStr expression("d = 14 AND e = 20");
+
+    ASSERT_TRUE(op.DoValue(&expression));
+    ASSERT_EQ(op.GetMathSymbol(), 27u);
+    ASSERT_NE(op.GetNext(), nullptr);
+    EXPECT_EQ(op.GetNext()->GetMathSymbol(), 27u);
+    ASSERT_NE(op.GetNext()->GetNext(), nullptr);
+    EXPECT_EQ(op.GetNext()->GetNext()->GetMathSymbol(), 41u);
+}

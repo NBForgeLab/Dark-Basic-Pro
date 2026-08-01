@@ -252,6 +252,7 @@ class CStatement
 		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
 
 	private:
+		bool			WriteDBMNode(void);
 
 		// Debug Data
 		DWORD			m_dwLineNumber;

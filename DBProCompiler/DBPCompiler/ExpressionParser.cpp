@@ -1,6 +1,34 @@
 #include "ExpressionParser.h"
 #include <cctype>
 
+namespace
+{
+constexpr char ToUpperAscii(const char value) noexcept
+{
+    return value >= 'a' && value <= 'z'
+        ? static_cast<char>(value - ('a' - 'A'))
+        : value;
+}
+
+bool EqualsAsciiInsensitive(
+    const std::string_view value,
+    const std::string_view expected) noexcept
+{
+    if (value.size() != expected.size())
+    {
+        return false;
+    }
+    for (std::size_t index = 0; index < value.size(); ++index)
+    {
+        if (ToUpperAscii(value[index]) != expected[index])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+} // namespace
+
 bool CExpressionParser::IsNumericLiteral(std::string_view svText) const noexcept
 {
     if (svText.empty()) return false;
@@ -54,12 +82,12 @@ bool CExpressionParser::CheckForSymbol(std::string_view svText, DWORD dwSP, DWOR
     }
 
     // Word symbols
-    if (sub.length() >= 4 && sub.substr(0, 4) == " OR ") { dwMathType = 42; dwPriority = 42; dwSymbolWidth = 4; }
-    if (sub.length() >= 4 && sub.substr(0, 4) == "NOT ") { dwMathType = 43; dwPriority = 43; dwSymbolWidth = 4; }
-    if (sub.length() >= 5 && sub.substr(0, 5) == " AND ") { dwMathType = 41; dwPriority = 41; dwSymbolWidth = 5; }
-    if (sub.length() >= 5 && sub.substr(0, 5) == " XOR ") { dwMathType = 33; dwPriority = 44; dwSymbolWidth = 5; }
-    if (sub.length() >= 5 && sub.substr(0, 5) == " DIV ") { dwMathType = 3; dwPriority = 3; dwSymbolWidth = 5; }
-    if (sub.length() >= 5 && sub.substr(0, 5) == " MOD ") { dwMathType = 6; dwPriority = 3; dwSymbolWidth = 5; }
+    if (sub.length() >= 4 && EqualsAsciiInsensitive(sub.substr(0, 4), " OR ")) { dwMathType = 42; dwPriority = 42; dwSymbolWidth = 4; }
+    if (sub.length() >= 4 && EqualsAsciiInsensitive(sub.substr(0, 4), "NOT ")) { dwMathType = 43; dwPriority = 43; dwSymbolWidth = 4; }
+    if (sub.length() >= 5 && EqualsAsciiInsensitive(sub.substr(0, 5), " AND ")) { dwMathType = 41; dwPriority = 41; dwSymbolWidth = 5; }
+    if (sub.length() >= 5 && EqualsAsciiInsensitive(sub.substr(0, 5), " XOR ")) { dwMathType = 33; dwPriority = 44; dwSymbolWidth = 5; }
+    if (sub.length() >= 5 && EqualsAsciiInsensitive(sub.substr(0, 5), " DIV ")) { dwMathType = 3; dwPriority = 3; dwSymbolWidth = 5; }
+    if (sub.length() >= 5 && EqualsAsciiInsensitive(sub.substr(0, 5), " MOD ")) { dwMathType = 6; dwPriority = 3; dwSymbolWidth = 5; }
 
     if (dwMathType > 0)
     {

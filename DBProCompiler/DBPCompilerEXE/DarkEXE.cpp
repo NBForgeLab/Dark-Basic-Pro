@@ -11,6 +11,7 @@
 #include "../DBPCompiler/TextConvert.h"
 #include "../DBPCompiler/VFSHooks.h"
 #include "../DBPCompiler/CrashHandler.h"
+#include "../DBPCompiler/MemoryPE.h"
 #include "time.h"
 
 #include <filesystem>
@@ -638,7 +639,56 @@ void DeleteAllOldDBPDATAFolders(void)
 
 // DUMP DEBUG REPORT
 
-void DumpDebugReport ( void )
+struct RuntimeExecutionFailure
+{
+	DWORD exceptionCode = 0U;
+	const void* exceptionAddress = nullptr;
+	ULONG_PTR accessType = 0U;
+	const void* accessedAddress = nullptr;
+};
+
+int CaptureRuntimeExecutionFailure(
+	EXCEPTION_POINTERS* const exception,
+	RuntimeExecutionFailure* const failure) noexcept
+{
+	if (exception != nullptr && exception->ExceptionRecord != nullptr &&
+		failure != nullptr)
+	{
+		failure->exceptionCode = exception->ExceptionRecord->ExceptionCode;
+		failure->exceptionAddress =
+			exception->ExceptionRecord->ExceptionAddress;
+		if (exception->ExceptionRecord->NumberParameters >= 2U)
+		{
+			failure->accessType =
+				exception->ExceptionRecord->ExceptionInformation[0];
+			failure->accessedAddress = reinterpret_cast<const void*>(
+				exception->ExceptionRecord->ExceptionInformation[1]);
+		}
+	}
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+bool TryRunProgram(
+	HINSTANCE hInstance,
+	LPSTR* const returnError,
+	bool* const runResult,
+	RuntimeExecutionFailure* const failure)
+{
+	__try
+	{
+		*runResult = RunProgram(hInstance, returnError);
+		return true;
+	}
+	__except(CaptureRuntimeExecutionFailure(
+		GetExceptionInformation(), failure))
+	{
+		return false;
+	}
+}
+
+void DumpDebugReport (
+	const RuntimeExecutionFailure& failure,
+	const char* const runtimeMessage )
 {
 	// Setup Report (by date and time)
 	char pReportDate [ _MAX_PATH ];
@@ -647,16 +697,30 @@ void DumpDebugReport ( void )
 		if ( pReportDate[i]=='/' )
 			pReportDate[i]='_';
 
-	// Current location
-	char currentdir [ _MAX_PATH ];
-	_getcwd ( currentdir, _MAX_PATH );
-
-	// Construct local directory
+	// Always place the report beside the application. CEXE::Init temporarily
+	// changes the process working directory while loading packaged assets, so a
+	// cwd-relative report can otherwise be deleted with the unpack directory.
+	const std::filesystem::path applicationPath{CEXE.m_AbsoluteAppFile};
+	const auto reportPath = applicationPath.parent_path() /
+		(std::string{"CrashOn_"} + pReportDate + ".txt");
+	const auto reportPathText = reportPath.string();
 	char pReportFile [ _MAX_PATH ];
-	strcpy ( pReportFile, currentdir );
-	strcat ( pReportFile, "\\CrashOn_" );
-	strcat ( pReportFile, pReportDate );
-	strcat ( pReportFile, ".txt" );
+	strcpy_s(pReportFile, _MAX_PATH, reportPathText.c_str());
+
+	// One report represents one failure. Do not retain exception fields from an
+	// earlier failure that happened on the same calendar day.
+	const HANDLE reportFile = CreateFileA(
+		pReportFile,
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		nullptr,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+	if (reportFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(reportFile);
+	}
 
 	// Create Report File (by date and time)
 	char pLineToReport [ _MAX_PATH ];
@@ -678,6 +742,144 @@ void DumpDebugReport ( void )
 	WritePrivateProfileStringA ( "CEXE", "m_dwRuntimeErrorDWORD", pLineToReport, pReportFile );
 	sprintf_s ( pLineToReport, _MAX_PATH, "%d", CEXE.m_dwRuntimeErrorLineDWORD );
 	WritePrivateProfileStringA ( "CEXE", "m_dwRuntimeErrorLineDWORD", pLineToReport, pReportFile );			
+	WritePrivateProfileStringA(
+		"RUNTIME",
+		"Message",
+		runtimeMessage != nullptr ? runtimeMessage : "RunProgram returned false.",
+		pReportFile);
+	if (failure.exceptionCode != 0U)
+	{
+		sprintf_s(
+			pLineToReport,
+			_MAX_PATH,
+			"0x%08lX",
+			failure.exceptionCode);
+		WritePrivateProfileStringA(
+			"EXCEPTION", "Code", pLineToReport, pReportFile);
+		sprintf_s(
+			pLineToReport,
+			_MAX_PATH,
+			"0x%p",
+			failure.exceptionAddress);
+		WritePrivateProfileStringA(
+			"EXCEPTION", "Instruction", pLineToReport, pReportFile);
+		sprintf_s(
+			pLineToReport,
+			_MAX_PATH,
+			"%llu",
+			static_cast<unsigned long long>(failure.accessType));
+		WritePrivateProfileStringA(
+			"EXCEPTION", "AccessType", pLineToReport, pReportFile);
+		sprintf_s(
+			pLineToReport,
+			_MAX_PATH,
+			"0x%p",
+			failure.accessedAddress);
+		WritePrivateProfileStringA(
+			"EXCEPTION", "AccessedAddress", pLineToReport, pReportFile);
+		const auto memoryModule =
+			MemoryPE::InspectAddress(failure.exceptionAddress);
+		if (memoryModule)
+		{
+			WritePrivateProfileStringA(
+				"EXCEPTION",
+				"MemoryModule",
+				memoryModule->moduleName.c_str(),
+				pReportFile);
+			WritePrivateProfileStringA(
+				"EXCEPTION",
+				"MemorySection",
+				memoryModule->sectionName.c_str(),
+				pReportFile);
+			sprintf_s(
+				pLineToReport,
+				_MAX_PATH,
+				"0x%lX",
+				memoryModule->relativeVirtualAddress);
+			WritePrivateProfileStringA(
+				"EXCEPTION", "MemoryRVA", pLineToReport, pReportFile);
+		}
+		MEMORY_BASIC_INFORMATION memoryInfo{};
+		if (failure.exceptionAddress != nullptr &&
+			VirtualQuery(
+				failure.exceptionAddress,
+				&memoryInfo,
+				sizeof(memoryInfo)) == sizeof(memoryInfo))
+		{
+			sprintf_s(
+				pLineToReport,
+				_MAX_PATH,
+				"0x%p",
+				memoryInfo.AllocationBase);
+			WritePrivateProfileStringA(
+				"EXCEPTION", "AllocationBase", pLineToReport, pReportFile);
+			sprintf_s(
+				pLineToReport,
+				_MAX_PATH,
+				"0x%lX",
+				memoryInfo.Protect);
+			WritePrivateProfileStringA(
+				"EXCEPTION", "PageProtection", pLineToReport, pReportFile);
+		}
+
+		const auto instruction =
+			reinterpret_cast<uintptr_t>(failure.exceptionAddress);
+		const auto machineCode =
+			reinterpret_cast<uintptr_t>(CEXE.m_pMachineCodeBlock);
+		sprintf_s(
+			pLineToReport,
+			_MAX_PATH,
+			"0x%llX",
+			static_cast<unsigned long long>(machineCode));
+		WritePrivateProfileStringA(
+			"EXCEPTION", "MachineCodeBase", pLineToReport, pReportFile);
+		sprintf_s(
+			pLineToReport,
+			_MAX_PATH,
+			"0x%lX",
+			CEXE.m_dwSizeOfMCB);
+		WritePrivateProfileStringA(
+			"EXCEPTION", "MachineCodeSize", pLineToReport, pReportFile);
+		if (instruction >= machineCode &&
+			instruction - machineCode < CEXE.m_dwSizeOfMCB)
+		{
+			sprintf_s(
+				pLineToReport,
+				_MAX_PATH,
+				"0x%llX",
+				static_cast<unsigned long long>(
+					instruction - machineCode));
+			WritePrivateProfileStringA(
+				"EXCEPTION",
+				"MachineCodeOffset",
+				pLineToReport,
+				pReportFile);
+		}
+
+		HMODULE module = nullptr;
+		if (failure.exceptionAddress != nullptr &&
+			GetModuleHandleExA(
+				GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+					GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+				reinterpret_cast<LPCSTR>(failure.exceptionAddress),
+				&module))
+		{
+			char modulePath[_MAX_PATH]{};
+			GetModuleFileNameA(module, modulePath, _MAX_PATH);
+			WritePrivateProfileStringA(
+				"EXCEPTION", "Module", modulePath, pReportFile);
+			const auto offset =
+				reinterpret_cast<uintptr_t>(failure.exceptionAddress) -
+				reinterpret_cast<uintptr_t>(module);
+			sprintf_s(
+				pLineToReport,
+				_MAX_PATH,
+				"0x%llX",
+				static_cast<unsigned long long>(offset));
+			WritePrivateProfileStringA(
+				"EXCEPTION", "ModuleOffset", pLineToReport, pReportFile);
+		}
+	}
 }
 
 bool FileExists(LPSTR pFilename)
@@ -845,16 +1047,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			// creating window HERE will allow me to create the right size, type, etc
 			CreateTempWindow ( hInstance, ActualEXEFilename, CEXE.m_dwInitialDisplayWidth, CEXE.m_dwInitialDisplayHeight );
 
-			// try to run the ASM program
-			try
+			// Execute behind an SEH boundary so a generated-code or plug-in
+			// fault is reported with a useful module offset and a failing exit.
+			RuntimeExecutionFailure executionFailure;
+			bool runResult = false;
+			if (!TryRunProgram(
+					hInstance,
+					&pErrorString,
+					&runResult,
+					&executionFailure))
 			{
-				// Run EXE Block
-				RunProgram(hInstance, &pErrorString);
+				DumpDebugReport(executionFailure, pErrorString);
+				RuntimeExitCode = 1;
 			}
-			catch(...)
+			else if (!runResult)
 			{
-				// If crash bomb, dump a text report for crash
-				DumpDebugReport ( );
+				DumpDebugReport(executionFailure, pErrorString);
+				RuntimeExitCode = 1;
 			}
 
 			// Free Display First

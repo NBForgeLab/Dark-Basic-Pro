@@ -162,23 +162,18 @@ bool CLeapMarkerManager::WriteASMLeapMarkerEnd(DWORD di, CASMWriter* pWriter)
 		// Prepare for actual indexing
 		m_pRecordRefPosition[di] -= 2;
 
-		// Get old ref-string
-		LPSTR pRefStr = reinterpret_cast<LPSTR>(pWriter->GetReferenceTracker().GetRefLabel(m_pRecordRefPosition[di]));
-		if (pRefStr)
-		{
-			delete[] pRefStr;
-			pRefStr = nullptr;
-		}
-
 		// Calculate Leap Offset
 		DWORD dwLeapOffset = static_cast<DWORD>(pWriter->m_machineCodeBuffer.GetMachineBlock() - m_pRecordBytePosition[di]);
 
-		// Create NEW ref-string from offset value
+		// Replace the placeholder with the resolved relative offset. The
+		// reference tracker owns the string and does not expose raw allocation.
 		CStr tempStr;
 		tempStr.SetNumericText(dwLeapOffset);
-		pRefStr = new char[strlen(tempStr.GetStr()) + 1];
-		strcpy_s(pRefStr, strlen(tempStr.GetStr()) + 1, tempStr.GetStr());
-		pWriter->GetReferenceTracker().GetProgramRefLabels()[m_pRecordRefPosition[di]] = reinterpret_cast<uintptr_t>(pRefStr);
+		if (!pWriter->GetReferenceTracker().SetRefLabel(
+				m_pRecordRefPosition[di], tempStr.GetStr()))
+		{
+			return false;
+		}
 
 		// Clear leap flag
 		m_pRecordRefPosition[di] = 0;

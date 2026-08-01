@@ -17,7 +17,7 @@ DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) 
         default: dwAddressSizeCode = 2; break;  // DWORD (default)
     }
 
-    return dwAddressSizeCode;
+    return dwASMCodeAsAByte + dwAddressSizeCode;
 }
 
 DWORD CTaskEmitter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept
@@ -99,24 +99,6 @@ DWORD CTaskEmitter::DetermineParamMode(CStr* pP, DWORD dwPType, DWORD dwPOffset)
 DWORD CTaskEmitter::CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept
 {
     return dwPassNumber * dwBaseOffset;
-}
-
-bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask) const noexcept
-{
-    if (dwLine == 0) return false;
-    return true;
-}
-
-bool CTaskEmitter::EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWORD dwP2Mode, DWORD dwP3Mode) const noexcept
-{
-    if (dwLine == 0) return false;
-    return true;
-}
-
-bool CTaskEmitter::EmitTask(CASMWriter* pASMWriter, DWORD dwLine, DWORD dwTask) const
-{
-    if (!pASMWriter) return false;
-    return EmitCoreTask(dwLine, dwTask);
 }
 
 void CTaskEmitter::WriteASMARRtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP, CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const

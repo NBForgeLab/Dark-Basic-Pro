@@ -79,7 +79,7 @@ void CError::PrepareVerboseErrorHeader(DWORD LineNumber, LPSTR ErrorString)
 	}
 }
 
-void CError::AddErrorString(LPSTR ErrorString)
+void CError::AddErrorString(const char* ErrorString)
 {
 	db3::CAutolock autolock(m_Lock);
 
@@ -90,7 +90,7 @@ void CError::AddErrorString(LPSTR ErrorString)
 			const DWORD dwLineNum =
 				g_pStatementList->GetTokenLineNumber();
 			m_pParserErrorString.reset(new CStr(1));
-			m_pParserErrorString->SetText(ErrorString);
+			m_pParserErrorString->SetText(const_cast<char*>(ErrorString));
 			if(dwLineNum>0 && g_pDBPCompiler)
 			{
 				LPSTR pUseLineNumber = g_pDBPCompiler->GetWord(11);

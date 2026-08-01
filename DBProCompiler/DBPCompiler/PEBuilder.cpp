@@ -7,6 +7,20 @@
 #include "StructTable.h"
 #include "Declaration.h"
 
+#include <algorithm>
+#include <memory>
+#include <vector>
+
+namespace
+{
+bool ReportDllTableError(const char* message)
+{
+	if (g_pErrorReport != nullptr)
+		g_pErrorReport->AddErrorString(message);
+	return false;
+}
+}
+
 void CPEBuilder::Reset() noexcept
 {
     m_bPrepared = false;
@@ -32,95 +46,113 @@ bool CPEBuilder::ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSection
 bool CPEBuilder::UpdateDLLData() const
 {
 	db3::CProfile<> prof("CPEBuilder::UpdateDLLData");
+	if (g_pEXE == nullptr || g_pDLLTable == nullptr)
+		return ReportDllTableError("Cannot build executable DLL data without compiler tables");
 
-	DWORD dwDLLIndex = 0;
-	if(g_pEXE->m_pDLLIndexArray==NULL)
+	const DWORD oldSize = g_pEXE->m_dwNumberOfDLLs;
+	if (oldSize > RuntimeDllCapacity)
+		return ReportDllTableError("Existing executable DLL table exceeds the runtime dispatch capacity");
+	if (oldSize != 0 &&
+		(g_pEXE->m_pDLLIndexArray == nullptr ||
+		 g_pEXE->m_pDLLFilenameArray == nullptr ||
+		 g_pEXE->m_pDLLLoadedAlreadyArray == nullptr))
+		return ReportDllTableError("Existing executable DLL table is incomplete");
+	for (DWORD index = 0; index < oldSize; ++index)
 	{
-		DWORD dwDLLCount = g_pStatementList->GetDLLIndexCounter();
-		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwDLLCount);
-		uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwDLLCount);
-		LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwDLLCount);
-
-		g_pEXE->m_dwNumberOfDLLs = dwDLLCount;
-		g_pEXE->m_pDLLIndexArray = (DWORD*)pNewArray1;
-		g_pEXE->m_pDLLFilenameArray = pNewArray2;
-		g_pEXE->m_pDLLLoadedAlreadyArray = (DWORD*)pNewArray3;
-	}
-	else
-	{
-		DWORD dwNewDLLs=0;
-		CDataTable* pStringEntry = g_pDLLTable->GetNext();
-		while(pStringEntry)
-		{
-			if(pStringEntry->GetAddedToEXEData()==false) dwNewDLLs++;
-			pStringEntry=pStringEntry->GetNext();
-		}
-
-		DWORD dwOldSize = g_pEXE->m_dwNumberOfDLLs;
-		LPSTR pOldArray1 = (LPSTR)g_pEXE->m_pDLLIndexArray;
-		uintptr_t* pOldArray2 = g_pEXE->m_pDLLFilenameArray;
-		LPSTR pOldArray3 = (LPSTR)g_pEXE->m_pDLLLoadedAlreadyArray;
-		DWORD dwNewSize = dwOldSize + dwNewDLLs;
-		if(dwNewSize>dwOldSize)
-		{
-			LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-			uintptr_t* pNewArray2 = g_pEXE->CreatePtrArray(dwNewSize);
-			LPSTR pNewArray3 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
-
-			memcpy(pNewArray1, pOldArray1, dwOldSize*sizeof(DWORD));
-			memcpy(pNewArray2, pOldArray2, dwOldSize*sizeof(uintptr_t));
-			memcpy(pNewArray3, pOldArray3, dwOldSize*sizeof(DWORD));
-			std::unique_ptr<DWORD[]> pOldArray1Owner((DWORD*)pOldArray1);
-			std::unique_ptr<uintptr_t[]> pOldArray2Owner(pOldArray2);
-			std::unique_ptr<DWORD[]> pOldArray3Owner((DWORD*)pOldArray3);
-
-			g_pEXE->m_dwNumberOfDLLs = dwNewSize;
-			g_pEXE->m_pDLLIndexArray = (DWORD*)pNewArray1;
-			g_pEXE->m_pDLLFilenameArray = pNewArray2;
-			g_pEXE->m_pDLLLoadedAlreadyArray = (DWORD*)pNewArray3;
-		}
-
-		dwDLLIndex=dwOldSize;
+		if (!IsRuntimeDllIndex(g_pEXE->m_pDLLIndexArray[index]))
+			return ReportDllTableError("Existing executable DLL data contains an out-of-range runtime index");
 	}
 
-	for(DWORD pass=0; pass<2; pass++)
+	std::vector<CDataTable*> pendingEntries;
+	std::vector<CDataTable*> existingEntries;
+	for (CDataTable* entry = g_pDLLTable->GetNext(); entry != nullptr; entry = entry->GetNext())
 	{
-		CDataTable* pStringEntry = g_pDLLTable->GetNext();
-		while(pStringEntry)
+		if (entry->GetAddedToEXEData())
+			continue;
+		if (entry->GetString() == nullptr || entry->GetString()->GetStr() == nullptr)
+			return ReportDllTableError("Compiler DLL table contains an entry without a filename");
+		if (!IsRuntimeDllIndex(entry->GetIndex()))
+			return ReportDllTableError("Compiler DLL table exceeds the 256-slot runtime dispatch capacity");
+
+		const char* filename = entry->GetString()->GetStr();
+		bool alreadyPresent = false;
+		for (DWORD index = 0; index < oldSize; ++index)
 		{
-			if(pStringEntry->GetAddedToEXEData()==false)
+			const auto* existing = reinterpret_cast<const char*>(
+				g_pEXE->m_pDLLFilenameArray[index]);
+			if (existing != nullptr && stricmp(existing, filename) == 0)
 			{
-				LPSTR pStringData = pStringEntry->GetString()->GetStr();
-
-				bool bAddThisString=false;
-				if(pass==0 && stricmp("dbprocore.dll", pStringData)==NULL) bAddThisString=true;
-				if(pass==1 && stricmp("dbprocore.dll", pStringData)!=NULL) bAddThisString=true;
-				if(bAddThisString)
-				{
-					pStringEntry->SetAddedToEXEData(true);
-
-					bool bNotGot=true;
-					for(DWORD n=0; n<g_pEXE->m_dwNumberOfDLLs; n++)
-					{
-						LPSTR pCompareWith=(LPSTR)(g_pEXE->m_pDLLFilenameArray[n]);
-						if(pCompareWith)
-							if(stricmp(pCompareWith, pStringData)==NULL) bNotGot=false;
-					}
-
-					if(bNotGot)
-					{
-						char* pDynamicString = new char[strlen(pStringData)+1];
-						strcpy_s(pDynamicString, strlen(pStringData)+1, pStringData);
-
-						g_pEXE->m_pDLLIndexArray[dwDLLIndex]=pStringEntry->GetIndex();
-						g_pEXE->m_pDLLFilenameArray[dwDLLIndex]=(uintptr_t)pDynamicString;
-						dwDLLIndex++;
-					}
-				}
+				alreadyPresent = true;
+				break;
 			}
-			pStringEntry=pStringEntry->GetNext();
 		}
+		if (alreadyPresent)
+		{
+			existingEntries.push_back(entry);
+			continue;
+		}
+		pendingEntries.push_back(entry);
 	}
+
+	if (pendingEntries.empty())
+	{
+		for (CDataTable* entry : existingEntries)
+			entry->SetAddedToEXEData(true);
+		return true;
+	}
+	if (pendingEntries.size() > RuntimeDllCapacity - oldSize)
+		return ReportDllTableError("Executable DLL table exceeds the 256-slot runtime dispatch capacity");
+	std::stable_partition(
+		pendingEntries.begin(),
+		pendingEntries.end(),
+		[](CDataTable* entry) {
+			return stricmp(entry->GetString()->GetStr(), "dbprocore.dll") == 0;
+		});
+
+	const DWORD newSize = oldSize + static_cast<DWORD>(pendingEntries.size());
+	auto indexes = std::unique_ptr<DWORD[]>(g_pEXE->CreateArray(newSize));
+	auto filenames = std::unique_ptr<uintptr_t[]>(g_pEXE->CreatePtrArray(newSize));
+	auto loaded = std::unique_ptr<DWORD[]>(g_pEXE->CreateArray(newSize));
+	if (!indexes || !filenames || !loaded)
+		return ReportDllTableError("Unable to allocate executable DLL tables");
+
+	if (oldSize != 0)
+	{
+		std::copy_n(g_pEXE->m_pDLLIndexArray, oldSize, indexes.get());
+		std::copy_n(g_pEXE->m_pDLLFilenameArray, oldSize, filenames.get());
+		std::copy_n(g_pEXE->m_pDLLLoadedAlreadyArray, oldSize, loaded.get());
+	}
+
+	std::vector<std::unique_ptr<char[]>> pendingNames;
+	pendingNames.reserve(pendingEntries.size());
+	for (CDataTable* entry : pendingEntries)
+	{
+		const char* source = entry->GetString()->GetStr();
+		auto filename = std::make_unique<char[]>(strlen(source) + 1u);
+		strcpy_s(filename.get(), strlen(source) + 1u, source);
+		pendingNames.push_back(std::move(filename));
+	}
+
+	DWORD outputIndex = oldSize;
+	for (std::size_t index = 0; index < pendingEntries.size(); ++index)
+	{
+		CDataTable* entry = pendingEntries[index];
+		indexes[outputIndex] = entry->GetIndex();
+		filenames[outputIndex] = reinterpret_cast<uintptr_t>(pendingNames[index].release());
+		++outputIndex;
+	}
+
+	std::unique_ptr<DWORD[]> oldIndexes(g_pEXE->m_pDLLIndexArray);
+	std::unique_ptr<uintptr_t[]> oldFilenames(g_pEXE->m_pDLLFilenameArray);
+	std::unique_ptr<DWORD[]> oldLoaded(g_pEXE->m_pDLLLoadedAlreadyArray);
+	g_pEXE->m_pDLLIndexArray = indexes.release();
+	g_pEXE->m_pDLLFilenameArray = filenames.release();
+	g_pEXE->m_pDLLLoadedAlreadyArray = loaded.release();
+	g_pEXE->m_dwNumberOfDLLs = newSize;
+	for (CDataTable* entry : pendingEntries)
+		entry->SetAddedToEXEData(true);
+	for (CDataTable* entry : existingEntries)
+		entry->SetAddedToEXEData(true);
 
 	return true;
 }

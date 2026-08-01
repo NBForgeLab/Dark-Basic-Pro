@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include "RuntimeDllTable.h"
 
 /**
  * @file PEBuilder.h
@@ -11,6 +12,8 @@
 class CPEBuilder
 {
 public:
+    static constexpr DWORD RuntimeDllCapacity = dbp::runtime::DllCapacity;
+
     CPEBuilder() noexcept = default;
     ~CPEBuilder() = default;
 
@@ -39,6 +42,12 @@ public:
 
     /** @brief Validates PE image base, section alignment, and file alignment constraints. */
     [[nodiscard]] bool ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
+
+    /** @brief Returns whether an encoded DLL id can index the legacy runtime dispatch tables. */
+    [[nodiscard]] static constexpr bool IsRuntimeDllIndex(DWORD index) noexcept
+    {
+        return dbp::runtime::IsDllIndex(index);
+    }
 
     /** @brief Updates DLL index and filename tables for executable. */
     [[nodiscard]] bool UpdateDLLData() const;

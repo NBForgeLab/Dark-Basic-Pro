@@ -449,6 +449,7 @@ class CASMWriter : public ICodeGenerator
 	public:
 		[[nodiscard]] CReferenceTracker& GetReferenceTracker() noexcept { return m_referenceTracker; }
 		[[nodiscard]] const CReferenceTracker& GetReferenceTracker() const noexcept { return m_referenceTracker; }
+		[[nodiscard]] const CMachineCodeBuffer& GetMachineCodeBuffer() const noexcept { return m_machineCodeBuffer; }
 		[[nodiscard]] CTaskEmitter& GetTaskEmitter() noexcept { return m_taskEmitter; }
 		[[nodiscard]] const CTaskEmitter& GetTaskEmitter() const noexcept { return m_taskEmitter; }
 		[[nodiscard]] CPEBuilder& GetPEBuilder() noexcept { return m_peBuilder; }

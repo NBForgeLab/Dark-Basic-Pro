@@ -40,7 +40,7 @@ class CError
 		LPSTR GetParserErrorString(void) { if(m_pParserErrorString) return m_pParserErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
 #endif
 		void PrepareVerboseErrorHeader(DWORD LineNumber, LPSTR ErrorString);
-		void AddErrorString(LPSTR ErrorString);
+		void AddErrorString(const char* ErrorString);
 		void SetParserError(DWORD LineNumber, LPSTR ErrorString);
 		void OutputInternalErrorReport(void);
 

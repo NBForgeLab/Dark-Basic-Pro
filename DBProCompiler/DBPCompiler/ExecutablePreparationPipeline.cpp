@@ -15,7 +15,7 @@ ExecutablePreparationResult ExecutablePreparationPipeline::Run(
     const ExecutablePreparationRequest& request,
     IExecutablePreparationServices& services) const noexcept
 {
-    if (request.outputFilename == nullptr || request.outputFilename[0] == '\0') {
+    if (request.outputFilename.empty()) {
         return Failure(
             ExecutablePreparationStage::requestValidation,
             "The executable output filename is empty.");

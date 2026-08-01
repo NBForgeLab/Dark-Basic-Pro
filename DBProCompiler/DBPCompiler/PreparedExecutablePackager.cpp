@@ -98,7 +98,7 @@ namespace {
 
 void Report(const char* const message) noexcept {
     if (g_pErrorReport != nullptr) {
-        g_pErrorReport->AddErrorString(const_cast<char*>(message));
+        g_pErrorReport->AddErrorString(message);
     }
 }
 
@@ -114,13 +114,27 @@ bool PreparedExecutablePackager::Package(
     const StandalonePackagingRequest& request,
     IStandalonePackagingServices& services) const noexcept {
     if (request.outputPath.empty()) {
+        Report("DBP3100: The standalone executable output path is empty.");
         return false;
     }
 
-    return services.ResolveRuntimeBundle() &&
-           services.StageExecutable(request.outputPath) &&
-           services.CustomizeResources() &&
-           services.Publish();
+    if (!services.ResolveRuntimeBundle()) {
+        Report("DBP3101: Resolving the runtime bundle for packaging failed.");
+        return false;
+    }
+    if (!services.StageExecutable(request.outputPath)) {
+        Report("DBP3102: Staging the standalone executable failed.");
+        return false;
+    }
+    if (!services.CustomizeResources()) {
+        Report("DBP3103: Customizing executable resources failed.");
+        return false;
+    }
+    if (!services.Publish()) {
+        Report("DBP3104: Publishing the standalone executable failed.");
+        return false;
+    }
+    return true;
 }
 
 bool ASMWriterStandalonePackagingServices::ResolveRuntimeBundle() noexcept {
@@ -147,6 +161,7 @@ bool ASMWriterStandalonePackagingServices::ResolveRuntimeBundle() noexcept {
 bool ASMWriterStandalonePackagingServices::StageExecutable(
     const std::filesystem::path& outputPath) noexcept {
     if (runtimeBundle_ == nullptr || outputPath.empty()) {
+        Report("DBP3110: Executable staging was called without a runtime bundle or output path.");
         return false;
     }
 
@@ -155,6 +170,9 @@ bool ASMWriterStandalonePackagingServices::StageExecutable(
         outputPath_ = std::filesystem::absolute(outputPath, error)
                           .lexically_normal();
         if (error || outputPath_.filename().empty()) {
+            Report(
+                std::string{"DBP3111: The executable output path could not be normalized: "} +
+                ToUtf8(outputPath) + " (" + error.message() + ")");
             return false;
         }
 
@@ -169,6 +187,7 @@ bool ASMWriterStandalonePackagingServices::StageExecutable(
             mediaRoot_ = std::filesystem::current_path(error);
         }
         if (error || mediaRoot_.empty()) {
+            Report("DBP3112: The project media root could not be resolved.");
             return false;
         }
 
@@ -179,32 +198,52 @@ bool ASMWriterStandalonePackagingServices::StageExecutable(
             g_pDBPCompiler->GetInternalFile(PATH_TEMPEXBFILE);
         if (temporaryExeBlock == nullptr || temporaryExeBlock[0] == '\0' ||
             !g_pEXE->Save(temporaryExeBlock)) {
+            Report("DBP3113: The prepared executable block could not be serialized.");
             return false;
         }
-
         builder_.SetPackageKeyFile(g_pDBPCompiler->GetPackageKeyFile());
-        if (!builder_.NewFileTable() ||
-            !AddFile(
+        if (!builder_.NewFileTable()) {
+            Report("DBP3114: The executable package file table could not be initialized.");
+            return false;
+        }
+        if (!AddFile(
                 builder_,
                 std::filesystem::path{
                     TextConvert::UTF8ToUTF16(temporaryExeBlock)},
-                "_virtual.dat") ||
-            !AddRuntimeLibraries() ||
-            !AddProjectMedia() ||
-            !AddApplicationAssets() ||
-            !AddEffects()) {
+                "_virtual.dat")) {
+            Report("DBP3115: The prepared executable block could not be staged.");
+            return false;
+        }
+        if (!AddRuntimeLibraries()) {
+            Report("DBP3116: Runtime libraries could not be staged.");
+            return false;
+        }
+        if (!AddProjectMedia()) {
+            Report("DBP3117: Project media could not be staged.");
+            return false;
+        }
+        if (!AddApplicationAssets()) {
+            Report("DBP3118: Application icons or cursors could not be staged.");
+            return false;
+        }
+        if (!AddEffects()) {
+            Report("DBP3119: Runtime effect files could not be staged.");
             return false;
         }
 
         g_pErrorReport->ProgressReport(
             "Linker now at line ", g_pErrorReport->GetPerc(10));
         auto outputText = ToUtf8(outputPath_);
-        return builder_.MakeEXE(
+        const bool staged = builder_.MakeEXE(
             outputText.data(),
             g_pDBPCompiler->GetEncryptionState(),
-            nullptr) &&
-               builder_.HasStagedExecutable();
+            nullptr) && builder_.HasStagedExecutable();
+        if (!staged) {
+            Report("DBP3120: The executable host image could not be staged.");
+        }
+        return staged;
     } catch (...) {
+        Report("DBP3121: An exception interrupted executable staging.");
         return false;
     }
 }

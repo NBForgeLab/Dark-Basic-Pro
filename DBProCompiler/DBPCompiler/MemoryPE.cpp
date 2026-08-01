@@ -1,6 +1,9 @@
 #include "MemoryPE.h"
 #include "VFSHooks.h"
 #include "SafeDLLLoading.h"
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 #include <iostream>
@@ -246,7 +249,17 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
         // Protect each section based on characteristics
         IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(destNtHeaders);
         for (int i = 0; i < destNtHeaders->FileHeader.NumberOfSections; i++, sec++) {
-            if (sec->SizeOfRawData == 0) continue;
+            const DWORD mappedSize = (std::max)(
+                sec->Misc.VirtualSize, sec->SizeOfRawData);
+            if (mappedSize == 0U) continue;
+            if (sec->VirtualAddress >
+                    destNtHeaders->OptionalHeader.SizeOfImage ||
+                mappedSize >
+                    destNtHeaders->OptionalHeader.SizeOfImage -
+                        sec->VirtualAddress) {
+                VirtualFree(baseAddress, 0, MEM_RELEASE);
+                return nullptr;
+            }
             DWORD protect = PAGE_NOACCESS;
             bool isExecutable = (sec->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0;
             bool isReadable = (sec->Characteristics & IMAGE_SCN_MEM_READ) != 0;
@@ -261,7 +274,14 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
                 else if (isReadable) protect = PAGE_READONLY;
                 else protect = PAGE_NOACCESS;
             }
-            VirtualProtect(baseAddress + sec->VirtualAddress, sec->SizeOfRawData, protect, &oldProtect);
+            if (!VirtualProtect(
+                    baseAddress + sec->VirtualAddress,
+                    mappedSize,
+                    protect,
+                    &oldProtect)) {
+                VirtualFree(baseAddress, 0, MEM_RELEASE);
+                return nullptr;
+            }
         }
     }
     
@@ -336,6 +356,48 @@ FARPROC MemoryPE::GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
         }
     }
     return nullptr;
+}
+
+std::optional<MemoryPEAddressInfo> MemoryPE::InspectAddress(
+    const void* const address) {
+    const auto value = reinterpret_cast<std::uintptr_t>(address);
+    for (const auto& [module, ownedInfo] : g_memoryModules) {
+        const auto* const info = ownedInfo.get();
+        const auto base = reinterpret_cast<std::uintptr_t>(
+            info->baseAddress);
+        const auto imageSize =
+            info->ntHeaders->OptionalHeader.SizeOfImage;
+        if (value < base || value - base >= imageSize) {
+            continue;
+        }
+
+        const auto rva = static_cast<DWORD>(value - base);
+        IMAGE_SECTION_HEADER* section =
+            IMAGE_FIRST_SECTION(info->ntHeaders);
+        for (WORD index = 0U;
+             index < info->ntHeaders->FileHeader.NumberOfSections;
+             ++index, ++section) {
+            const DWORD mappedSize = (std::max)(
+                section->Misc.VirtualSize, section->SizeOfRawData);
+            if (rva < section->VirtualAddress ||
+                rva - section->VirtualAddress >= mappedSize) {
+                continue;
+            }
+
+            char sectionName[IMAGE_SIZEOF_SHORT_NAME + 1U]{};
+            std::memcpy(
+                sectionName,
+                section->Name,
+                IMAGE_SIZEOF_SHORT_NAME);
+            return MemoryPEAddressInfo{
+                info->name,
+                sectionName,
+                rva,
+                section->Characteristics};
+        }
+        return MemoryPEAddressInfo{info->name, {}, rva, 0U};
+    }
+    return std::nullopt;
 }
 
 void MemoryPE::UnloadModule(HMODULE hModule) {

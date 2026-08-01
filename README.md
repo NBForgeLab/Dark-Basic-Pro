@@ -46,6 +46,8 @@ To ensure long-term maintainability and high code quality, legacy monolithic cla
 * **`StatementHelper`** (`StatementHelper.cpp/.h`): Pure utility namespace for string manipulation, declaration type separation, and assignment operator checks with zero global state dependencies.
 * **`EXEBlock` W^X Security**: Enforces the **W^X (Write XOR Execute)** principle by allocating Machine Code Blocks as `PAGE_READWRITE` and applying `VirtualProtect(PAGE_EXECUTE_READ)` upon completion.
 * **AST Pipeline & Optimization**: Full Abstract Syntax Tree (AST) parser, constant folding optimizer, typed IR lowering, and target code generation.
+* **Executable Preparation Pipeline**: A fail-fast coordinator owns machine-code finalization, reference serialization, runtime metadata, debugger launch, and standalone publication. Output paths are value-owned, every stage reports a specific failure, and transient code cleanup is guaranteed on every exit path.
+* **Pointer-Width-Independent References**: Machine-code fixups retain owned symbolic labels until the PE32 serialization boundary. Host pointers are never truncated into target reference fields, and symbol resolution validates offsets before committing executable metadata.
 * **VFS & Authenticated Package V2**: Integrated Virtual File System with sidecar descriptors (`.dbpakref`) and SHA-256 payload verification (`PackageMount`).
 
 ---

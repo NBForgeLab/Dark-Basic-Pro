@@ -147,34 +147,20 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 				g_pStatementList->WriteDBM();
 			}
 
-			CStatement *pCurrentStatement;
-
 			// Write program code
 			{
 			db3::CProfile<> prof("CDBMWriter::WriteProgramAsEXEOrDEBUG() -> \"Write program code\"");
-//			if(g_pStatementList->GetProgramStatements()) g_pStatementList->GetProgramStatements()->WriteDBM();
-			pCurrentStatement = g_pStatementList->GetProgramStatements();
-			while(pCurrentStatement)
-			{
-				CStatement* pNextStatement = pCurrentStatement->GetNext();
-				pCurrentStatement->SetNext(NULL);
-				pCurrentStatement->WriteDBM();
-				pCurrentStatement=pNextStatement;
-			}
+			if (g_pStatementList->GetProgramStatements() != nullptr &&
+				!g_pStatementList->GetProgramStatements()->WriteDBM())
+				return false;
 			}
 
 			// Write prescan code
 			{
 			db3::CProfile<> prof("CDBMWriter::WriteProgramAsEXEOrDEBUG() -> \"Write prescan code\"");
-//			if(g_pStatementList->GetPreScanStatements()) g_pStatementList->GetPreScanStatements()->WriteDBM();
-			pCurrentStatement = g_pStatementList->GetPreScanStatements();
-			while(pCurrentStatement)
-			{
-				CStatement* pNextStatement = pCurrentStatement->GetNext();
-				pCurrentStatement->SetNext(NULL);
-				pCurrentStatement->WriteDBM();
-				pCurrentStatement=pNextStatement;
-			}
+			if (g_pStatementList->GetPreScanStatements() != nullptr &&
+				!g_pStatementList->GetPreScanStatements()->WriteDBM())
+				return false;
 			}
 
 			// Figure Out Var Offset and Final Varspace Size
@@ -185,7 +171,9 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 		else
 		{
 			// Mini Program from CLI
-			if(g_pStatementList->GetMiniStatements()) g_pStatementList->GetMiniStatements()->WriteDBM();
+			if (g_pStatementList->GetMiniStatements() != nullptr &&
+				!g_pStatementList->GetMiniStatements()->WriteDBM())
+				return false;
 
 			// Figure Out Var Offset and Final Varspace Size
 			DWORD dwVarSize=g_pStatementList->GetVarOffsetCounter();

@@ -42,15 +42,6 @@ public:
     /** @brief Calculates pass offset for multi-pass task emission. */
     [[nodiscard]] DWORD CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept;
 
-    /** @brief Validates core task parameters. */
-    [[nodiscard]] bool EmitCoreTask(DWORD dwLine, DWORD dwTask) const noexcept;
-
-    /** @brief Validates core task with parameter access modes. */
-    [[nodiscard]] bool EmitCoreTask(DWORD dwLine, DWORD dwTask, DWORD dwP1Mode, DWORD dwP2Mode, DWORD dwP3Mode) const noexcept;
-
-    /** @brief Dispatches assembly task execution. */
-    [[nodiscard]] bool EmitTask(CASMWriter* pASMWriter, DWORD dwLine, DWORD dwTask) const;
-
     /** @brief Emits assembly code to load array element into EAX. */
     void WriteASMARRtoEAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
 

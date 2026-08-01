@@ -2866,12 +2866,11 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 		DBP_INFO("DoAssignment line {}: varName='{}' (simple={}), valStr='{}' (parsable={})", 
 			StatementLineNumber, varName, isSimpleId, valStr, (parsedExpr != nullptr));
 
-		// If it's a simple identifier variable assigned with a parsable expression, run modern AST pipeline for diagnostics
-		if (parsedExpr != nullptr)
-		{
-			CASTAssignment astAssignment(varName, valStr, StatementLineNumber);
-			astAssignment.WriteDBM();
-		}
+		// Parsing is intentionally side-effect free with respect to the target
+		// backend. CASTAssignment::WriteDBM performs code generation and may only
+		// run later, inside an initialized CodeGenerationSession. The legacy
+		// assignment object created below remains the active production path until
+		// AST assignment nodes replace it at the statement-model boundary.
 	}
 
 	// pAlternateFullString / altString released automatically (RAII)
@@ -5060,6 +5059,19 @@ DWORD g_dwLastDBMLineNumber = 1;
 
 bool CStatement::WriteDBM(void)
 {
+	for (CStatement* statement = this; statement != nullptr;
+		 statement = statement->GetNext())
+	{
+		if (!statement->WriteDBMNode())
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool CStatement::WriteDBMNode(void)
+{
 #ifdef __AARON_DBMPERF__
 	static char s_Buf[MAX_SCRATCH_BUFFER];
 #endif
@@ -5218,9 +5230,6 @@ bool CStatement::WriteDBM(void)
 		}
 	}
 
-	// Also write next statement
-	if(GetNext()) GetNext()->WriteDBM();
-
 	// Complete
 	return true;
 }
@@ -5284,5 +5293,6 @@ bool CASTAssignment::WriteDBM()
 	DBP_INFO("AST:\n{}", printer.Print(assignment.get()));
 	DBP_INFO("Typed IR:\n{}", PrintIR(lowering.GetProgram()));
 
-	return false;
+	TargetCodegen codegen(g_pASMWriter, m_lineNumber);
+	return codegen.Generate(lowering.GetProgram());
 }

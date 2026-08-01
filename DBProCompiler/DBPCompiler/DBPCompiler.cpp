@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <cctype>
 #include <memory>
+#include <string_view>
 
 // Internal Global Data Pointers
 CEXEBlock*			g_pEXE				= NULL;
@@ -1822,90 +1823,69 @@ LPSTR CDBPCompiler::GetProjectMediaRoot(void)
 
 LPSTR CDBPCompiler::GetProjectField(LPSTR pFieldName)
 {
-	LPSTR pPointer=m_pProjectFileData;
-	LPSTR pPointerEnd=m_pProjectFileData+m_ProjectFileDataSize;
-	while(pPointer<pPointerEnd)
+	if (m_pProjectFileData == nullptr || m_ProjectFileDataSize == 0 ||
+		pFieldName == nullptr || pFieldName[0] == '\0')
 	{
-		// Eat CRs, tabs and spaces
-		while(*(pPointer)==13 || *(pPointer)==10 || *(pPointer)==9 || *(pPointer)==32)
+		return nullptr;
+	}
+
+	const std::string_view contents{
+		m_pProjectFileData, static_cast<std::size_t>(m_ProjectFileDataSize)};
+	const std::string_view requestedField{pFieldName};
+	const auto trim = [](std::string_view value) noexcept
+	{
+		const auto first = value.find_first_not_of(" \t");
+		if (first == std::string_view::npos)
 		{
-			while(*(pPointer)==13) pPointer++;
-			while(*(pPointer)==10) pPointer++;
-			while(*(pPointer)==9) pPointer++;
-			while(*(pPointer)==32) pPointer++;
+			return std::string_view{};
 		}
+		const auto last = value.find_last_not_of(" \t");
+		return value.substr(first, last - first + 1);
+	};
 
-		// If comment, skip all line
-		if(*(pPointer)==';')
+	std::size_t lineStart = 0;
+	while (lineStart < contents.size())
+	{
+		const auto lineEnd = contents.find_first_of("\r\n", lineStart);
+		const auto length = lineEnd == std::string_view::npos
+			? contents.size() - lineStart
+			: lineEnd - lineStart;
+		const auto line = trim(contents.substr(lineStart, length));
+
+		if (!line.empty() && line.front() != ';')
 		{
-			// Skip comment text
-			pPointer++;
-			while(pPointer<pPointerEnd)
+			const auto equals = line.find('=');
+			if (equals != std::string_view::npos)
 			{
-				if(*(pPointer-1)==13 && *(pPointer-0)==10) { pPointer++; break; }
-				pPointer++;
-			}
-			if(pPointer>=pPointerEnd) break;
-		}
-		else
-		{
-			bool bLineIsValid=true;
-
-			// Mark start of field
-			LPSTR pStartOfField = pPointer;
-
-			// Scan to equals
-			if(bLineIsValid)
-			{
-				while(pPointer<pPointerEnd)
+				const auto field = trim(line.substr(0, equals));
+				if (field.size() == requestedField.size() &&
+					_strnicmp(field.data(), requestedField.data(), field.size()) == 0)
 				{
-					if(*(pPointer)=='=') break;
-					pPointer++;
-				}
-				if(pPointer>=pPointerEnd) break;
-			}
-
-			// Mark end of field
-			LPSTR pEndOfField = pPointer;
-			pPointer++;
-			LPSTR pStartOfDataItem = pPointer;
-
-			// Scan to end of line
-			while(pPointer<pPointerEnd)
-			{
-				if(*(pPointer-1)==13 && *(pPointer+0)==10) { pPointer++; break; }
-				pPointer++;
-			}
-
-			// Mark end of dataitem
-			LPSTR pEndOfDataItem = pPointer-2;
-
-			if(bLineIsValid)
-			{
-				// Copy out dataitem if it matches seatch criteria
-				DWORD length = pEndOfField-pStartOfField;
-				std::unique_ptr<char[]> pFound(new char[length+1]);
-				memcpy(pFound.get(), pStartOfField, length);
-				pFound[length]=0;
-				if(stricmp(pFound.get(), pFieldName)==NULL)
-				{
-					// Field has been found, make data string and exit
-					DWORD datalength = pEndOfDataItem-pStartOfDataItem;
-					std::unique_ptr<char[]> pDataItemString(new char[datalength+1]);
-					memcpy(pDataItemString.get(), pStartOfDataItem, datalength);
-					pDataItemString[datalength]=0;
-					if(strcmp(pDataItemString.get(),"")==NULL)
-						pDataItemString.reset();
-
-					return pDataItemString.release();
+					const auto value = trim(line.substr(equals + 1));
+					if (value.empty())
+					{
+						return nullptr;
+					}
+					auto result = std::make_unique<char[]>(value.size() + 1);
+					std::copy(value.begin(), value.end(), result.get());
+					result[value.size()] = '\0';
+					return result.release();
 				}
 			}
+		}
 
-			// if no more data, leave
-			if(pPointer>=pPointerEnd) break;
+		if (lineEnd == std::string_view::npos)
+		{
+			break;
+		}
+		lineStart = lineEnd + 1;
+		if (lineStart < contents.size() && contents[lineEnd] == '\r' &&
+			contents[lineStart] == '\n')
+		{
+			++lineStart;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void CDBPCompiler::SetInternalFile(DWORD dwFileID, LPSTR pFilename)

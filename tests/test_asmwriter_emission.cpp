@@ -91,6 +91,35 @@ TEST_F(ASMWriterEmissionTest, EmitsRuntimeErrorHookTask) {
     ASSERT_TRUE(m_pWriter->WriteASMTaskCoreP2(42, static_cast<DWORD>(ASMTask::RuntimeErrorHook), NULL, 0, NULL, 0));
 }
 
+TEST_F(ASMWriterEmissionTest, EmitsMultidimensionalArrayOffsetCalculation) {
+    CStr offset("@arrayOffset");
+    CStr array("@&grid");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCore(
+        1u,
+        static_cast<DWORD>(ASMTask::CalcArrayOffset),
+        &offset,
+        nullptr,
+        7u,
+        2u,
+        &array,
+        nullptr,
+        101u,
+        0u));
+    EXPECT_GT(m_pWriter->GetCurrentMCPosition(), before);
+}
+
+TEST_F(ASMWriterEmissionTest, CompilerGeneratedLineZeroEmitsPrologueTasks) {
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCoreP1(
+        0u, static_cast<DWORD>(ASMTask::PushRegisters), nullptr, 0u));
+    ASSERT_GT(m_pWriter->GetCurrentMCPosition(), 0u);
+    EXPECT_EQ(
+        static_cast<unsigned char>(
+            m_pWriter->GetMachineCodeBuffer().GetProgramStart()[0]),
+        0x60u);
+}
+
 // The debug statement hook pushes four numeric strings to the stack
 // (pProgStr/pLineStr/pStartStr/pEndStr temporaries).
 TEST_F(ASMWriterEmissionTest, EmitsDebugStatementHookTask) {

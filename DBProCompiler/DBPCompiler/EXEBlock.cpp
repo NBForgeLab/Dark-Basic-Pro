@@ -12,7 +12,10 @@
 #include "SafeDLLLoading.h"
 #include "DBPLogger.h"
 #include "TargetABI.h"
+#include "RuntimeDllTable.h"
+#include <array>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include "direct.h"
 #include "..\DBPCompilerEXE\resource.h"
@@ -380,71 +383,85 @@ bool CEXEBlock::FileExists(LPSTR pFilename)
 
 bool CEXEBlock::Save(char* lpFilename)
 {
-	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	const auto outputPath = TextConvert::UTF8ToUTF16(lpFilename);
+	HANDLE hFile = CreateFileW(outputPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
-		// Settings
-		SaveValue(hFile, &m_dwInitialDisplayMode);
-		SaveValue(hFile, &m_dwInitialDisplayWidth);
-		SaveValue(hFile, &m_dwInitialDisplayHeight);
-		SaveValue(hFile, &m_dwInitialDisplayDepth);
+		bool success = true;
+		const auto record = [&success](const bool result) noexcept {
+			success = result && success;
+		};
 
-		// Save AppName String
-		DWORD dwLength=256;
-		SaveValueArrayBytes(hFile, (DWORD**)&m_pInitialAppName, &dwLength);
+		// Settings
+		record(SaveValue(hFile, &m_dwInitialDisplayMode));
+		record(SaveValue(hFile, &m_dwInitialDisplayWidth));
+		record(SaveValue(hFile, &m_dwInitialDisplayHeight));
+		record(SaveValue(hFile, &m_dwInitialDisplayDepth));
+
+		// The on-disk format reserves exactly 256 bytes for the application
+		// name. Serialize through a bounded, zero-padded block instead of reading
+		// 256 bytes from a variably-sized heap string.
+		std::array<char, 256> appName{};
+		if (m_pInitialAppName != nullptr)
+			strncpy_s(appName.data(), appName.size(), m_pInitialAppName, _TRUNCATE);
+		DWORD appNameLength = static_cast<DWORD>(appName.size());
+		auto* appNameData = reinterpret_cast<DWORD*>(appName.data());
+		record(SaveValueArrayBytes(hFile, &appNameData, &appNameLength));
 
 		// DLL Data
-		SaveValue(hFile, &m_dwNumberOfDLLs);
-		SaveValueArray(hFile, &m_pDLLIndexArray, &m_dwNumberOfDLLs);
-		SaveStringArray(hFile, &m_pDLLFilenameArray, &m_dwNumberOfDLLs);
-		SaveValueArray(hFile, &m_pDLLLoadedAlreadyArray, &m_dwNumberOfDLLs);
+		record(SaveValue(hFile, &m_dwNumberOfDLLs));
+		record(SaveValueArray(hFile, &m_pDLLIndexArray, &m_dwNumberOfDLLs));
+		record(SaveStringArray(hFile, &m_pDLLFilenameArray, &m_dwNumberOfDLLs));
+		record(SaveValueArray(hFile, &m_pDLLLoadedAlreadyArray, &m_dwNumberOfDLLs));
 
 		// MCB Reference Data
-		SaveValue(hFile, &m_dwNumberOfReferences);
-		SaveValueArray(hFile, &m_pRefArray, &m_dwNumberOfReferences);
-		SaveValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences);
-		SaveValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences);
+		record(SaveValue(hFile, &m_dwNumberOfReferences));
+		record(SaveValueArray(hFile, &m_pRefArray, &m_dwNumberOfReferences));
+		record(SaveValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences));
+		record(SaveValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences));
 
 		// Runtime Error String Database
-		SaveValue(hFile, &m_dwNumberOfRuntimeErrorStrings);
-		SaveStringArray(hFile, &m_pRuntimeErrorStringsArray, &m_dwNumberOfRuntimeErrorStrings);
+		record(SaveValue(hFile, &m_dwNumberOfRuntimeErrorStrings));
+		record(SaveStringArray(hFile, &m_pRuntimeErrorStringsArray, &m_dwNumberOfRuntimeErrorStrings));
 
 		// Machine Code Block (MCB)
-		SaveValue(hFile, &m_dwSizeOfMCB);
-		SaveValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB);
+		record(SaveValue(hFile, &m_dwSizeOfMCB));
+		record(SaveValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB));
 
 		// Commands Data
-		SaveValue(hFile, &m_dwNumberOfCommands);
-		SaveValueArray(hFile, &m_pCommandDLLIdArray, &m_dwNumberOfCommands);
-		SaveStringArray(hFile, &m_pCommandDLLCallArray, &m_dwNumberOfCommands);
+		record(SaveValue(hFile, &m_dwNumberOfCommands));
+		record(SaveValueArray(hFile, &m_pCommandDLLIdArray, &m_dwNumberOfCommands));
+		record(SaveStringArray(hFile, &m_pCommandDLLCallArray, &m_dwNumberOfCommands));
 
 		// Strings Data
-		SaveValue(hFile, &m_dwNumberOfStrings);
-		SaveStringArray(hFile, &m_pStringsArray, &m_dwNumberOfStrings);
+		record(SaveValue(hFile, &m_dwNumberOfStrings));
+		record(SaveStringArray(hFile, &m_pStringsArray, &m_dwNumberOfStrings));
 
 		// Data Data
-		SaveValue(hFile, &m_dwNumberOfDataItems);
-		SaveBlock(hFile, &m_pDataArray, m_dwNumberOfDataItems*10);
-		SaveStringArray(hFile, &m_pDataStringsArray, &m_dwNumberOfDataItems);
+		record(SaveValue(hFile, &m_dwNumberOfDataItems));
+		record(SaveBlock(hFile, &m_pDataArray, m_dwNumberOfDataItems*10));
+		record(SaveStringArray(hFile, &m_pDataStringsArray, &m_dwNumberOfDataItems));
 
 		// Variable Space Data
-		SaveValue(hFile, &m_dwVariableSpaceSize);
+		record(SaveValue(hFile, &m_dwVariableSpaceSize));
 
 		// Data Space Data
-		SaveValue(hFile, &m_dwDataSpaceSize);
+		record(SaveValue(hFile, &m_dwDataSpaceSize));
 
 		// Dynamic Variable Offset Data
-		SaveValue(hFile, &m_dwDynamicVarsQuantity);
-		SaveValueArray(hFile, &m_pDynamicVarsArray, &m_dwDynamicVarsQuantity);
-		SaveValueArray(hFile, &m_pDynamicVarsArrayType, &m_dwDynamicVarsQuantity);
+		record(SaveValue(hFile, &m_dwDynamicVarsQuantity));
+		record(SaveValueArray(hFile, &m_pDynamicVarsArray, &m_dwDynamicVarsQuantity));
+		record(SaveValueArray(hFile, &m_pDynamicVarsArrayType, &m_dwDynamicVarsQuantity));
 
 		// Usertype String Patterns - reactivated for U71 (store structure types)
-		SaveValue(hFile, &m_dwUsertypeStringPatternQuantity);
-		SaveBlock(hFile, &m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity);
+		record(SaveValue(hFile, &m_dwUsertypeStringPatternQuantity));
+		record(SaveBlock(hFile, &m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity));
 
 		// Close file
-		CloseHandle(hFile);
-		return true;
+		success = CloseHandle(hFile) != FALSE && success;
+		if (!success)
+			DeleteFileW(outputPath.c_str());
+		return success;
 	}
 	else
 	{
@@ -456,87 +473,78 @@ bool CEXEBlock::Save(char* lpFilename)
 bool CEXEBlock::SaveValue(HANDLE hFile, DWORD* Value)
 {
 	DWORD bytes=0;
-	WriteFile(hFile, Value, 4, &bytes, NULL);
-	if(bytes==0)
-	{
-		// EXEBlock shared - silent fail
-		return false;
-	}
-	else
-		return true;
+	return Value != nullptr &&
+		WriteFile(hFile, Value, sizeof(DWORD), &bytes, NULL) != FALSE &&
+		bytes == sizeof(DWORD);
 }
 
 bool CEXEBlock::SaveBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize)
 {
 	DWORD bytes=0;
-	WriteFile(hFile, *pMem, dwSize, &bytes, NULL);
-	if(bytes==0)
-	{
-		// EXEBlock shared - silent fail
-		return false;
-	}
-	else
-		return true;
+	if (dwSize == 0) return true;
+	return pMem != nullptr && *pMem != nullptr &&
+		WriteFile(hFile, *pMem, dwSize, &bytes, NULL) != FALSE &&
+		bytes == dwSize;
 }
 
 bool CEXEBlock::SaveValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
-	bool bResult=true;
-	if(*pArray && *Count>0)
-	{
-		WriteFile(hFile, *pArray, (*Count)*sizeof(DWORD), &bytes, NULL);
-		if(bytes==0) bResult=false;
-	}
-	else
-		bResult=false;
-
-	return bResult;
+	if (pArray == nullptr || Count == nullptr) return false;
+	if (*Count == 0) return true;
+	if (*Count > (std::numeric_limits<DWORD>::max)() / sizeof(DWORD))
+		return false;
+	const DWORD expected = (*Count) * sizeof(DWORD);
+	return *pArray != nullptr &&
+		WriteFile(hFile, *pArray, expected, &bytes, NULL) != FALSE &&
+		bytes == expected;
 }
 
 bool CEXEBlock::SaveValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
-	bool bResult=true;
-	if(*pArray && *Count>0)
-	{
-		WriteFile(hFile, *pArray, (*Count), &bytes, NULL);
-		if(bytes==0) bResult=false;
-	}
-	else
-		bResult=false;
-
-	return bResult;
+	if (pArray == nullptr || Count == nullptr) return false;
+	if (*Count == 0) return true;
+	return *pArray != nullptr &&
+		WriteFile(hFile, *pArray, *Count, &bytes, NULL) != FALSE &&
+		bytes == *Count;
 }
 
 bool CEXEBlock::SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
-	bool bResult=true;
-	if(*pArray && *Count>0)
+	if (pArray == nullptr || Count == nullptr) return false;
+	if (*Count == 0) return true;
+	bool bResult = *pArray != nullptr;
+	if(bResult)
 	{
 		for(DWORD index=0; index<*Count; index++)
 		{
 			char* pStr = (char*)*(*pArray+index);
 			DWORD length = 0;
-			if(pStr) length = (DWORD)strlen(pStr);
-			WriteFile(hFile, &length, 4, &bytes, NULL);
-			if(bytes==0) bResult=false;
+			if (pStr)
+			{
+				const auto sourceLength = strlen(pStr);
+				if (sourceLength > (std::numeric_limits<DWORD>::max)())
+					return false;
+				length = static_cast<DWORD>(sourceLength);
+			}
+			if (WriteFile(hFile, &length, sizeof(length), &bytes, NULL) == FALSE ||
+				bytes != sizeof(length))
+				bResult=false;
 			if(pStr)
 			{
 				// Write number of bytes in string
 				if(length>0)
 				{
 					// Write string if has a length
-					WriteFile(hFile, pStr, length, &bytes, NULL);
-					if(bytes==0) bResult=false;
+					if (WriteFile(hFile, pStr, length, &bytes, NULL) == FALSE ||
+						bytes != length)
+						bResult=false;
 				}
 			}
 		}
 	}
-	else
-		bResult=false;
-
 	return bResult;
 }
 
@@ -552,74 +560,84 @@ bool CEXEBlock::StartInfo(LPSTR pUnpackFolderName, DWORD dwEncryptionKey)
 
 bool CEXEBlock::Load(char* lpFilename)
 {
+        Clear();
+
 	// Load EXE Filedata
 	HANDLE hFile = Hook_CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
+                bool success = true;
+                const auto record = [&success](const bool result) noexcept {
+                        success = result && success;
+                };
+
 		// Settings
-		LoadValue(hFile, &m_dwInitialDisplayMode);
-		LoadValue(hFile, &m_dwInitialDisplayWidth);
-		LoadValue(hFile, &m_dwInitialDisplayHeight);
-		LoadValue(hFile, &m_dwInitialDisplayDepth);
+                record(LoadValue(hFile, &m_dwInitialDisplayMode));
+                record(LoadValue(hFile, &m_dwInitialDisplayWidth));
+                record(LoadValue(hFile, &m_dwInitialDisplayHeight));
+                record(LoadValue(hFile, &m_dwInitialDisplayDepth));
 
 		// AppName String
 		DWORD dwLength=256;
-		LoadValueArrayBytes(hFile, (DWORD**)&m_pInitialAppName, &dwLength);
+                record(LoadValueArrayBytes(hFile, (DWORD**)&m_pInitialAppName, &dwLength));
 
 		// DLL Data
-		LoadValue(hFile, &m_dwNumberOfDLLs);
-		LoadValueArray(hFile, &m_pDLLIndexArray, &m_dwNumberOfDLLs);
-		LoadStringArray(hFile, &m_pDLLFilenameArray, &m_dwNumberOfDLLs);
-		LoadValueArray(hFile, &m_pDLLLoadedAlreadyArray, &m_dwNumberOfDLLs);
-		ZeroMemory(m_pDLLLoadedAlreadyArray, sizeof(DWORD)*m_dwNumberOfDLLs);
+                record(LoadValue(hFile, &m_dwNumberOfDLLs));
+                record(LoadValueArray(hFile, &m_pDLLIndexArray, &m_dwNumberOfDLLs));
+                record(LoadStringArray(hFile, &m_pDLLFilenameArray, &m_dwNumberOfDLLs));
+                record(LoadValueArray(hFile, &m_pDLLLoadedAlreadyArray, &m_dwNumberOfDLLs));
+                if (m_pDLLLoadedAlreadyArray != nullptr && m_dwNumberOfDLLs > 0)
+                        ZeroMemory(m_pDLLLoadedAlreadyArray, sizeof(DWORD)*m_dwNumberOfDLLs);
 		
 		// MCB Reference Data
-		LoadValue(hFile, &m_dwNumberOfReferences);
-		LoadValueArray(hFile, &m_pRefArray, &m_dwNumberOfReferences);
-		LoadValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences);
-		LoadValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences);
+                record(LoadValue(hFile, &m_dwNumberOfReferences));
+                record(LoadValueArray(hFile, &m_pRefArray, &m_dwNumberOfReferences));
+                record(LoadValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences));
+                record(LoadValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences));
 
 		// Runtime Error String Database
-		LoadValue(hFile, &m_dwNumberOfRuntimeErrorStrings);
-		LoadStringArray(hFile, &m_pRuntimeErrorStringsArray, &m_dwNumberOfRuntimeErrorStrings);
+                record(LoadValue(hFile, &m_dwNumberOfRuntimeErrorStrings));
+                record(LoadStringArray(hFile, &m_pRuntimeErrorStringsArray, &m_dwNumberOfRuntimeErrorStrings));
 
 		// Machine Code Block (MCB)
 		// leeadd - 090305 - added flag for DEP protection allowance
-		LoadValue(hFile, &m_dwSizeOfMCB);
-		LoadValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB, PAGE_READWRITE);
+                record(LoadValue(hFile, &m_dwSizeOfMCB));
+                record(LoadValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB, PAGE_READWRITE));
 
 		// Commands Data
-		LoadValue(hFile, &m_dwNumberOfCommands);
-		LoadValueArray(hFile, &m_pCommandDLLIdArray, &m_dwNumberOfCommands);
-		LoadStringArray(hFile, &m_pCommandDLLCallArray, &m_dwNumberOfCommands);
+                record(LoadValue(hFile, &m_dwNumberOfCommands));
+                record(LoadValueArray(hFile, &m_pCommandDLLIdArray, &m_dwNumberOfCommands));
+                record(LoadStringArray(hFile, &m_pCommandDLLCallArray, &m_dwNumberOfCommands));
 
 		// Strings Data
-		LoadValue(hFile, &m_dwNumberOfStrings);
-		LoadStringArray(hFile, &m_pStringsArray, &m_dwNumberOfStrings);
+                record(LoadValue(hFile, &m_dwNumberOfStrings));
+                record(LoadStringArray(hFile, &m_pStringsArray, &m_dwNumberOfStrings));
 
 		// Data Data
-		LoadValue(hFile, &m_dwNumberOfDataItems);
-		LoadBlock(hFile, &m_pDataArray, m_dwNumberOfDataItems*10);
-		LoadStringArray(hFile, &m_pDataStringsArray, &m_dwNumberOfDataItems);
+                record(LoadValue(hFile, &m_dwNumberOfDataItems));
+                record(LoadBlock(hFile, &m_pDataArray, m_dwNumberOfDataItems*10));
+                record(LoadStringArray(hFile, &m_pDataStringsArray, &m_dwNumberOfDataItems));
 
 		// Variable Space Data
-		LoadValue(hFile, &m_dwVariableSpaceSize);
+                record(LoadValue(hFile, &m_dwVariableSpaceSize));
 
 		// Data Space Data
-		LoadValue(hFile, &m_dwDataSpaceSize);
+                record(LoadValue(hFile, &m_dwDataSpaceSize));
 
 		// Dynamic Variable Offset Data
-		LoadValue(hFile, &m_dwDynamicVarsQuantity);
-		LoadValueArray(hFile, &m_pDynamicVarsArray, &m_dwDynamicVarsQuantity);
-		LoadValueArray(hFile, &m_pDynamicVarsArrayType, &m_dwDynamicVarsQuantity);
+                record(LoadValue(hFile, &m_dwDynamicVarsQuantity));
+                record(LoadValueArray(hFile, &m_pDynamicVarsArray, &m_dwDynamicVarsQuantity));
+                record(LoadValueArray(hFile, &m_pDynamicVarsArrayType, &m_dwDynamicVarsQuantity));
 
 		// Usertype String Patterns - reactivated for U71 (store structure types)
-		LoadValue(hFile, &m_dwUsertypeStringPatternQuantity);
-		LoadBlock(hFile, &m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity);
+                record(LoadValue(hFile, &m_dwUsertypeStringPatternQuantity));
+                record(LoadBlock(hFile, &m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity));
 
 		// Close file
 		Hook_CloseHandle(hFile);
-		return true;
+                if (!success)
+                        Clear();
+                return success;
 	}
 	else
 	{
@@ -631,68 +649,53 @@ bool CEXEBlock::Load(char* lpFilename)
 bool CEXEBlock::LoadValue(HANDLE hFile, DWORD* Value)
 {
 	DWORD bytes=0;
-	Hook_ReadFile(hFile, Value, 4, &bytes, NULL);
-	if(bytes==0)
-	{
-		// EXEBlock shared - silent fail
-		return false;
-	}
-	else
-		return true;
+        return Value != nullptr &&
+                Hook_ReadFile(hFile, Value, sizeof(DWORD), &bytes, NULL) != FALSE &&
+                bytes == sizeof(DWORD);
 }
 
 bool CEXEBlock::LoadBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize)
 {
 	DWORD bytes=0;
+        if (dwSize == 0) return true;
+        if (pMem == nullptr) return false;
 	// Allocate via make_unique<char[]> then release into the raw-pointer
 	// out-param owned/freed by the caller (Clear via SAFE_DELETE_ARRAY)
 	*pMem = std::make_unique<char[]>(dwSize+1).release();
-	Hook_ReadFile(hFile, *pMem, dwSize, &bytes, NULL);
-	if(bytes==0)
-	{
-		// EXEBlock shared - silent fail
-		return false;
-	}
-	else
-		return true;
+        return *pMem != nullptr &&
+                Hook_ReadFile(hFile, *pMem, dwSize, &bytes, NULL) != FALSE &&
+                bytes == dwSize;
 }
 
 bool CEXEBlock::LoadValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
-	bool bResult=true;
-	if(*Count>0)
-	{
-		// Create Array 
-		*pArray = CreateArray(*Count,0);
+        if (pArray == nullptr || Count == nullptr) return false;
+        if (*Count == 0) return true;
 
-		// Read data into Array
-		Hook_ReadFile(hFile, *pArray, (*Count)*sizeof(DWORD), &bytes, NULL);
-		if(bytes==0) bResult=false;
-	}
-	else
-		bResult=false;
+        // Create Array
+        *pArray = CreateArray(*Count,0);
 
-	return bResult;
+        // Read data into Array
+        const DWORD expected = (*Count) * sizeof(DWORD);
+        return *pArray != nullptr &&
+                Hook_ReadFile(hFile, *pArray, expected, &bytes, NULL) != FALSE &&
+                bytes == expected;
 }
 
 bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, DWORD dwType)
 {
 	DWORD bytes=0;
-	bool bResult=true;
-	if(*Count>0)
-	{
-		// Create Array 
-		*pArray = CreateArray(*Count,dwType);
+        if (pArray == nullptr || Count == nullptr) return false;
+        if (*Count == 0) return true;
 
-		// Read data into Array
-		Hook_ReadFile(hFile, *pArray, (*Count), &bytes, NULL);
-		if(bytes==0) bResult=false;
-	}
-	else
-		bResult=false;
+        // Create Array
+        *pArray = CreateArray(*Count,dwType);
 
-	return bResult;
+        // Read data into Array
+        return *pArray != nullptr &&
+                Hook_ReadFile(hFile, *pArray, (*Count), &bytes, NULL) != FALSE &&
+                bytes == *Count;
 }
 
 bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
@@ -704,31 +707,34 @@ bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
 bool CEXEBlock::LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
-	bool bResult=true;
-	if(*Count>0)
+        if (pArray == nullptr || Count == nullptr) return false;
+        if (*Count == 0) return true;
+        bool bResult=true;
+        if(*Count>0)
 	{
 		// Create Array 
 		*pArray = CreatePtrArray(*Count);
+                if (*pArray == nullptr) return false;
 
 		// Read strings into Array of strings
 		for(DWORD index=0; index<*Count; index++)
 		{
 			// Read length of string
 			DWORD length = 0;
-			Hook_ReadFile(hFile, &length, 4, &bytes, NULL);
+                        if (Hook_ReadFile(hFile, &length, sizeof(DWORD), &bytes, NULL) == FALSE ||
+                                bytes != sizeof(DWORD))
+                                return false;
 			char* pStr = std::make_unique<char[]>(length+1).release();
 			if(length>0)
 			{
-				Hook_ReadFile(hFile, pStr, length, &bytes, NULL);
-				if(bytes==0) bResult=false;
+                                if (Hook_ReadFile(hFile, pStr, length, &bytes, NULL) == FALSE ||
+                                        bytes != length)
+                                        bResult=false;
 			}
 			pStr[length]=0;
 			*(*pArray+index) = (uintptr_t)pStr;
 		}
 	}
-	else
-		bResult=false;
-
 	return bResult;
 }
 
@@ -769,14 +775,49 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		snprintf((char*)m_pDLLFilenameArray[0], strlen(pCoreName)+1, "%s", pCoreName);
 	}
 
+	// The package stores DLL identifiers as DWORD values, while the legacy
+	// runtime dispatch tables have exactly 256 slots. Validate the complete
+	// package contract before converting or indexing any value.
+	if (m_dwNumberOfDLLs > dbp::runtime::DllCapacity ||
+		m_pDLLIndexArray == nullptr ||
+		m_pDLLFilenameArray == nullptr ||
+		m_pDLLLoadedAlreadyArray == nullptr)
+	{
+		if (*pReturnError == nullptr) *pReturnError = new char[1024];
+		sprintf_s(
+			*pReturnError,
+			1024,
+			"Executable DLL table is invalid (count=%lu, indexes=%s, filenames=%s, loaded-state=%s)",
+			static_cast<unsigned long>(m_dwNumberOfDLLs),
+			m_pDLLIndexArray != nullptr ? "present" : "missing",
+			m_pDLLFilenameArray != nullptr ? "present" : "missing",
+			m_pDLLLoadedAlreadyArray != nullptr ? "present" : "missing");
+		return false;
+	}
+	for (DWORD dll = 0; dll < m_dwNumberOfDLLs; ++dll)
+	{
+		const DWORD dllIndex = m_pDLLIndexArray[dll];
+		if (!dbp::runtime::IsDllIndex(dllIndex) || m_pDLLFilenameArray[dll] == 0)
+		{
+			if (*pReturnError == nullptr) *pReturnError = new char[1024];
+			sprintf_s(
+				*pReturnError,
+				1024,
+				"Executable DLL entry %lu has invalid runtime index %lu",
+				static_cast<unsigned long>(dll),
+				static_cast<unsigned long>(dllIndex));
+			return false;
+		}
+	}
+
 	// [EXE] - Detect if using Basic3D.DLL and if so, check for DX9!
 	bool bBasic3DIsUsedSoWeNeedDirectXCheck = false;
 	if ( m_dwNumberOfDLLs>0 )
 	{
 		for(DWORD dll=0; dll<m_dwNumberOfDLLs; dll++)
 		{
-			int dllindex=m_pDLLIndexArray[dll];
-			if(dllindex<=255)
+			const DWORD dllindex=m_pDLLIndexArray[dll];
+			if(dbp::runtime::IsDllIndex(dllindex))
 			{
 				// Load the DLL into memory
 				LPSTR pDLLName = (LPSTR)m_pDLLFilenameArray[dll];
@@ -821,8 +862,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		if(bMiniInit==false) ZeroMemory(bDLLTPC, sizeof(bool)*256);
 		for(DWORD dll=0; dll<m_dwNumberOfDLLs; dll++)
 		{
-			int dllindex=m_pDLLIndexArray[dll];
-			if(dllindex<=255)
+			const DWORD dllindex=m_pDLLIndexArray[dll];
+			if(dbp::runtime::IsDllIndex(dllindex))
 			{
 				// Skip if already loaded
 				if(m_pDLLLoadedAlreadyArray[dll]==0)
@@ -1156,8 +1197,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			// Initialise each TPC DLL from the plugin-user folder 
 			for(DWORD dll=0; dll<m_dwNumberOfDLLs; dll++)
 			{
-				int dllindex=m_pDLLIndexArray[dll];
-				if(dllindex<=255 && bDLLTPC[dllindex]==true)
+				const DWORD dllindex=m_pDLLIndexArray[dll];
+				if(dbp::runtime::IsDllIndex(dllindex) && bDLLTPC[dllindex]==true)
 				{
 					// Get Any DLL Function Pointers
 					DLL_Constructor			g_DLL_Constructor;		// constructor
@@ -1208,8 +1249,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							for ( DWORD findll=0; findll<m_dwNumberOfDLLs; findll++ )
 							{
 								LPSTR pFoundDLLName = (LPSTR)m_pDLLFilenameArray[findll];
-								int founddllindex=m_pDLLIndexArray[findll];
-								if(founddllindex<=255)
+								const DWORD founddllindex=m_pDLLIndexArray[findll];
+								if(dbp::runtime::IsDllIndex(founddllindex))
 								{
 									if ( stricmp( pFoundDLLName, pDLLNameToFind )==NULL )
 									{
@@ -1297,8 +1338,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			{
 				for(DWORD dll=0; dll<m_dwNumberOfDLLs; dll++)
 				{
-					int dllindex=m_pDLLIndexArray[dll];
-					if(dllindex<=255 && bDLLTPC[dllindex]==true)
+					const DWORD dllindex=m_pDLLIndexArray[dll];
+					if(dbp::runtime::IsDllIndex(dllindex) && bDLLTPC[dllindex]==true)
 					{
 						DLL_PassCore g_DLL_PassCoreData;
 						g_DLL_PassCoreData = ( DLL_PassCore ) Hook_GetProcAddress( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
@@ -1429,7 +1470,24 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				if(iRefType==1)
 				{
 					// Command Address
-					int dll=m_pCommandDLLIdArray[index];
+					if (index >= m_dwNumberOfCommands ||
+						m_pCommandDLLIdArray == nullptr ||
+						m_pCommandDLLCallArray == nullptr ||
+						m_pCommandDLLCallArray[index] == 0)
+					{
+						if (*pReturnError == nullptr) *pReturnError = new char[1024];
+						sprintf_s(*pReturnError, 1024, "Command reference %lu is outside the executable command table", static_cast<unsigned long>(index));
+						bResult = false;
+						break;
+					}
+					const DWORD dll=m_pCommandDLLIdArray[index];
+					if (!dbp::runtime::IsDllIndex(dll))
+					{
+						if (*pReturnError == nullptr) *pReturnError = new char[1024];
+						sprintf_s(*pReturnError, 1024, "Command reference %lu uses invalid DLL index %lu", static_cast<unsigned long>(index), static_cast<unsigned long>(dll));
+						bResult = false;
+						break;
+					}
 					char* pStr = (char*)m_pCommandDLLCallArray[index];
 					if(hDLLMod[dll]==0)
 					{
@@ -1461,6 +1519,13 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				if(iRefType==2)
 				{
 					// String Address
+					if (index >= m_dwNumberOfStrings || m_pStringsArray == nullptr)
+					{
+						if (*pReturnError == nullptr) *pReturnError = new char[1024];
+						sprintf_s(*pReturnError, 1024, "String reference %lu is outside the executable string table", static_cast<unsigned long>(index));
+						bResult = false;
+						break;
+					}
 					char* pStr = (char*)m_pStringsArray[index];
 					DWORD dwAdd = (DWORD)pStr;
 					if(dwAdd!=NULL)

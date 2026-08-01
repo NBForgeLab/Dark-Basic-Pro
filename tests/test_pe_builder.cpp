@@ -22,3 +22,10 @@ TEST(PEBuilderTest, ResetClearsState) {
     builder.Reset();
     EXPECT_FALSE(builder.IsPrepared());
 }
+
+TEST(PEBuilderTest, RuntimeDllIndexesMustFitTheLegacyDispatchTable) {
+    EXPECT_TRUE(CPEBuilder::IsRuntimeDllIndex(0u));
+    EXPECT_TRUE(CPEBuilder::IsRuntimeDllIndex(255u));
+    EXPECT_FALSE(CPEBuilder::IsRuntimeDllIndex(256u));
+    EXPECT_FALSE(CPEBuilder::IsRuntimeDllIndex(0xFFFF3DFFu));
+}

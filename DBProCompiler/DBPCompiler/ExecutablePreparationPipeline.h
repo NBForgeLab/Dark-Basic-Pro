@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 enum class ExecutableOutputMode {
     debug,
     standalone,
@@ -24,7 +26,17 @@ enum class ExecutablePreparationStage {
 };
 
 struct ExecutablePreparationRequest {
-    const char* outputFilename;
+    ExecutablePreparationRequest(
+        const char* filename,
+        bool isParsingMainProgram,
+        bool containsNewCode,
+        ExecutableOutputMode mode)
+        : outputFilename(filename != nullptr ? filename : ""),
+          parsingMainProgram(isParsingMainProgram),
+          hasNewCode(containsNewCode),
+          outputMode(mode) {}
+
+    std::string outputFilename;
     bool parsingMainProgram;
     bool hasNewCode;
     ExecutableOutputMode outputMode;

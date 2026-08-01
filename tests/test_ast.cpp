@@ -240,6 +240,24 @@ TEST_F(ASTCodeGenTest, PipelineCodegen) {
     EXPECT_TRUE(codegen.Generate(ir));
 }
 
+TEST_F(ASTCodeGenTest, AssignmentPipelineEmitsLoweredTargetCode) {
+    g_pStatementList->SetVariableAddParse(true);
+    DWORD action = 0;
+    ASSERT_TRUE(g_pVarTable->AddVariable(
+        "pipelineTarget", "integer", 0, 1, true, &action, false));
+    auto* const writer = static_cast<CASMWriter*>(g_pASMWriter);
+    const auto before = writer->GetCurrentMCPosition();
+    CASTAssignment assignment("pipelineTarget", "42", 1);
+
+    EXPECT_TRUE(assignment.WriteDBM());
+    EXPECT_GT(writer->GetCurrentMCPosition(), before);
+    const auto* const machineCode = reinterpret_cast<const unsigned char*>(
+        writer->GetMachineCodeBuffer().GetProgramStart());
+    ASSERT_NE(machineCode, nullptr);
+    EXPECT_EQ(machineCode[before], 0xB8u)
+        << "loading an integer literal must emit MOV EAX, imm32";
+}
+
 #include "ASTExpressionParser.h"
 
 TEST(ASTExpressionParserTest, ParseLiteral) {

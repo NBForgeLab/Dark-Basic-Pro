@@ -152,6 +152,6 @@ bool ASMWriterPreparationServices::PackageStandalone(
 void ASMWriterPreparationServices::ReportFailure(
     const ExecutablePreparationResult& result) const noexcept {
     if (g_pErrorReport != nullptr && result.message != nullptr) {
-        g_pErrorReport->AddErrorString(const_cast<char*>(result.message));
+        g_pErrorReport->AddErrorString(result.message);
     }
 }

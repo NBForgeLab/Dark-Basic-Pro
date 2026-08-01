@@ -23,7 +23,10 @@
 
 #include <DB3Time.h>
 
+#include <cstdint>
+#include <limits>
 #include <memory>
+#include <optional>
 
 // External Class Pointer
 extern CEXEBlock* g_pEXE;
@@ -459,15 +462,13 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 				}
 				else
 				{
-					// Record Reference Position & Label
-					char* pStr = new char[strlen(pData)+1];
-					strcpy_s(pStr, strlen(pData)+1, pData);
-					CStr cleanStr(pStr);
+					// Record a value-owned reference label. Host pointers must never
+					// leak into the serialized target reference representation.
+					CStr cleanStr(pData);
 					cleanStr.EatEdgeSpacesandTabs(NULL);
-					strcpy_s(pStr, strlen(pData)+1, cleanStr.GetStr());
 
 					DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
-					m_referenceTracker.AddReference(MCBBytePos, static_cast<DWORD>(reinterpret_cast<uintptr_t>(pStr)));
+					m_referenceTracker.AddReference(MCBBytePos, cleanStr.GetStr());
 
 					// WRITE BLANK(XXXX) INTO MB
 					m_machineCodeBuffer.WriteDWORD((DWORD)0xFFFFFFFF, 4);
@@ -679,7 +680,73 @@ bool CASMWriter::UpdateMCB(DWORD dwProgramSizeBytes)
 bool CASMWriter::UpdateMCBRefData(void)
 {
 	db3::CProfile<> prof("CASMWriter::UpdateMCBRefData");
-	return m_referenceTracker.UpdateMCBRefData(g_pEXE);
+	if (g_pEXE == nullptr || g_pVarTable == nullptr || g_pLabelTable == nullptr ||
+		g_pErrorReport == nullptr)
+	{
+		return false;
+	}
+
+	const auto resolveSymbol = [](const ParsedReference& reference)
+		-> std::optional<std::uint32_t>
+	{
+		if (reference.kind == ReferenceKind::Variable)
+		{
+			auto* variable = g_pVarTable->FindVariable(
+				nullptr,
+				const_cast<char*>(reference.symbol.c_str()),
+				reference.isArray ? 1u : 0u);
+			if (variable == nullptr)
+			{
+				g_pErrorReport->AddErrorString(
+					("Failed to resolve executable variable reference: " + reference.symbol).c_str());
+				return std::nullopt;
+			}
+
+			const std::uint64_t offset =
+				static_cast<std::uint64_t>(variable->GetOffsetValue()) + reference.memoryOffset;
+			if (offset > (std::numeric_limits<std::uint32_t>::max)())
+			{
+				g_pErrorReport->AddErrorString("Executable variable reference exceeds PE32 range");
+				return std::nullopt;
+			}
+			return static_cast<std::uint32_t>(offset);
+		}
+
+		auto* label = g_pLabelTable->FindLabel(const_cast<char*>(reference.symbol.c_str()));
+		if (label == nullptr)
+		{
+			g_pErrorReport->AddErrorString(
+				("Failed to resolve executable label reference: " + reference.symbol).c_str());
+			return std::nullopt;
+		}
+
+		if (reference.kind == ReferenceKind::DataLabel)
+		{
+			return label->GetDataIndex();
+		}
+
+		std::uint64_t bytePosition = label->GetBytePosition();
+		if (_stricmp(label->GetName()->GetStr(), "$labelend") != 0)
+		{
+			bytePosition += g_pEXE->m_dwStartOfMiniMC;
+		}
+		if (bytePosition > (std::numeric_limits<std::uint32_t>::max)())
+		{
+			g_pErrorReport->AddErrorString("Executable label reference exceeds PE32 range");
+			return std::nullopt;
+		}
+		return static_cast<std::uint32_t>(bytePosition);
+	};
+
+	const bool updated = m_referenceTracker.UpdateMCBRefData(
+		g_pEXE,
+		g_pEXE->m_dwStartOfMiniMC,
+		resolveSymbol);
+	if (!updated)
+	{
+		g_pErrorReport->AddErrorString("Failed to parse or resolve executable reference data");
+	}
+	return updated;
 }
 
 bool CASMWriter::UpdateDLLData(void)
@@ -929,8 +996,7 @@ DWORD CASMWriter::GetCurrentMCPosition(void)
 
 DWORD CASMWriter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue)
 {
-	DWORD dwAddressSizeCode = m_taskEmitter.DetermineASMCall(dwASMCodeAsAByte, dwTypeValue);
-	return dwASMCodeAsAByte + dwAddressSizeCode;
+	return m_taskEmitter.DetermineASMCall(dwASMCodeAsAByte, dwTypeValue);
 }
 
 DWORD CASMWriter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue)
@@ -1141,20 +1207,14 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 																CStr* pP2, CStr* pP2Off, DWORD dwP2Type, DWORD dwP2Offset,
 																CStr* pP3, CStr* pP3Off, DWORD dwP3Type, DWORD dwP3Offset )
 {
-	if (!m_taskEmitter.EmitCoreTask(dwLine, dwTask))
-	{
-		return false;
-	}
+	// Line zero is reserved for compiler-generated prologue code. Preserve it
+	// as valid source metadata and never use it as an emission guard.
+	m_dwLineNumber = dwLine;
 
 	// Determine Modes
 	DWORD dwP1Mode=DetMode(pP1, dwP1Type, dwP1Offset);
 	DWORD dwP2Mode=DetMode(pP2, dwP2Type, dwP2Offset);
 	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset);
-
-	if (!m_taskEmitter.EmitCoreTask(dwLine, dwTask, dwP1Mode, dwP2Mode, dwP3Mode) || !m_taskEmitter.EmitTask(this, dwLine, dwTask))
-	{
-		return false;
-	}
 
 	// Batches of ASM Ops to perform a single task
 	if(dwTask==static_cast<DWORD>(ASMTask::AssignToEax))
@@ -2132,12 +2192,43 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 
 		// Comment on this task
 		WriteASMComment("PUSH INT. ARRAY INDEX TO STACK", "", "", "");
+	}
+	if(dwTask==static_cast<DWORD>(ASMTask::CalcArrayOffset))
+	{
+		// Find the array header in EAX.
+		if(dwP2Mode==static_cast<DWORD>(ParamMode::MemArr))
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP2->GetStr());
+		if(dwP2Mode==static_cast<DWORD>(ParamMode::EbpArr))
+			WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pP2->GetStr()+2);
+
+		if(GetArrayCheckFlag())
 		{
-			// Complete Leap Marker (so we jump here)
-			WriteASMLeapMarkerEnd(4);
+			WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+			WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 4);
 		}
 
-		// Comment on this task
+		// The first subscript is the initial linear index. Each subsequent
+		// subscript is multiplied by its dimension stride from the array header.
+		WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
+		const auto dimensionCount = static_cast<int>(dwP1Offset);
+		for(int dimension = 0; dimension < dimensionCount - 1; ++dimension)
+		{
+			CStr headerOffset;
+			headerOffset.SetNumericText(-56 + (dimension * 4));
+			WriteASMLine(static_cast<DWORD>(ASMOp::POPEDX), "");
+			WriteASMLine(
+				static_cast<DWORD>(ASMOp::MULEDXEAXOFF4),
+				headerOffset.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDEBXEDX4), "");
+		}
+
+		WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBX4), "");
+		WriteASMEAXtoX(dwP1Mode, pP1, nullptr, 7, 0);
+
+		if(GetArrayCheckFlag())
+		{
+			WriteASMLeapMarkerEnd(4);
+		}
 		WriteASMComment("CALCULATE ARRAY OFFSET", "", "", "");
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::PushUdt))
