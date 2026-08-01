@@ -64,4 +64,34 @@ TEST(TargetAbiTest, HostConversionRejectsNarrowing) {
     }
 }
 
+TEST(TargetAbiTest, ReadsNullPointerAsValidSlot) {
+    std::array<std::byte, 4> bytes{};
+
+    const auto pointer =
+        dbp::abi::ReadPointer<char*, dbp::abi::TargetAbi32>(
+            bytes.data(), bytes.size(), 0);
+
+    ASSERT_TRUE(pointer.has_value());
+    EXPECT_EQ(*pointer, nullptr);
+}
+
+TEST(TargetAbiTest, ReadsRepresentablePointerValue) {
+    std::array<std::byte, 4> bytes{};
+    const std::uint32_t storedAddress = 0x00123456U;
+    std::memcpy(bytes.data(), &storedAddress, sizeof(storedAddress));
+
+    const auto pointer =
+        dbp::abi::ReadPointer<char*, dbp::abi::TargetAbi32>(
+            bytes.data(), bytes.size(), 0);
+
+    ASSERT_TRUE(pointer.has_value());
+    EXPECT_EQ(reinterpret_cast<std::uintptr_t>(*pointer), storedAddress);
+}
+
+TEST(TargetAbiTest, RejectsTruncatedPointerSlot) {
+    std::array<std::byte, 3> bytes{};
+    EXPECT_FALSE((dbp::abi::ReadPointer<char*, dbp::abi::TargetAbi32>(
+        bytes.data(), bytes.size(), 0)));
+}
+
 } // namespace

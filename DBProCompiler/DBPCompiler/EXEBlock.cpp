@@ -10,6 +10,8 @@
 #include "MemoryPE.h"
 #include "CoreRuntimeApi.h"
 #include "SafeDLLLoading.h"
+#include "DBPLogger.h"
+#include "TargetABI.h"
 #include <filesystem>
 #include <memory>
 #include "direct.h"
@@ -1640,7 +1642,18 @@ void CEXEBlock::FreeUptoDisplay(void)
 		// Scan variables for all dynamic allocations (use dynamicvaroffsetarray)
 		for(DWORD dv=0; dv<m_dwDynamicVarsQuantity; dv++)
 		{
-			DWORD* pMemoryAllocation = (DWORD*)*((DWORD*)(m_pVariableSpace+m_pDynamicVarsArray[dv]));
+			const auto allocation = dbp::abi::ReadPointer<DWORD*>(
+				m_pVariableSpace,
+				m_dwVariableSpaceSize,
+				m_pDynamicVarsArray[dv]);
+			if(!allocation)
+			{
+				DBP_ERROR(
+					"Skipping malformed dynamic variable slot at offset {}.",
+					m_pDynamicVarsArray[dv]);
+				continue;
+			}
+			DWORD* pMemoryAllocation = *allocation;
 			if(m_pDynamicVarsArrayType[dv] == static_cast<DWORD>(DataType::Array))
 				g_CORE_UnDim(pMemoryAllocation);
 			else

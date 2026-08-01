@@ -16,6 +16,7 @@
 #include "DBPLogger.h"
 #include "TextConvert.h"
 #include "DebuggerInterface.h"
+#include "TargetABI.h"
 
 #include <DB3Time.h>
 
@@ -754,8 +755,18 @@ LPSTR CASMWriter::MakeVarDataForTransfer(DWORD *pdwDataSize)
 
 LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 {
+	if(!pdwDataSize)
+		return nullptr;
+
+	*pdwDataSize = 0;
 	LPSTR pData = NULL;
 	DWORD dwSizeOfData = 0;
+	const auto readStringPointer = [](const DWORD offset) noexcept {
+		return dbp::abi::ReadPointer<LPSTR>(
+			g_pVarSpaceAddressInUse,
+			g_dwVarSpaceSizeInUse,
+			offset);
+	};
 	if(g_pVarTable)
 	{
 		// Gather Var Data
@@ -773,7 +784,10 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 					// String Size
 					DWORD dwLengthOfString=0;
 					DWORD dwOffset=pCurrent->GetOffsetValue();
-					LPSTR pStringInMemory=reinterpret_cast<LPSTR>(*reinterpret_cast<uintptr_t*>(g_pVarSpaceAddressInUse+dwOffset));
+					const auto stringPointer = readStringPointer(dwOffset);
+					if(!stringPointer)
+						return nullptr;
+					LPSTR pStringInMemory=*stringPointer;
 					if(pStringInMemory) dwLengthOfString=strlen(pStringInMemory);
 					dwSizeOfData+=dwLengthOfString;
 				}
@@ -785,9 +799,24 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 		// Create Data Space
 		pData = new char[dwSizeOfData];
 		LPSTR pPtr = pData;
+		const auto writeValue = [&](const auto& value) noexcept {
+			const auto offset = static_cast<std::size_t>(pPtr-pData);
+			if(!dbp::binary::WriteTrivial(
+					pData,
+					static_cast<std::size_t>(dwSizeOfData),
+					offset,
+					value))
+				return false;
+			pPtr += sizeof(value);
+			return true;
+		};
 
 		// First DWORD is Size Of VarSpace Block
-		*((DWORD*)pPtr) = g_dwVarSpaceSizeInUse; pPtr+=4;
+		if(!writeValue(g_dwVarSpaceSizeInUse))
+		{
+			delete[] pData;
+			return nullptr;
+		}
 
 		// Snapshot of varspace memory
 		memcpy(pPtr, g_pVarSpaceAddressInUse, g_dwVarSpaceSizeInUse);
@@ -802,27 +831,50 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 				if(pCurrent->GetVarTypeValue()==3)
 				{
 					// Flag to say another string
-					*((LPSTR)pPtr) = 1; pPtr+=1;
+					const unsigned char stringMarker = 1;
+					if(!writeValue(stringMarker))
+					{
+						delete[] pData;
+						return nullptr;
+					}
 
 					// Store offset to string
 					DWORD dwOffset=pCurrent->GetOffsetValue();
-					*((DWORD*)pPtr) = dwOffset; pPtr+=4;
+					if(!writeValue(dwOffset))
+					{
+						delete[] pData;
+						return nullptr;
+					}
 
 					// Locate string if any in memory at offset position
-					LPSTR pStringInMemory=reinterpret_cast<LPSTR>(*reinterpret_cast<uintptr_t*>(g_pVarSpaceAddressInUse+dwOffset));
+					const auto stringPointer = readStringPointer(dwOffset);
+					if(!stringPointer)
+					{
+						delete[] pData;
+						return nullptr;
+					}
+					LPSTR pStringInMemory=*stringPointer;
 
 					// Store length and contents of string in memory
 					DWORD dwLengthOfString=0;
 					if(pStringInMemory) dwLengthOfString=strlen(pStringInMemory);
-					*((DWORD*)pPtr) = dwLengthOfString; pPtr+=4;
+					if(!writeValue(dwLengthOfString))
+					{
+						delete[] pData;
+						return nullptr;
+					}
 					for(DWORD t=0; t<dwLengthOfString; t++)
 						*(pPtr++) = pStringInMemory[t];
 				}
 			}
 			pCurrent=pCurrent->GetNext();
 		}
-		*((LPSTR)pPtr) = 0;
-		pPtr+=1;
+		const unsigned char endMarker = 0;
+		if(!writeValue(endMarker))
+		{
+			delete[] pData;
+			return nullptr;
+		}
 	}
 
 	// Return Data Address
