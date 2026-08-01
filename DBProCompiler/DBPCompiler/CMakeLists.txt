@@ -10,6 +10,7 @@ set(LIB_SOURCES
     Tokenizer.cpp
     TaskEmitter.cpp
     PEBuilder.cpp
+    ExecutablePreparationPipeline.cpp
     ExpressionParser.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
