@@ -20,6 +20,7 @@ add_executable(dbp_tests
     test_pe_export_inspector.cpp
     test_core_runtime_api.cpp
     test_x64_pointer_safety.cpp
+    test_target_abi.cpp
     test_modern_cpp_safety.cpp
     test_exeblock_memory.cpp
     test_exeblock_arrays.cpp
