@@ -111,8 +111,12 @@ TEST_F(MachineCodeBufferTest, WriteDWORDSize1AdvancesOneByte) {
     CMachineCodeBuffer buf;
     ASSERT_TRUE(buf.Initialize(1024));
 
-    buf.WriteDWORD(0x42, 1);
+    buf.WriteDWORD(0x12345678, 1);
     EXPECT_EQ(buf.GetCurrentMCPosition(), 1u);
+
+    const auto* bytes = reinterpret_cast<const unsigned char*>(buf.GetProgramStart());
+    EXPECT_EQ(bytes[0], 0x78);
+    EXPECT_EQ(bytes[1], 0xC3);
 }
 
 // WriteDWORD with size=2 advances by 2 bytes (word-sized immediate).
@@ -122,6 +126,22 @@ TEST_F(MachineCodeBufferTest, WriteDWORDSize2AdvancesTwoBytes) {
 
     buf.WriteDWORD(0x1234, 2);
     EXPECT_EQ(buf.GetCurrentMCPosition(), 2u);
+
+    const auto* bytes = reinterpret_cast<const unsigned char*>(buf.GetProgramStart());
+    EXPECT_EQ(bytes[0], 0x34);
+    EXPECT_EQ(bytes[1], 0x12);
+    EXPECT_EQ(bytes[2], 0xC3);
+}
+
+TEST_F(MachineCodeBufferTest, WriteDWORDRejectsInvalidSizes) {
+    CMachineCodeBuffer buf;
+    ASSERT_TRUE(buf.Initialize(1024));
+
+    buf.WriteDWORD(0x12345678, 0);
+    buf.WriteDWORD(0x12345678, sizeof(DWORD) + 1);
+
+    EXPECT_EQ(buf.GetCurrentMCPosition(), 0u);
+    EXPECT_EQ(static_cast<unsigned char>(buf.GetProgramStart()[0]), 0xC3);
 }
 
 // CheckAndExpandMCBMemory returns false when buffer has plenty of room.
@@ -211,16 +231,6 @@ TEST_F(MachineCodeBufferTest, GetMachineBlockForWriteReturnsCurrentPosition) {
 
     buf.WriteByte(0x90);
     EXPECT_EQ(buf.GetMachineBlockForWrite(), pExpected + 1);
-}
-
-// WritePointer writes a 64-bit/32-bit pointer-width value.
-TEST_F(MachineCodeBufferTest, WritePointerEmitsFullPointer) {
-    CMachineCodeBuffer buf;
-    ASSERT_TRUE(buf.Initialize(1024));
-
-    uintptr_t ptrValue = static_cast<uintptr_t>(0x1234567887654321ULL);
-    buf.WritePointer(ptrValue, sizeof(uintptr_t));
-    EXPECT_EQ(buf.GetCurrentMCPosition(), sizeof(uintptr_t));
 }
 
 // Initialize can be called again after FreeMachineBlock (re-init cycle).

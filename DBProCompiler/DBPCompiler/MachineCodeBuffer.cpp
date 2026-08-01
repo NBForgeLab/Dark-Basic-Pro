@@ -31,12 +31,15 @@ bool CMachineCodeBuffer::CheckAndExpandMCBMemory()
 	if (!m_pProgramStart || !m_pMachineBlock)
 		return false;
 
-	// If within 100 bytes of end, expand memory
-	LPSTR pMCBDataBarrier = (m_pProgramStart + m_dwMCBlockSize) - EXPANSION_THRESHOLD;
-	if (m_pMachineBlock > pMCBDataBarrier)
+	const auto usedSize = static_cast<size_t>(m_pMachineBlock - m_pProgramStart);
+	if (usedSize > m_machineCodeStorage.size())
+		return false;
+
+	// If fewer than 100 bytes remain, expand memory.
+	if (m_machineCodeStorage.size() - usedSize < EXPANSION_THRESHOLD)
 	{
 		// Work out offset of pointer
-		DWORD dwOffset = static_cast<DWORD>(m_pMachineBlock - m_pProgramStart);
+		DWORD dwOffset = static_cast<DWORD>(usedSize);
 
 		// Expand memory (another 100K) via vector resize
 		DWORD dwNewSize = m_dwMCBlockSize + EXPANSION_CHUNK;
@@ -82,7 +85,7 @@ void CMachineCodeBuffer::FreeMachineBlock() noexcept
 
 void CMachineCodeBuffer::WriteByte(int byte)
 {
-	if (m_pMachineBlock)
+	if (CanWrite(sizeof(char)))
 	{
 		*(m_pMachineBlock) = static_cast<char>(byte);
 		(m_pMachineBlock)++;
@@ -91,18 +94,19 @@ void CMachineCodeBuffer::WriteByte(int byte)
 
 void CMachineCodeBuffer::WriteDWORD(DWORD value, DWORD dwSize)
 {
-	if (m_pMachineBlock)
-	{
-		*reinterpret_cast<DWORD*>(m_pMachineBlock) = value;
-		(m_pMachineBlock) += dwSize;
-	}
+	if (dwSize == 0 || dwSize > sizeof(value) || !CanWrite(dwSize))
+		return;
+
+	std::memcpy(m_pMachineBlock, &value, dwSize);
+	m_pMachineBlock += dwSize;
 }
 
-void CMachineCodeBuffer::WritePointer(uintptr_t value, DWORD dwSize)
+bool CMachineCodeBuffer::CanWrite(size_t byteCount) const noexcept
 {
-	if (m_pMachineBlock)
-	{
-		*reinterpret_cast<uintptr_t*>(m_pMachineBlock) = value;
-		(m_pMachineBlock) += dwSize;
-	}
+	if (!m_pProgramStart || !m_pMachineBlock)
+		return false;
+
+	const auto usedSize = static_cast<size_t>(m_pMachineBlock - m_pProgramStart);
+	return usedSize <= m_machineCodeStorage.size()
+		&& byteCount <= m_machineCodeStorage.size() - usedSize;
 }
