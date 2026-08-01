@@ -22,7 +22,8 @@ class CStructTable
 		void Free(void);
 
 		void Add(CStructTable* pNew);
-		[[nodiscard]] CStructTable* GetNext(void) const noexcept { return m_pNext; }
+		[[nodiscard]] CStructTable* GetNext(void) noexcept { return m_pNext; }
+		[[nodiscard]] const CStructTable* GetNext(void) const noexcept { return m_pNext; }
 
 		void			SetStructDefaults(void);
 		template <typename TargetAbi>
@@ -55,11 +56,14 @@ class CStructTable
 
 		[[nodiscard]] DWORD			GetTypeMode(void) const noexcept { return m_dwTypeMode; }
 		[[nodiscard]] DWORD			GetTypeValue(void) const noexcept { return m_dwTypeValue; }
-		[[nodiscard]] CStr*			GetTypeName(void) const noexcept { return m_pTypeName.get(); }
+		[[nodiscard]] CStr*			GetTypeName(void) noexcept { return m_pTypeName.get(); }
+		[[nodiscard]] const CStr*	GetTypeName(void) const noexcept { return m_pTypeName.get(); }
 		[[nodiscard]] unsigned char	GetTypeChar(void) const noexcept { return m_cTypeChar; }
 		[[nodiscard]] DWORD			GetTypeSize(void) const noexcept { return m_dwSize; }
-		[[nodiscard]] CStatement*		GetBlock(void) const noexcept { return m_pDecBlock; }
-		[[nodiscard]] CDeclaration*	GetDecChain(void) const noexcept { return m_pDecChain; }
+		[[nodiscard]] CStatement*		GetBlock(void) noexcept { return m_pDecBlock; }
+		[[nodiscard]] const CStatement* GetBlock(void) const noexcept { return m_pDecBlock; }
+		[[nodiscard]] CDeclaration*	GetDecChain(void) noexcept { return m_pDecChain; }
+		[[nodiscard]] const CDeclaration* GetDecChain(void) const noexcept { return m_pDecChain; }
 		[[nodiscard]] DWORD			GetParamInUserFunction(void) const noexcept { return m_dwParamInUserFunction; }
 
 		bool			CalculateAllSizes(void);

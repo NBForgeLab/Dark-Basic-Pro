@@ -8,6 +8,7 @@
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <memory>
 
 #include "Error.h"
 #include "CompilerContext.h"
@@ -306,9 +307,15 @@ TEST_F(CErrorPureTest, ErrorCodeDefines) {
 class CErrorCtxTest : public ::testing::Test {
 protected:
     CompilerContext* m_pCtx = nullptr;
+    CDBPCompiler* m_pOriginalCompiler = nullptr;
+    std::unique_ptr<CDBPCompiler> m_pCompiler;
 
     void SetUp() override {
         DBPLogger::Initialize("test_error.log");
+        m_pOriginalCompiler = g_pDBPCompiler;
+        char compilerName[] = "dbp_tests";
+        m_pCompiler = std::make_unique<CDBPCompiler>(compilerName);
+        g_pDBPCompiler = m_pCompiler.get();
         m_pCtx = new CompilerContext();
         m_pCtx->Initialize();
     }
@@ -319,6 +326,8 @@ protected:
             delete m_pCtx;
             m_pCtx = nullptr;
         }
+        g_pDBPCompiler = m_pOriginalCompiler;
+        m_pCompiler.reset();
     }
 };
 
@@ -445,6 +454,16 @@ TEST_F(CErrorCtxTest, SetParserErrorOnlySetsOnce) {
     std::string parserStr(g_pErrorReport->GetParserErrorString());
     EXPECT_NE(parserStr.find("first parser error"), std::string::npos);
     EXPECT_EQ(parserStr.find("second parser error"), std::string::npos);
+}
+
+TEST_F(CErrorCtxTest, AddErrorStringUsesCurrentTokenLine) {
+    strcpy_s(g_pDBPCompiler->m_pWord[11], "at line");
+    g_pStatementList->SetTokenLineNumber(37);
+
+    g_pErrorReport->AddErrorString("token failure");
+
+    const std::string parserError(g_pErrorReport->GetParserErrorString());
+    EXPECT_NE(parserError.find("at line 37"), std::string::npos);
 }
 
 // --- ReportStatus ---

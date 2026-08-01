@@ -18,8 +18,10 @@ class CDeclaration
 		CDeclaration();
 		~CDeclaration();
 		void Add(CDeclaration* pNew);
-		[[nodiscard]] CDeclaration* GetNext(void) const noexcept { return m_pNext.get(); }
-		[[nodiscard]] CDeclaration* GetPrev(void) const noexcept { return m_pPrev; }
+		[[nodiscard]] CDeclaration* GetNext(void) noexcept { return m_pNext.get(); }
+		[[nodiscard]] const CDeclaration* GetNext(void) const noexcept { return m_pNext.get(); }
+		[[nodiscard]] CDeclaration* GetPrev(void) noexcept { return m_pPrev; }
+		[[nodiscard]] const CDeclaration* GetPrev(void) const noexcept { return m_pPrev; }
 		CDeclaration* Find(LPSTR pName, DWORD dwArrFlag);
 
 		void SetLineNumber(DWORD dwLine) noexcept { m_dwLineNumber=dwLine; }
@@ -37,9 +39,12 @@ class CDeclaration
 		bool GetNumberOfDecsInChain(DWORD* pdwCount);
 		std::string GetTypeStringOfDecsInChain(void);
 
-		[[nodiscard]] CStr* GetName(void) const noexcept { return m_pName.get(); }
-		[[nodiscard]] CStr* GetType(void) const noexcept { return m_pType.get(); }
-		[[nodiscard]] CStr* GetArrValue(void) const noexcept { return m_pArrValue.get(); }
+		[[nodiscard]] CStr* GetName(void) noexcept { return m_pName.get(); }
+		[[nodiscard]] const CStr* GetName(void) const noexcept { return m_pName.get(); }
+		[[nodiscard]] CStr* GetType(void) noexcept { return m_pType.get(); }
+		[[nodiscard]] const CStr* GetType(void) const noexcept { return m_pType.get(); }
+		[[nodiscard]] CStr* GetArrValue(void) noexcept { return m_pArrValue.get(); }
+		[[nodiscard]] const CStr* GetArrValue(void) const noexcept { return m_pArrValue.get(); }
 		[[nodiscard]] DWORD GetArrFlag(void) const noexcept { return m_dwArr; }
 		[[nodiscard]] DWORD GetOffset(void) const noexcept { return m_dwOffset; }
 		[[nodiscard]] DWORD GetDataSize(void) const noexcept { return m_dwDataSize; }

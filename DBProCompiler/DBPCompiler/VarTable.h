@@ -27,8 +27,10 @@ class CVarTable
 		void AddInOrder(LPSTR pName, CVarTable* pNew);
 		CVarTable* Advance(DWORD dwCountdown);
 		CVarTable* Subtract(DWORD dwCountdown);
-		[[nodiscard]] CVarTable* GetNext(void) const noexcept { return m_pNext; }
-		[[nodiscard]] CVarTable* GetPrev(void) const noexcept { return m_pPrev; }
+		[[nodiscard]] CVarTable* GetNext(void) noexcept { return m_pNext; }
+		[[nodiscard]] const CVarTable* GetNext(void) const noexcept { return m_pNext; }
+		[[nodiscard]] CVarTable* GetPrev(void) noexcept { return m_pPrev; }
+		[[nodiscard]] const CVarTable* GetPrev(void) const noexcept { return m_pPrev; }
 		void SetVarDefaults(void);
 
 		bool			AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal);
@@ -44,15 +46,19 @@ class CVarTable
 		DWORD			GetTypeValueOfChar(unsigned char cTypeChar);
 
 		void			SetVarScope(CStr* pScope) { m_pVarScope.reset(pScope); }
-		[[nodiscard]] CStr*			GetVarScope(void) const noexcept { return m_pVarScope.get(); }
+		[[nodiscard]] CStr*			GetVarScope(void) noexcept { return m_pVarScope.get(); }
+		[[nodiscard]] const CStr*	GetVarScope(void) const noexcept { return m_pVarScope.get(); }
 		void			SetVarName(CStr* pName) { m_pVarName.reset(pName); }
-		[[nodiscard]] CStr*			GetVarName(void) const noexcept { return m_pVarName.get(); }
+		[[nodiscard]] CStr*			GetVarName(void) noexcept { return m_pVarName.get(); }
+		[[nodiscard]] const CStr*	GetVarName(void) const noexcept { return m_pVarName.get(); }
 		void			SetVarType(CStr* pType) { m_pVarType.reset(pType); }
-		[[nodiscard]] CStr*			GetVarType(void) const noexcept { return m_pVarType.get(); }
+		[[nodiscard]] CStr*			GetVarType(void) noexcept { return m_pVarType.get(); }
+		[[nodiscard]] const CStr*	GetVarType(void) const noexcept { return m_pVarType.get(); }
 		void			SetVarTypeValue(DWORD dwTypeValue) noexcept { m_dwVarTypeValue=dwTypeValue; }
 		[[nodiscard]] DWORD			GetVarTypeValue(void) const noexcept { return m_dwVarTypeValue; }
 		void			SetVarStruct(CStructTable* pStruct) noexcept { m_pVarStruct=pStruct; }
-		[[nodiscard]] CStructTable*	GetVarStruct(void) const noexcept { return m_pVarStruct; }
+		[[nodiscard]] CStructTable*	GetVarStruct(void) noexcept { return m_pVarStruct; }
+		[[nodiscard]] const CStructTable* GetVarStruct(void) const noexcept { return m_pVarStruct; }
 		void			SetArrFlag(DWORD dwFlag) noexcept { m_dwArrFlag=dwFlag; }
 		[[nodiscard]] DWORD			GetArrFlag(void) const noexcept { return m_dwArrFlag; }
 		[[nodiscard]] DWORD			GetOffsetValue(void) const noexcept { return m_dwFinalDBMOffset; }
@@ -62,7 +68,8 @@ class CVarTable
 		[[nodiscard]] bool			GetSpecifiedAsGlobalFlag(void) const noexcept { return m_bSpecifiedAsGLOBAL; }
 		
 		void			SetAdditionalDataString(CStr* pStr) { m_pAdditionalDataString.reset(pStr); }
-		[[nodiscard]] CStr*			GetAdditionalDataString(void) const noexcept { return m_pAdditionalDataString.get(); }
+		[[nodiscard]] CStr*			GetAdditionalDataString(void) noexcept { return m_pAdditionalDataString.get(); }
+		[[nodiscard]] const CStr*	GetAdditionalDataString(void) const noexcept { return m_pAdditionalDataString.get(); }
 
 		void			SetLineNumber(DWORD dwLine) noexcept { m_dwLineNumber=dwLine; }
 		[[nodiscard]] DWORD			GetLineNumber(void) const noexcept { return m_dwLineNumber; }

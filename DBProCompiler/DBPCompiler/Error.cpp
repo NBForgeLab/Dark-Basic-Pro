@@ -87,11 +87,11 @@ void CError::AddErrorString(LPSTR ErrorString)
 	{
 		if(g_pStatementList)
 		{
-			DWORD dwLineNum = 0;
-			g_pStatementList->GetTokenLineNumber();
+			const DWORD dwLineNum =
+				g_pStatementList->GetTokenLineNumber();
 			m_pParserErrorString.reset(new CStr(1));
 			m_pParserErrorString->SetText(ErrorString);
-			if(dwLineNum>0)
+			if(dwLineNum>0 && g_pDBPCompiler)
 			{
 				LPSTR pUseLineNumber = g_pDBPCompiler->GetWord(11);
 				if ( strcmp ( pUseLineNumber, "")!=NULL )
@@ -141,7 +141,7 @@ void CError::SetParserError(DWORD dwLine, LPSTR ErrorString)
 	{
 		m_pParserErrorString.reset(new CStr(1));
 		m_pParserErrorString->SetText(ErrorString);
-		if(dwLine>0)
+		if(dwLine>0 && g_pDBPCompiler)
 		{
 			LPSTR pUseLineNumber = g_pDBPCompiler->GetWord(11);
 			if ( strcmp ( pUseLineNumber, "")!=NULL )

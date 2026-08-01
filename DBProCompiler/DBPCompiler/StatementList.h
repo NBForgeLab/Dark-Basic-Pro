@@ -22,16 +22,22 @@ class CStatementList
 		bool			MakeStatements(LPSTR pData, DWORD Size);
 		bool			AddMiniStatements(LPSTR pData, DWORD Size);
 
-		[[nodiscard]] CStatement*		GetPreScanStatements(void) const noexcept { return m_pPreScanStatements; }
-		[[nodiscard]] CStatement*		GetProgramStatements(void) const noexcept { return m_pProgramStatements; }
-		[[nodiscard]] CStatement*		GetMiniStatements(void) const noexcept { return m_pMiniStatements; }
+		[[nodiscard]] CStatement*		GetPreScanStatements(void) noexcept { return m_pPreScanStatements; }
+		[[nodiscard]] const CStatement* GetPreScanStatements(void) const noexcept { return m_pPreScanStatements; }
+		[[nodiscard]] CStatement*		GetProgramStatements(void) noexcept { return m_pProgramStatements; }
+		[[nodiscard]] const CStatement* GetProgramStatements(void) const noexcept { return m_pProgramStatements; }
+		[[nodiscard]] CStatement*		GetMiniStatements(void) noexcept { return m_pMiniStatements; }
+		[[nodiscard]] const CStatement* GetMiniStatements(void) const noexcept { return m_pMiniStatements; }
 		void			ResetParserPointers(void);
 
 		void			SetFileDataPointer(LPSTR pData) noexcept { m_pFileDataPointer=pData; }
 		void			IncFileDataPointer(void) noexcept { if(m_pFileDataPointer<m_pFileDataEnd) m_pFileDataPointer++; }
-		[[nodiscard]] LPSTR			GetFileDataPointer(void) const noexcept { return m_pFileDataPointer; }
-		[[nodiscard]] LPSTR			GetFileDataEnd(void) const noexcept { return m_pFileDataEnd; }
-		[[nodiscard]] LPSTR			GetFileDataStart(void) const noexcept { return m_pFileData; }
+		[[nodiscard]] LPSTR			GetFileDataPointer(void) noexcept { return m_pFileDataPointer; }
+		[[nodiscard]] LPCSTR			GetFileDataPointer(void) const noexcept { return m_pFileDataPointer; }
+		[[nodiscard]] LPSTR			GetFileDataEnd(void) noexcept { return m_pFileDataEnd; }
+		[[nodiscard]] LPCSTR			GetFileDataEnd(void) const noexcept { return m_pFileDataEnd; }
+		[[nodiscard]] LPSTR			GetFileDataStart(void) noexcept { return m_pFileData; }
+		[[nodiscard]] LPCSTR			GetFileDataStart(void) const noexcept { return m_pFileData; }
 
 		void			UpdateLineDBMData(CStatement* pStatementAt);
 		void			SetLineNumber(DWORD line) noexcept;
@@ -82,12 +88,15 @@ class CStatementList
 
 		void			SetUserFunctionName(LPSTR pUFName) { m_pCurrentUserFunctionName.SetText(pUFName); }
 		[[nodiscard]] LPSTR			GetUserFunctionName(void) noexcept { return m_pCurrentUserFunctionName.GetStr(); }
+		[[nodiscard]] LPCSTR			GetUserFunctionName(void) const noexcept { return m_pCurrentUserFunctionName.GetStr(); }
 
 		void			SetUserFunctionDecChain(CDeclaration* pDec) noexcept { m_pCurrentUserFunctionDecChain=pDec; }
-		[[nodiscard]] CDeclaration*	GetUserFunctionDecChain(void) const noexcept { return m_pCurrentUserFunctionDecChain; }
+		[[nodiscard]] CDeclaration*	GetUserFunctionDecChain(void) noexcept { return m_pCurrentUserFunctionDecChain; }
+		[[nodiscard]] const CDeclaration* GetUserFunctionDecChain(void) const noexcept { return m_pCurrentUserFunctionDecChain; }
 
 		void			SetInstructionRef(CInstructionTableEntry* pRef) noexcept { m_pInstructionRef=pRef; }
-		[[nodiscard]] CInstructionTableEntry* GetInstructionRef(void) const noexcept { return m_pInstructionRef; }
+		[[nodiscard]] CInstructionTableEntry* GetInstructionRef(void) noexcept { return m_pInstructionRef; }
+		[[nodiscard]] const CInstructionTableEntry* GetInstructionRef(void) const noexcept { return m_pInstructionRef; }
 		void			SetInstructionType(DWORD type) noexcept { m_dwInstructionType=type; }
 		[[nodiscard]] DWORD			GetInstructionType(void) const noexcept { return m_dwInstructionType; }
 		void			SetInstructionValue(DWORD value) noexcept { m_dwInstructionValue=value; }
@@ -112,14 +121,16 @@ class CStatementList
 		[[nodiscard]] DWORD			GetLastLine(void) const noexcept { return m_dwLastLineNumber; }
 
 		void			SetLatestLoopExitLabel(CParameter* pLabel) noexcept { m_pLatestLoopExitLabelRef=pLabel; }
-		[[nodiscard]] CParameter*		GetLatestLoopExitLabel(void) const noexcept { return m_pLatestLoopExitLabelRef; }
+		[[nodiscard]] CParameter*		GetLatestLoopExitLabel(void) noexcept { return m_pLatestLoopExitLabelRef; }
+		[[nodiscard]] const CParameter* GetLatestLoopExitLabel(void) const noexcept { return m_pLatestLoopExitLabelRef; }
 
 		bool			FindStartOfFileDataProgramLine(DWORD dwFindLineNumber, LPSTR* pReturnText);
 		size_t			GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen);
 
 		void			SetWriteStarted(bool bState) noexcept { m_bWriteStarted=bState; }
 		[[nodiscard]] bool			GetWriteStarted(void) const noexcept { return m_bWriteStarted; }
-		[[nodiscard]] CStatement*		GetRefStatement(void) const noexcept { return m_pRefStatementDuringWrite; }
+		[[nodiscard]] CStatement*		GetRefStatement(void) noexcept { return m_pRefStatementDuringWrite; }
+		[[nodiscard]] const CStatement* GetRefStatement(void) const noexcept { return m_pRefStatementDuringWrite; }
 		bool			WriteDBM(void);
 
 	public:
