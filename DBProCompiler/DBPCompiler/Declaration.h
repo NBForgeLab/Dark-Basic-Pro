@@ -18,31 +18,31 @@ class CDeclaration
 		CDeclaration();
 		~CDeclaration();
 		void Add(CDeclaration* pNew);
-		CDeclaration* GetNext(void) { return m_pNext.get(); }
-		CDeclaration* GetPrev(void) { return m_pPrev; }
+		[[nodiscard]] CDeclaration* GetNext(void) const noexcept { return m_pNext.get(); }
+		[[nodiscard]] CDeclaration* GetPrev(void) const noexcept { return m_pPrev; }
 		CDeclaration* Find(LPSTR pName, DWORD dwArrFlag);
 
-		void SetLineNumber(DWORD dwLine) { m_dwLineNumber=dwLine; }
-		DWORD GetLineNumber(void) { return m_dwLineNumber; }
+		void SetLineNumber(DWORD dwLine) noexcept { m_dwLineNumber=dwLine; }
+		[[nodiscard]] DWORD GetLineNumber(void) const noexcept { return m_dwLineNumber; }
 
-		void SetArr(DWORD dwArr) { m_dwArr = dwArr; }
+		void SetArr(DWORD dwArr) noexcept { m_dwArr = dwArr; }
 		void SetArrValue(CStr* pArrValue) { m_pArrValue.reset(pArrValue); }
 		void SetName(CStr* pName) { m_pName.reset(pName); }
 		void SetType(CStr* pType) { m_pType.reset(pType); }
 		void SetInit(CStr* pInit) { m_pInit.reset(pInit); }
-		void SetOffset(DWORD dwOffset) { m_dwOffset = dwOffset; }
-		void SetDataSize(DWORD dwSize) { m_dwDataSize = dwSize; }
+		void SetOffset(DWORD dwOffset) noexcept { m_dwOffset = dwOffset; }
+		void SetDataSize(DWORD dwSize) noexcept { m_dwDataSize = dwSize; }
 		void SetDecData(DWORD dwDecArr, LPSTR pDecArrValue, LPSTR pDecName, LPSTR pDecType, LPSTR pDecInit, DWORD LineNumberRef);
 
 		bool GetNumberOfDecsInChain(DWORD* pdwCount);
 		std::string GetTypeStringOfDecsInChain(void);
 
-		CStr* GetName(void) { return m_pName.get(); }
-		CStr* GetType(void) { return m_pType.get(); }
-		CStr* GetArrValue(void) { return m_pArrValue.get(); }
-		DWORD GetArrFlag(void) { return m_dwArr; }
-		DWORD GetOffset(void) { return m_dwOffset; }
-		DWORD GetDataSize(void) { return m_dwDataSize; }
+		[[nodiscard]] CStr* GetName(void) const noexcept { return m_pName.get(); }
+		[[nodiscard]] CStr* GetType(void) const noexcept { return m_pType.get(); }
+		[[nodiscard]] CStr* GetArrValue(void) const noexcept { return m_pArrValue.get(); }
+		[[nodiscard]] DWORD GetArrFlag(void) const noexcept { return m_dwArr; }
+		[[nodiscard]] DWORD GetOffset(void) const noexcept { return m_dwOffset; }
+		[[nodiscard]] DWORD GetDataSize(void) const noexcept { return m_dwDataSize; }
 
 		bool WriteDBM(void);
 

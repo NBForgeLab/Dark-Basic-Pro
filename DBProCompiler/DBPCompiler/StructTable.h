@@ -21,7 +21,7 @@ class CStructTable
 		void Free(void);
 
 		void Add(CStructTable* pNew);
-		CStructTable* GetNext(void) { return m_pNext; }
+		[[nodiscard]] CStructTable* GetNext(void) const noexcept { return m_pNext; }
 
 		void			SetStructDefaults(void);
 
@@ -31,23 +31,23 @@ class CStructTable
 		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* bReportError );
 		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError, DWORD dwParamInUserFunction );
 
-		void			SetTypeMode(DWORD dwMode) { m_dwTypeMode=dwMode; }
-		void			SetTypeValue(DWORD dwValue) { m_dwTypeValue=dwValue; }
+		void			SetTypeMode(DWORD dwMode) noexcept { m_dwTypeMode=dwMode; }
+		void			SetTypeValue(DWORD dwValue) noexcept { m_dwTypeValue=dwValue; }
 		void			SetTypeName(CStr* pName) { m_pTypeName.reset(pName); }
-		void			SetTypeChar(unsigned char cChar) { m_cTypeChar=cChar; }
-		void			SetTypeSize(DWORD dwSize) { m_dwSize=dwSize; }
-		void			SetDecChain(CDeclaration* pDec) { m_pDecChain=pDec; }
-		void			SetTypeBlock(CStatement* pBlock) { m_pDecBlock=pBlock; }
-		void			SetParamInUserFunction(DWORD dwCount) { m_dwParamInUserFunction=dwCount; }
+		void			SetTypeChar(unsigned char cChar) noexcept { m_cTypeChar=cChar; }
+		void			SetTypeSize(DWORD dwSize) noexcept { m_dwSize=dwSize; }
+		void			SetDecChain(CDeclaration* pDec) noexcept { m_pDecChain=pDec; }
+		void			SetTypeBlock(CStatement* pBlock) noexcept { m_pDecBlock=pBlock; }
+		void			SetParamInUserFunction(DWORD dwCount) noexcept { m_dwParamInUserFunction=dwCount; }
 
-		DWORD			GetTypeMode(void) { return m_dwTypeMode; }
-		DWORD			GetTypeValue(void) { return m_dwTypeValue; }
-		CStr*			GetTypeName(void) { return m_pTypeName.get(); }
-		unsigned char	GetTypeChar(void) { return m_cTypeChar; }
-		DWORD			GetTypeSize(void) { return m_dwSize; }
-		CStatement*		GetBlock(void) { return m_pDecBlock; }
-		CDeclaration*	GetDecChain(void) { return m_pDecChain; }
-		DWORD			GetParamInUserFunction(void) { return m_dwParamInUserFunction; }
+		[[nodiscard]] DWORD			GetTypeMode(void) const noexcept { return m_dwTypeMode; }
+		[[nodiscard]] DWORD			GetTypeValue(void) const noexcept { return m_dwTypeValue; }
+		[[nodiscard]] CStr*			GetTypeName(void) const noexcept { return m_pTypeName.get(); }
+		[[nodiscard]] unsigned char	GetTypeChar(void) const noexcept { return m_cTypeChar; }
+		[[nodiscard]] DWORD			GetTypeSize(void) const noexcept { return m_dwSize; }
+		[[nodiscard]] CStatement*		GetBlock(void) const noexcept { return m_pDecBlock; }
+		[[nodiscard]] CDeclaration*	GetDecChain(void) const noexcept { return m_pDecChain; }
+		[[nodiscard]] DWORD			GetParamInUserFunction(void) const noexcept { return m_dwParamInUserFunction; }
 
 		bool			CalculateAllSizes(void);
 		bool			CalculateSize(void);

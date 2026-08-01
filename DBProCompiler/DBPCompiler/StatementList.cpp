@@ -98,7 +98,7 @@ void CStatementList::UpdateLineDBMData(CStatement* pStatementAt)
 	m_pRefStatementDuringWrite = pStatementAt;
 }
 
-void CStatementList::SetLineNumber(DWORD line)
+void CStatementList::SetLineNumber(DWORD line) noexcept
 {
 	// New Line
 	m_dwLineNumber=line;

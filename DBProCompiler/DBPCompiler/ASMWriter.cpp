@@ -773,7 +773,7 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 					// String Size
 					DWORD dwLengthOfString=0;
 					DWORD dwOffset=pCurrent->GetOffsetValue();
-					LPSTR pStringInMemory=(LPSTR)*(DWORD*)(g_pVarSpaceAddressInUse+dwOffset);
+					LPSTR pStringInMemory=reinterpret_cast<LPSTR>(*reinterpret_cast<uintptr_t*>(g_pVarSpaceAddressInUse+dwOffset));
 					if(pStringInMemory) dwLengthOfString=strlen(pStringInMemory);
 					dwSizeOfData+=dwLengthOfString;
 				}
@@ -809,7 +809,7 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 					*((DWORD*)pPtr) = dwOffset; pPtr+=4;
 
 					// Locate string if any in memory at offset position
-					LPSTR pStringInMemory=(LPSTR)*(DWORD*)(g_pVarSpaceAddressInUse+dwOffset);
+					LPSTR pStringInMemory=reinterpret_cast<LPSTR>(*reinterpret_cast<uintptr_t*>(g_pVarSpaceAddressInUse+dwOffset));
 
 					// Store length and contents of string in memory
 					DWORD dwLengthOfString=0;

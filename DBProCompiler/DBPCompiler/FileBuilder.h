@@ -42,7 +42,7 @@ class CFileBuilder
 		void SetPackageKeyFile(
 			std::optional<std::filesystem::path> packageKeyFile);
 		bool FinalizePackage(LPSTR pEXEFilename, DWORD KindOfExe);
-		bool HasStagedExecutable() const;
+		[[nodiscard]] bool HasStagedExecutable() const noexcept;
 
 		bool ConstructEXE(LPSTR EXEfilename);
 

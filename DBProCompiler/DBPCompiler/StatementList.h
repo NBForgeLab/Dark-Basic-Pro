@@ -22,104 +22,104 @@ class CStatementList
 		bool			MakeStatements(LPSTR pData, DWORD Size);
 		bool			AddMiniStatements(LPSTR pData, DWORD Size);
 
-		CStatement*		GetPreScanStatements(void) { return m_pPreScanStatements; }
-		CStatement*		GetProgramStatements(void) { return m_pProgramStatements; }
-		CStatement*		GetMiniStatements(void) { return m_pMiniStatements; }
+		[[nodiscard]] CStatement*		GetPreScanStatements(void) const noexcept { return m_pPreScanStatements; }
+		[[nodiscard]] CStatement*		GetProgramStatements(void) const noexcept { return m_pProgramStatements; }
+		[[nodiscard]] CStatement*		GetMiniStatements(void) const noexcept { return m_pMiniStatements; }
 		void			ResetParserPointers(void);
 
-		void			SetFileDataPointer(LPSTR pData) { m_pFileDataPointer=pData; }
-		void			IncFileDataPointer(void) { if(m_pFileDataPointer<m_pFileDataEnd) m_pFileDataPointer++; }
-		LPSTR			GetFileDataPointer(void) { return m_pFileDataPointer; }
-		LPSTR			GetFileDataEnd(void) { return m_pFileDataEnd; }
-		LPSTR			GetFileDataStart(void) { return m_pFileData; }
+		void			SetFileDataPointer(LPSTR pData) noexcept { m_pFileDataPointer=pData; }
+		void			IncFileDataPointer(void) noexcept { if(m_pFileDataPointer<m_pFileDataEnd) m_pFileDataPointer++; }
+		[[nodiscard]] LPSTR			GetFileDataPointer(void) const noexcept { return m_pFileDataPointer; }
+		[[nodiscard]] LPSTR			GetFileDataEnd(void) const noexcept { return m_pFileDataEnd; }
+		[[nodiscard]] LPSTR			GetFileDataStart(void) const noexcept { return m_pFileData; }
 
 		void			UpdateLineDBMData(CStatement* pStatementAt);
-		void			SetLineNumber(DWORD line);
-		DWORD			GetLineNumber(void) { return m_dwLineNumber; }
+		void			SetLineNumber(DWORD line) noexcept;
+		[[nodiscard]] DWORD			GetLineNumber(void) const noexcept { return m_dwLineNumber; }
 		void			IncLineNumber(void);
 
-		void			SetLastCharInDataPosition(DWORD dwCharPos) { m_dwLastCharInDataPosition=dwCharPos; }
-		DWORD			GetLastCharInDataPosition(void) { return m_dwLastCharInDataPosition; }
-		void			SetLastStampedCharInDataPosition(void) { m_dwLastStampedCharInDataPosition=m_dwLastCharInDataPosition; }
-		DWORD			GetLastStampedCharInDataPosition(void) { return m_dwLastStampedCharInDataPosition; }
+		void			SetLastCharInDataPosition(DWORD dwCharPos) noexcept { m_dwLastCharInDataPosition=dwCharPos; }
+		[[nodiscard]] DWORD			GetLastCharInDataPosition(void) const noexcept { return m_dwLastCharInDataPosition; }
+		void			SetLastStampedCharInDataPosition(void) noexcept { m_dwLastStampedCharInDataPosition=m_dwLastCharInDataPosition; }
+		[[nodiscard]] DWORD			GetLastStampedCharInDataPosition(void) const noexcept { return m_dwLastStampedCharInDataPosition; }
 		
-		void			SetTokenLineNumber(DWORD line) { m_dwTokenLineNumber=line; }
-		DWORD			GetTokenLineNumber(void) { return m_dwTokenLineNumber; }
-		void			SetTempVarIndex(DWORD index) { m_dwTempVariableIndex=index; }
-		DWORD			GetTempVarIndex(void) { return m_dwTempVariableIndex; }
-		void			IncTempVarIndex(void) { m_dwTempVariableIndex++; }
+		void			SetTokenLineNumber(DWORD line) noexcept { m_dwTokenLineNumber=line; }
+		[[nodiscard]] DWORD			GetTokenLineNumber(void) const noexcept { return m_dwTokenLineNumber; }
+		void			SetTempVarIndex(DWORD index) noexcept { m_dwTempVariableIndex=index; }
+		[[nodiscard]] DWORD			GetTempVarIndex(void) const noexcept { return m_dwTempVariableIndex; }
+		void			IncTempVarIndex(void) noexcept { m_dwTempVariableIndex++; }
 
-		void			SetVarOffsetCounter(DWORD value) { m_dwVarOffsetCounter=value; }
-		DWORD			GetVarOffsetCounter(void) { return m_dwVarOffsetCounter; }
-		void			IncVarOffsetCounter(DWORD size) { m_dwVarOffsetCounter+=size; }
+		void			SetVarOffsetCounter(DWORD value) noexcept { m_dwVarOffsetCounter=value; }
+		[[nodiscard]] DWORD			GetVarOffsetCounter(void) const noexcept { return m_dwVarOffsetCounter; }
+		void			IncVarOffsetCounter(DWORD size) noexcept { m_dwVarOffsetCounter+=size; }
 
-		void			SetDataIndexCounter(DWORD value) { m_dwDataIndexCounter=value; }
-		DWORD			GetDataIndexCounter(void) { return m_dwDataIndexCounter; }
-		void			IncDataIndexCounter(DWORD size) { m_dwDataIndexCounter+=size; }
+		void			SetDataIndexCounter(DWORD value) noexcept { m_dwDataIndexCounter=value; }
+		[[nodiscard]] DWORD			GetDataIndexCounter(void) const noexcept { return m_dwDataIndexCounter; }
+		void			IncDataIndexCounter(DWORD size) noexcept { m_dwDataIndexCounter+=size; }
 		
-		void			SetStringIndexCounter(DWORD value) { m_dwStringIndexCounter=value; }
-		DWORD			GetStringIndexCounter(void) { return m_dwStringIndexCounter; }
-		void			IncStringIndexCounter(DWORD size) { m_dwStringIndexCounter+=size; }
+		void			SetStringIndexCounter(DWORD value) noexcept { m_dwStringIndexCounter=value; }
+		[[nodiscard]] DWORD			GetStringIndexCounter(void) const noexcept { return m_dwStringIndexCounter; }
+		void			IncStringIndexCounter(DWORD size) noexcept { m_dwStringIndexCounter+=size; }
 
-		void			SetDLLIndexCounter(DWORD value) { m_dwDLLIndexCounter=value; }
-		DWORD			GetDLLIndexCounter(void) { return m_dwDLLIndexCounter; }
-		void			IncDLLIndexCounter(DWORD size) { m_dwDLLIndexCounter+=size; }
+		void			SetDLLIndexCounter(DWORD value) noexcept { m_dwDLLIndexCounter=value; }
+		[[nodiscard]] DWORD			GetDLLIndexCounter(void) const noexcept { return m_dwDLLIndexCounter; }
+		void			IncDLLIndexCounter(DWORD size) noexcept { m_dwDLLIndexCounter+=size; }
 
-		void			SetCommandIndexCounter(DWORD value) { m_dwCommandIndexCounter=value; }
-		DWORD			GetCommandIndexCounter(void) { return m_dwCommandIndexCounter; }
-		void			IncCommandIndexCounter(DWORD size) { m_dwCommandIndexCounter+=size; }
+		void			SetCommandIndexCounter(DWORD value) noexcept { m_dwCommandIndexCounter=value; }
+		[[nodiscard]] DWORD			GetCommandIndexCounter(void) const noexcept { return m_dwCommandIndexCounter; }
+		void			IncCommandIndexCounter(DWORD size) noexcept { m_dwCommandIndexCounter+=size; }
 
-		void			SetLabelIndexCounter(DWORD value) { m_dwLabelIndexCounter=value; }
-		DWORD			GetLabelIndexCounter(void) { return m_dwLabelIndexCounter; }
-		void			IncLabelIndexCounter(DWORD size) { m_dwLabelIndexCounter+=size; }
+		void			SetLabelIndexCounter(DWORD value) noexcept { m_dwLabelIndexCounter=value; }
+		[[nodiscard]] DWORD			GetLabelIndexCounter(void) const noexcept { return m_dwLabelIndexCounter; }
+		void			IncLabelIndexCounter(DWORD size) noexcept { m_dwLabelIndexCounter+=size; }
 
-		void			SetVarQtyCounter(DWORD value) { m_dwVarQtyCounter=value; }
-		DWORD			GetVarQtyCounter(void) { return m_dwVarQtyCounter; }
-		void			IncVarQtyCounter(DWORD size) { m_dwVarQtyCounter+=size; }
-		void			SetLabelQtyCounter(DWORD value) { m_dwLabelQtyCounter=value; }
-		DWORD			GetLabelQtyCounter(void) { return m_dwLabelQtyCounter; }
-		void			IncLabelQtyCounter(DWORD size) { m_dwLabelQtyCounter+=size; }
+		void			SetVarQtyCounter(DWORD value) noexcept { m_dwVarQtyCounter=value; }
+		[[nodiscard]] DWORD			GetVarQtyCounter(void) const noexcept { return m_dwVarQtyCounter; }
+		void			IncVarQtyCounter(DWORD size) noexcept { m_dwVarQtyCounter+=size; }
+		void			SetLabelQtyCounter(DWORD value) noexcept { m_dwLabelQtyCounter=value; }
+		[[nodiscard]] DWORD			GetLabelQtyCounter(void) const noexcept { return m_dwLabelQtyCounter; }
+		void			IncLabelQtyCounter(DWORD size) noexcept { m_dwLabelQtyCounter+=size; }
 
 		void			SetUserFunctionName(LPSTR pUFName) { m_pCurrentUserFunctionName.SetText(pUFName); }
-		LPSTR			GetUserFunctionName(void) { return m_pCurrentUserFunctionName.GetStr(); }
+		[[nodiscard]] LPSTR			GetUserFunctionName(void) noexcept { return m_pCurrentUserFunctionName.GetStr(); }
 
-		void			SetUserFunctionDecChain(CDeclaration* pDec) { m_pCurrentUserFunctionDecChain=pDec; }
-		CDeclaration*	GetUserFunctionDecChain(void) { return m_pCurrentUserFunctionDecChain; }
+		void			SetUserFunctionDecChain(CDeclaration* pDec) noexcept { m_pCurrentUserFunctionDecChain=pDec; }
+		[[nodiscard]] CDeclaration*	GetUserFunctionDecChain(void) const noexcept { return m_pCurrentUserFunctionDecChain; }
 
-		void			SetInstructionRef(CInstructionTableEntry* pRef) { m_pInstructionRef=pRef; }
-		CInstructionTableEntry* GetInstructionRef(void) { return m_pInstructionRef; }
-		void			SetInstructionType(DWORD type) { m_dwInstructionType=type; }
-		DWORD			GetInstructionType(void) { return m_dwInstructionType; }
-		void			SetInstructionValue(DWORD value) { m_dwInstructionValue=value; }
-		DWORD			GetInstructionValue(void) { return m_dwInstructionValue; }
-		void			SetInstructionParamMax(DWORD max) { m_dwInstructionParamMax=max; }
-		DWORD			GetInstructionParamMax(void) { return m_dwInstructionParamMax; }
+		void			SetInstructionRef(CInstructionTableEntry* pRef) noexcept { m_pInstructionRef=pRef; }
+		[[nodiscard]] CInstructionTableEntry* GetInstructionRef(void) const noexcept { return m_pInstructionRef; }
+		void			SetInstructionType(DWORD type) noexcept { m_dwInstructionType=type; }
+		[[nodiscard]] DWORD			GetInstructionType(void) const noexcept { return m_dwInstructionType; }
+		void			SetInstructionValue(DWORD value) noexcept { m_dwInstructionValue=value; }
+		[[nodiscard]] DWORD			GetInstructionValue(void) const noexcept { return m_dwInstructionValue; }
+		void			SetInstructionParamMax(DWORD max) noexcept { m_dwInstructionParamMax=max; }
+		[[nodiscard]] DWORD			GetInstructionParamMax(void) const noexcept { return m_dwInstructionParamMax; }
 
-		void			SetVariableAddParse(bool bState) { m_bParseVariableAdds = bState; }
-		bool			GetVariableAddParse(void) { return m_bParseVariableAdds; }
-		void			SetImplementationParse(bool bState) { m_bParseImplementation = bState; }
-		bool			GetImplementationParse(void) { return m_bParseImplementation; }
-		void			SetDisableParsingToCR(bool bState) { m_bDisableParsingToCR = bState; }
-		bool			GetDisableParsingToCR(void) { return m_bDisableParsingToCR; }
-		void			SetDisableParsingFull(bool bState) { m_bDisableParsingFull = bState; }
-		bool			GetDisableParsingFull(void) { return m_bDisableParsingFull; }
-		void			SetAllowLabelAsValue(bool bState) { m_bPermitLabelAsValue = bState; }
-		bool			GetAllowLabelAsValue(void) { return m_bPermitLabelAsValue; }
-		void			SetLocalVarUsageAsGlobal(bool bState) { m_bLocalVarUsage = bState; }
-		bool			GetLocalVarUsageAsGlobal(void) { return m_bLocalVarUsage; }
+		void			SetVariableAddParse(bool bState) noexcept { m_bParseVariableAdds = bState; }
+		[[nodiscard]] bool			GetVariableAddParse(void) const noexcept { return m_bParseVariableAdds; }
+		void			SetImplementationParse(bool bState) noexcept { m_bParseImplementation = bState; }
+		[[nodiscard]] bool			GetImplementationParse(void) const noexcept { return m_bParseImplementation; }
+		void			SetDisableParsingToCR(bool bState) noexcept { m_bDisableParsingToCR = bState; }
+		[[nodiscard]] bool			GetDisableParsingToCR(void) const noexcept { return m_bDisableParsingToCR; }
+		void			SetDisableParsingFull(bool bState) noexcept { m_bDisableParsingFull = bState; }
+		[[nodiscard]] bool			GetDisableParsingFull(void) const noexcept { return m_bDisableParsingFull; }
+		void			SetAllowLabelAsValue(bool bState) noexcept { m_bPermitLabelAsValue = bState; }
+		[[nodiscard]] bool			GetAllowLabelAsValue(void) const noexcept { return m_bPermitLabelAsValue; }
+		void			SetLocalVarUsageAsGlobal(bool bState) noexcept { m_bLocalVarUsage = bState; }
+		[[nodiscard]] bool			GetLocalVarUsageAsGlobal(void) const noexcept { return m_bLocalVarUsage; }
 		
-		void			SetLastLine(DWORD line) { m_dwLastLineNumber=line; }
-		DWORD			GetLastLine(void) { return m_dwLastLineNumber; }
+		void			SetLastLine(DWORD line) noexcept { m_dwLastLineNumber=line; }
+		[[nodiscard]] DWORD			GetLastLine(void) const noexcept { return m_dwLastLineNumber; }
 
-		void			SetLatestLoopExitLabel(CParameter* pLabel) { m_pLatestLoopExitLabelRef=pLabel; }
-		CParameter*		GetLatestLoopExitLabel(void) { return m_pLatestLoopExitLabelRef; }
+		void			SetLatestLoopExitLabel(CParameter* pLabel) noexcept { m_pLatestLoopExitLabelRef=pLabel; }
+		[[nodiscard]] CParameter*		GetLatestLoopExitLabel(void) const noexcept { return m_pLatestLoopExitLabelRef; }
 
 		bool			FindStartOfFileDataProgramLine(DWORD dwFindLineNumber, LPSTR* pReturnText);
 		size_t			GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen);
 
-		void			SetWriteStarted(bool bState) { m_bWriteStarted=bState; }
-		bool			GetWriteStarted(void) { return m_bWriteStarted; }
-		CStatement*		GetRefStatement(void) { return m_pRefStatementDuringWrite; }
+		void			SetWriteStarted(bool bState) noexcept { m_bWriteStarted=bState; }
+		[[nodiscard]] bool			GetWriteStarted(void) const noexcept { return m_bWriteStarted; }
+		[[nodiscard]] CStatement*		GetRefStatement(void) const noexcept { return m_pRefStatementDuringWrite; }
 		bool			WriteDBM(void);
 
 	public:

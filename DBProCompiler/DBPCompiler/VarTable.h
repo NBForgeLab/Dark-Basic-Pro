@@ -27,8 +27,8 @@ class CVarTable
 		void AddInOrder(LPSTR pName, CVarTable* pNew);
 		CVarTable* Advance(DWORD dwCountdown);
 		CVarTable* Subtract(DWORD dwCountdown);
-		CVarTable* GetNext(void) { return m_pNext; }
-		CVarTable* GetPrev(void) { return m_pPrev; }
+		[[nodiscard]] CVarTable* GetNext(void) const noexcept { return m_pNext; }
+		[[nodiscard]] CVarTable* GetPrev(void) const noexcept { return m_pPrev; }
 		void SetVarDefaults(void);
 
 		bool			AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal);
@@ -44,28 +44,28 @@ class CVarTable
 		DWORD			GetTypeValueOfChar(unsigned char cTypeChar);
 
 		void			SetVarScope(CStr* pScope) { m_pVarScope.reset(pScope); }
-		CStr*			GetVarScope(void) { return m_pVarScope.get(); }
+		[[nodiscard]] CStr*			GetVarScope(void) const noexcept { return m_pVarScope.get(); }
 		void			SetVarName(CStr* pName) { m_pVarName.reset(pName); }
-		CStr*			GetVarName(void) { return m_pVarName.get(); }
+		[[nodiscard]] CStr*			GetVarName(void) const noexcept { return m_pVarName.get(); }
 		void			SetVarType(CStr* pType) { m_pVarType.reset(pType); }
-		CStr*			GetVarType(void) { return m_pVarType.get(); }
-		void			SetVarTypeValue(DWORD dwTypeValue) { m_dwVarTypeValue=dwTypeValue; }
-		DWORD			GetVarTypeValue(void) { return m_dwVarTypeValue; }
-		void			SetVarStruct(CStructTable* pStruct) { m_pVarStruct=pStruct; }
-		CStructTable*	GetVarStruct(void) { return m_pVarStruct; }
-		void			SetArrFlag(DWORD dwFlag) { m_dwArrFlag=dwFlag; }
-		DWORD			GetArrFlag(void) { return m_dwArrFlag; }
-		DWORD			GetOffsetValue(void) { return m_dwFinalDBMOffset; }
-		void			SetPreScanAddFlag(bool bState) { m_bPreScanAdd=bState; }
-		bool			GetPreScanAddFlag(void) { return m_bPreScanAdd; }
-		void			SetSpecifiedAsGlobalFlag(bool bState) { m_bSpecifiedAsGLOBAL=bState; }
-		bool			GetSpecifiedAsGlobalFlag(void) { return m_bSpecifiedAsGLOBAL; }
+		[[nodiscard]] CStr*			GetVarType(void) const noexcept { return m_pVarType.get(); }
+		void			SetVarTypeValue(DWORD dwTypeValue) noexcept { m_dwVarTypeValue=dwTypeValue; }
+		[[nodiscard]] DWORD			GetVarTypeValue(void) const noexcept { return m_dwVarTypeValue; }
+		void			SetVarStruct(CStructTable* pStruct) noexcept { m_pVarStruct=pStruct; }
+		[[nodiscard]] CStructTable*	GetVarStruct(void) const noexcept { return m_pVarStruct; }
+		void			SetArrFlag(DWORD dwFlag) noexcept { m_dwArrFlag=dwFlag; }
+		[[nodiscard]] DWORD			GetArrFlag(void) const noexcept { return m_dwArrFlag; }
+		[[nodiscard]] DWORD			GetOffsetValue(void) const noexcept { return m_dwFinalDBMOffset; }
+		void			SetPreScanAddFlag(bool bState) noexcept { m_bPreScanAdd=bState; }
+		[[nodiscard]] bool			GetPreScanAddFlag(void) const noexcept { return m_bPreScanAdd; }
+		void			SetSpecifiedAsGlobalFlag(bool bState) noexcept { m_bSpecifiedAsGLOBAL=bState; }
+		[[nodiscard]] bool			GetSpecifiedAsGlobalFlag(void) const noexcept { return m_bSpecifiedAsGLOBAL; }
 		
 		void			SetAdditionalDataString(CStr* pStr) { m_pAdditionalDataString.reset(pStr); }
-		CStr*			GetAdditionalDataString(void) { return m_pAdditionalDataString.get(); }
+		[[nodiscard]] CStr*			GetAdditionalDataString(void) const noexcept { return m_pAdditionalDataString.get(); }
 
-		void			SetLineNumber(DWORD dwLine) { m_dwLineNumber=dwLine; }
-		DWORD			GetLineNumber(void) { return m_dwLineNumber; }
+		void			SetLineNumber(DWORD dwLine) noexcept { m_dwLineNumber=dwLine; }
+		[[nodiscard]] DWORD			GetLineNumber(void) const noexcept { return m_dwLineNumber; }
 	
 		bool			VerifyVariableStructures(void);
 		DWORD			EstablishVarOffsets(DWORD* pdwOffsetValue);

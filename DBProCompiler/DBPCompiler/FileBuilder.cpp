@@ -330,7 +330,7 @@ void CFileBuilder::SetPackageKeyFile(
 	m_packageKeyFile = std::move(packageKeyFile);
 }
 
-bool CFileBuilder::HasStagedExecutable() const
+bool CFileBuilder::HasStagedExecutable() const noexcept
 {
 	std::error_code error;
 	return !m_stagedExecutablePath.empty() &&
