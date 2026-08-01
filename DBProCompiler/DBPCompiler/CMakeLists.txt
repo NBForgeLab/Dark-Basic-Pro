@@ -13,6 +13,7 @@ set(LIB_SOURCES
     ExecutablePreparationPipeline.cpp
     ASMWriterPreparationServices.cpp
     PreparedExecutableDebugger.cpp
+    PreparedExecutablePackager.cpp
     ExpressionParser.cpp
     CompilerContext.cpp
     CompilerArguments.cpp

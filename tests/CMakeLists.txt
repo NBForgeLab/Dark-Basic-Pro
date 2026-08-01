@@ -24,6 +24,7 @@ add_executable(dbp_tests
     test_executable_preparation_pipeline.cpp
     test_asmwriter_preparation_services.cpp
     test_prepared_executable_debugger.cpp
+    test_prepared_executable_packager.cpp
     test_modern_cpp_safety.cpp
     test_exeblock_memory.cpp
     test_exeblock_arrays.cpp

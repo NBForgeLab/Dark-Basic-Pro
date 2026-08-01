@@ -1,4 +1,8 @@
 // FileBuilder.h: interface for the CFileBuilder class.
+#pragma once
+
+#include <windows.h>
+
 #include "direct.h"
 #include "io.h"
 #include "dbp/package/KeyProvider.h"

@@ -6,7 +6,9 @@
 #include "Error.h"
 #include "PEBuilder.h"
 #include "PreparedExecutableDebugger.h"
+#include "PreparedExecutablePackager.h"
 #include "StatementList.h"
+#include "TextConvert.h"
 
 #include <utility>
 
@@ -132,8 +134,19 @@ bool ASMWriterPreparationServices::RunDebug(
 
 bool ASMWriterPreparationServices::PackageStandalone(
     const ExecutablePreparationRequest& request) noexcept {
-    return outputServices_ != nullptr &&
-           outputServices_->PackageStandalone(writer_, request);
+    if (outputServices_ != nullptr) {
+        return outputServices_->PackageStandalone(writer_, request);
+    }
+
+    try {
+        ASMWriterStandalonePackagingServices services;
+        return PreparedExecutablePackager{}.Package(
+            {std::filesystem::path{
+                TextConvert::UTF8ToUTF16(request.outputFilename)}},
+            services);
+    } catch (...) {
+        return false;
+    }
 }
 
 void ASMWriterPreparationServices::ReportFailure(
