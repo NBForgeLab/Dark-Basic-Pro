@@ -11,6 +11,7 @@ set(LIB_SOURCES
     TaskEmitter.cpp
     PEBuilder.cpp
     ExecutablePreparationPipeline.cpp
+    ASMWriterPreparationServices.cpp
     ExpressionParser.cpp
     CompilerContext.cpp
     CompilerArguments.cpp
