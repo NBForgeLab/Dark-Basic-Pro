@@ -2,6 +2,7 @@
 
 #include "ExecutablePreparationPipeline.h"
 
+#include <optional>
 #include <vector>
 
 namespace {
@@ -51,11 +52,12 @@ public:
     }
 
     std::vector<ExecutablePreparationStage> calls;
+    std::optional<ExecutablePreparationStage> failedStage;
 
 private:
     bool Record(const ExecutablePreparationStage stage) {
         calls.push_back(stage);
-        return true;
+        return failedStage != stage;
     }
 };
 
@@ -115,5 +117,63 @@ TEST(ExecutablePreparationPipelineTest,
         Stage::standalonePackaging,
     }));
 }
+
+TEST(ExecutablePreparationPipelineTest,
+     ExistingCodeSkipsMaterializationStages) {
+    using Stage = ExecutablePreparationStage;
+    RecordingPreparationServices services;
+    const ExecutablePreparationRequest request{
+        "game.exe", false, false, ExecutableOutputMode::debug};
+
+    const auto result =
+        ExecutablePreparationPipeline{}.Run(request, services);
+
+    ASSERT_TRUE(result);
+    EXPECT_EQ(services.calls, (std::vector<Stage>{
+        Stage::targetValidation,
+        Stage::runtimeValidation,
+        Stage::spaceSizes,
+        Stage::debugExecution,
+    }));
+}
+
+class ExecutablePreparationFailureTest
+    : public ::testing::TestWithParam<ExecutablePreparationStage> {};
+
+TEST_P(ExecutablePreparationFailureTest, StopsAtFirstFailedStage) {
+    const auto failedStage = GetParam();
+    RecordingPreparationServices services;
+    services.failedStage = failedStage;
+    const auto outputMode =
+        failedStage == ExecutablePreparationStage::debugExecution
+            ? ExecutableOutputMode::debug
+            : ExecutableOutputMode::standalone;
+
+    const auto result = ExecutablePreparationPipeline{}.Run(
+        {"game.exe", true, true, outputMode}, services);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(result.failedStage, failedStage);
+    ASSERT_FALSE(services.calls.empty());
+    EXPECT_EQ(services.calls.back(), failedStage);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    EveryServiceStage,
+    ExecutablePreparationFailureTest,
+    ::testing::Values(
+        ExecutablePreparationStage::targetValidation,
+        ExecutablePreparationStage::machineCode,
+        ExecutablePreparationStage::references,
+        ExecutablePreparationStage::dllData,
+        ExecutablePreparationStage::commandData,
+        ExecutablePreparationStage::stringData,
+        ExecutablePreparationStage::dataData,
+        ExecutablePreparationStage::dynamicData,
+        ExecutablePreparationStage::structurePatterns,
+        ExecutablePreparationStage::runtimeValidation,
+        ExecutablePreparationStage::spaceSizes,
+        ExecutablePreparationStage::debugExecution,
+        ExecutablePreparationStage::standalonePackaging));
 
 } // namespace
