@@ -1338,7 +1338,6 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			if(pP1->GetChar(0)=='@')
 			{
 				WriteASMXtoEAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
-				if ( GetCondToggle() ) WriteASMLine ( static_cast<DWORD>(ASMOp::NOTEAX4), 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
 				WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 			}
 			else
@@ -1347,13 +1346,11 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 				if(pP1->GetValue()==0)
 				{
 					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
-					if ( GetCondToggle() ) WriteASMLine ( static_cast<DWORD>(ASMOp::NOTEAX4), 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
 					WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 				}
 				else
 				{
 					WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "1");
-					if ( GetCondToggle() ) WriteASMLine ( static_cast<DWORD>(ASMOp::NOTEAX4), 0 ); // lee - 240306 - u6b4 - NOT it back for correct conditional operation
 					WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 				}
 			}
@@ -1789,19 +1786,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 
 					case static_cast<DWORD>(ASMTask::Not):
 					{
-						// LEEFIX - 041002 - NOT is a boolean task, so screen out all but first bit
-//						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
-//						WriteASMLine(dwCorrectASMCode, "");
-//						dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::ANDEAX1),dwP1Type);
-//						DWORD dwIMMSize=dwCorrectASMCode-static_cast<DWORD>(ASMOp::ANDEAX1);
-//						WriteASMLine2IMM(dwCorrectASMCode, NULL, "1", dwIMMSize);
-
-						// lee - 010306 - u60 - actually toggle condition which reads EAX to JNE
-						SetCondToggle(true);
-
-						// lee - 240306 - u6b4 - also, NOT as well for legacy support (above flag NOTs it back)
-						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
-						WriteASMLine(dwCorrectASMCode, "");
+						// NOT is a unary boolean operator. Emit a self-contained
+						// logical normalization so compound IF/loop conditions work
+						// without relying on the fragile CondToggle/JNE side-band.
+						//   CMP EAX, 0     ; ZF=1 when operand is logically false
+						//   MOV EAX, 0     ; clear result, preserving flags
+						//   SETE AL        ; AL=1 when operand==0, else 0
+						WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::SETE), "");
 					}
 					break;
 
@@ -1935,16 +1928,11 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 
 					case static_cast<DWORD>(ASMTask::Not):
 					{
-						// NOT is a boolean task, so screen out all but first bit
-//						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
-//						WriteASMLine(dwCorrectASMCode, "");
-
-						// lee - 010306 - u60 - defer to witching JE to JNE below..
-						SetCondToggle(true);
-
-						// lee - 240306 - u6b4 - also, NOT as well for legacy support (above flag NOTs it back)
-						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::NOTEAX1),dwP1Type);
-						WriteASMLine(dwCorrectASMCode, "");
+						// Same value-local normalization as the P2-immediate path:
+						// CMP EAX,0 / MOV EAX,0 / SETE AL. No CondToggle coupling.
+						WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
+						WriteASMLine(static_cast<DWORD>(ASMOp::SETE), "");
 					}
 					break;
 

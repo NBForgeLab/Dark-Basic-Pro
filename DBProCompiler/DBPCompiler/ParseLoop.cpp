@@ -110,24 +110,12 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 			if(PlacementCode==DBMPLACEMENT_TOP)
 			{
 				CStr pData(pELabelStr);
-				if ( g_pASMWriter->GetCondToggle() )
-				{
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, static_cast<DWORD>(ASMTask::CondJumpNE), &pData, 10);
-					g_pASMWriter->SetCondToggle(false);
-				}
-				else
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, static_cast<DWORD>(ASMTask::CondJumpE), &pData, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, static_cast<DWORD>(ASMTask::CondJumpE), &pData, 10);
 			}
 			if(PlacementCode==DBMPLACEMENT_BOTTOM)
 			{
 				CStr pData(pSLabelStr);
-				if ( g_pASMWriter->GetCondToggle() )
-				{
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, static_cast<DWORD>(ASMTask::CondJumpNE), &pData, 10);
-					g_pASMWriter->SetCondToggle(false);
-				}
-				else
-					g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, static_cast<DWORD>(ASMTask::CondJumpE), &pData, 10);
+				g_pASMWriter->WriteASMTaskCoreP1(dwLineToReport, static_cast<DWORD>(ASMTask::CondJumpE), &pData, 10);
 			}
 		}
 		else

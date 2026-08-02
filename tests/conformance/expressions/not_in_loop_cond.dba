@@ -1,15 +1,17 @@
 REM EXPECT: COMPILE_SUCCESS
-REM EXPECT: RUNTIME_OUTPUT "ARR3D: 777"
+REM EXPECT: RUNTIME_OUTPUT "NLOOP: 3"
 REM EXPECT: EXIT_CODE 0
 REM EXPECT: TIMEOUT_SECONDS 5
 
-DIM grid(5, 5, 5)
-grid(2, 3, 4) = 777
-elemVal = grid(2, 3, 4)
-msg$ = "ARR3D: " + str$(elemVal)
+count = 0
+i = 0
+while NOT (i = 3)
+    count = count + 1
+    i = i + 1
+endwhile
 
 if file exist("output.txt") = 1 then delete file "output.txt"
 open to write 1, "output.txt"
-write string 1, msg$
+write string 1, "NLOOP: " + str$(count)
 close file 1
 end

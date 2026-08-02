@@ -1,0 +1,17 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "LIFECYCLE_OK: 54321"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+dim tempArray(50)
+tempArray(10) = 12345
+dim tempArray(20)
+tempArray(10) = 54321
+elemVal = tempArray(10)
+msg$ = "LIFECYCLE_OK: " + str$(elemVal)
+
+if file exist("..\output.txt") = 1 then delete file "..\output.txt"
+open to write 1, "..\output.txt"
+write string 1, msg$
+close file 1
+end

@@ -121,7 +121,7 @@ $previousCompiler = $env:DBP_CONFORMANCE_COMPILER
 $previousRuntime = $env:DBP_CONFORMANCE_RUNTIME_ROOT
 $env:DBP_CONFORMANCE_COMPILER = Join-Path `
     $buildPath "bin\$Configuration\DBPCompiler.exe"
-$env:DBP_CONFORMANCE_RUNTIME_ROOT = Join-Path $rootPath "Install\Compiler"
+$env:DBP_CONFORMANCE_RUNTIME_ROOT = Join-Path $buildPath "bin\$Configuration"
 $conformanceResult = $null
 try {
     $conformanceResult = Invoke-Pester `

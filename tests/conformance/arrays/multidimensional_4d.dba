@@ -1,8 +1,15 @@
 REM EXPECT: COMPILE_SUCCESS
 REM EXPECT: RUNTIME_OUTPUT "ARR4D: 9999"
 REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
 
 DIM hyper(3, 3, 3, 3)
 hyper(1, 2, 3, 1) = 9999
-PRINT "ARR4D: "; hyper(1, 2, 3, 1)
-END
+elemVal = hyper(1, 2, 3, 1)
+msg$ = "ARR4D: " + str$(elemVal)
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end

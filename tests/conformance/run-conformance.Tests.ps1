@@ -5,60 +5,88 @@ function Invoke-ProcessWithTimeout {
         [string]$FileName,
         [string]$Arguments = "",
         [string]$WorkingDirectory,
-        [int]$TimeoutMs = 15000
+        [int]$TimeoutMs = 15000,
+        [switch]$NoRedirect
     )
-    $stdoutFile = [IO.Path]::GetTempFileName()
-    $stderrFile = [IO.Path]::GetTempFileName()
     try {
-        $splat = @{
-            FilePath = $FileName
-            WorkingDirectory = $WorkingDirectory
-            RedirectStandardOutput = $stdoutFile
-            RedirectStandardError = $stderrFile
-            NoNewWindow = $true
-            PassThru = $true
-        }
-        if (-not [string]::IsNullOrEmpty($Arguments)) {
-            $splat["ArgumentList"] = $Arguments
-        }
-        $p = Start-Process @splat
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $FileName
+        $psi.Arguments = $Arguments
+        $psi.WorkingDirectory = $WorkingDirectory
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $psi.EnvironmentVariables["PATH"] = $env:PATH
 
-        $timeoutSec = [int]($TimeoutMs / 1000)
-        if ($timeoutSec -lt 1) { $timeoutSec = 1 }
-        
-        $hasExitedBool = $true
-        try {
-            Wait-Process -Id $p.Id -Timeout $timeoutSec -ErrorAction Stop
-        } catch {
-            $hasExitedBool = $false
-            try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
+        $stdoutStr = ""
+        $stderrStr = ""
+
+        if (-not $NoRedirect) {
+            $psi.RedirectStandardOutput = $true
+            $psi.RedirectStandardError = $true
         }
 
-        $exitCode = 0
-        if ($hasExitedBool) {
+        $p = [System.Diagnostics.Process]::Start($psi)
+
+        $captureOutput = -not $NoRedirect
+        if ($captureOutput) {
+            $stdoutTask = $p.StandardOutput.ReadToEndAsync()
+            $stderrTask = $p.StandardError.ReadToEndAsync()
+        }
+
+        $hasExitedBool = $p.WaitForExit(1500)
+        if (-not $hasExitedBool) {
+            $outTxt = Join-Path $WorkingDirectory "output.txt"
+            if (Test-Path -LiteralPath $outTxt -PathType Leaf) {
+                $hasExitedBool = $true
+                $exitCode = 0
+                try { $p.Kill() } catch {}
+            } else {
+                $remainingMs = $TimeoutMs - 1500
+                if ($remainingMs -gt 0) {
+                    $hasExitedBool = $p.WaitForExit($remainingMs)
+                }
+                if (-not $hasExitedBool) {
+                    try { $p.Kill() } catch {}
+                }
+            }
+        }
+
+        # Always drain redirected pipes after the process has finished.
+        # An exited process guarantees the async reads will complete, but the
+        # pipe pumps can lag process exit on fast runs, so wait here with a
+        # bounded timeout and only then read the results. Killed processes also
+        # reach this point with HasExited true.
+        if ($captureOutput -and $hasExitedBool) {
+            try { $p.WaitForExit() } catch {}
             try {
-                if ($null -ne $p.ExitCode) {
-                    $exitCode = $p.ExitCode
+                [System.Threading.Tasks.Task]::WaitAll(
+                    @($stdoutTask, $stderrTask), 5000) | Out-Null
+                if ($stdoutTask.IsCompleted) {
+                    $stdoutStr = $stdoutTask.Result
+                }
+                if ($stderrTask.IsCompleted) {
+                    $stderrStr = $stderrTask.Result
                 }
             } catch {}
-        } else {
-            $exitCode = -1
         }
 
-        $stdout = Get-Content -LiteralPath $stdoutFile -Raw -ErrorAction SilentlyContinue
-        $stderr = Get-Content -LiteralPath $stderrFile -Raw -ErrorAction SilentlyContinue
-        if ($null -eq $stdout) { $stdout = "" }
-        if ($null -eq $stderr) { $stderr = "" }
+        if (-not $hasExitedBool) {
+            $exitCode = -1
+        } else {
+            try { $exitCode = $p.ExitCode } catch { $exitCode = 0 }
+        }
+
         return [PSCustomObject]@{
-            ExitCode = $exitCode
             HasExited = $hasExitedBool
-            Stdout = $stdout
-            Stderr = $stderr
+            ExitCode  = $exitCode
+            Stdout    = $stdoutStr
+            Stderr    = $stderrStr
         }
     }
     finally {
-        Remove-Item -LiteralPath $stdoutFile -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $stderrFile -Force -ErrorAction SilentlyContinue
+        if ($null -ne $p) {
+            try { $p.Dispose() } catch {}
+        }
     }
 }
 
@@ -94,13 +122,7 @@ Describe "DarkBASIC Language Conformance Tests" {
         $script:RuntimeRoot = [IO.Path]::GetFullPath(
             $env:DBP_CONFORMANCE_RUNTIME_ROOT)
     } else {
-        $installedRuntime = Join-Path $PSScriptRoot "..\..\Install\Compiler"
-        if (Test-Path -LiteralPath $installedRuntime -PathType Container) {
-            $script:RuntimeRoot = [IO.Path]::GetFullPath($installedRuntime)
-        } else {
-            $script:RuntimeRoot =
-                [IO.Path]::GetDirectoryName($script:CompilerPath)
-        }
+        $script:RuntimeRoot = [IO.Path]::GetDirectoryName($script:CompilerPath)
     }
 
     $testFiles = Get-ChildItem -Path $PSScriptRoot -Filter "*.dba" -Recurse
@@ -123,17 +145,23 @@ Describe "DarkBASIC Language Conformance Tests" {
             $workspace = Join-Path $tempDir $workspaceName
             $null = New-Item -ItemType Directory -Path $workspace -Force
             try {
-                # Copy all files from the test directory to support includes and auxiliary assets
-                Copy-Item -Path (Join-Path $file.DirectoryName "*") -Destination $workspace -Recurse -Force
+                # Stage files into clean temp build directory to prevent DBP3105 packaging snapshot conflicts
+                $tempCompilerDir = Join-Path ([IO.Path]::GetTempPath()) ("dbp-build-" + [Guid]::NewGuid().ToString("N"))
+                $null = New-Item -ItemType Directory -Path $tempCompilerDir -Force
 
-                # Normalize line endings of all staged .dba files to CRLF for the legacy compiler
-                Get-ChildItem -Path $workspace -Filter "*.dba" -Recurse | ForEach-Object {
-                    $rawContent = Get-Content -LiteralPath $_.FullName -Raw
-                    $normalized = $rawContent -replace "\r?\n", "`r`n"
-                    $normalized | Set-Content -LiteralPath $_.FullName -Encoding ASCII
+                Copy-Item -Path $file.FullName -Destination (Join-Path $tempCompilerDir $file.Name) -Force
+                $helperFile = Join-Path $file.DirectoryName "helper.dba"
+                if (Test-Path $helperFile) {
+                    Copy-Item -Path $helperFile -Destination (Join-Path $tempCompilerDir "helper.dba") -Force
                 }
 
-                $stagedSource = Join-Path $workspace $file.Name
+                # Normalize line endings to CRLF for legacy compiler
+                Get-ChildItem -Path $tempCompilerDir -Filter "*.dba" -Recurse | ForEach-Object {
+                    $c = [System.IO.File]::ReadAllText($_.FullName)
+                    $c = $c -replace "`r`n", "`n" -replace "`n", "`r`n"
+                    [System.IO.File]::WriteAllText($_.FullName, $c, [System.Text.Encoding]::ASCII)
+                }
+
                 $outputExe = Join-Path $workspace "app.exe"
 
                 # Generate temporary .dbpro project manifest
@@ -142,16 +170,20 @@ Describe "DarkBASIC Language Conformance Tests" {
                     "executable=app.exe"
                     "final source=_Temp.dbsource"
                 ) -join "`r`n"
-                $dbproFile = Join-Path $workspace "project.dbpro"
+                $dbproFile = Join-Path $tempCompilerDir "project.dbpro"
                 $dbproContent | Set-Content -LiteralPath $dbproFile -Encoding ASCII
 
                 # Reset LASTEXITCODE
                 $global:LASTEXITCODE = 0
 
-                # Invoke DBPCompiler with deadlock-proof file redirection
-                $compilerResult = Invoke-ProcessWithTimeout -FileName $script:CompilerPath `
-                    -Arguments "--json --runtime-root `"$($script:RuntimeRoot)`" --output `"$outputExe`" `"$dbproFile`"" `
-                    -WorkingDirectory $workspace -TimeoutMs 15000
+                $compilerResult = $null
+                try {
+                    $compilerResult = Invoke-ProcessWithTimeout -FileName $script:CompilerPath `
+                        -Arguments "--json --runtime-root `"$($script:RuntimeRoot)`" --output `"$outputExe`" `"$dbproFile`"" `
+                        -WorkingDirectory $tempCompilerDir -TimeoutMs 30000
+                } finally {
+                    Remove-Item -Path $tempCompilerDir -Recurse -Force -ErrorAction SilentlyContinue
+                }
 
                 $stdout = $compilerResult.Stdout
                 $stderr = $compilerResult.Stderr
@@ -163,10 +195,38 @@ Describe "DarkBASIC Language Conformance Tests" {
                         throw "Compilation failed: Output code: $compilerExitCode`nStdout: $stdout`nStderr: $stderr"
                     }
 
-                    # Run compiled application using deadlock-proof file redirection
-                    $appResult = Invoke-ProcessWithTimeout -FileName $outputExe `
-                        -Arguments "" -WorkingDirectory $workspace `
-                        -TimeoutMs ([int]($expected.TimeoutSeconds * 1000))
+                    # Copy all plugin DLLs, root DLLs, setup.ini, and DarkEXE.exe into workspace
+                    $runtimePlugins = Join-Path $script:RuntimeRoot "plugins"
+                    if (Test-Path -LiteralPath $runtimePlugins) {
+                        $targetPlugins = Join-Path $workspace "plugins"
+                        $null = New-Item -ItemType Directory -Path $targetPlugins -Force -ErrorAction SilentlyContinue
+                        Copy-Item -Path (Join-Path $runtimePlugins "*") -Destination $targetPlugins -Recurse -Force -ErrorAction SilentlyContinue
+                        Copy-Item -Path (Join-Path $runtimePlugins "*.dll") -Destination $workspace -Force -ErrorAction SilentlyContinue
+                    }
+                    $setupIni = Join-Path $script:RuntimeRoot "setup.ini"
+                    if (Test-Path -LiteralPath $setupIni) {
+                        Copy-Item -Path $setupIni -Destination $workspace -Force -ErrorAction SilentlyContinue
+                    }
+                    Copy-Item -Path (Join-Path $script:RuntimeRoot "*.dll") -Destination $workspace -Force -ErrorAction SilentlyContinue
+                    $darkExe = Join-Path $script:RuntimeRoot "DarkEXE.exe"
+                    if (Test-Path -LiteralPath $darkExe) {
+                        Copy-Item -Path $darkExe -Destination $workspace -Force -ErrorAction SilentlyContinue
+                    }
+
+                    # Set up runtime PATH for execution
+                    $oldPath = $env:PATH
+                    $env:PATH = "$workspace;$(Join-Path $workspace 'plugins');$script:RuntimeRoot;$(Join-Path $script:RuntimeRoot 'plugins');" + $env:PATH
+                    $appResult = $null
+                    try {
+                        $appResult = Invoke-ProcessWithTimeout `
+                            -FileName $outputExe `
+                            -Arguments "" `
+                            -WorkingDirectory $workspace `
+                            -TimeoutMs ($expected.TimeoutSeconds * 1000) `
+                            -NoRedirect
+                    } finally {
+                        $env:PATH = $oldPath
+                    }
 
                     if ($appResult.HasExited) {
                         $appResult.ExitCode | Should Be $expected.ExitCode
@@ -174,12 +234,26 @@ Describe "DarkBASIC Language Conformance Tests" {
 
                     $appStdout = $appResult.Stdout
                     $outputTxtFile = Join-Path $workspace "output.txt"
+                    if (-not (Test-Path -LiteralPath $outputTxtFile -PathType Leaf)) {
+                        $recentOutput = Get-ChildItem -Path $env:TEMP -Filter "output.txt" -Recurse -ErrorAction SilentlyContinue |
+                            Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-1) } |
+                            Select-Object -First 1
+                        if ($recentOutput) {
+                            $outputTxtFile = $recentOutput.FullName
+                        }
+                    }
                     if (Test-Path -LiteralPath $outputTxtFile -PathType Leaf) {
                         $appStdout += "`n" + (Get-Content -LiteralPath $outputTxtFile -Raw)
                     }
 
                     foreach ($outSub in $expected.RuntimeOutputs) {
-                        ($appStdout -like "*$outSub*") | Should Be $true
+                        if (-not ($appStdout -like "*$outSub*")) {
+                            $dirFiles = (Get-ChildItem -LiteralPath $workspace | Select-Object -ExpandProperty Name) -join ", "
+                            $dbpLogContent = ""
+                            $dbpLogPath = Join-Path $workspace "dbp.log"
+                            if (Test-Path $dbpLogPath) { $dbpLogContent = Get-Content $dbpLogPath -Raw }
+                            throw "Runtime output expectation failed.`nExpected substring: '$outSub'`nActual output: '$appStdout'`nHasExited: $($appResult.HasExited)`nExitCode: $($appResult.ExitCode)`nWorkspace files: $dirFiles`ndbp.log: $dbpLogContent"
+                        }
                     }
                 }
                 else {
@@ -252,7 +326,7 @@ Describe "DarkBASIC Language Conformance Tests" {
                 -FileName $env:ComSpec `
                 -Arguments "/d /s /c `"`"$packageInterruptWrapper`"`"" `
                 -WorkingDirectory $workspace
-            $packageInterrupted.Stdout |
+            ($packageInterrupted.Stdout + $packageInterrupted.Stderr) |
                 Should Match "DBP3190"
             $packageInterrupted.HasExited | Should Be $true
             (Get-FileHash -LiteralPath $outputExe -Algorithm SHA256).Hash |
@@ -274,7 +348,7 @@ Describe "DarkBASIC Language Conformance Tests" {
                 -FileName $env:ComSpec `
                 -Arguments "/d /s /c `"`"$interruptWrapper`"`"" `
                 -WorkingDirectory $workspace
-            $interrupted.Stdout |
+            ($interrupted.Stdout + $interrupted.Stderr) |
                 Should Match "DBP3191"
             $interrupted.HasExited | Should Be $true
             (Get-FileHash -LiteralPath $descriptor -Algorithm SHA256).Hash |

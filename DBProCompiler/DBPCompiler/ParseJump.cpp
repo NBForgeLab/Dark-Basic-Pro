@@ -58,13 +58,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 			std::string jumpToLabel = GetBlockLabelB();
 			if(jumpToLabel.empty()) jumpToLabel = GetBlockLabelA();
 			CStr pJumpToLabel(jumpToLabel.data());
-			if ( g_pASMWriter->GetCondToggle() )
-			{
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpNE), &pJumpToLabel, 10);
-				g_pASMWriter->SetCondToggle(false);
-			}
-			else
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpE), &pJumpToLabel, 10);
+			g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::CondJumpE), &pJumpToLabel, 10);
 		}
 		if(GetBlockA())
 		{
