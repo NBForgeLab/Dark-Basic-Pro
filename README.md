@@ -55,8 +55,8 @@ To ensure long-term maintainability and high code quality, legacy monolithic cla
 ## 🛠️ Prerequisites & Environment Setup
 
 * **Operating System**: Windows 10 or Windows 11 (x64)
-* **Compiler Toolchain**: Visual Studio 2022 / 2026 (MSVC v143+ with C++17 / C++20 support)
-* **Build System**: CMake 3.25+ & MSBuild or Ninja
+* **Compiler Toolchain**: Visual Studio 2026 (MSVC, default toolset with C++17 / C++20 support)
+* **Build System**: CMake 4.2+ & MSBuild or Ninja
 * **DirectX SDK**: Microsoft DirectX SDK (August 2007)
 * **Testing Tools**: PowerShell 7+ and Pester 5+ (for language conformance tests)
 

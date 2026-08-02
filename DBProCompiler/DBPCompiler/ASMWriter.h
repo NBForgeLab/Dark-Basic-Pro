@@ -418,9 +418,6 @@ class CASMWriter : public ICodeGenerator
 		DWORD AddCommandToTable(LPSTR pDLLString, LPSTR pCommandString);
 		bool AddProtectionToSelectedDLLs(LPSTR pDLLString);
 
-		bool GetCondToggle ( void ) { return m_bOneOffCondToggle; }
-		void SetCondToggle ( bool bFlag ) { m_bOneOffCondToggle = bFlag; }
-
 	friend class CLeapMarkerManager;
 
 	private:
@@ -432,7 +429,6 @@ class CASMWriter : public ICodeGenerator
 		
 		// Compile Flag States
 		bool					m_bArrayCheckFlag;
-		bool					m_bOneOffCondToggle;
 
 		// Machine Code Buffer (extracted subsystem)
 		CMachineCodeBuffer		m_machineCodeBuffer;

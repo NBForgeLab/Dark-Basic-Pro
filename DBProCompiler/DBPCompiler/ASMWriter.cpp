@@ -57,7 +57,6 @@ CASMWriter::CASMWriter()
 {
 	// Reference Tracking
 	m_referenceTracker.Reset();
-	m_bOneOffCondToggle=false;
 
 	// Work Variables
 	m_dwLineNumber=0;
@@ -1787,8 +1786,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 					case static_cast<DWORD>(ASMTask::Not):
 					{
 						// NOT is a unary boolean operator. Emit a self-contained
-						// logical normalization so compound IF/loop conditions work
-						// without relying on the fragile CondToggle/JNE side-band.
+						// logical normalization so compound IF/loop conditions work:
 						//   CMP EAX, 0     ; ZF=1 when operand is logically false
 						//   MOV EAX, 0     ; clear result, preserving flags
 						//   SETE AL        ; AL=1 when operand==0, else 0
@@ -1929,7 +1927,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 					case static_cast<DWORD>(ASMTask::Not):
 					{
 						// Same value-local normalization as the P2-immediate path:
-						// CMP EAX,0 / MOV EAX,0 / SETE AL. No CondToggle coupling.
+						// CMP EAX,0 / MOV EAX,0 / SETE AL.
 						WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
 						WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), "0");
 						WriteASMLine(static_cast<DWORD>(ASMOp::SETE), "");

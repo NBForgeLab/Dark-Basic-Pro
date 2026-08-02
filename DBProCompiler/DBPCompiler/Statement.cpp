@@ -5212,9 +5212,6 @@ bool CStatement::WriteDBMNode(void)
 	}
 	// else: comment/debug marker or truly empty — no-op
 
-	// lee - 240306 - u6b4 - unconventional flag for reversing a condition needs shutting down after instruction parse
-	if ( g_pASMWriter ) g_pASMWriter->SetCondToggle(false);
-
 	// For Valid Lines/Statements — skip runtime error hook after end of function
 	if(!GetObject<CParseUserFunction>())
 	{

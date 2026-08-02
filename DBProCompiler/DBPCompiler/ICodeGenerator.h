@@ -90,7 +90,4 @@ public:
 
     virtual DWORD AddCommandToTable(LPSTR pDLLString, LPSTR pCommandString) = 0;
     virtual bool AddProtectionToSelectedDLLs(LPSTR pDLLString) = 0;
-
-    virtual bool GetCondToggle(void) = 0;
-    virtual void SetCondToggle(bool bFlag) = 0;
 };

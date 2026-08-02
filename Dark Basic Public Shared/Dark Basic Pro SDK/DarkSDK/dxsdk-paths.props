@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Injects the Microsoft.DXSDK.D3DX NuGet package paths into legacy SDK
      vcxproj builds (DBDLLCore & friends) driven from the command line:
-     MSBuild.exe <project.vcxproj> /p:PlatformToolset=v143
+     MSBuild.exe <project.vcxproj> /p:PlatformToolset=v145
        /p:ForceImportBeforeCppTargets=<this file> -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
