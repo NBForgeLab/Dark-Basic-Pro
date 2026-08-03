@@ -33,21 +33,18 @@ function Invoke-ProcessWithTimeout {
             $stderrTask = $p.StandardError.ReadToEndAsync()
         }
 
-        $hasExitedBool = $p.WaitForExit(1500)
+        $hasExitedBool = $p.WaitForExit($TimeoutMs)
+
+        # Safety net: a well-formed staged runtime is headless (setup.ini is
+        # required below), so a healthy app always exits by itself. If we still
+        # have to kill it here, the run is already a failure — surfaced by the
+        # hard HasExited assertion in the test body. Give the runtime a brief
+        # grace window first so a healthy run that only just missed the timeout
+        # still finishes its self-exit and flushes output.txt before we reap it.
         if (-not $hasExitedBool) {
-            $outTxt = Join-Path $WorkingDirectory "output.txt"
-            if (Test-Path -LiteralPath $outTxt -PathType Leaf) {
-                $hasExitedBool = $true
-                $exitCode = 0
+            $hasExitedBool = $p.WaitForExit(2000)
+            if (-not $hasExitedBool) {
                 try { $p.Kill() } catch {}
-            } else {
-                $remainingMs = $TimeoutMs - 1500
-                if ($remainingMs -gt 0) {
-                    $hasExitedBool = $p.WaitForExit($remainingMs)
-                }
-                if (-not $hasExitedBool) {
-                    try { $p.Kill() } catch {}
-                }
             }
         }
 
@@ -72,6 +69,7 @@ function Invoke-ProcessWithTimeout {
 
         if (-not $hasExitedBool) {
             $exitCode = -1
+            try { $p.WaitForExit() } catch {}
         } else {
             try { $exitCode = $p.ExitCode } catch { $exitCode = 0 }
         }
@@ -203,10 +201,13 @@ Describe "DarkBASIC Language Conformance Tests" {
                         Copy-Item -Path (Join-Path $runtimePlugins "*") -Destination $targetPlugins -Recurse -Force -ErrorAction SilentlyContinue
                         Copy-Item -Path (Join-Path $runtimePlugins "*.dll") -Destination $workspace -Force -ErrorAction SilentlyContinue
                     }
+                    # setup.ini is mandatory for the headless run (without it
+                    # the app would spin a window and never self-exit).
                     $setupIni = Join-Path $script:RuntimeRoot "setup.ini"
-                    if (Test-Path -LiteralPath $setupIni) {
-                        Copy-Item -Path $setupIni -Destination $workspace -Force -ErrorAction SilentlyContinue
+                    if (-not (Test-Path -LiteralPath $setupIni -PathType Leaf)) {
+                        throw "setup.ini not found in runtime root '$script:RuntimeRoot'. Build or Deploy the runtime first."
                     }
+                    Copy-Item -Path $setupIni -Destination $workspace -Force -ErrorAction SilentlyContinue
                     Copy-Item -Path (Join-Path $script:RuntimeRoot "*.dll") -Destination $workspace -Force -ErrorAction SilentlyContinue
                     $darkExe = Join-Path $script:RuntimeRoot "DarkEXE.exe"
                     if (Test-Path -LiteralPath $darkExe) {
@@ -230,17 +231,14 @@ Describe "DarkBASIC Language Conformance Tests" {
 
                     if ($appResult.HasExited) {
                         $appResult.ExitCode | Should Be $expected.ExitCode
+                    } else {
+                        throw "Application did not exit within $($expected.TimeoutSeconds)s (headless runtime misconfigured)"
                     }
 
                     $appStdout = $appResult.Stdout
                     $outputTxtFile = Join-Path $workspace "output.txt"
                     if (-not (Test-Path -LiteralPath $outputTxtFile -PathType Leaf)) {
-                        $recentOutput = Get-ChildItem -Path $env:TEMP -Filter "output.txt" -Recurse -ErrorAction SilentlyContinue |
-                            Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-1) } |
-                            Select-Object -First 1
-                        if ($recentOutput) {
-                            $outputTxtFile = $recentOutput.FullName
-                        }
+                        $outputTxtFile = Join-Path ([IO.Path]::GetFullPath((Join-Path $workspace ".."))) "output.txt"
                     }
                     if (Test-Path -LiteralPath $outputTxtFile -PathType Leaf) {
                         $appStdout += "`n" + (Get-Content -LiteralPath $outputTxtFile -Raw)

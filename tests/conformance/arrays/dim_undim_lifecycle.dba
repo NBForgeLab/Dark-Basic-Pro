@@ -10,8 +10,8 @@ tempArray(10) = 54321
 elemVal = tempArray(10)
 msg$ = "LIFECYCLE_OK: " + str$(elemVal)
 
-if file exist("..\output.txt") = 1 then delete file "..\output.txt"
-open to write 1, "..\output.txt"
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
 write string 1, msg$
 close file 1
 end

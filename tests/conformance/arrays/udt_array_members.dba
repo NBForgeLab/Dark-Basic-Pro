@@ -16,8 +16,8 @@ heroName$ = party(1).name
 heroHp = party(1).health
 msg$ = "PLAYER: " + heroName$ + " / HP: " + str$(heroHp)
 
-if file exist("..\output.txt") = 1 then delete file "..\output.txt"
-open to write 1, "..\output.txt"
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
 write string 1, msg$
 close file 1
 end
