@@ -995,7 +995,12 @@ DARKSDK void CreateSingleString(DWORD* dwVariableSpaceAddress, DWORD dwSize)
 	else
 	{
 		// Delete a core string
-		delete[] (LPSTR)*dwVariableSpaceAddress;
+		LPSTR strPtr = (LPSTR)*dwVariableSpaceAddress;
+		if ( strPtr && HeapValidate( GetProcessHeap(), 0, strPtr ) )
+		{
+			delete[] strPtr;
+		}
+		*dwVariableSpaceAddress = 0;
 	}
 #endif
 }
@@ -3261,7 +3266,10 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
 				LPSTR* pStringData = (LPSTR*)(pData+dwOffset+dwTypeInternalOffset);
 				if ( *pStringData )
 				{
-					delete[] *pStringData;
+					if ( HeapValidate( GetProcessHeap(), 0, *pStringData ) )
+					{
+						delete[] *pStringData;
+					}
 					*pStringData=NULL;
 				}
 			}

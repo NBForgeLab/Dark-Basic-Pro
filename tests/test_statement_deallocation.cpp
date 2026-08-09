@@ -122,3 +122,15 @@ TEST_F(StatementDeallocationTest, DoDeAllocationInsideFunction) {
     ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
 
+// Contract: UNDIM inside nested IF...ENDIF block compiles cleanly
+TEST_F(StatementDeallocationTest, DoDeAllocationInsideNestedIfBlock) {
+    char prog[] = "flag = 1\r\nIF flag = 1\r\nDIM nestedArr(8)\r\nUNDIM nestedArr()\r\nENDIF\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
+// Contract: UNDIM inside WHILE...ENDWHILE loop compiles cleanly
+TEST_F(StatementDeallocationTest, DoDeAllocationInsideWhileLoop) {
+    char prog[] = "cnt = 1\r\nWHILE cnt < 3\r\nDIM wArr(5)\r\nUNDIM wArr()\r\ncnt = cnt + 1\r\nENDWHILE\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
