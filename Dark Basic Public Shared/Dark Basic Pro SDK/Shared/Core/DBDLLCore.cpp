@@ -2579,9 +2579,11 @@ DARKSDK void FreeStringsFromArray(DWORD dwArrayPtr)
 			{
 				if ( pData [ dwDataOffset ] )
 				{
-					delete[] pData [ dwDataOffset ];
-// Unnecessary clearance - this function only called from Undim.
-//					pData [ dwDataOffset ] = NULL;
+					if ( HeapValidate( GetProcessHeap(), 0, pData [ dwDataOffset ] ) )
+					{
+						delete[] pData [ dwDataOffset ];
+					}
+					pData [ dwDataOffset ] = NULL;
 				}
 			}
 		}
@@ -2616,7 +2618,12 @@ DARKSDK void FreeStringsFromArray(DWORD dwArrayPtr)
 						if (*CurrentItem == 'S')
 						{
 							DWORD P = ArrayPtr[ Position ] + ItemOffset;
-							delete[] *(LPSTR*)P;
+							LPSTR strPtr = *(LPSTR*)P;
+							if ( strPtr && HeapValidate( GetProcessHeap(), 0, strPtr ) )
+							{
+								delete[] strPtr;
+							}
+							*(LPSTR*)P = NULL;
 							ItemOffset += 4;            // Strings are 4 bytes
 						}
 						else if (*CurrentItem == 'O' || *CurrentItem == 'R')

@@ -1,0 +1,23 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "MULTICYCLE_OK: 300"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+dim cycleArr(10)
+cycleArr(5) = 100
+undim cycleArr()
+
+dim cycleArr(20)
+cycleArr(15) = 200
+undim cycleArr()
+
+dim cycleArr(30)
+cycleArr(25) = 300
+finalVal = cycleArr(25)
+msg$ = "MULTICYCLE_OK: " + str$(finalVal)
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end

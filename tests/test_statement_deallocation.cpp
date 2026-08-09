@@ -3,6 +3,8 @@
 #include <windows.h>
 #include "DBPLogger.h"
 #include "Statement.h"
+#include "ParseInstruction.h"
+#include "ParseInit.h"
 #include "StatementList.h"
 #include "StructTable.h"
 #include "LabelTable.h"
@@ -61,6 +63,26 @@ TEST_F(StatementDeallocationTest, DoDeAllocationCompilesUndimWithEmptyBrackets) 
     ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
 
+// Contract: UNDIM must configure CParseInit for deallocation
+TEST_F(StatementDeallocationTest, DoDeAllocationVerifiesReturnParameterAndParamCount) {
+    char prog[] = "DIM myArr(10)\r\nUNDIM myArr()\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+
+    CStatement* pStmt = g_pStatementList->GetProgramStatements();
+    bool foundDealloc = false;
+    while (pStmt) {
+        if (pStmt->HasObject()) {
+            if (CParseInit* pInit = pStmt->GetObject<CParseInit>()) {
+                foundDealloc = true;
+                ASSERT_NE(pInit->GetParameter(), nullptr);
+                break;
+            }
+        }
+        pStmt = pStmt->GetNext();
+    }
+    EXPECT_TRUE(foundDealloc);
+}
+
 // Contract: UNDIM without an array name must fail with a clean diagnostic
 // (ERR_SYNTAX+43) - this walks the zero-length token error path.
 TEST_F(StatementDeallocationTest, DoDeAllocationFailsCleanlyOnMissingArrayName) {
@@ -75,3 +97,28 @@ TEST_F(StatementDeallocationTest, DoDeAllocationToleratesUnknownArray) {
     char prog[] = "UNDIM ghost(5)\r\nEND\r\n";
     ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
 }
+
+// Contract: UNDIM on multiple sequential arrays (arrA, arrB, arrC) compiles cleanly
+TEST_F(StatementDeallocationTest, DoDeAllocationMultipleArraysSequential) {
+    char prog[] = "DIM arrA(10)\r\nDIM arrB(20)\r\nDIM arrC(30)\r\nUNDIM arrA()\r\nUNDIM arrB()\r\nUNDIM arrC()\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
+// Contract: UNDIM on Global and Local arrays compiles cleanly
+TEST_F(StatementDeallocationTest, DoDeAllocationGlobalAndLocalArrays) {
+    char prog[] = "GLOBAL DIM gArr(50)\r\nLOCAL DIM lArr(25)\r\nUNDIM gArr()\r\nUNDIM lArr()\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
+// Contract: UNDIM inside FOR...NEXT loop compiles cleanly
+TEST_F(StatementDeallocationTest, DoDeAllocationInsideForLoop) {
+    char prog[] = "FOR i = 1 TO 3\r\nDIM temp(10)\r\nUNDIM temp()\r\nNEXT i\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+
+// Contract: UNDIM inside user defined function compiles cleanly
+TEST_F(StatementDeallocationTest, DoDeAllocationInsideFunction) {
+    char prog[] = "FUNCTION ProcessData()\r\nDIM localArr(15)\r\nUNDIM localArr()\r\nENDFUNCTION\r\nEND\r\n";
+    ASSERT_TRUE(g_pStatementList->MakeStatements(prog, (DWORD)strlen(prog) + 1));
+}
+

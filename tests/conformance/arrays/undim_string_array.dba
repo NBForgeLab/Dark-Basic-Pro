@@ -1,15 +1,16 @@
 REM EXPECT: COMPILE_SUCCESS
-REM EXPECT: RUNTIME_OUTPUT "LIFECYCLE_OK: 54321"
+REM EXPECT: RUNTIME_OUTPUT "STRING_UNDIM_OK: WORLD"
 REM EXPECT: EXIT_CODE 0
 REM EXPECT: TIMEOUT_SECONDS 5
 
-dim tempArray(50)
-tempArray(10) = 12345
-undim tempArray()
-dim tempArray(20)
-tempArray(10) = 54321
-elemVal = tempArray(10)
-msg$ = "LIFECYCLE_OK: " + str$(elemVal)
+dim strArr$(5)
+strArr$(2) = "HELLO"
+undim strArr$()
+
+dim strArr$(15)
+strArr$(10) = "WORLD"
+s$ = strArr$(10)
+msg$ = "STRING_UNDIM_OK: " + s$
 
 if file exist("output.txt") = 1 then delete file "output.txt"
 open to write 1, "output.txt"

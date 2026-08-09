@@ -54,9 +54,11 @@ TEST(DBPLoggerTest, FormatTracingAndLogLevels) {
 }
 
 TEST(DBPLoggerTest, CompilerStartupLoggingIntegration) {
-    std::string compLog = "dbp.log";
-    if (std::filesystem::exists(compLog)) {
-        std::filesystem::remove(compLog);
+    spdlog::shutdown();
+    std::string compLog = "test_compiler_startup.log";
+    std::error_code ec;
+    if (std::filesystem::exists(compLog, ec)) {
+        std::filesystem::remove(compLog, ec);
     }
 
     // Initialize and log programmatically instead of spawning a process
@@ -64,7 +66,7 @@ TEST(DBPLoggerTest, CompilerStartupLoggingIntegration) {
     DBP_INFO("DarkBasic Pro Compiler initialized.");
     spdlog::shutdown();
     
-    // Verify dbp.log was created
+    // Verify test_compiler_startup.log was created
     ASSERT_TRUE(std::filesystem::exists(compLog));
 
     std::ifstream cfile(compLog);

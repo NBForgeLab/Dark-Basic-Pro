@@ -1,0 +1,19 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "MULTIDIM_UNDIM_OK: 99"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+dim matrix2d(5, 5)
+matrix2d(2, 3) = 42
+undim matrix2d()
+
+dim matrix2d(10, 10)
+matrix2d(8, 9) = 99
+finalVal = matrix2d(8, 9)
+msg$ = "MULTIDIM_UNDIM_OK: " + str$(finalVal)
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end

@@ -3119,28 +3119,16 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 		return false;
 	}
 
-	// Create Parameter Object
-	std::unique_ptr<CParameter> pReturnParameter(new CParameter);
-	if(DoExpression(&addressString, pReturnParameter.get())==false)
-	{
-		g_pErrorReport->AddErrorString("Failed to 'DoDeAllocation::pReturnParameter::DoExpression'");
-		return false;
-	}
-
-	// Ensure return param and dealloc address uses POINTER MATHS (actual address, not relative address(as in array use))
-	pReturnParameter->GetMathItem()->SetResultType(7);
+	// Ensure dealloc address uses POINTER MATHS (actual address, not relative address(as in array use))
 	pArrayParameter->GetMathItem()->SetResultType(7);
-
-	// First param is the return param, then the actual dealloc address
-	pReturnParameter->Add(pArrayParameter.release());
 
 	// Complete Object Data
 	pInstruction->SetType(2);
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::Free)));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::Free)));
-	pInstruction->SetParamMax(2);
-	pInstruction->SetReturnParameter(NULL); // legacy contract: the return token was already freed here, so NULL is pinned
-	pInstruction->SetParameter(pReturnParameter.release());
+	pInstruction->SetParamMax(1);
+	pInstruction->SetReturnParameter(new CStr(addressString.GetStr()));
+	pInstruction->SetParameter(pArrayParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 
 	// Add The Object To This Statement

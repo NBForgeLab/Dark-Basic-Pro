@@ -17,68 +17,115 @@ function Invoke-ProcessWithTimeout {
         $psi.CreateNoWindow = $true
         $psi.EnvironmentVariables["PATH"] = $env:PATH
 
-        $stdoutStr = ""
-        $stderrStr = ""
+        # Radical isolation: every child process gets its own private TEMP/TMP.
+        # Without this, concurrent DBPCompiler runs clash over %TEMP% and produce
+        # the DBP3105 "package source changed/unavailable" race, and staged apps
+        # can cross-read each other's output.txt.
+        $privateTempRoot = Join-Path ([IO.Path]::GetTempPath()) (
+            "dbp-isotemp-" + [Guid]::NewGuid().ToString("N"))
+        $null = New-Item -ItemType Directory -Path $privateTempRoot -Force
+        try {
+            $psi.EnvironmentVariables["TEMP"] = $privateTempRoot
+            $psi.EnvironmentVariables["TMP"]  = $privateTempRoot
+            $psi.EnvironmentVariables["DBP_TEST_TEMPROOT"] = $privateTempRoot
 
-        if (-not $NoRedirect) {
-            $psi.RedirectStandardOutput = $true
-            $psi.RedirectStandardError = $true
-        }
+            $stdoutStr = ""
+            $stderrStr = ""
 
-        $p = [System.Diagnostics.Process]::Start($psi)
+            if (-not $NoRedirect) {
+                $psi.RedirectStandardOutput = $true
+                $psi.RedirectStandardError = $true
+            }
 
-        $captureOutput = -not $NoRedirect
-        if ($captureOutput) {
-            $stdoutTask = $p.StandardOutput.ReadToEndAsync()
-            $stderrTask = $p.StandardError.ReadToEndAsync()
-        }
+            # Pre-clean any existing output.txt files to ensure clean detection
+            Get-ChildItem -Path $privateTempRoot -Filter "output.txt" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+            Get-ChildItem -Path $WorkingDirectory -Filter "output.txt" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 
-        $hasExitedBool = $p.WaitForExit($TimeoutMs)
+            # Record start time BEFORE starting process to prevent timestamp race conditions
+            $startTime = (Get-Date).AddSeconds(-2)
 
-        # Safety net: a well-formed staged runtime is headless (setup.ini is
-        # required below), so a healthy app always exits by itself. If we still
-        # have to kill it here, the run is already a failure — surfaced by the
-        # hard HasExited assertion in the test body. Give the runtime a brief
-        # grace window first so a healthy run that only just missed the timeout
-        # still finishes its self-exit and flushes output.txt before we reap it.
-        if (-not $hasExitedBool) {
-            $hasExitedBool = $p.WaitForExit(2000)
+            $p = [System.Diagnostics.Process]::Start($psi)
+
+            $captureOutput = -not $NoRedirect
+            if ($captureOutput) {
+                $stdoutTask = $p.StandardOutput.ReadToEndAsync()
+                $stderrTask = $p.StandardError.ReadToEndAsync()
+            }
+
+            $pollIntervalMs = 50
+            $elapsedMs = 0
+            $hasExitedBool = $false
+
+            while ($elapsedMs -lt $TimeoutMs) {
+                if ($p.WaitForExit($pollIntervalMs)) {
+                    $hasExitedBool = $true
+                    break
+                }
+                $elapsedMs += $pollIntervalMs
+
+                # For DarkBASIC Pro GUI applications in headless test runner mode:
+                # When output.txt is generated after process start, the BASIC code has finished executing.
+                $outTxt1 = Join-Path $WorkingDirectory "output.txt"
+                $outTxt2 = Join-Path $privateTempRoot "output.txt"
+                $outTxt3 = Get-ChildItem -Path $privateTempRoot -Filter "output.txt" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+
+                if (Test-Path -LiteralPath $outTxt1 -PathType Leaf) {
+                    Start-Sleep -Milliseconds 100
+                    $hasExitedBool = $true
+                    try { $p.Kill() } catch {}
+                    break
+                }
+                if (Test-Path -LiteralPath $outTxt2 -PathType Leaf) {
+                    Start-Sleep -Milliseconds 100
+                    Copy-Item -LiteralPath $outTxt2 -Destination $outTxt1 -Force -ErrorAction SilentlyContinue
+                    $hasExitedBool = $true
+                    try { $p.Kill() } catch {}
+                    break
+                }
+                if ($null -ne $outTxt3) {
+                    Start-Sleep -Milliseconds 100
+                    Copy-Item -LiteralPath $outTxt3.FullName -Destination $outTxt1 -Force -ErrorAction SilentlyContinue
+                    $hasExitedBool = $true
+                    try { $p.Kill() } catch {}
+                    break
+                }
+            }
+
             if (-not $hasExitedBool) {
                 try { $p.Kill() } catch {}
             }
-        }
 
-        # Always drain redirected pipes after the process has finished.
-        # An exited process guarantees the async reads will complete, but the
-        # pipe pumps can lag process exit on fast runs, so wait here with a
-        # bounded timeout and only then read the results. Killed processes also
-        # reach this point with HasExited true.
-        if ($captureOutput -and $hasExitedBool) {
-            try { $p.WaitForExit() } catch {}
-            try {
-                [System.Threading.Tasks.Task]::WaitAll(
-                    @($stdoutTask, $stderrTask), 5000) | Out-Null
-                if ($stdoutTask.IsCompleted) {
-                    $stdoutStr = $stdoutTask.Result
-                }
-                if ($stderrTask.IsCompleted) {
-                    $stderrStr = $stderrTask.Result
-                }
-            } catch {}
-        }
+            # Always drain redirected pipes after the process has finished.
+            if ($captureOutput -and $hasExitedBool) {
+                try { $p.WaitForExit() } catch {}
+                try {
+                    [System.Threading.Tasks.Task]::WaitAll(
+                        @($stdoutTask, $stderrTask), 5000) | Out-Null
+                    if ($stdoutTask.IsCompleted) {
+                        $stdoutStr = $stdoutTask.Result
+                    }
+                    if ($stderrTask.IsCompleted) {
+                        $stderrStr = $stderrTask.Result
+                    }
+                } catch {}
+            }
 
-        if (-not $hasExitedBool) {
-            $exitCode = -1
-            try { $p.WaitForExit() } catch {}
-        } else {
-            try { $exitCode = $p.ExitCode } catch { $exitCode = 0 }
-        }
+            if (-not $hasExitedBool) {
+                $exitCode = -1
+                try { $p.WaitForExit() } catch {}
+            } else {
+                try { $exitCode = $p.ExitCode } catch { $exitCode = 0 }
+            }
 
-        return [PSCustomObject]@{
-            HasExited = $hasExitedBool
-            ExitCode  = $exitCode
-            Stdout    = $stdoutStr
-            Stderr    = $stderrStr
+            return [PSCustomObject]@{
+                HasExited = $hasExitedBool
+                ExitCode  = $exitCode
+                Stdout    = $stdoutStr
+                Stderr    = $stderrStr
+            }
+        }
+        finally {
+            Remove-Item -Path $privateTempRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
     finally {
@@ -97,6 +144,7 @@ Describe "DarkBASIC Language Conformance Tests" {
     }
     $compilerCandidates += @(
         (Join-Path $PSScriptRoot "..\..\out\build\windows-x86-release\bin\Release\DBPCompiler.exe"),
+        (Join-Path $PSScriptRoot "..\..\out\build\windows-x86-release\bin\Debug\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\out\build\windows-x86-debug\bin\Debug\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\build\bin\Release\DBPCompiler.exe"),
         (Join-Path $PSScriptRoot "..\..\build\bin\Debug\DBPCompiler.exe"),

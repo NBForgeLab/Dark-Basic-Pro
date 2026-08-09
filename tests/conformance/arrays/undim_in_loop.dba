@@ -1,0 +1,20 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "LOOP_UNDIM_OK: 150"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+accum = 0
+for i = 1 to 5
+    dim loopArr(10)
+    loopArr(5) = i * 10
+    accum = accum + loopArr(5)
+    undim loopArr()
+next i
+
+msg$ = "LOOP_UNDIM_OK: " + str$(accum)
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end
