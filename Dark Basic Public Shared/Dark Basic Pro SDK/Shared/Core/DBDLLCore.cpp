@@ -2868,19 +2868,10 @@ DARKSDK DWORD ReDimCore(DWORD dwOldArrayPtr, DWORD dwNewTypeAndSizeOfElement, DW
 	DWORD dwOldDims [ 9 ];
 	for(DWORD h=0; h<=8; h++)
 	{
-		DWORD dwDataChunkSize;
-		if(h==0) dwDataChunkSize=1;
-		if(h==1) dwDataChunkSize=dwOld[0];
-		if(h==2) dwDataChunkSize=dwOld[0]*dwOld[1];
-		if(h==3) dwDataChunkSize=dwOld[0]*dwOld[1];
-		if(h==4) dwDataChunkSize=dwOld[0]*dwOld[1]*dwOld[2];
-		if(h==5) dwDataChunkSize=dwOld[0]*dwOld[1]*dwOld[2]*dwOld[3];
-		if(h==6) dwDataChunkSize=dwOld[0]*dwOld[1]*dwOld[2]*dwOld[3]*dwOld[4];
-		if(h==7) dwDataChunkSize=dwOld[0]*dwOld[1]*dwOld[2]*dwOld[3]*dwOld[4]*dwOld[5];
-		if(h==8) dwDataChunkSize=dwOld[0]*dwOld[1]*dwOld[2]*dwOld[3]*dwOld[4]*dwOld[5]*dwOld[6];
-		DWORD dwActualDimValue=0;
-		if ( dwDataChunkSize>0 ) dwActualDimValue=dwOld[h]/dwDataChunkSize;
-		dwOldDims[h]=dwActualDimValue;
+		DWORD dwDataChunkSize = (h == 0) ? 1 : dwOld[h - 1];
+		DWORD dwActualDimValue = 0;
+		if ( dwDataChunkSize > 0 ) dwActualDimValue = dwOld[h] / dwDataChunkSize;
+		dwOldDims[h] = dwActualDimValue;
 	}
 
 	// Trim if new array is smaller than old array (odd redim but possible)

@@ -41,6 +41,7 @@ add_executable(dbp_tests
         test_statement_instruction.cpp
         test_statement_type.cpp
         test_statement_deallocation.cpp
+        test_redim_multidimensional.cpp
         test_statement_userfunction.cpp
         test_statement_assignment.cpp
         test_statement_token.cpp
