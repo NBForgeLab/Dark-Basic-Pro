@@ -40,3 +40,12 @@ TEST(PluginBuildMatrixTest, ValidatesCameraAndTextPluginTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_Camera3D) == sizeof(HINSTANCE));
     EXPECT_TRUE(sizeof(GlobStruct::g_Text) == sizeof(HINSTANCE));
 }
+
+TEST(PluginBuildMatrixTest, ValidatesUtilityPluginsTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_Bitmap) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_File) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_FTP) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Matrix3D) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Memblocks) == sizeof(HINSTANCE));
+}
