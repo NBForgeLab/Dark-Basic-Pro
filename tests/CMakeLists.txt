@@ -22,6 +22,7 @@ add_executable(dbp_tests
     test_x64_pointer_safety.cpp
     test_target_abi.cpp
     test_x64_assembler.cpp
+    test_plugin_build_matrix.cpp
     test_executable_preparation_pipeline.cpp
     test_asmwriter_preparation_services.cpp
     test_prepared_executable_debugger.cpp

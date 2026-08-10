@@ -134,8 +134,9 @@ endif()
 # Target-specific include and library paths are configured per-target in their
 # own CMakeLists.txt files (see dbp_compiler_lib in DBProCompiler/DBPCompiler).
 
-# إضافة المشاريع الفرعية للترجمة والمشغل والمصحح
+# إضافة المشاريع الفرعية للترجمة والمشغل والمصحح والمكتبات الفرعية
 add_subdirectory(DBProShared/Package)
+include(cmake/DBPPlugins.cmake)
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 add_subdirectory(DBProCompiler/DBPDebugger)
