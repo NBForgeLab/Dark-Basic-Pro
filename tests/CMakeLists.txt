@@ -131,6 +131,7 @@ target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"
+    "${DXSDK_INCLUDE_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}"  # generated InstallConfig.h
 )
 
