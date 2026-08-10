@@ -28,4 +28,15 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Basic2D" "${CMAKE_BINARY_DIR}/plugins/basic2d")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Animation" "${CMAKE_BINARY_DIR}/plugins/animation")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Music" "${CMAKE_BINARY_DIR}/plugins/music")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System" "${CMAKE_BINARY_DIR}/plugins/system")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Data" "${CMAKE_BINARY_DIR}/plugins/data")
+
+# Multiplayer and MultiplayerPlus are excluded: they depend on the deprecated
+# DirectPlay4/8 SDK headers (dplay.h, dplobby.h, dplay8.h, dpaddr.h) which are
+# not available in modern Windows SDKs or the Microsoft.DXSDK.D3DX NuGet package.
+# Re-enable when the legacy June 2010 DirectX SDK is installed or shim headers
+# are provided.
+# add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Multiplayer" "${CMAKE_BINARY_DIR}/plugins/multiplayer")
+# add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/MultiplayerPlus" "${CMAKE_BINARY_DIR}/plugins/multiplayerplus")
+
 

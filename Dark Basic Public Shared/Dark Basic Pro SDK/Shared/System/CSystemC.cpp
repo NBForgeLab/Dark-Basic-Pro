@@ -29,26 +29,13 @@ using namespace std;
 
 #include "D3d9.h"
 #include "DXGI.h"
-#define _Field_size_(...)
-#define _Field_size_bytes_(...)
-#define _In_reads_bytes_opt_(...)
-#define _Out_writes_bytes_all_opt_(...)
-#define _Field_size_bytes_part_(...)
-#define _In_range_(...)
-#define _Out_writes_bytes_(...)
-#define _Check_return_
-#define _Inout_
-#define _In_
-#define _Out_
-#define NTDDI_VERSION NTDDI_WIN7
 #include <windows.h>
+#include <winternl.h>
 #include <tchar.h>
 #include <stdio.h>
-#include "d3dkmt.h"
+#include <d3dkmthk.h>
 #pragma comment(lib, "gdi32.lib")  // Doesn't do much, since it doesn't have the exports anyway...
 #pragma comment(lib, "advapi32.lib")
-typedef NTSTATUS (APIENTRY *PD3DKMTQueryStatistics)(_In_ CONST D3DKMT_QUERYSTATISTICS*);
-typedef NTSTATUS (APIENTRY *PD3DKMTOpenAdapterFromDeviceName)(_Inout_ D3DKMT_OPENADAPTERFROMDEVICENAME*);
 
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -348,11 +335,8 @@ DARKSDK int DMEMAvailable(void)
 								// Windows 8 and above is aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
 								aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
 							}
-							else
-							{
-								// Windows 7
-								aperture = queryStatistics.QueryResult.SegmentInformationV1.Aperture;
-							}
+								// Windows 7 and above
+								aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
                         
 							memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
 							queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;

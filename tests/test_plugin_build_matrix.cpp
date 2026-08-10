@@ -79,5 +79,14 @@ TEST(PluginBuildMatrixTest, Validates2DAndMediaPluginsTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_Basic2D) == sizeof(HINSTANCE));
 }
 
+TEST(PluginBuildMatrixTest, ValidatesSystemAndDataPluginsTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_System) == sizeof(HINSTANCE));
+    // Multiplayer and MultiplayerPlus are excluded from the CMake build:
+    // they depend on deprecated DirectPlay4/8 SDK headers (dplay.h, dplay8.h)
+    // not available in modern Windows SDKs.
+}
+
+
 
 
