@@ -27,8 +27,8 @@ namespace DBP_Music
 
     bool MusicPlayer::DoUpdate()
     {
-	    LONG	evCode,
-			    evParam1,
+	    LONG	evCode;
+	    LONG_PTR	evParam1,
 			    evParam2;
 
         bool Playing = true;

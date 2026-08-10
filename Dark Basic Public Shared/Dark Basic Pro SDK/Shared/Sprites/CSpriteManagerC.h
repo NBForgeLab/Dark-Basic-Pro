@@ -5,11 +5,9 @@
 #pragma comment ( lib, "ddraw.lib" )
 #pragma comment ( lib, "d3d9.lib" )
 #pragma comment ( lib, "d3dx9.lib" )
-#pragma comment ( lib, "dxerr9.lib" )
 
 #include <ddraw.h>
 #include <d3d9.h>
-#include <Dxerr9.h>
 #include <D3dx9tex.h>
 #include <D3dx9core.h>
 #include <basetsd.h>

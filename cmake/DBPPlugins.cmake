@@ -24,3 +24,8 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Q2BSP" "${CMAKE_BINARY_DIR}/plugins/q2bsp")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Q3BSP" "${CMAKE_BINARY_DIR}/plugins/q3bsp")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/CustomBSP" "${CMAKE_BINARY_DIR}/plugins/custombsp")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Sprites" "${CMAKE_BINARY_DIR}/plugins/sprites")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Basic2D" "${CMAKE_BINARY_DIR}/plugins/basic2d")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Animation" "${CMAKE_BINARY_DIR}/plugins/animation")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Music" "${CMAKE_BINARY_DIR}/plugins/music")
+

@@ -1255,8 +1255,8 @@ DARKSDK void UpdateAllAnimation(void)
 {
 	// Temp Var
 	long evCode;
-	long lParam1;
-	long lParam2;
+	LONG_PTR lParam1;
+	LONG_PTR lParam2;
 
 	// Free All Animations
 	for(int AnimIndex=0; AnimIndex<ANIMATIONMAX; AnimIndex++)

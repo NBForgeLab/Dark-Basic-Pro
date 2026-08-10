@@ -71,4 +71,13 @@ TEST(PluginBuildMatrixTest, ValidatesBSPPluginsTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_OwnBSP) == sizeof(HINSTANCE));
 }
 
+TEST(PluginBuildMatrixTest, Validates2DAndMediaPluginsTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_Sprites) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Animation) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Music) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Basic2D) == sizeof(HINSTANCE));
+}
+
+
 
