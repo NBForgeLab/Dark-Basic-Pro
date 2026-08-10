@@ -371,7 +371,7 @@ void End ( void )
 			if ( gCollision [ iTemp ].fRadius == -1.0f )
 			{
 			
-						bClipped =	Collision::World ( 
+						bClipped =	cQ2Collision::World ( 
 								gCollision [ iTemp ].vecOldPosition, 
 								gCollision [ iTemp ].vecNewPosition, 
 								gCollision [ iTemp ].vecRadius,
@@ -383,7 +383,7 @@ void End ( void )
 			else
 			{
 				
-					bClipped =Collision::World
+					bClipped =cQ2Collision::World
 									( 
 										gCollision [ iTemp ].vecOldPosition, 
 										gCollision [ iTemp ].vecNewPosition, 

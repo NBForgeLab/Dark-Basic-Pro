@@ -455,7 +455,7 @@ void ProcessCollision( int iTemp )
 		vecLatestPos = gCollision [ iTemp ].vecNewPosition;
 
 		// Test for collision clip
-		BOOL bClipped = Collision::World
+		BOOL bClipped = cCustomBSPCollision::World
 							( 
 								gCollision [ iTemp ].vecOldPosition, 
 								gCollision [ iTemp ].vecNewPosition, 

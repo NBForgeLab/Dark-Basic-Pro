@@ -9,7 +9,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include < d3d9.h >
-#include < Dxerr9.h >
 #include < D3dx9tex.h >
 #include < D3dx9core.h >
 #include < basetsd.h >

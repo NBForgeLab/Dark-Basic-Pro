@@ -464,7 +464,7 @@ void ProcessCollision ( int iTemp )
 		{
 		
 			
-				bClipped = Collision::World ( 
+				bClipped = cQ3Collision::World ( 
 					gCollision [ iTemp ].vecOldPosition, 
 					gCollision [ iTemp ].vecNewPosition, 
 					gCollision [ iTemp ].vecRadius,
@@ -480,7 +480,7 @@ void ProcessCollision ( int iTemp )
 
 			
 			
-			bClipped = Collision::World
+			bClipped = cQ3Collision::World
 							( 
 								gCollision [ iTemp ].vecOldPosition, 
 								gCollision [ iTemp ].vecNewPosition, 

@@ -501,7 +501,7 @@ static D3DXVECTOR3 check_collisions ( D3DXVECTOR3 src, D3DXVECTOR3 dir, D3DXVECT
 
 
 
-BOOL Collision::Player ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 mid, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos )
+BOOL cQ3Collision::Player ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 mid, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos )
 {
 	mid += D3DXVECTOR3 ( 0, 10.0, 0 );
 
@@ -519,7 +519,7 @@ BOOL Collision::Player ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 mid, 
 	return FALSE;
 }
 
-BOOL Collision::Box ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere, D3DXVECTOR3 box1, D3DXVECTOR3 box2, float* dist, D3DXVECTOR3* out_pos )
+BOOL cQ3Collision::Box ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere, D3DXVECTOR3 box1, D3DXVECTOR3 box2, float* dist, D3DXVECTOR3* out_pos )
 {
 	return FALSE;
 }
@@ -578,7 +578,7 @@ void optQ3A ( int n, D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere 
 	}
 }
 
-BOOL Collision::Opt ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius )
+BOOL cQ3Collision::Opt ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius )
 {
 	float BoundingSphere=eRadius.x;
 
@@ -602,7 +602,7 @@ BOOL Collision::Opt ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius 
 
 
 
-BOOL Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fThreshold )
+BOOL cQ3Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fThreshold )
 {
 	
 
@@ -617,7 +617,7 @@ BOOL Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadiu
 	// mike - 240604 - save threshold from input functions
 	g_fCollisionThreshold = fThreshold;
 
-	Collision::Opt ( o_pos, n_pos, eRadius );
+	cQ3Collision::Opt ( o_pos, n_pos, eRadius );
 
 	
 	// mike - 240604 - comment out
@@ -1159,7 +1159,7 @@ static D3DXVECTOR3 check_collisions ( D3DXVECTOR3 src, D3DXVECTOR3 dir, D3DXVECT
 
 
 
-BOOL Collision::Player ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 mid, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos )
+BOOL cQ3Collision::Player ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 mid, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos )
 {
 	mid += D3DXVECTOR3 ( 0, 10.0, 0 );
 
@@ -1177,7 +1177,7 @@ BOOL Collision::Player ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 mid, 
 	return FALSE;
 }
 
-BOOL Collision::Box ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere, D3DXVECTOR3 box1, D3DXVECTOR3 box2, float* dist, D3DXVECTOR3* out_pos )
+BOOL cQ3Collision::Box ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere, D3DXVECTOR3 box1, D3DXVECTOR3 box2, float* dist, D3DXVECTOR3* out_pos )
 {
 	return FALSE;
 }
@@ -1234,7 +1234,7 @@ void optQ3A ( int n, D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere 
 
 }
 
-BOOL Collision::Opt ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius )
+BOOL cQ3Collision::Opt ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius )
 {
 	float BoundingSphere=eRadius.x;
 
@@ -1256,14 +1256,14 @@ BOOL Collision::Opt ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius 
 	return TRUE;
 }
 
-BOOL Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fThreshold )
+BOOL cQ3Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fThreshold )
 {
 	clipped = FALSE;
 	onfloor = FALSE, onceil = FALSE;
 	cutoff = 0;
 	cutoff_max = cut;
 
-	Collision::Opt ( o_pos, n_pos, eRadius );
+	cQ3Collision::Opt ( o_pos, n_pos, eRadius );
 
 	if ( eRadius.x == eRadius.y && eRadius.x == eRadius.z )
 	{

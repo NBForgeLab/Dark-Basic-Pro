@@ -8,15 +8,15 @@
 //////////////////////////////////////////////////////////////////////////
 #define _CRT_SECURE_NO_WARNINGS
 
-#include < d3d9.h >
-#include < Dxerr9.h >
-#include < D3dx9tex.h >
-#include < D3dx9core.h >
-#include < basetsd.h >
-#include < stdio.h >
-#include < math.h >
-#include < D3DX9.h >
-#include < d3d9types.h >
+#include <d3d9.h>
+#include <D3dx9tex.h>
+#include <D3dx9core.h>
+#include <basetsd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <D3DX9.h>
+#include <d3d9types.h>
 
 #define WIN32_LEAN_AND_MEAN 
 #include < windows.h >

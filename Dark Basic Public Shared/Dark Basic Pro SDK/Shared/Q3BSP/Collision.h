@@ -1,20 +1,18 @@
+#ifndef _Q3BSP_COLLISION_H_
+#define _Q3BSP_COLLISION_H_
 
-
-#ifndef _COLLISION_H_
-#define _COLLISION_H_
-
-#include < d3d9.h >
-#include < Dxerr9.h >
-#include < D3dx9tex.h >
-#include < D3dx9core.h >
-#include < basetsd.h >
-#include < stdio.h >
-#include < math.h >
-#include < D3DX9.h >
-#include < d3d9types.h >
+#include <d3d9.h>
+#include <d3dx9.h>
+#include <D3dx9tex.h>
+#include <D3dx9core.h>
+#include <basetsd.h>
+#include <stdio.h>
+#include <math.h>
+#include <D3DX9.h>
+#include <d3d9types.h>
 
 #define WIN32_LEAN_AND_MEAN 
-#include < windows.h >
+#include <windows.h>
 
 struct _col_opt
 {
@@ -27,7 +25,7 @@ extern BOOL onfloor, onceil;
 
 void FreeColOpt ( void );
 
-class Collision 
+class cQ3Collision 
 {
 	public:
 		static BOOL World  ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fThreshold );

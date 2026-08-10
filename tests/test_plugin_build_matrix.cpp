@@ -65,3 +65,10 @@ TEST(PluginBuildMatrixTest, ValidatesDBOFormatAndObjectsPluginsTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_CSG) == sizeof(HINSTANCE));
 }
 
+TEST(PluginBuildMatrixTest, ValidatesBSPPluginsTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_Q2BSP) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_OwnBSP) == sizeof(HINSTANCE));
+}
+
+

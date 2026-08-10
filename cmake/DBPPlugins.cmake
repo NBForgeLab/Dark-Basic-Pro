@@ -21,3 +21,6 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/SpecialEffects" "${CMAKE_BINARY_DIR}/plugins/specialeffects")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Vectors" "${CMAKE_BINARY_DIR}/plugins/vectors")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Transforms" "${CMAKE_BINARY_DIR}/plugins/transforms")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Q2BSP" "${CMAKE_BINARY_DIR}/plugins/q2bsp")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Q3BSP" "${CMAKE_BINARY_DIR}/plugins/q3bsp")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/CustomBSP" "${CMAKE_BINARY_DIR}/plugins/custombsp")
