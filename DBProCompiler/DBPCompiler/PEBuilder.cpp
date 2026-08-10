@@ -61,6 +61,14 @@ bool CPEBuilder::ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSection
     return true;
 }
 
+bool CPEBuilder::ValidatePE64HeaderRequirements(uint64_t dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept
+{
+    if (dwImageBase == 0ULL) return false;
+    if (dwSectionAlignment == 0 || dwFileAlignment == 0) return false;
+    if (dwFileAlignment > dwSectionAlignment) return false;
+    return true;
+}
+
 bool CPEBuilder::UpdateDLLData() const
 {
 	db3::CProfile<> prof("CPEBuilder::UpdateDLLData");

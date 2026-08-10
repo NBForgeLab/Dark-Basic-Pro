@@ -43,6 +43,15 @@ public:
     /** @brief Validates PE image base, section alignment, and file alignment constraints. */
     [[nodiscard]] bool ValidatePEHeaderRequirements(DWORD dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
 
+    /** @brief Validates PE32+ (64-bit) image base, section alignment, and file alignment constraints. */
+    [[nodiscard]] bool ValidatePE64HeaderRequirements(uint64_t dwImageBase, DWORD dwSectionAlignment, DWORD dwFileAlignment) const noexcept;
+
+    /** @brief Returns PE header magic value for 32-bit (0x010B) or 64-bit (0x020B). */
+    [[nodiscard]] static constexpr WORD GetPeMagic(bool is64Bit) noexcept
+    {
+        return is64Bit ? IMAGE_NT_OPTIONAL_HDR64_MAGIC : IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+    }
+
     /** @brief Returns whether an encoded DLL id can index the legacy runtime dispatch tables. */
     [[nodiscard]] static constexpr bool IsRuntimeDllIndex(DWORD index) noexcept
     {
