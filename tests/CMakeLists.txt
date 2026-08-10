@@ -95,6 +95,7 @@ add_executable(dbp_tests
     test_clang_tidy_integration.cpp
     test_coverage_integration.cpp
     test_install_rules.cpp
+    test_e2e_x64_compilation.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
