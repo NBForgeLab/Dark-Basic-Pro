@@ -3450,16 +3450,21 @@ DARKSDK DWORD PushToStack(DWORD dwArrayPtr)
 }
 DARKSDK void PopFromStack(DWORD dwArrayPtr)
 {
+	if(dwArrayPtr==NULL) return;
+
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
 
 	// remove from bottom if list
-	int iIndexAtEnd = *((DWORD*)dwArrayPtr-4) - 1;
-	ArrayDeleteElement(dwArrayPtr, iIndexAtEnd);
+	int iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
+	if ( iIndexAtEnd >= 0 )
+	{
+		ArrayDeleteElement(dwArrayPtr, iIndexAtEnd);
+	}
 
-	// place index to end
-	iIndexAtEnd = *((DWORD*)dwArrayPtr-4) - 1;
-	*((DWORD*)dwArrayPtr-1) = iIndexAtEnd;
+	// place index to end (-1 if empty)
+	iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
+	*((DWORD*)dwArrayPtr-1) = (DWORD)iIndexAtEnd;
 }
 DARKSDK DWORD AddToQueue(DWORD dwArrayPtr)
 {
@@ -3478,14 +3483,19 @@ DARKSDK DWORD AddToQueue(DWORD dwArrayPtr)
 }
 DARKSDK void RemoveFromQueue(DWORD dwArrayPtr)
 {
+	if(dwArrayPtr==NULL) return;
+
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
 
 	// remove from top of list
 	ArrayDeleteElement(dwArrayPtr, 0);
 
-	// place index to zero
-	*((DWORD*)dwArrayPtr-1) = 0;
+	// place index to zero, or -1 if queue became empty
+	if ( *((DWORD*)dwArrayPtr-4) == 0 )
+		*((DWORD*)dwArrayPtr-1) = (DWORD)-1;
+	else
+		*((DWORD*)dwArrayPtr-1) = 0;
 }
 DARKSDK void ArrayIndexToStack(DWORD dwArrayPtr)
 {

@@ -44,6 +44,7 @@ add_executable(dbp_tests
         test_redim_multidimensional.cpp
         test_array_memory_safety.cpp
         test_array_index_bounds.cpp
+        test_stack_queue_bounds.cpp
         test_statement_userfunction.cpp
         test_statement_assignment.cpp
         test_statement_token.cpp
