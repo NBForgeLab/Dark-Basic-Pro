@@ -29,8 +29,10 @@ target_include_directories(dbp_plugin_objects PUBLIC
     .
     ${CMAKE_SOURCE_DIR}/SDK/BaseClasses
     ${CMAKE_SOURCE_DIR}/SDK/DB3
+    ${CMAKE_SOURCE_DIR}/SDK/NVAPI
     ${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared
     ${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core
+    ${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/DBOFormat
     ${DXSDK_INCLUDE_DIR}
 )
 
@@ -39,6 +41,7 @@ if(DXSDK_LIBRARY_DIR)
 endif()
 
 target_link_libraries(dbp_plugin_objects PRIVATE
+    dbp_plugin_dboformat
     d3d9
     d3dx9
     dxguid

@@ -32,7 +32,6 @@
 #define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
 //////////////////////////////////////////////////////////////////////////////////
 
-//#include "cObjectDataC.h"
 #include "Collision.h"
 
 // enumerate the two types of tree structures
@@ -40,6 +39,8 @@ enum TreeTypes	{
 					QUADTREE = 0, 
 					OCTREE
 				};
+
+struct sCollisionData;
 
 class cNodeTreeMesh
 {
@@ -171,8 +172,6 @@ class cNodeTreeMesh
 		BOOL  CheckIntersect   ( float XStart, float YStart, float ZStart, float XEnd, float YEnd, float ZEnd, float* Length );
 };
 
-bool QuickSortArray    ( int* array, int, int );
-bool SwapInts          ( int* array, int, int );
 void CreateSortedArray ( int* piArray, int** ppiSorted, int iCurrentSize, int* piFinalSize );
 
 #endif

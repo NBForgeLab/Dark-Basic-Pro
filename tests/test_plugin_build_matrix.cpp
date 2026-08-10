@@ -58,3 +58,10 @@ TEST(PluginBuildMatrixTest, ValidatesAdvanced3DPluginsTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_Vectors) == sizeof(HINSTANCE));
     EXPECT_TRUE(sizeof(GlobStruct::g_Transforms) == sizeof(HINSTANCE));
 }
+
+TEST(PluginBuildMatrixTest, ValidatesDBOFormatAndObjectsPluginsTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_World3D) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_CSG) == sizeof(HINSTANCE));
+}
+

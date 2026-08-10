@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////////////////////////
 // EXTERNALS /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
-extern		LPDIRECT3DDEVICE8					m_pD3D;
+extern		LPDIRECT3DDEVICE9					m_pD3D;
 
 const int	CP_FRONT	= 1001;
 const int	CP_BACK		= 1002;
@@ -265,7 +265,7 @@ void cNodeTree::TransformVertices ( sObject* pObject, sMesh* pMesh )
 {
 	// get the offset map for the vertices
 	sOffsetMap	offsetMap;
-	GetFVFOffsetMap ( pMesh->dwFVF, &offsetMap );
+	GetFVFOffsetMap ( pMesh, &offsetMap );
 
 	// now we need to transform the vertices for each object
 	for ( int iVertex = 0; iVertex < pMesh->dwVertexCount; iVertex++ )
@@ -313,7 +313,7 @@ bool cNodeTree::GetCentrePoint ( D3DXVECTOR3* pVecCentre, int* piVertexCount )
 			break;
 
 		// get the offset map for the FVF
-		GetFVFOffsetMap ( pMesh->dwFVF, &offsetMap );
+		GetFVFOffsetMap ( pMesh, &offsetMap );
 
 		// for each mesh go through all of the vertices
 		for ( iCurrentVertex = 0; iCurrentVertex < ( int ) pMesh->dwVertexCount; iCurrentVertex++ )
@@ -375,7 +375,7 @@ bool cNodeTree::GetBounds ( D3DXVECTOR3 vecCentre, float* pfWidth, float* pfHeig
 			break;
 
 		// get the offset map for the FVF
-		GetFVFOffsetMap ( pMesh->dwFVF, &offsetMap );
+		GetFVFOffsetMap ( pMesh, &offsetMap );
 
 		// for each mesh go through all of the vertices
 		for ( iCurrentVertex = 0; iCurrentVertex < ( int ) pMesh->dwVertexCount; iCurrentVertex++ )
@@ -514,7 +514,7 @@ bool cNodeTree::CreateVertexList ( void )
 			break;
 
 		// get the offset map for the FVF
-		GetFVFOffsetMap ( pMesh->dwFVF, &offsetMap );
+		GetFVFOffsetMap ( pMesh, &offsetMap );
 
 		// for each mesh go through all of the vertices
 		for ( int iCurrentVertex = 0; iCurrentVertex < ( int ) pMesh->dwVertexCount; iCurrentVertex++ )
@@ -868,8 +868,8 @@ void cNodeTree::DrawDebug ( cNodeTree* pNode )
 
 	DWORD dwFVF = 0;
 
-	m_pD3D->GetVertexShader ( &dwFVF );
-	m_pD3D->SetVertexShader ( D3DFVF_XYZ );
+	m_pD3D->GetFVF ( &dwFVF );
+	m_pD3D->SetFVF ( D3DFVF_XYZ );
 
 	D3DXVECTOR3 vecCentre = pNode->m_vecCentre;
 	float       fSize     = pNode->m_fWidth;
@@ -911,7 +911,7 @@ void cNodeTree::DrawDebug ( cNodeTree* pNode )
 								sizeof ( float ) * 3
 							);
 
-	m_pD3D->SetVertexShader ( dwFVF );
+	m_pD3D->SetFVF ( dwFVF );
 
 	DrawDebug ( pNode->m_pNodes [ 0 ] );
 	DrawDebug ( pNode->m_pNodes [ 1 ] );
@@ -1119,7 +1119,7 @@ void SplitPolygon ( POLYGON* Poly, PLANE* Plane, POLYGON* FrontSplit, POLYGON* B
 
 	if ( InFront && Behind )
 	{
-		for ( i = 0; i < Poly->NumberOfVertices; i++ )
+		for ( int i = 0; i < Poly->NumberOfVertices; i++ )
 		{
 			// store current vertex remembering to MOD with number of vertices
 			CurrentVertex = ( i + 1 ) % Poly->NumberOfVertices;
@@ -1231,7 +1231,8 @@ void SplitPolygon ( POLYGON* Poly, PLANE* Plane, POLYGON* FrontSplit, POLYGON* B
 	if ( FrontSplit->NumberOfVertices == 0 )
 		FrontSplit->NumberOfIndices = 0;
 
-	for ( short loop = 0, v1 = 1, v2 = 2; loop < FrontSplit->NumberOfIndices / 3; loop++, v1 = v2, v2++ )
+	short loop = 0, v1 = 1, v2 = 2;
+	for ( loop = 0, v1 = 1, v2 = 2; loop < FrontSplit->NumberOfIndices / 3; loop++, v1 = v2, v2++ )
 	{
 		IndxBase = loop * 3;
 
@@ -1328,7 +1329,7 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 		int iIndex = 0;
 
 		sOffsetMap	 offsetMap;
-		GetFVFOffsetMap ( pMesh->dwFVF, &offsetMap );
+		GetFVFOffsetMap ( pMesh, &offsetMap );
 
 		for ( int iTriangle = 0; iTriangle < pMesh->dwIndexCount / 3; iTriangle++ )
 		{
@@ -1438,7 +1439,7 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 
 			polyObjectList.clear ( );
 
-			for ( iTemp = 0; iTemp < pass1Front.size ( ); iTemp++ )
+			for ( int iTemp = 0; iTemp < (int)pass1Front.size ( ); iTemp++ )
 			{
 				polyObjectList.push_back ( pass1Front [ iTemp ] );
 			}
@@ -1449,7 +1450,7 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 			pass1Front.clear ( );
 			pass1Back.clear ( );
 
-			for ( iTemp = 0; iTemp < polyObjectList.size ( ); iTemp++ )
+			for ( int iTemp = 0; iTemp < (int)polyObjectList.size ( ); iTemp++ )
 			{
 				pass1Front.push_back ( blank );
 				pass1Back.push_back  ( blank );
@@ -1482,7 +1483,7 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 		int iFrontSplit = 0;
 		int iSplit      = 0;
 
-		for ( iTemp = 0; iTemp < polyObjectList.size ( ); iTemp++ )
+		for ( int iTemp = 0; iTemp < (int)polyObjectList.size ( ); iTemp++ )
 		{
 			// make sure we have some vertices
 			if ( !polyObjectList [ iTemp ].NumberOfVertices )
@@ -1516,15 +1517,15 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 			pNewMesh->iGhostMode           = pMesh->iGhostMode;
 			pNewMesh->bVisible             = pMesh->bVisible;
 			pNewMesh->bOverridePixelShader = pMesh->bOverridePixelShader;
-			pNewMesh->dwPixelShader        = pMesh->dwPixelShader;
+			pNewMesh->pPixelShader         = pMesh->pPixelShader;
 			pNewMesh->bUsesMaterial        = pMesh->bUsesMaterial;
-			pNewMesh->pUseVertexShader     = pMesh->pUseVertexShader;
+			pNewMesh->bUseVertexShader     = pMesh->bUseVertexShader;
 			pNewMesh->pVertexShaderEffect  = pMesh->pVertexShaderEffect;
 			pNewMesh->bUsesMaterial        = pMesh->bUsesMaterial;
 			pNewMesh->dwTextureCount       = pMesh->dwTextureCount;
 
 			memcpy ( &pNewMesh->Collision, &pMesh->Collision, sizeof ( sCollisionData ) );
-			memcpy ( &pNewMesh->mMaterial, &pMesh->mMaterial, sizeof ( D3DMATERIAL8   ) );
+			memcpy ( &pNewMesh->mMaterial, &pMesh->mMaterial, sizeof ( D3DMATERIAL9   ) );
 
 			pNewMesh->pTextures = new sTexture [ pNewMesh->dwTextureCount ];
 
@@ -1535,7 +1536,7 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 
 			// get the offset map
 			sOffsetMap offsetMap;
-			GetFVFOffsetMap ( pNewMesh->dwFVF, &offsetMap );
+			GetFVFOffsetMap ( pNewMesh, &offsetMap );
 
 			// run through all of the vertices
 			for ( int iCurrentVertex = 0; iCurrentVertex < polyNodeObject.NumberOfVertices; iCurrentVertex++ )
@@ -1569,7 +1570,7 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 
 			pNode->m_pMeshList.push_back ( pNewMesh );
 
-			for ( iTemp = 0; iTemp < polyObjectList.size ( ); iTemp++ )
+			for ( int iTemp = 0; iTemp < (int)polyObjectList.size ( ); iTemp++ )
 			{
 				// make sure we have some vertices
 				if ( !polyObjectList [ iTemp ].NumberOfVertices )

@@ -2,7 +2,7 @@
 
 
 //D3DXPLANE m_Planes [ 6 ];
-extern LPDIRECT3DDEVICE8		m_pD3D;
+extern LPDIRECT3DDEVICE9		m_pD3D;
 
 /*
 void UpdateCullInfo( CULLINFO* pCullInfo, D3DXMATRIX* pMatView, D3DXMATRIX* pMatProj )

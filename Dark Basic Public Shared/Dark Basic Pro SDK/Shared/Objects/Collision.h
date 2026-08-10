@@ -1,11 +1,5 @@
-
-//
-// Collision Functions Header
-//
-
-
-#ifndef _COLLISION_H_
-#define _COLLISION_H_
+#ifndef _OBJECTS_COLLISION_H_
+#define _OBJECTS_COLLISION_H_
 
 #include <d3d9.h>
 #include <d3dx9.h>
@@ -23,7 +17,8 @@ using namespace std;
 #define WIN32_LEAN_AND_MEAN 
 #include <windows.h>
 
-#ifndef __GNUC__
+#ifndef _SCOLLISIONPOLYGON_DEFINED_
+#define _SCOLLISIONPOLYGON_DEFINED_
 struct sCollisionVertex
 {
 	D3DXVECTOR3 vecPosition;
@@ -38,18 +33,17 @@ struct sCollisionPolygon
 };
 #endif
 
-#ifndef __GNUC__
 extern vector < sCollisionPolygon* > g_PolygonList;
-#else
 
-#endif
-
-
+#ifndef _COLLISION_CLASS_DEFINED_
+#define _COLLISION_CLASS_DEFINED_
 class Collision 
 {
 	public:
-		BOOL World  ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fScale );
+		void	Init	( void );
+		BOOL	World	( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, float fScale );
+		BOOL	World  ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadius, D3DXVECTOR3* out_pos, int cut, float fScale );
 };
-
+#endif
 
 #endif

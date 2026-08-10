@@ -4,7 +4,7 @@
 //
 
 // Includes
-#include "collision.h"
+#include "./Collision.h"
 #include "CommonC.h"
 
 // Defines

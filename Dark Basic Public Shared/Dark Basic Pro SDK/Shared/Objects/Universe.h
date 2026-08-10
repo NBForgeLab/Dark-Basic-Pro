@@ -37,18 +37,21 @@ class  cBSPTree;
 class  cVertex;
 struct tagCameraData;
 
+#ifndef _SCOLLISIONPOLYGON_DEFINED_
+#define _SCOLLISIONPOLYGON_DEFINED_
 struct sCollisionVertex
 {
 	D3DXVECTOR3 vecPosition;
-//	float		tu, tv;
+	float		tu, tv;
 };
 
 struct sCollisionPolygon
 {
 	sCollisionVertex	triangle [ 3 ];
-//	D3DXVECTOR3			normal;
+	D3DXVECTOR3			normal;
 	DWORD				diffuseid;
 };
+#endif
 
 struct sPortalVertex
 {
