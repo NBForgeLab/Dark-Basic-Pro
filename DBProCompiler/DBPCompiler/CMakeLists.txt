@@ -67,6 +67,7 @@ set(LIB_SOURCES
     StructTable.cpp
     Task.cpp
     VarTable.cpp
+    ASMWriterx64.cpp
     icons/DIB.C
     icons/ICONS.C
 )

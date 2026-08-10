@@ -1,11 +1,29 @@
 #include "PEBuilder.h"
+#include "ASMWriter.h"
 #include "DBPCompiler.h"
+#include "DB3Time.h"
 #include "ParserHeader.h"
 #include "StatementList.h"
 #include "DataTable.h"
 #include "VarTable.h"
 #include "StructTable.h"
 #include "Declaration.h"
+
+class CEXEBlock;
+class CDLLTable;
+class CCommandTable;
+class CStringTable;
+class CDataTable;
+class CVarTable;
+class CStructTable;
+
+extern CEXEBlock* g_pEXE;
+extern CDataTable* g_pDLLTable;
+extern CDataTable* g_pCommandTable;
+extern CDataTable* g_pStringTable;
+extern CDataTable* g_pDataTable;
+extern CVarTable* g_pVarTable;
+extern CStructTable* g_pStructTable;
 
 #include <algorithm>
 #include <memory>
