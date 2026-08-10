@@ -2991,13 +2991,13 @@ DARKSDK void PreviousArrayIndex(DWORD dwArrayPtr)
 	// dec array index
 	if(dwArrayPtr)
 	{
-		if(*((DWORD*)dwArrayPtr-1)>0)
+		if((int)*((DWORD*)dwArrayPtr-1)>0)
 		{
 			*((DWORD*)dwArrayPtr-1)=(*((DWORD*)dwArrayPtr-1))-1;
 		}
 		else
 		{
-			// First index reachable just just outside range <0
+			// First index reachable just outside range <0
 			*((DWORD*)dwArrayPtr-1)=(DWORD)-1;
 		}
 	}
