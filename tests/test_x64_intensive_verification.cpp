@@ -159,9 +159,8 @@ TEST(X64IntensiveVerificationTest, VerifiesDirectJITExecutionWithStackFrameAndRe
     writer.EmitAddRegImm32(X64Register::RSP, 32U);
     writer.EmitRet();
 
-    const auto& code = writer.GetCodeBuffer();
-
 #if defined(_WIN64) || defined(__x86_64__)
+    const auto& code = writer.GetCodeBuffer();
     void* pExecMem = VirtualAlloc(nullptr, code.size(), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     ASSERT_NE(pExecMem, nullptr);
 
@@ -180,11 +179,13 @@ TEST(X64IntensiveVerificationTest, VerifiesDirectJITExecutionWithStackFrameAndRe
 }
 
 TEST(X64IntensiveVerificationTest, VerifiesHighMemoryPointerSafetyAndGlobStructAlignment) {
+#if defined(_WIN64) || defined(__x86_64__)
     const uint64_t highMemAddress = 0x0000000280000000ULL;
     void* pHighMemPtr = reinterpret_cast<void*>(static_cast<uintptr_t>(highMemAddress));
 
     uintptr_t convertedAddress = reinterpret_cast<uintptr_t>(pHighMemPtr);
     EXPECT_EQ(convertedAddress, highMemAddress);
+#endif
 
     EXPECT_GE(alignof(GlobStruct), alignof(uintptr_t));
     EXPECT_EQ(alignof(GlobStruct) % alignof(uintptr_t), 0U);

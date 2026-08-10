@@ -22,6 +22,7 @@ add_executable(dbp_tests
     test_x64_pointer_safety.cpp
     test_target_abi.cpp
     test_x64_assembler.cpp
+    test_x64_intensive_verification.cpp
     test_plugin_build_matrix.cpp
     test_executable_preparation_pipeline.cpp
     test_asmwriter_preparation_services.cpp
@@ -96,6 +97,7 @@ add_executable(dbp_tests
     test_coverage_integration.cpp
     test_install_rules.cpp
     test_e2e_x64_compilation.cpp
+    test_x64_intensive_verification.cpp
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
