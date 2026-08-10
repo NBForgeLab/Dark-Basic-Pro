@@ -59,3 +59,16 @@ TEST(EXEBlockPointerSafetyTest, RecreateAndCleanArrayContents) {
     delete[] pArray;
 }
 
+TEST(PointerSafetyTest, HighAddressPointerRoundTrip) {
+    uint64_t highAddress = 0x7FFF0000FFFF0000ULL;
+    uintptr_t converted = static_cast<uintptr_t>(highAddress);
+    void* ptr = reinterpret_cast<void*>(converted);
+    uintptr_t back = reinterpret_cast<uintptr_t>(ptr);
+    #if defined(_WIN64) || defined(__x86_64__)
+    EXPECT_EQ(back, highAddress);
+    #else
+    EXPECT_NE(back, 0U);
+    #endif
+}
+
+
