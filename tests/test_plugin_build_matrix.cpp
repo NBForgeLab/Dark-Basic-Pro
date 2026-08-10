@@ -4,12 +4,7 @@
 #include "globstruct.h"
 
 TEST(PluginBuildMatrixTest, VerifiesInputPluginAbiTargetTraits) {
-    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
-    #if defined(_WIN64) || defined(__x86_64__)
-    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 8U);
-    #else
     EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 4U);
-    #endif
 }
 
 TEST(PluginBuildMatrixTest, ValidatesInputPluginExportsStructSize) {

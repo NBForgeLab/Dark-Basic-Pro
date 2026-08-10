@@ -4,6 +4,7 @@
 #include "DBPCompiler.h"
 #include "Error.h"
 #include "ASMWriter.h"
+#include "ASMWriterx64.h"
 #include "DBMWriter.h"
 #include "StructTable.h"
 #include "StatementList.h"

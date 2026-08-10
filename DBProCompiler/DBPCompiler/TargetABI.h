@@ -28,8 +28,7 @@ struct TargetAbiTraits<64> {
 using TargetAbi32 = TargetAbiTraits<32>;
 using TargetAbi64 = TargetAbiTraits<64>;
 
-// Dark Basic Professional currently emits and executes PE32 programs.
-// Keep this target decision independent from the compiler host architecture.
+// Dark Basic Professional compiler target program ABI representation
 using ActiveTargetAbi = TargetAbi32;
 
 static_assert(TargetAbi32::address_size == 4);
