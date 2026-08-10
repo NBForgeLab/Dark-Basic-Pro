@@ -33,3 +33,9 @@ TEST(PluginBuildMatrixTest, ValidatesGlobChecklistStructPointerSafety) {
     EXPECT_EQ(alignof(GlobChecklistStruct), alignof(uintptr_t));
     EXPECT_EQ(sizeof(GlobChecklistStruct::string), sizeof(uintptr_t));
 }
+
+TEST(PluginBuildMatrixTest, ValidatesImageAndSoundPluginTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_Image) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_System) == sizeof(HINSTANCE));
+}
