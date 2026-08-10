@@ -40,6 +40,7 @@ TEST(StructuralTest, PluginRegistryRegisterAndGet) {
     EXPECT_EQ(registry.GetPlugin("GFX"), nullptr);
 }
 
+#if !defined(_WIN64) && !defined(__x86_64__)
 extern "C" DWORD __cdecl asm_dynamic_call(void* func, const DWORD* args, int argc);
 
 static DWORD __stdcall dummy_stdcall(DWORD a, DWORD b) {
@@ -49,8 +50,12 @@ static DWORD __stdcall dummy_stdcall(DWORD a, DWORD b) {
 static DWORD __cdecl dummy_cdecl(DWORD a, DWORD b, DWORD c) {
     return a + b + c;
 }
+#endif
 
 TEST(DynamicCallTest, AssemblyCallParity) {
+#if defined(_WIN64) || defined(__x86_64__)
+    GTEST_SKIP() << "asm_dynamic_call is a 32-bit x86 legacy assembly test.";
+#else
     DWORD args_stdcall[] = { 5, 8 };
     DWORD res_stdcall = asm_dynamic_call((void*)&dummy_stdcall, args_stdcall, 2);
     EXPECT_EQ(res_stdcall, 58);
@@ -58,4 +63,5 @@ TEST(DynamicCallTest, AssemblyCallParity) {
     DWORD args_cdecl[] = { 10, 20, 30 };
     DWORD res_cdecl = asm_dynamic_call((void*)&dummy_cdecl, args_cdecl, 3);
     EXPECT_EQ(res_cdecl, 60);
+#endif
 }
