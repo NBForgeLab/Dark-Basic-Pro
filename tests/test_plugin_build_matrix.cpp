@@ -49,3 +49,12 @@ TEST(PluginBuildMatrixTest, ValidatesUtilityPluginsTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_Matrix3D) == sizeof(HINSTANCE));
     EXPECT_TRUE(sizeof(GlobStruct::g_Memblocks) == sizeof(HINSTANCE));
 }
+
+TEST(PluginBuildMatrixTest, ValidatesAdvanced3DPluginsTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_Basic3D) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Light3D) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Particles) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Vectors) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Transforms) == sizeof(HINSTANCE));
+}

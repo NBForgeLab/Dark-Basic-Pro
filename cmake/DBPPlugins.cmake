@@ -15,3 +15,8 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Matrix" "${CMAKE_BINARY_DIR}/plugins/matrix")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Setup" "${CMAKE_BINARY_DIR}/plugins/setup")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Memblocks" "${CMAKE_BINARY_DIR}/plugins/memblocks")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Objects" "${CMAKE_BINARY_DIR}/plugins/objects")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Light" "${CMAKE_BINARY_DIR}/plugins/light")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/SpecialEffects" "${CMAKE_BINARY_DIR}/plugins/specialeffects")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Vectors" "${CMAKE_BINARY_DIR}/plugins/vectors")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Transforms" "${CMAKE_BINARY_DIR}/plugins/transforms")

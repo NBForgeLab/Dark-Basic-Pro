@@ -19,7 +19,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 // INCLUDES / LIBS ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
-#include <D3DX8.h>
+#include <d3d9.h>
+#include <d3dx9.h>
 //////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -45,8 +46,8 @@ class cNodeTreeMesh
 	private:
 
 		ID3DXMesh*				m_Mesh;
-		LPDIRECT3DTEXTURE8*		m_pTextures;
-		D3DMATERIAL8*			m_pMaterials;
+		LPDIRECT3DTEXTURE9*		m_pTextures;
+		D3DMATERIAL9*			m_pMaterials;
 		DWORD					m_dwNumMaterials;
 
 		DWORD					m_dwNumVertices;
@@ -69,27 +70,27 @@ class cNodeTreeMesh
 			unsigned long  Timer;          // frame last drawn
 		} sPolygon;
 
-		// the node structure keeps count of the # of polygons in
-		// its 3D space, an array of sPolygon structures, the
-		// 3D coordinates of the node ( as well as the size, which
-		// is the distance from the center to one edge making the node
-		// a perfect cube ), and pointers to the child nodes
-		typedef struct sNode
+		// node structure
+		typedef struct sNode 
 		{
-			float           XPos, YPos, ZPos; // center coordinate of node
-			float           Size;             // size of node
+			float          XPos, YPos, ZPos; // center 3D coordinates
+			float          Size;             // size of node
 
-			unsigned long   NumPolygons;      // number of polygons in node
-			unsigned long*  PolygonList;      // polygon list
+			unsigned long  NumPolygons;      // number of polygons in node
+			sPolygon**     PolygonList;      // polygon list
 
-			sNode*			Nodes [ 8 ];      // child nodes 4 = quad, 8 = oct
+			sNode*         Nodes [ 8 ];      // child nodes
 
 			sNode ( )
 			{
-				XPos = YPos = ZPos = Size = 0.0f;	// position and size
-				NumPolygons = 0;					// set to no polygons in node
-				PolygonList = NULL;					// clear polygon list
-				
+				XPos        = 0.0f;
+				YPos        = 0.0f;
+				ZPos        = 0.0f;
+				Size        = 0.0f;
+
+				NumPolygons = 0;
+				PolygonList = NULL;
+
 				for ( short i = 0; i < 8; i++ )
 					Nodes [ i ] = NULL;
 			}
@@ -108,7 +109,7 @@ class cNodeTreeMesh
 			unsigned long			NumPolygons;
 			unsigned long			NumPolygonsToDraw;
 
-			IDirect3DIndexBuffer8*	IndexBuffer;
+			IDirect3DIndexBuffer9*	IndexBuffer;
 			unsigned short*			IndexPtr;
 
 			sGroup ( )
@@ -158,7 +159,7 @@ class cNodeTreeMesh
 		cNodeTreeMesh  ( );
 		~cNodeTreeMesh ( );
 
-		BOOL Create ( ID3DXMesh* pMeshData, LPDIRECT3DTEXTURE8* pTextures, D3DMATERIAL8* pMaterials, DWORD dwNumMaterials, int TreeType, float MaxSize, long MaxPolygons, D3DXMATRIX matObject );
+		BOOL Create ( ID3DXMesh* pMeshData, LPDIRECT3DTEXTURE9* pTextures, D3DMATERIAL9* pMaterials, DWORD dwNumMaterials, int TreeType, float MaxSize, long MaxPolygons, D3DXMATRIX matObject );
 		BOOL Free   ( );
 
 		BOOL  Render           ( float ZDistance = 0.0f );
@@ -170,8 +171,8 @@ class cNodeTreeMesh
 		BOOL  CheckIntersect   ( float XStart, float YStart, float ZStart, float XEnd, float YEnd, float ZEnd, float* Length );
 };
 
-void QuickSortArray    ( int* array, int, int );
-void SwapInts          ( int* array, int, int );
+bool QuickSortArray    ( int* array, int, int );
+bool SwapInts          ( int* array, int, int );
 void CreateSortedArray ( int* piArray, int** ppiSorted, int iCurrentSize, int* piFinalSize );
 
 #endif
