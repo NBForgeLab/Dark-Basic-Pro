@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 4.2)
 
-# يجب وضع إعداد المعمارية قبل تعريف المشروع
-set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Force Win32 Platform" FORCE)
+# Allow Win32 by default, but permit x64 build configurations
+if(NOT CMAKE_GENERATOR_PLATFORM)
+    set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Target Platform (Win32 or x64)" FORCE)
+endif()
 
 project(DarkBasicPro VERSION 1.0.5 LANGUAGES C CXX ASM_MASM)
 
@@ -21,14 +23,16 @@ if(DBP_ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-# Enable SAFESEH for MASM on Win32
-if(MSVC)
+# Enable SAFESEH for MASM on Win32 only
+if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     set(CMAKE_ASM_MASM_FLAGS "${CMAKE_ASM_MASM_FLAGS} /safeseh")
 endif()
 
-# التحقق من أن المعمارية الحالية هي 32-bit (x86)
+# Report active target architecture bitness
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "هذا المشروع مخصص حالياً للعمل كـ 32-bit (x86). يرجى تشغيل تهيئة CMake باستخدام خيار المعمارية المناسب: cmake -A Win32 ..")
+    message(STATUS "DarkBasic Pro targeting 64-bit architecture (x64).")
+else()
+    message(STATUS "DarkBasic Pro targeting 32-bit architecture (Win32/x86).")
 endif()
 
 # Dependency revisions are immutable commits corresponding to the upstream
@@ -107,12 +111,18 @@ if(NOT DBP_DXSDK_ROOT)
     endif()
 endif()
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(DXSDK_ARCH_DIR "x64")
+else()
+    set(DXSDK_ARCH_DIR "x86")
+endif()
+
 if(EXISTS "${DBP_DXSDK_ROOT}/Include")
     set(DXSDK_INCLUDE_DIR "${DBP_DXSDK_ROOT}/Include")
-    set(DXSDK_LIBRARY_DIR "${DBP_DXSDK_ROOT}/Lib/x86")
+    set(DXSDK_LIBRARY_DIR "${DBP_DXSDK_ROOT}/Lib/${DXSDK_ARCH_DIR}")
 elseif(EXISTS "${DBP_DXSDK_ROOT}/build/native/include")
     set(DXSDK_INCLUDE_DIR "${DBP_DXSDK_ROOT}/build/native/include")
-    set(DXSDK_LIBRARY_DIR "${DBP_DXSDK_ROOT}/build/native/release/lib/x86")
+    set(DXSDK_LIBRARY_DIR "${DBP_DXSDK_ROOT}/build/native/release/lib/${DXSDK_ARCH_DIR}")
 else()
     set(DXSDK_INCLUDE_DIR "")
     set(DXSDK_LIBRARY_DIR "")
