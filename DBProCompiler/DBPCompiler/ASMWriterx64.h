@@ -2,6 +2,7 @@
 #include "ICodeGenerator.h"
 #include <cstdint>
 #include <cstddef>
+#include <vector>
 
 enum class X64Register : uint8_t {
     None = 0,
@@ -46,6 +47,22 @@ public:
         const uint32_t aligned = (bytes + 15U) & ~15U;
         return aligned < 32U ? 32U : aligned;
     }
+
+    // Instruction Emission Helpers
+    void EmitByte(uint8_t b);
+    void EmitDword(uint32_t dw);
+    void EmitQword(uint64_t qw);
+
+    void EmitMovRegImm64(X64Register reg, uint64_t val);
+    void EmitPushReg(X64Register reg);
+    void EmitPopReg(X64Register reg);
+    void EmitSubRegImm32(X64Register reg, uint32_t val);
+    void EmitAddRegImm32(X64Register reg, uint32_t val);
+    void EmitRet();
+
+    [[nodiscard]] const std::vector<uint8_t>& GetCodeBuffer() const noexcept { return m_codeBuffer; }
+    [[nodiscard]] size_t GetCodeSize() const noexcept { return m_codeBuffer.size(); }
+    void ClearCodeBuffer() noexcept { m_codeBuffer.clear(); }
 
     // ICodeGenerator interface implementation
     void SetDefaultCompileFlags(bool bArraySafetyFlag) override;
@@ -130,4 +147,5 @@ public:
 
 private:
     bool m_bArraySafetyFlag = false;
+    std::vector<uint8_t> m_codeBuffer;
 };
