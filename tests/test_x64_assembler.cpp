@@ -73,3 +73,76 @@ TEST(X64AssemblerTest, EmitsSubAndAddRspStackAlignment) {
     // RET (C3)
     EXPECT_EQ(buf[14], 0xC3);
 }
+
+TEST(X64AssemblerTest, EmitsCmpAndTestRegRegOpcodes) {
+    CASMWriterx64 writer;
+    writer.EmitCmpRegReg(X64Register::RAX, X64Register::RCX);
+    writer.EmitTestRegReg(X64Register::R8, X64Register::R9);
+    const auto& buf = writer.GetCodeBuffer();
+    ASSERT_EQ(buf.size(), 6U);
+    // CMP RAX, RCX (48 39 C8)
+    EXPECT_EQ(buf[0], 0x48);
+    EXPECT_EQ(buf[1], 0x39);
+    EXPECT_EQ(buf[2], 0xC8);
+    // TEST R8, R9 (4D 85 C8)
+    EXPECT_EQ(buf[3], 0x4D);
+    EXPECT_EQ(buf[4], 0x85);
+    EXPECT_EQ(buf[5], 0xC8);
+}
+
+TEST(X64AssemblerTest, EmitsControlFlowJumpAndCallOpcodes) {
+    CASMWriterx64 writer;
+    writer.EmitJmpRel32(16);
+    writer.EmitJneRel32(32);
+    writer.EmitJeRel32(-8);
+    writer.EmitCallReg(X64Register::RAX);
+    writer.EmitCallReg(X64Register::R8);
+    writer.EmitNop();
+    const auto& buf = writer.GetCodeBuffer();
+    ASSERT_EQ(buf.size(), 23U);
+    // JMP rel32 (E9 10 00 00 00)
+    EXPECT_EQ(buf[0], 0xE9);
+    EXPECT_EQ(buf[1], 0x10);
+    // JNE rel32 (0F 85 20 00 00 00)
+    EXPECT_EQ(buf[5], 0x0F);
+    EXPECT_EQ(buf[6], 0x85);
+    EXPECT_EQ(buf[7], 0x20);
+    // JE rel32 (0F 84 F8 FF FF FF)
+    EXPECT_EQ(buf[11], 0x0F);
+    EXPECT_EQ(buf[12], 0x84);
+    EXPECT_EQ(buf[13], 0xF8);
+    // CALL RAX (FF D0)
+    EXPECT_EQ(buf[17], 0xFF);
+    EXPECT_EQ(buf[18], 0xD0);
+    // CALL R8 (41 FF D0)
+    EXPECT_EQ(buf[19], 0x41);
+    EXPECT_EQ(buf[20], 0xFF);
+    EXPECT_EQ(buf[21], 0xD0);
+    // NOP (90)
+    EXPECT_EQ(buf[22], 0x90);
+}
+
+TEST(X64AssemblerTest, EmitsSSE2FloatingPointOpcodes) {
+    CASMWriterx64 writer;
+    writer.EmitMovss(XMMRegister::XMM0, XMMRegister::XMM1);
+    writer.EmitAddss(XMMRegister::XMM0, XMMRegister::XMM2);
+    writer.EmitMulss(XMMRegister::XMM8, XMMRegister::XMM9);
+    const auto& buf = writer.GetCodeBuffer();
+    ASSERT_EQ(buf.size(), 13U);
+    // MOVSS XMM0, XMM1 (F3 0F 10 C1)
+    EXPECT_EQ(buf[0], 0xF3);
+    EXPECT_EQ(buf[1], 0x0F);
+    EXPECT_EQ(buf[2], 0x10);
+    EXPECT_EQ(buf[3], 0xC1);
+    // ADDSS XMM0, XMM2 (F3 0F 58 C2)
+    EXPECT_EQ(buf[4], 0xF3);
+    EXPECT_EQ(buf[5], 0x0F);
+    EXPECT_EQ(buf[6], 0x58);
+    EXPECT_EQ(buf[7], 0xC2);
+    // MULSS XMM8, XMM9 (F3 45 0F 59 C1)
+    EXPECT_EQ(buf[8], 0xF3);
+    EXPECT_EQ(buf[9], 0x45); // REX.R | REX.B
+    EXPECT_EQ(buf[10], 0x0F);
+    EXPECT_EQ(buf[11], 0x59);
+    EXPECT_EQ(buf[12], 0xC1);
+}

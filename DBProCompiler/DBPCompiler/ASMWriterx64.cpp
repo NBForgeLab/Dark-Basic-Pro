@@ -86,3 +86,98 @@ void CASMWriterx64::EmitAddRegImm32(X64Register reg, uint32_t val) {
 void CASMWriterx64::EmitRet() {
     EmitByte(0xC3);
 }
+
+void CASMWriterx64::EmitCmpRegReg(X64Register reg1, X64Register reg2) {
+    const uint8_t idx1 = GetRegIndex(reg1);
+    const uint8_t idx2 = GetRegIndex(reg2);
+    uint8_t rex = 0x48; // REX.W
+    if (idx2 >= 8) rex |= 0x04; // REX.R
+    if (idx1 >= 8) rex |= 0x01; // REX.B
+    EmitByte(rex);
+    EmitByte(0x39); // CMP r/m64, r64
+    EmitByte(static_cast<uint8_t>(0xC0 | ((idx2 & 7) << 3) | (idx1 & 7)));
+}
+
+void CASMWriterx64::EmitTestRegReg(X64Register reg1, X64Register reg2) {
+    const uint8_t idx1 = GetRegIndex(reg1);
+    const uint8_t idx2 = GetRegIndex(reg2);
+    uint8_t rex = 0x48; // REX.W
+    if (idx2 >= 8) rex |= 0x04; // REX.R
+    if (idx1 >= 8) rex |= 0x01; // REX.B
+    EmitByte(rex);
+    EmitByte(0x85); // TEST r/m64, r64
+    EmitByte(static_cast<uint8_t>(0xC0 | ((idx2 & 7) << 3) | (idx1 & 7)));
+}
+
+void CASMWriterx64::EmitJmpRel32(int32_t relOffset) {
+    EmitByte(0xE9);
+    EmitDword(static_cast<uint32_t>(relOffset));
+}
+
+void CASMWriterx64::EmitJneRel32(int32_t relOffset) {
+    EmitByte(0x0F);
+    EmitByte(0x85);
+    EmitDword(static_cast<uint32_t>(relOffset));
+}
+
+void CASMWriterx64::EmitJeRel32(int32_t relOffset) {
+    EmitByte(0x0F);
+    EmitByte(0x84);
+    EmitDword(static_cast<uint32_t>(relOffset));
+}
+
+void CASMWriterx64::EmitCallReg(X64Register reg) {
+    const uint8_t idx = GetRegIndex(reg);
+    if (idx >= 8) EmitByte(0x41); // REX.B
+    EmitByte(0xFF);
+    EmitByte(static_cast<uint8_t>(0xD0 | (idx & 7)));
+}
+
+void CASMWriterx64::EmitNop() {
+    EmitByte(0x90);
+}
+
+namespace {
+constexpr uint8_t GetXmmIndex(XMMRegister reg) noexcept {
+    return static_cast<uint8_t>(reg);
+}
+}
+
+void CASMWriterx64::EmitMovss(XMMRegister dst, XMMRegister src) {
+    const uint8_t dstIdx = GetXmmIndex(dst);
+    const uint8_t srcIdx = GetXmmIndex(src);
+    EmitByte(0xF3);
+    uint8_t rex = 0x40;
+    if (dstIdx >= 8) rex |= 0x04; // REX.R
+    if (srcIdx >= 8) rex |= 0x01; // REX.B
+    if (rex != 0x40) EmitByte(rex);
+    EmitByte(0x0F);
+    EmitByte(0x10);
+    EmitByte(static_cast<uint8_t>(0xC0 | ((dstIdx & 7) << 3) | (srcIdx & 7)));
+}
+
+void CASMWriterx64::EmitAddss(XMMRegister dst, XMMRegister src) {
+    const uint8_t dstIdx = GetXmmIndex(dst);
+    const uint8_t srcIdx = GetXmmIndex(src);
+    EmitByte(0xF3);
+    uint8_t rex = 0x40;
+    if (dstIdx >= 8) rex |= 0x04; // REX.R
+    if (srcIdx >= 8) rex |= 0x01; // REX.B
+    if (rex != 0x40) EmitByte(rex);
+    EmitByte(0x0F);
+    EmitByte(0x58);
+    EmitByte(static_cast<uint8_t>(0xC0 | ((dstIdx & 7) << 3) | (srcIdx & 7)));
+}
+
+void CASMWriterx64::EmitMulss(XMMRegister dst, XMMRegister src) {
+    const uint8_t dstIdx = GetXmmIndex(dst);
+    const uint8_t srcIdx = GetXmmIndex(src);
+    EmitByte(0xF3);
+    uint8_t rex = 0x40;
+    if (dstIdx >= 8) rex |= 0x04; // REX.R
+    if (srcIdx >= 8) rex |= 0x01; // REX.B
+    if (rex != 0x40) EmitByte(rex);
+    EmitByte(0x0F);
+    EmitByte(0x59);
+    EmitByte(static_cast<uint8_t>(0xC0 | ((dstIdx & 7) << 3) | (srcIdx & 7)));
+}

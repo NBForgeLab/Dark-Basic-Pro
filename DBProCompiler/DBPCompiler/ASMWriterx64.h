@@ -24,6 +24,25 @@ enum class X64Register : uint8_t {
     R15
 };
 
+enum class XMMRegister : uint8_t {
+    XMM0 = 0,
+    XMM1,
+    XMM2,
+    XMM3,
+    XMM4,
+    XMM5,
+    XMM6,
+    XMM7,
+    XMM8,
+    XMM9,
+    XMM10,
+    XMM11,
+    XMM12,
+    XMM13,
+    XMM14,
+    XMM15
+};
+
 class CASMWriterx64 : public CASMWriter {
 public:
     CASMWriterx64();
@@ -59,6 +78,17 @@ public:
     void EmitSubRegImm32(X64Register reg, uint32_t val);
     void EmitAddRegImm32(X64Register reg, uint32_t val);
     void EmitRet();
+
+    void EmitCmpRegReg(X64Register reg1, X64Register reg2);
+    void EmitTestRegReg(X64Register reg1, X64Register reg2);
+    void EmitJmpRel32(int32_t relOffset);
+    void EmitJneRel32(int32_t relOffset);
+    void EmitJeRel32(int32_t relOffset);
+    void EmitCallReg(X64Register reg);
+    void EmitNop();
+    void EmitMovss(XMMRegister dst, XMMRegister src);
+    void EmitAddss(XMMRegister dst, XMMRegister src);
+    void EmitMulss(XMMRegister dst, XMMRegister src);
 
     [[nodiscard]] const std::vector<uint8_t>& GetCodeBuffer() const noexcept { return m_codeBuffer; }
     [[nodiscard]] size_t GetCodeSize() const noexcept { return m_codeBuffer.size(); }
