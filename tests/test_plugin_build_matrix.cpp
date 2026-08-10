@@ -39,3 +39,9 @@ TEST(PluginBuildMatrixTest, ValidatesImageAndSoundPluginTargetTraits) {
     EXPECT_TRUE(sizeof(GlobStruct::g_Image) == sizeof(HINSTANCE));
     EXPECT_TRUE(sizeof(GlobStruct::g_System) == sizeof(HINSTANCE));
 }
+
+TEST(PluginBuildMatrixTest, ValidatesCameraAndTextPluginTargetTraits) {
+    EXPECT_GE(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_TRUE(sizeof(GlobStruct::g_Camera3D) == sizeof(HINSTANCE));
+    EXPECT_TRUE(sizeof(GlobStruct::g_Text) == sizeof(HINSTANCE));
+}

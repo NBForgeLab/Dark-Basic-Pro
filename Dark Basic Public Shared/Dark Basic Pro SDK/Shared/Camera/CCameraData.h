@@ -6,15 +6,12 @@
 #pragma comment ( lib, "d3dx8.lib"  )
 #pragma comment ( lib, "dxerr8.lib" )
 
-#include <d3d8.h>
-#include <Dxerr8.h>
-#include <D3dx8tex.h>
-#include <D3dx8core.h>
+#include <d3d9.h>
+#include <d3dx9.h>
+#include <d3dx9tex.h>
 #include <basetsd.h>
 #include <stdio.h>
 #include <math.h>
-#include <D3DX8.h>
-#include <d3d8types.h>
 
 #define WIN32_LEAN_AND_MEAN 
 #include <windows.h>   
