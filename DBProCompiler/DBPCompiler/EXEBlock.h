@@ -4,11 +4,14 @@
 // Includes used for DX check
 #include <windows.h>
 #include <stdio.h>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
 // Safe Macros
 #include "macros.h"
+
+#include "ReferenceTracker.h"
 
 // GDI CoreDLL Typedefs
 typedef void				( *GDI_RetVoidParamLPVOID )				( LPVOID );
@@ -24,6 +27,7 @@ typedef DWORD				( *GDI_RetDWORDParamPASSDLLS )			( HINSTANCE, HINSTANCE, HINSTA
 typedef DWORD				( *GDI_RetDWORDParamVoidPFN )			( void );
 typedef DWORD				( *GDI_RetDWORDParamDWORDPFN )			( DWORD );
 typedef void				( *GDI_RetVoidParamDWORDPTRPFN )		( DWORD* );
+typedef void				( *GDI_RetVoidParamUINTPTRPFN )		( uintptr_t ); // wave 7: array pointers are full-width
 typedef int					( *GDI_RetIntParamVoidPFN )				( void );
 
 // DLL Function Typdefs
@@ -85,6 +89,18 @@ class CEXEBlock
 		bool			RecreateArray(uintptr_t** pArray, DWORD dwCount, DWORD NewCount);
 		void			DeleteArrayContents(uintptr_t* pArray, DWORD dwCount);
 		bool			FileExists(LPSTR pFilename);
+
+		/**
+		 * Patches resolved reference values into the machine code block.
+		 *
+		 * Width rules (x64): address kinds (Command/StringLiteral/Variable/
+		 * DataLabel) write sizeof(void*) bytes; Immediate writes 4 bytes;
+		 * CodeLabel writes int32 rel32 with base pos+4 (jumps are rel32).
+		 */
+		static void PatchReferenceValues(
+			const uintptr_t* values, std::size_t count,
+			const DWORD* positions, const DWORD* types,
+			char* machineCode);
 
 		bool			CheckIfGotLatestDirectX ( bool bSilent );
 		bool			Init(HINSTANCE hInstance, bool bResult, LPSTR* pReturnError, LPSTR pCmdLine);

@@ -60,7 +60,7 @@ TEST_F(StatementExpressionTest, ParsesLiteralIntoMathItem) {
     CParameter param;
     char buf[] = "42";
     CStr expr(buf);
-    ASSERT_TRUE(statement.DoExpression(&expr, &param));
+    ASSERT_TRUE(statement.DoExpression(&expr, &param, false));
     EXPECT_NE(param.GetMathItem(), nullptr);
 }
 
@@ -70,7 +70,7 @@ TEST_F(StatementExpressionTest, ParsesStringLiteralIntoMathItem) {
     CParameter param;
     char buf[] = "\"hello\"";
     CStr expr(buf);
-    ASSERT_TRUE(statement.DoExpression(&expr, &param));
+    ASSERT_TRUE(statement.DoExpression(&expr, &param, false));
     EXPECT_NE(param.GetMathItem(), nullptr);
 }
 
@@ -82,6 +82,6 @@ TEST_F(StatementExpressionTest, FailsCleanlyOnMalformedExpression) {
     CParameter param;
     char buf[] = "1+";
     CStr expr(buf);
-    EXPECT_FALSE(statement.DoExpression(&expr, &param));
+    EXPECT_FALSE(statement.DoExpression(&expr, &param, false));
     EXPECT_EQ(param.GetMathItem(), nullptr);
 }

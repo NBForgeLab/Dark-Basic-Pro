@@ -169,7 +169,7 @@ DBPRO_GLOBAL LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -1016,10 +1016,10 @@ DARKSDK void CreateMemblockFromArray( int mbi, DWORD dwAllocation )
 				DWORD dwSizeOfOneDataItem = pHeader[11];
 				DWORD dwTypeValueOfOneDataItem = pHeader[12];
 				DWORD dwInternalIndex = pHeader[13];
-				DWORD dwRefSizeInBytes = dwSizeOfArray * 4;
+				DWORD dwRefSizeInBytes = dwSizeOfArray * 8;
 				DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
 				dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
-				DWORD* pRef = (DWORD*)(pArrayPtr+dwHeaderSizeInBytes);
+				uintptr_t* pRef = (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
 				LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
 				pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
@@ -1068,10 +1068,10 @@ DARKSDK void CreateArrayFromMemblock( DWORD dwAllocation, int mbi )
 				DWORD dwSizeOfOneDataItem = pHeader[11];
 				DWORD dwTypeValueOfOneDataItem = pHeader[12];
 				DWORD dwInternalIndex = pHeader[13];
-				DWORD dwRefSizeInBytes = dwSizeOfArray * 4;
+				DWORD dwRefSizeInBytes = dwSizeOfArray * 8;
 				DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
 				dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
-				DWORD* pRef = (DWORD*)(pArrayPtr+dwHeaderSizeInBytes);
+				uintptr_t* pRef = (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
 				LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
 				pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 

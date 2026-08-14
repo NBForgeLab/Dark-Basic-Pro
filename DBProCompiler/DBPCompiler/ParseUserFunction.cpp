@@ -67,7 +67,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull2, 7);
 
 				// CALL EQUATE to create a NEW STRING from CURRENT STRING
-				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YA_K_K_K@Z");
 
 				// Put EAX overwrites DEST
 				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, NULL, 7);
@@ -125,8 +125,9 @@ bool CParseUserFunction::ActOnType(CStr* pTypeName, int iDisplacement, DWORD Pla
 				// Determine type of Field
 				DWORD dwFieldType = g_pVarTable->GetBasicTypeValue(pCurrent->GetType()->GetStr());
 
-				// Calculate displacement to Field
-				int iDisplacement = (iGlobalDisplacement + dwOffset);
+				// Calculate displacement to Field (x64: 4-byte chain units become
+				// 8-byte slots, so the field offset doubles inside the frame)
+				int iDisplacement = (iGlobalDisplacement + (dwOffset*2));
 		
 				// Process as basic or user type
 				if(dwFieldType==1001)
@@ -164,9 +165,10 @@ bool CParseUserFunction::ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree)
 	// Zero ALL elements of local vars for nice function
 	if(PlacementCode==DBMPLACEMENT_TOP)
 	{
-		// ASM Task to clear current ESP position -> 
+		// ASM Task to clear current ESP position (x64: 8-byte slots double
+		// the byte count of the local region)
 		CStr pClearSize;
-		pClearSize.SetNumericText(dwSizeOfLocalParams);
+		pClearSize.SetNumericText(dwSizeOfLocalParams*2);
 		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::ClearStack), &pClearSize, 7);
 	}
 
@@ -213,12 +215,15 @@ bool CParseUserFunction::ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree)
 			DWORD dwOffset=0, dwSizeOfData=0;
 			if(g_pStructTable->FindOffsetFromField(GetName()->GetStr(), pCurrent->GetName()->GetStr(), &dwOffset, &dwSizeOfData))
 			{
-				// Calculate displacement to Local Variable (or ParamInputVar)
+				// Calculate displacement to Local Variable (or ParamInputVar).
+				// x64: 4-byte chain units become 8-byte slots, so the whole
+				// frame displacement doubles: locals at negative RBP offsets,
+				// string params above RBP+16 (saved RBP + return address).
 				int iDisplacement;
 				if(bSpecialRecreate==false)
-					iDisplacement=((dOffsetToLastParamInStruct)-dwOffset)-dwSizeOfData;
+					iDisplacement=2*(((dOffsetToLastParamInStruct)-dwOffset)-dwSizeOfData);
 				else
-					iDisplacement=4+dwOffset;
+					iDisplacement=8+(dwOffset*2);
 
 				// Process as basic or user type
 				if(dwDecType==1001)
@@ -255,7 +260,9 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 		CStr pString(GetName()->GetStr());
 		DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pString.GetStr());
 		CStr pStrNum("");
-		pStrNum.SetNumericText(dwTypeSize+4);//extra 4 bytes as start adds some for byte start
+		// x64: 8-byte slots double the local allocation (extra 8 bytes as start
+		// adds some for byte start)
+		pStrNum.SetNumericText((dwTypeSize+4)*2);
 		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::SubEsp), &pStrNum, 7);
 
 		// Clear all vars, and especially strings and array ptrs (and those in usertypes too)
@@ -311,7 +318,7 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 				// Put new string address in EAX for return passing
-				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", "?EquateSS@@YA_K_K_K@Z");
 			}
 			else
 			{

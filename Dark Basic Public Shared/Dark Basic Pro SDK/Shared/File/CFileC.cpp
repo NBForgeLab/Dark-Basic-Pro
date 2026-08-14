@@ -752,7 +752,7 @@ DARKSDK LPSTR GetReturnStringFromWorkString(char* WorkString = m_pWorkString)
 	if(WorkString)
 	{
 		DWORD dwSize=strlen(WorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, WorkString);
 	}
 	return pReturnString;
@@ -1249,24 +1249,27 @@ DARKSDK void WriteFilemap ( DWORD pFilemapname, DWORD dwValue, DWORD pString, in
 {
 	// Open or create filemap
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_WRITE, TRUE, (LPSTR)pFilemapname);
-	if ( hFileMap==NULL ) hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,1024,(LPSTR)pFilemapname);
-	LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,1024);
+	if ( hFileMap==NULL ) hFileMap = CreateFileMapping(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,1024,(LPSTR)pFilemapname);
+	LPVOID lpVoid = hFileMap ? MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,1024) : NULL;
 
 	// Copy data to filemap
-	if ( iWriteType==0 )
+	if(lpVoid)
 	{
-		*((DWORD*)lpVoid+0) = dwValue;
-	}
-	if ( iWriteType==1 )
-	{
-		// Copy data to filemap
-		DWORD dwStringSize = strlen((LPSTR)pString);
-		*((DWORD*)lpVoid+1) = dwStringSize;
-		strcpy((LPSTR)lpVoid+8, (LPSTR)pString);
+		if ( iWriteType==0 )
+		{
+			*((DWORD*)lpVoid+0) = dwValue;
+		}
+		if ( iWriteType==1 )
+		{
+			// Copy data to filemap
+			DWORD dwStringSize = strlen((LPSTR)pString);
+			*((DWORD*)lpVoid+1) = dwStringSize;
+			strcpy((LPSTR)lpVoid+8, (LPSTR)pString);
+		}
 	}
 
 	// Release virtual file
-	UnmapViewOfFile(lpVoid);
+	if(lpVoid) UnmapViewOfFile(lpVoid);
 //	CloseHandle(hFileMap);
 }
 
@@ -1288,14 +1291,15 @@ DARKSDK DWORD ReadFilemapValue ( DWORD pFilemapname )
 {
 	// Open or create filemap for reading
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_WRITE, TRUE, (LPSTR)pFilemapname);
-	if ( hFileMap==NULL ) hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,1024,(LPSTR)pFilemapname);
-	LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,1024);
+	if ( hFileMap==NULL ) hFileMap = CreateFileMapping(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,1024,(LPSTR)pFilemapname);
+	LPVOID lpVoid = hFileMap ? MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,1024) : NULL;
 
 	// Copy data from filemap
-	DWORD dwValue = *((DWORD*)lpVoid+0);
+	DWORD dwValue = 0;
+	if(lpVoid) dwValue = *((DWORD*)lpVoid+0);
 
 	// Release virtual file
-	UnmapViewOfFile(lpVoid);
+	if(lpVoid) UnmapViewOfFile(lpVoid);
 //	CloseHandle(hFileMap);
 
 	// return data
@@ -1306,18 +1310,18 @@ DARKSDK DWORD ReadFilemapString ( DWORD pDestStr, DWORD pFilemapname )
 {
 	// Open or create filemap for reading
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_READ, TRUE, (LPSTR)pFilemapname);
-	if ( hFileMap==NULL ) hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,1024,(LPSTR)pFilemapname);
-	LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,1024);
+	if ( hFileMap==NULL ) hFileMap = CreateFileMapping(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,1024,(LPSTR)pFilemapname);
+	LPVOID lpVoid = hFileMap ? MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,1024) : NULL;
 
 	// Copy data from filemap
-	strcpy ( m_pWorkString, (LPSTR)lpVoid+8 );
+	if(lpVoid) strcpy ( m_pWorkString, (LPSTR)lpVoid+8 );
 
 	// Release virtual file
-	UnmapViewOfFile(lpVoid);
+	if(lpVoid) UnmapViewOfFile(lpVoid);
 //	CloseHandle(hFileMap);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 
 	// return data
@@ -1499,7 +1503,7 @@ DARKSDK DWORD ReadString( int f, DWORD pDestStr )
         optional buffer to be provided (defaults to m_pWorkString).
     */
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
     LPSTR pReturnString=0;
 
@@ -2226,7 +2230,7 @@ DARKSDK DWORD GetDir( DWORD pDestStr )
 {
 	// Create and return string
 	getcwd(m_pWorkString, 1024);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -2238,7 +2242,7 @@ DARKSDK DWORD GetFileName( DWORD pDestStr )
 	else
 		strcpy(m_pWorkString, "");
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -2258,7 +2262,7 @@ DARKSDK DWORD GetFileDate( DWORD pDestStr )
 	else
 		strcpy(m_pWorkString, "");
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -2270,7 +2274,7 @@ DARKSDK DWORD GetFileCreation( DWORD pDestStr )
 	else
 		strcpy(m_pWorkString, "");
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -2330,7 +2334,7 @@ DARKSDK DWORD Appname( DWORD pDestStr )
 {
 	// Create and return string
 	GetModuleFileName(g_pGlob->hInstance, m_pWorkString, 1024);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -2339,7 +2343,7 @@ DARKSDK DWORD Windir( DWORD pDestStr )
 {
 	// Create and return string
 	GetWindowsDirectory(m_pWorkString, 1024);	
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -2348,7 +2352,7 @@ DARKSDK DWORD Mydocdir( DWORD pDestStr )
 {
 	// lee - 040407 - return the My Documents folder in full
 	SHGetFolderPath( NULL, CSIDL_PERSONAL, NULL, 0, m_pWorkString );
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }

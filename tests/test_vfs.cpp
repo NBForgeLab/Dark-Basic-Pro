@@ -254,11 +254,12 @@ TEST(VFSHooksTest, FallbackToRealFile) {
 }
 
 TEST(MemoryPETest, LoadModuleAndResolveExports) {
-    std::string dllPath =
-        (std::filesystem::path(DBP_TEST_SOURCE_ROOT) /
-         "Install/Compiler/plugins/DBProTransformsDebug.dll").string();
+    // The legacy 32-bit runtime DLLs can never execute inside a 64-bit
+    // process, so the loader is exercised against a test module whose bitness
+    // matches the host build (PE32 on x86, PE32+ on x64).
+    std::string dllPath = DBP_TEST_MEMORY_MODULE_PATH;
     std::ifstream in(dllPath, std::ios::binary);
-    ASSERT_TRUE(in.is_open()) << "Failed to find DBProTransformsDebug.dll for testing";
+    ASSERT_TRUE(in.is_open()) << "Failed to find test memory module for testing: " << dllPath;
 
     std::vector<char> buffer((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
@@ -286,4 +287,35 @@ TEST(MemoryPETest, LoadModuleAndResolveExports) {
 
     VFSHooks::Shutdown();
     VFSRegistry::Clear();
+}
+
+TEST(MemoryPETest, RejectsLegacy32BitModuleOn64BitHost) {
+#ifdef _WIN64
+    // A 32-bit PE image can never run in a 64-bit process; the loader must
+    // refuse it cleanly instead of executing its entry point.
+    std::string dllPath =
+        (std::filesystem::path(DBP_TEST_SOURCE_ROOT) /
+         "Install/Compiler/plugins/DBProTransformsDebug.dll").string();
+    std::ifstream in(dllPath, std::ios::binary);
+    if (!in.is_open()) {
+        GTEST_SKIP() << "Legacy 32-bit DLL not present";
+    }
+    std::vector<char> buffer((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    in.close();
+
+    VFSRegistry::Clear();
+    ASSERT_TRUE(VFSRegistry::RegisterOwned(
+        "Legacy32.dll",
+        std::vector<std::uint8_t>(buffer.begin(), buffer.end())));
+    ASSERT_TRUE(VFSHooks::Initialize());
+
+    HMODULE hModule = MemoryPE::LoadFromVFS("Legacy32.dll");
+    EXPECT_EQ(hModule, nullptr);
+    EXPECT_FALSE(MemoryPE::IsMemoryModule(hModule));
+
+    VFSHooks::Shutdown();
+    VFSRegistry::Clear();
+#else
+    GTEST_SKIP() << "32-bit host may execute 32-bit modules";
+#endif
 }

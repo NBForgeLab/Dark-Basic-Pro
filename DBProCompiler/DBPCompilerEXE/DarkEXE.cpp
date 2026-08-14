@@ -223,7 +223,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		strcpy ( pUniqueFileMapName, CEXE.m_AbsoluteAppFile.c_str() );
 		strcat ( pUniqueFileMapName, "(FileMap)" );
 		DWORD dwWriteDataSize = strlen(pDebugMeString)+1;
-		HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize+4,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
+		HANDLE hWriteFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,dwWriteDataSize+4,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
 		if(hWriteFileMap)
 		{
 			LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize+4);
@@ -308,7 +308,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 			// order to keep this section simple, we simply pass in the memory address
 			// of the GLOBSTRUCT data, which includes all the information needed
 			DWORD dwWriteDataSize = 4;
-			HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
+			HANDLE hWriteFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
 			if(hWriteFileMap)
 			{
 				LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize);

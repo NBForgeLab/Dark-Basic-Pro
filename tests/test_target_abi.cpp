@@ -11,9 +11,23 @@
 
 namespace {
 
-TEST(TargetAbiTest, ActiveTargetIsExplicitlyPe32) {
-    static_assert(std::is_same_v<dbp::abi::ActiveTargetAbi, dbp::abi::TargetAbi32>);
-    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 4U);
+TEST(TargetAbiTest, ActiveTargetIsPe32Plus) {
+    // Wave 5: the project is x64-only — varspace address slots (strings,
+    // arrays, UDT pointers) and backend pointer reads are 8 bytes.
+    static_assert(std::is_same_v<dbp::abi::ActiveTargetAbi, dbp::abi::TargetAbi64>);
+    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 8U);
+}
+
+TEST(TargetAbiTest, DefaultPointerReadIsFullWidth) {
+    std::array<std::byte, 8> bytes{};
+    const std::uint64_t storedAddress = 0x7FFF000088889999ULL;
+    std::memcpy(bytes.data(), &storedAddress, sizeof(storedAddress));
+
+    const auto pointer =
+        dbp::abi::ReadPointer<char*>(bytes.data(), bytes.size(), 0);
+
+    ASSERT_TRUE(pointer.has_value());
+    EXPECT_EQ(reinterpret_cast<std::uintptr_t>(*pointer), storedAddress);
 }
 
 TEST(TargetAbiTest, ReadsUnalignedPe32AddressWithoutAdjacentBytes) {

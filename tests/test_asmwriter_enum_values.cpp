@@ -21,7 +21,10 @@ TEST(ASMWriterEnumTest, ParamModeIsEnumClassWithIntUnderlying) {
 }
 
 TEST(ASMWriterEnumTest, AsmMaxCountValue) {
-    EXPECT_EQ(ASMMAXCOUNT, 300);
+    // 300 through wave 15; 301 after wave 16 (4 REX.W CVT opcodes land at
+    // indices 297-300); 303 after wave 19 (MOVZX EAX,AL/AX at 301-302), so
+    // the descriptor array must hold 303 entries.
+    EXPECT_EQ(ASMMAXCOUNT, 303);
 }
 
 // --- ASMTASK_* key values ---

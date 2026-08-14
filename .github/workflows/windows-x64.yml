@@ -1,4 +1,4 @@
-name: Windows x86 foundation
+name: Windows x64 foundation
 
 on:
   pull_request:
@@ -19,11 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         preset:
-          - windows-x86-debug
-          - windows-x86-release
-          - windows-x86-asan
-          - windows-x86-ubsan
-          - windows-x86-coverage
+          - windows-x64-debug
+          - windows-x64-release
+          - windows-x64-asan
+          - windows-x64-ubsan
+          - windows-x64-coverage
 
     steps:
       - name: Check out source
@@ -90,12 +90,12 @@ jobs:
           ctest --preset ${{ matrix.preset }}
 
       - name: Run language conformance
-        if: matrix.preset == 'windows-x86-release'
+        if: matrix.preset == 'windows-x64-release'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $env:DBP_CONFORMANCE_COMPILER = `
-            "$PWD/out/build/windows-x86-release/bin/Release/DBPCompiler.exe"
+            "$PWD/out/build/windows-x64-release/bin/Release/DBPCompiler.exe"
           $env:DBP_CONFORMANCE_RUNTIME_ROOT = "$PWD/Install/Compiler"
           $result = Invoke-Pester `
             -Path tests/conformance/run-conformance.Tests.ps1 `
@@ -155,25 +155,25 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          cmake --preset windows-x86-coverage --fresh `
+          cmake --preset windows-x64-coverage --fresh `
             -DDBP_DXSDK_ROOT="$PWD/out/deps/dxsdk"
 
       - name: Build
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          cmake --build --preset windows-x86-coverage
+          cmake --build --preset windows-x64-coverage
 
       - name: Test
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          ctest --preset windows-x86-coverage --output-on-failure
+          ctest --preset windows-x64-coverage --output-on-failure
 
       - name: Generate coverage report
         shell: pwsh
         run: |
-          & scripts/coverage-report.ps1 -BuildDirectory out/build/windows-x86-coverage -OutputFormat text
+          & scripts/coverage-report.ps1 -BuildDirectory out/build/windows-x64-coverage -OutputFormat text
 
       - name: Upload coverage artifacts
         if: always()
@@ -181,7 +181,7 @@ jobs:
         with:
           name: coverage-report
           path: |
-            out/build/windows-x86-coverage/**/*.cov
+            out/build/windows-x64-coverage/**/*.cov
             coverage-report.*
           if-no-files-found: ignore
           retention-days: 14
@@ -222,15 +222,15 @@ jobs:
       - name: Configure Clang libFuzzer targets
         shell: pwsh
         run: |
-          cmake -S . -B out/build/windows-x86-fuzz `
-            -G "Visual Studio 18 2026" -A Win32 -T ClangCL `
+          cmake -S . -B out/build/windows-x64-fuzz `
+            -G "Visual Studio 18 2026" -A x64 -T ClangCL `
             -DDBP_BUILD_FUZZERS=ON -DBUILD_TESTING=OFF `
             -DDBP_DXSDK_ROOT="$PWD/out/deps/dxsdk"
 
       - name: Build fuzz targets
         shell: pwsh
         run: |
-          cmake --build out/build/windows-x86-fuzz `
+          cmake --build out/build/windows-x64-fuzz `
             --config Release `
             --target dbp_package_reader_fuzzer `
               dbp_legacy_pck_reader_fuzzer `
@@ -240,7 +240,7 @@ jobs:
         shell: pwsh
         run: |
           ./fuzz/run-corpus-smoke.ps1 `
-            -BinaryDirectory out/build/windows-x86-fuzz/bin/Release
+            -BinaryDirectory out/build/windows-x64-fuzz/bin/Release
 
   clang-tidy:
     runs-on: ubuntu-latest

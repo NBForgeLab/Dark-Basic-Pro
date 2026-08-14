@@ -54,8 +54,8 @@ TEST(CoverageIntegration, CoveragePresetPresentInCMakePresets) {
 
     std::string content((std::istreambuf_iterator<char>(f)),
                          std::istreambuf_iterator<char>());
-    EXPECT_NE(content.find("windows-x86-coverage"), std::string::npos)
-        << "CMakePresets.json must contain a windows-x86-coverage preset";
+    EXPECT_NE(content.find("windows-x64-coverage"), std::string::npos)
+        << "CMakePresets.json must contain a windows-x64-coverage preset";
     EXPECT_NE(content.find("DBP_ENABLE_COVERAGE"), std::string::npos)
         << "CMakePresets.json coverage preset must set DBP_ENABLE_COVERAGE";
 #else

@@ -59,7 +59,8 @@ enum {
 };
 
 // Typdefs shared by all DLLs
-typedef void ( *PTR_FuncCreateStr ) ( DWORD*, DWORD );
+// x64: string slots hold full 64-bit heap pointers.
+typedef void ( *PTR_FuncCreateStr ) ( uintptr_t*, DWORD );
 typedef DWORD ( *PTR_ProcessMessages ) ( void );
 typedef void ( *PTR_PrintString ) ( LPSTR, bool );
 typedef void ( *PTR_VOID ) ( void );
@@ -354,14 +355,14 @@ inline char *dbReturnString(char *oldstr, const char *newstr) {
 	p = nullptr;
 
 	if (oldstr)
-		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD *>(&oldstr), 0);
+		g_pGlob->CreateDeleteString(reinterpret_cast<uintptr_t *>(&oldstr), 0);
 
 	if (!newstr)
 		return nullptr;
 
 	l = strlen(newstr) + 1;
 
-	g_pGlob->CreateDeleteString(reinterpret_cast<DWORD *>(&p), l);
+	g_pGlob->CreateDeleteString(reinterpret_cast<uintptr_t *>(&p), l);
 	memcpy(reinterpret_cast<void *>(p), reinterpret_cast<const void *>(newstr), l);
 
 	return p;

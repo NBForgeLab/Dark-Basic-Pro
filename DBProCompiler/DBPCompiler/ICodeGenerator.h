@@ -2,8 +2,61 @@
 #include "windows.h"
 #include "Str.h"
 
+#include <cstdint>
+
 class CDeclaration; // Forward declaration
 class CResultData;  // Forward declaration
+
+// ---------------------------------------------------------------------------
+// x64 opcode descriptor types (see docs/superpowers/specs/2026-08-11-x64-opcode-emission-design.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * Data slot encoding for an opcode's operand fields.
+ *
+ * The slot width is a property of the instruction form AND of the resolved
+ * reference kind: address-bearing slots are sizeof(void*) wide on x64 while
+ * value/immediate slots stay 4 bytes. The emitter and the runtime derive the
+ * width from the same parsed label kind, so no on-disk format change is
+ * needed for reference patching.
+ */
+enum class DataEncoding : std::uint8_t
+{
+    None = 0,    // no operand data
+    Imm8,        // 1-byte value slot (immediate / displacement constant)
+    Imm16,       // 2-byte value slot
+    Imm32,       // 4-byte value slot (also CodeLabel rel32 slots)
+    Abs64,       // 8-byte absolute-address slot (moffs A0-A3 only)
+    ImmOrAddr,   // MOV r, imm: 4-byte value slot, or 48 B8+rd imm64 for addresses
+    PtrIndirect, // absolute [disp32]: expand to MOV RBX, imm64 + [RBX] operand
+};
+
+/** Whole-instruction expansions that have no direct x64 encoding. */
+enum class OpcodeExpansion : std::uint8_t
+{
+    None,
+    PushAll,     // PUSHAD -> PUSH RAX,RBX,RCX,RDX,RSI,RDI,RBP
+    PopAll,      // POPAD  -> POP RBP,RDI,RSI,RDX,RCX,RBX,RAX
+    RexW,        // 0x48 operand-size prefix (MOV RBP,RSP / MOV RSP,RBP)
+    RexWAfterPrefix, // legacy F2/F3/66 prefix first, then 0x48 REX.W
+                    // (64-bit CVT forms: F3 48 0F 2C C0 etc.)
+};
+
+/** Structured descriptor replacing the legacy parallel byte arrays. */
+struct ASMOpcodeDef
+{
+    const char*    name = nullptr;   // DBM debug string
+    int            preOp = -1;       // legacy prefix (0x66) or -1
+    int            op1 = -1;         // first opcode byte or -1
+    int            op2 = -1;         // ModRM / second opcode byte or -1
+    // Wave 8: explicit ModRM byte for instructions whose opcode spans
+    // preOp+op1+op2 (SSE2 memory forms: F2 0F 10 <modrm>). When -1 the
+    // legacy behaviour stands (op2 carries the ModRM where applicable).
+    int            modrm = -1;       // explicit ModRM byte or -1
+    DataEncoding   data1 = DataEncoding::None;
+    DataEncoding   data2 = DataEncoding::None;
+    OpcodeExpansion expansion = OpcodeExpansion::None;
+};
 
 class ICodeGenerator {
 public:
@@ -16,11 +69,13 @@ public:
     virtual bool GetArrayCheckFlag(void) = 0;
 
     virtual void GenerateASMCodes(void) = 0;
-    virtual void DefineASM(DWORD dwASMCode, LPSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData) = 0;
+    virtual void DefineASM(DWORD dwASMCode, const char* pDebugStr, int iPreOp, int iOp1, int iOp2, DataEncoding data1, DataEncoding data2 = DataEncoding::None, OpcodeExpansion expansion = OpcodeExpansion::None, int iModRm = -1) = 0;
 
     virtual bool CreateASMHeader(void) = 0;
+    // Raw byte emitter (leap markers, tests): fixed Imm32 data slot.
     virtual bool CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPSTR lpOpData) = 0;
-    virtual bool CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPSTR lpOpData, LPSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize) = 0;
+    // x64-aware, descriptor-driven emission.
+    virtual bool CreateASMMiddleCore(DWORD dwASMCode, LPSTR lpOpData, LPSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize) = 0;
     virtual bool CheckAndExpandMCBMemory(void) = 0;
     virtual bool CheckAndExpandREFMemory(void) = 0;
 

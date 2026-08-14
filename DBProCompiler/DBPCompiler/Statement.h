@@ -210,7 +210,7 @@ class CStatement
 		bool			DoParameterListString(CStr* pParamString, CParameter** ppFirstParameter);
 		bool			DoExpressionList(CParameter** ppParameter, bool* bNoMoreParams);
 		bool			DoExpressionListString(CParameter** ppParameter, CStr* pOptionalString, DWORD* pdwReturnDistance, bool* bTerminator);
-		bool			DoExpression(CStr* pStr, CParameter* pParameter);
+		bool			DoExpression(CStr* pStr, CParameter* pParameter, bool bDoubleLiterals);
 		bool			FindHighestPres(CStr* pStr, DWORD *dwPosition, DWORD *dwType);
 
 		DWORD			GetMainToken(void);
@@ -342,12 +342,12 @@ class CMathOp
 
 		void Add(CMathOp* pNext);
 
-		bool DoValue(CStr* pStr);
-		bool DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeMode);
+		bool DoValue(CStr* pStr, bool bDoubleLiterals);
+		bool DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeMode, bool bDoubleLiterals);
 		bool DoValueFunction(CStr* pExpression);
-		bool DoValueComplexVariable(CStr* pExpression);
+		bool DoValueComplexVariable(CStr* pExpression, bool bDoubleLiterals);
 		bool TokeniseStructuresOfDataString(CStr* pEntireData, DWORD* pdwLValueType);
-		bool DoValueSingleVariable(CStr* pExpression);
+		bool DoValueSingleVariable(CStr* pExpression, bool bDoubleLiterals);
 		bool DoValueLiteral(CStr* pExpression, DWORD dwTypeValue);
 		bool DoValueLabel(CStr* pExpressionValue);
 
@@ -358,7 +358,7 @@ class CMathOp
 		bool IsReserved ( CStr* pExpressionValue );
 		bool IsItLabelFollowedByBracket(CStr* pExpressionValue, DWORD *pdwLabelLength);
 		bool IsFunction(CStr* pExpressionValue);
-		bool IsLiteral(CStr* pExpressionValue, DWORD* pdwTypeValue);
+		bool IsLiteral(CStr* pExpressionValue, DWORD* pdwTypeValue, bool bDoubleLiterals);
 		bool IsSingleVariable(CStr* pExpressionValue);
 		bool IsLabel(CStr* pExpressionValue);
 		bool IsComplexVariable(CStr* pExpressionValue);

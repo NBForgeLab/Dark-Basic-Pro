@@ -1115,7 +1115,7 @@ static LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -1166,7 +1166,7 @@ DARKSDK void DB_UpdateEntireWindow(bool bFullUpdate, bool bMovement)
 			DWORD dwActualWindowHeight = gWindowSizeY+gWindowExtraY;
 			SetWindowPos(m_hWnd, HWND_TOP, g_pGlob->dwWindowX, g_pGlob->dwWindowY, dwActualWindowWidth, dwActualWindowHeight, SWP_SHOWWINDOW);
 			ShowWindow(m_hWnd, gWindowVisible);
-			SetClassLong(m_hWnd, GCL_HICON, (LONG)gWindowIconHandle);
+			SetClassLongPtr(m_hWnd, GCLP_HICON, reinterpret_cast<LONG_PTR>(gWindowIconHandle));
 		}
 
 		// Paint after window switch
@@ -2056,7 +2056,7 @@ DARKSDK bool SetDisplayMode ( int iWidth, int iHeight, int iDepth, int iMode, in
 		if(g_pGlob)
 		{
 			// Get Default Icon
-			gOriginalIcon = (HICON)GetClassLong(g_pGlob->hWnd, GCL_HICON);
+			gOriginalIcon = reinterpret_cast<HICON>(GetClassLongPtr(g_pGlob->hWnd, GCLP_HICON));
 			gWindowIconHandle=gOriginalIcon;
 
 			// 0=hidden
@@ -2821,7 +2821,7 @@ DARKSDK int Create ( HWND hWnd, D3DPRESENT_PARAMETERS* d3dpp )
 	}
 
 	// create device
-	wsprintf ( pDisplayErrTrace, "%s A=%d P=%d D£DPP=%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d", pDisplayErrTrace, m_uAdapterChoice, m_iProcess, d3dpp->BackBufferCount, d3dpp->BackBufferWidth, d3dpp->BackBufferHeight, d3dpp->AutoDepthStencilFormat, d3dpp->BackBufferFormat, d3dpp->EnableAutoDepthStencil, d3dpp->Flags, d3dpp->FullScreen_RefreshRateInHz, d3dpp->hDeviceWindow, d3dpp->MultiSampleQuality, d3dpp->MultiSampleType, d3dpp->PresentationInterval, d3dpp->SwapEffect, d3dpp->Windowed );
+	wsprintf ( pDisplayErrTrace, "%s A=%d P=%d Dï¿½DPP=%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d", pDisplayErrTrace, m_uAdapterChoice, m_iProcess, d3dpp->BackBufferCount, d3dpp->BackBufferWidth, d3dpp->BackBufferHeight, d3dpp->AutoDepthStencilFormat, d3dpp->BackBufferFormat, d3dpp->EnableAutoDepthStencil, d3dpp->Flags, d3dpp->FullScreen_RefreshRateInHz, d3dpp->hDeviceWindow, d3dpp->MultiSampleQuality, d3dpp->MultiSampleType, d3dpp->PresentationInterval, d3dpp->SwapEffect, d3dpp->Windowed );
 	if(g_pGlob) g_pGlob->iSoftwareVP = 0;
 	if ( FAILED ( hr = m_pD3D->CreateDevice (	m_uAdapterChoice,						// use default adapter
 												pDevType,								// hardware mode
@@ -3490,7 +3490,7 @@ DARKSDK DWORD CurrentGraphicsCard ( DWORD pDestStr )
 	strcpy(m_pWorkString, m_pAdapterName);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -4758,7 +4758,7 @@ DARKSDK DWORD GetDirectXVersion ( DWORD pDestStr )
 	wsprintf ( m_pWorkString, "%d.%d%c", dwDirectXVersionMajor, dwDirectXVersionMinor, cDirectXVersionLetter );
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -4767,7 +4767,7 @@ DARKSDK DWORD GetDirectXRefreshRate ( DWORD pDestStr )
 {
 	// Create and return string
 	wsprintf ( m_pWorkString, "%d", (int)m_WindowsD3DMODE.RefreshRate );
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }

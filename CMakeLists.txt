@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 4.2)
 
-# Allow Win32 by default, but permit x64 build configurations
+# DarkBasicPro is a 64-bit-only project: default the generator platform to
+# x64 and refuse 32-bit (Win32/x86) configurations outright.
 if(NOT CMAKE_GENERATOR_PLATFORM)
-    set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Target Platform (Win32 or x64)" FORCE)
+    set(CMAKE_GENERATOR_PLATFORM x64 CACHE STRING "Target Platform (x64 only)" FORCE)
 endif()
 
 project(DarkBasicPro VERSION 1.0.5 LANGUAGES C CXX ASM_MASM)
+
+# CMAKE_SIZEOF_VOID_P is only known after project() enables the C compiler.
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR "DarkBasicPro is 64-bit only: 32-bit (Win32/x86) builds are no longer supported.")
+endif()
 
 include(CTest)
 include(cmake/ProjectOptions.cmake)
@@ -23,17 +29,8 @@ if(DBP_ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-# Enable SAFESEH for MASM on Win32 only
-if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(CMAKE_ASM_MASM_FLAGS "${CMAKE_ASM_MASM_FLAGS} /safeseh")
-endif()
-
-# Report active target architecture bitness
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(STATUS "DarkBasic Pro targeting 64-bit architecture (x64).")
-else()
-    message(STATUS "DarkBasic Pro targeting 32-bit architecture (Win32/x86).")
-endif()
+# Report active target architecture bitness (x64 only)
+message(STATUS "DarkBasic Pro targeting 64-bit architecture (x64).")
 
 # Dependency revisions are immutable commits corresponding to the upstream
 # v1.17.0 releases (Apache-2.0 for spdlog, BSD-3-Clause for GoogleTest).
@@ -111,11 +108,7 @@ if(NOT DBP_DXSDK_ROOT)
     endif()
 endif()
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(DXSDK_ARCH_DIR "x64")
-else()
-    set(DXSDK_ARCH_DIR "x86")
-endif()
+set(DXSDK_ARCH_DIR "x64")
 
 if(EXISTS "${DBP_DXSDK_ROOT}/Include")
     set(DXSDK_INCLUDE_DIR "${DBP_DXSDK_ROOT}/Include")

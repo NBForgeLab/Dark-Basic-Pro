@@ -2,7 +2,9 @@
 #include <windows.h>
 
 // Helper functions mirroring DBDLLCore.cpp Stack and Queue routines
-static inline void TestPopFromStack(DWORD dwArrayPtr) {
+// (64-bit conversion: the array pointer itself is a pointer-sized value
+// (DWORD_PTR); the 4-byte header/index slots it addresses remain DWORD.)
+static inline void TestPopFromStack(DWORD_PTR dwArrayPtr) {
     if (dwArrayPtr == 0) return;
     int iIndexAtEnd = (int)*((DWORD*)dwArrayPtr - 4) - 1;
     if (iIndexAtEnd >= 0) {
@@ -13,7 +15,7 @@ static inline void TestPopFromStack(DWORD dwArrayPtr) {
     *((DWORD*)dwArrayPtr - 1) = (DWORD)iIndexAtEnd;
 }
 
-static inline void TestRemoveFromQueue(DWORD dwArrayPtr) {
+static inline void TestRemoveFromQueue(DWORD_PTR dwArrayPtr) {
     if (dwArrayPtr == 0) return;
     DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr - 4);
     if (dwSizeOfTable > 0) {
@@ -27,21 +29,21 @@ static inline void TestRemoveFromQueue(DWORD dwArrayPtr) {
     }
 }
 
-static inline void TestPushToStack(DWORD dwArrayPtr) {
+static inline void TestPushToStack(DWORD_PTR dwArrayPtr) {
     if (dwArrayPtr == 0) return;
     *((DWORD*)dwArrayPtr - 4) = *((DWORD*)dwArrayPtr - 4) + 1; // Expand size by 1
     int iIndexAtEnd = (int)*((DWORD*)dwArrayPtr - 4) - 1;
     *((DWORD*)dwArrayPtr - 1) = (DWORD)iIndexAtEnd;
 }
 
-static inline void TestAddToQueue(DWORD dwArrayPtr) {
+static inline void TestAddToQueue(DWORD_PTR dwArrayPtr) {
     if (dwArrayPtr == 0) return;
     *((DWORD*)dwArrayPtr - 4) = *((DWORD*)dwArrayPtr - 4) + 1; // Expand size by 1
     int iIndexAtEnd = (int)*((DWORD*)dwArrayPtr - 4) - 1;
     *((DWORD*)dwArrayPtr - 1) = (DWORD)iIndexAtEnd;
 }
 
-static inline DWORD TestArrayIndexValid(DWORD dwArrayPtr) {
+static inline DWORD TestArrayIndexValid(DWORD_PTR dwArrayPtr) {
     if (dwArrayPtr) {
         if (*((DWORD*)dwArrayPtr - 1) < *((DWORD*)dwArrayPtr - 4))
             return 1;
@@ -57,7 +59,7 @@ TEST(StackQueueTest, RemoveFromQueueSetsIndexToMinusOneWhenEmpty) {
     header[10] = 0;         // Empty array
     header[13] = (DWORD)-1;
 
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    DWORD_PTR dwArrayPtr = (DWORD_PTR)&header[14];
 
     TestRemoveFromQueue(dwArrayPtr);
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), (DWORD)-1);
@@ -70,7 +72,7 @@ TEST(StackQueueTest, PopFromStackSetsIndexToMinusOneWhenEmpty) {
     header[10] = 0; // Empty array
     header[13] = 0;
 
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    DWORD_PTR dwArrayPtr = (DWORD_PTR)&header[14];
 
     TestPopFromStack(dwArrayPtr);
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), (DWORD)-1);
@@ -82,7 +84,7 @@ TEST(StackQueueTest, SequentialQueueAddAndRemoveTransitionsIndexCleanly) {
     DWORD header[14] = {0};
     header[10] = 0;         // Start empty
     header[13] = (DWORD)-1;
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    DWORD_PTR dwArrayPtr = (DWORD_PTR)&header[14];
 
     // Add 1 item
     TestAddToQueue(dwArrayPtr);
@@ -114,7 +116,7 @@ TEST(StackQueueTest, SequentialStackPushAndPopTransitionsIndexCleanly) {
     DWORD header[14] = {0};
     header[10] = 0;         // Start empty
     header[13] = (DWORD)-1;
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    DWORD_PTR dwArrayPtr = (DWORD_PTR)&header[14];
 
     // Push 3 items onto stack
     TestPushToStack(dwArrayPtr); // Count=1, Index=0
@@ -149,7 +151,7 @@ TEST(StackQueueTest, RepeatedPopsAndQueueRemovalsOnEmptyArrayAreSafeAndNoop) {
     DWORD header[14] = {0};
     header[10] = 0;         // Empty array
     header[13] = (DWORD)-1;
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    DWORD_PTR dwArrayPtr = (DWORD_PTR)&header[14];
 
     // Call PopFromStack 5 times on empty stack
     for (int i = 0; i < 5; ++i) {

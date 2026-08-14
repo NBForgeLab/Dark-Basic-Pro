@@ -110,8 +110,11 @@ void CStatementList::IncLineNumber(void)
 	m_dwLineNumber++;
 }
 
-bool CStatementList::MakeStatements(LPSTR pData, DWORD Size)
+bool CStatementList::MakeStatements(LPSTR pData, DWORD Size, bool bDoubleLiterals)
 {
+	// Literal preference supplied as a parameter (never read from a global)
+	m_bDoubleLiterals=bDoubleLiterals;
+
 	// Init Pointers and Vars
 	m_pFileData=pData;
 	m_pFileDataEnd=(pData+Size)-1;
@@ -184,8 +187,11 @@ bool CStatementList::MakeStatements(LPSTR pData, DWORD Size)
 	return true;
 }
 
-bool CStatementList::AddMiniStatements(LPSTR pData, DWORD Size)
+bool CStatementList::AddMiniStatements(LPSTR pData, DWORD Size, bool bDoubleLiterals)
 {
+	// Literal preference supplied as a parameter (never read from a global)
+	m_bDoubleLiterals=bDoubleLiterals;
+
 	// Init Pointers and Vars to MiniProgram
 	m_pFileData=pData;
 	m_pFileDataEnd=(pData+Size)-1;

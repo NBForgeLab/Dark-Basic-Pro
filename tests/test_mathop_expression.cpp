@@ -92,7 +92,7 @@ TEST_F(MathOpExpressionTest, LabelSetsTypeTen) {
 TEST_F(MathOpExpressionTest, SingleVariableGlobalPrefixesAtAndResolvesType) {
     CMathOp op;
     CStr expr("myvar");
-    ASSERT_TRUE(op.DoValueSingleVariable(&expr));
+    ASSERT_TRUE(op.DoValueSingleVariable(&expr, false));
     EXPECT_STREQ(op.GetResultStringToken()->GetStr(), "@myvar");
     EXPECT_EQ(op.GetResultType(), 1u);
 }
@@ -106,7 +106,7 @@ TEST_F(MathOpExpressionTest, ComplexVariableResolvesRegisteredArray) {
 
     CMathOp op;
     CStr expr("myarr(0)");
-    EXPECT_TRUE(op.DoValueComplexVariable(&expr));
+    EXPECT_TRUE(op.DoValueComplexVariable(&expr, false));
 }
 
 // ResolveStructValue on a type-specifier ("FS@<type>") resolves to the type
@@ -153,7 +153,7 @@ TEST_F(MathOpExpressionTest, ComparisonsBindBeforeLogicalAnd) {
     CMathOp op;
     CStr expression("d = 14 AND e = 20");
 
-    ASSERT_TRUE(op.DoValue(&expression));
+    ASSERT_TRUE(op.DoValue(&expression, false));
     ASSERT_EQ(op.GetMathSymbol(), 27u);
     ASSERT_NE(op.GetNext(), nullptr);
     EXPECT_EQ(op.GetNext()->GetMathSymbol(), 27u);

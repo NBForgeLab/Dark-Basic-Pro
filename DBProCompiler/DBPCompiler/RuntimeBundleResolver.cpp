@@ -38,7 +38,7 @@ RuntimeCapabilities DeriveCapabilities(const PeImageInfo& image) {
         "?CreateDataSpace@@YAKK@Z",
         "?DeleteDataSpace@@YAXXZ",
         "?DeleteSingleVariableAllocation@@YAXPAK@Z",
-        "?UnDimDD@@YAKK@Z",
+        "?UnDimDD@@YA_K_K@Z", // wave 7: full-width uintptr_t array pointer
         "?Sync@@YAXXZ"};
     const bool hasLifecycle = std::all_of(
         lifecycleExports.begin(), lifecycleExports.end(),

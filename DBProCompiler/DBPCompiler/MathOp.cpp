@@ -21,10 +21,9 @@
 extern CVarTable *g_pVarTable;
 extern CDataTable *g_pDataTable;
 extern CDataTable *g_pStringTable;
-extern CStructTable *g_pStructTable;
-extern CInstructionTable *g_pInstructionTable;
+extern CStructTable *g_pStructTable;extern CInstructionTable* g_pInstructionTable;
 extern CLabelTable* g_pLabelTable;
-extern CDBPCompiler* g_pDBPCompiler;
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -175,7 +174,7 @@ bool CMathOp::TranslateStringTokenForDBM(void)
 	return true;
 }
 
-bool CMathOp::DoValue(CStr* pExpression)
+bool CMathOp::DoValue(CStr* pExpression, bool bDoubleLiterals)
 {
 	DWORD dwType=0;
 	DWORD dwExpValueType=0;
@@ -203,7 +202,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 		if(UpperExpression.GetChar(0)=='-')
 		{
 			DWORD dwType=0;
-			if(IsLiteral(&UpperExpression, &dwType)==false)
+			if(IsLiteral(&UpperExpression, &dwType, bDoubleLiterals)==false)
 			{
 				dwPosition=0;
 				dwMathSymbol=5;
@@ -247,7 +246,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 			}
 			if(dwExpValueType==0 && IsFunction(pExpressionValue.get()))			dwExpValueType=1;
 			if(dwExpValueType==0 && IsReserved(pExpressionValue.get()))			dwExpValueType=6;
-			if(dwExpValueType==0 && IsLiteral(pExpressionValue.get(), &dwType))	dwExpValueType=2;
+			if(dwExpValueType==0 && IsLiteral(pExpressionValue.get(), &dwType, bDoubleLiterals))	dwExpValueType=2;
 			if(dwExpValueType==0 && IsSingleVariable(pExpressionValue.get()))		dwExpValueType=3;
 			if(dwExpValueType==0 && IsComplexVariable(pExpressionValue.get()))	dwExpValueType=4;
 			if(dwExpValueType>0)
@@ -269,7 +268,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 				}
 				if(dwExpValueType==3)
 				{
-					if(DoValueSingleVariable(pExpressionValue.get())==false)
+					if(DoValueSingleVariable(pExpressionValue.get(), bDoubleLiterals)==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to DoValueSingleVariable");
 						return false;
@@ -277,7 +276,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 				}
 				if(dwExpValueType==4)
 				{
-					if(DoValueComplexVariable(pExpressionValue.get())==false)
+					if(DoValueComplexVariable(pExpressionValue.get(), bDoubleLiterals)==false)
 					{
 						return false;
 					}
@@ -373,7 +372,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 		m_pLeftMathOp = std::make_unique<CMathOp>();
 		if(m_pLeftMathOp)
 		{
-			if(m_pLeftMathOp->DoValue(&StrLeft)==false)
+			if(m_pLeftMathOp->DoValue(&StrLeft, bDoubleLiterals)==false)
 			{
 // lee - 150306 - u60b3 - surfaced at end user level, replaced with line number error
 //				g_pErrorReport->AddErrorString("Failed to 'DoValue::m_pLeftMathOp->DoValue'");
@@ -385,7 +384,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 		m_pRightMathOp = std::make_unique<CMathOp>();
 		if(m_pRightMathOp)
 		{
-			if(m_pRightMathOp->DoValue(&StrRight)==false)
+			if(m_pRightMathOp->DoValue(&StrRight, bDoubleLiterals)==false)
 			{
 // lee - 150306 - u60b3 - surfaced at end user level, replaced with line number error
 //				g_pErrorReport->AddErrorString("Failed to 'DoValue::m_pRightMathOp->DoValue'");
@@ -472,6 +471,11 @@ bool CMathOp::DoValue(CStr* pExpression)
 		if(dwLType==10 || dwRType==10) dwTypeMode=0;
 		if(dwLType==20 || dwRType==20) dwTypeMode=0;
 
+		// Wave 15: address-of values (107) are full-width pointers — arithmetic
+		// on them must run at int64 width so the whole address survives. Placed
+		// after the DWORD-forcing rule above (107%100==7) so pointers win.
+		if(dwLType==107 || dwRType==107) dwTypeMode=9;
+
 		// Maybe a range of 'unique' type values..
 		if(dwLType>=1001 && dwLType==dwRType) dwTypeMode=dwLType;
 
@@ -503,7 +507,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 			{
 				if(dwRealLValue!=dwTypeMode)
 				{
-					if(DoCastOnMathOp(m_pLeftMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pLeftMathOp, dwTypeMode, bDoubleLiterals)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
@@ -515,7 +519,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 				}
 				if(dwRealRValue!=dwTypeMode)
 				{
-					if(DoCastOnMathOp(m_pRightMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pRightMathOp, dwTypeMode, bDoubleLiterals)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
@@ -538,7 +542,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 				if ( dwLType==101 && dwRType==102 )
 				{
 					dwActualLType = 2;
-					if(DoCastOnMathOp(m_pLeftMathOp, dwActualLType)==false)
+					if(DoCastOnMathOp(m_pLeftMathOp, dwActualLType, bDoubleLiterals)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
@@ -549,8 +553,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 					}
 				}
 				else
-				{
-					if(DoCastOnMathOp(m_pRightMathOp, dwActualLType)==false)
+				{						if(DoCastOnMathOp(m_pRightMathOp, dwActualLType, bDoubleLiterals)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
@@ -578,7 +581,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 			{
 				if(dwRType%100 != dwTypeMode%100)
 				{
-					if(DoCastOnMathOp(m_pRightMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pRightMathOp, dwTypeMode, bDoubleLiterals)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
@@ -595,7 +598,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 			{
 				if(dwLType%100 != dwTypeMode%100)
 				{
-					if(DoCastOnMathOp(m_pLeftMathOp, dwTypeMode)==false)
+					if(DoCastOnMathOp(m_pLeftMathOp, dwTypeMode, bDoubleLiterals)==false)
 					{
 						LPSTR pL = m_pLeftMathOp->FindResultStringTokenForDBM()->GetStr();
 						LPSTR pR = m_pRightMathOp->FindResultStringTokenForDBM()->GetStr();
@@ -645,7 +648,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 		{
 			// Travserse remaining maths
 			pAnotherMathOp->m_dwOffsetLValueTypeValue = dwDiscoveredOffsetLValueTypeValue;
-			if(pAnotherMathOp->DoValue(&strNewString)==false)
+			if(pAnotherMathOp->DoValue(&strNewString, bDoubleLiterals)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValue::pAnotherMathOp->DoValue'");
 				m_pRightMathOp.reset();
@@ -681,7 +684,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 	return true;
 }
 
-bool CMathOp::DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeWant)
+bool CMathOp::DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeWant, bool bDoubleLiterals)
 {
 	// Produce Temp to hold cast
 	CStr pTempVarToken("");
@@ -737,7 +740,7 @@ bool CMathOp::DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeWant
 	pNewMath->m_dwLineNumber=GetLineNumber();
 	pNewMath->m_pLeftMathOp=std::move(pMathOp);
 	pNewMath->m_pRightMathOp = std::make_unique<CMathOp>();
-	pNewMath->m_pRightMathOp->DoValue(&pTypeCodeStr);
+	pNewMath->m_pRightMathOp->DoValue(&pTypeCodeStr, bDoubleLiterals);
 
 	// Produce result token as var
 	pNewMath->SetResult(pTempVarToken.GetStr(), dwTypeWant, 0);
@@ -1211,7 +1214,7 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 	return true;
 }
 
-bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
+bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue, bool bDoubleLiterals)
 {
 	// Statement Line
 	DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
@@ -1448,7 +1451,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			// calculate result subscript
 			auto pSubscriptResultOwner = std::make_unique<CMathOp>();
 			CMathOp* pSubscriptResult = pSubscriptResultOwner.get();
-			if(pSubscriptResult->DoValue(pOneSubscript)==false)
+			if(pSubscriptResult->DoValue(pOneSubscript, bDoubleLiterals)==false)
 			{
 				return false;
 			}
@@ -1606,7 +1609,7 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 	return true;
 }
 
-bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
+bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue, bool bDoubleLiterals)
 {
 	// Struct is an absolute value (parsed later)
 	if(pExpressionValue->CheckChars(0, 3, "FS@"))
@@ -1667,7 +1670,7 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			localVar.AddText(pExpressionValue);
 
 			// Parse function immediate
-			if(DoValue(&localVar)==false)
+			if(DoValue(&localVar, bDoubleLiterals)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::DoValue'");
 				return false;
@@ -1688,9 +1691,13 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			}
 			std::unique_ptr<char[]> pTypeName(pTypeNameRaw);
 
-			// Amend result for whether local array or not
+			// Amend result for whether local array or not. `&`-prefixed names are
+			// address-of expressions: the value is a full-width pointer (107 =
+			// DWORD POINTER / RELATIVE ADDRESS) — distinct from array-element
+			// types (100+base) so the emitter can move the address as a full
+			// QWORD on x64 (wave 14).
 			DWORD dwType = g_pVarTable->GetBasicTypeValue(pTypeName.get());
-			if(dwArr==1) dwType+=100;
+			if(dwArr==1) dwType=107;
 
 			// is variable 'indirect' specified by * symbol
 			if(dwPointingIntoVar==1)
@@ -1718,11 +1725,14 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			}
 			std::unique_ptr<char[]> pTypeName(pTypeNameRaw);
 
-			// Create result (array or not)
+			// Create result (array or not). `&`-prefixed names are address-of
+			// expressions: the value is a full-width pointer (107 = DWORD POINTER
+			// / RELATIVE ADDRESS) — distinct from array-element types (100+base)
+			// so the emitter can move the address as a full QWORD on x64 (wave 14).
 			CStr str("@");
 			str.AddText(pExpressionValue);
 			DWORD dwType = g_pVarTable->GetBasicTypeValue(pTypeName.get());
-			if(dwArr==1) dwType+=100;
+			if(dwArr==1) dwType=107;
 			SetResult(str.GetStr(), dwType, 0);
 			SetResultStruct(g_pVarTable->GetStruct(pTypeName.get()));
 		}
@@ -2084,7 +2094,7 @@ bool CMathOp::IsFunction(CStr* pExpressionValue)
 	return bFound;
 }
 
-bool CMathOp::IsLiteral(CStr* pExpressionValue, DWORD* pdwTypeValue)
+bool CMathOp::IsLiteral(CStr* pExpressionValue, DWORD* pdwTypeValue, bool bDoubleLiterals)
 {
 	// Determine if this is a literal value (string, numeric, etc)
 	if ( !pExpressionValue )
@@ -2109,7 +2119,10 @@ bool CMathOp::IsLiteral(CStr* pExpressionValue, DWORD* pdwTypeValue)
 		}
 		else
 		{
-			if(g_pDBPCompiler->m_bDoubleLiterals)
+			// The double-literal preference arrives as an explicit parameter
+			// threaded through the call chain (MakeStatements -> DoExpression
+			// -> DoValue -> IsLiteral) — never read from a global object.
+			if(bDoubleLiterals)
 			{
 				// Compiler may exclusively use doubles..
 				*pdwTypeValue=8;
@@ -2487,6 +2500,34 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::GreaterEqual)) dwASMToBuild=static_cast<DWORD>(ASMTask::GreaterEqual);
 		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Less)) dwASMToBuild=static_cast<DWORD>(ASMTask::Less);
 		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::LessEqual)) dwASMToBuild=static_cast<DWORD>(ASMTask::LessEqual);
+
+		// Wave 8: float INC/DEC route through the SSE2 Add/Sub tasks, and the
+		// int<->float conversions map 1:1 to their SSE2 cast tasks.
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::IncAdd)) dwASMToBuild=static_cast<DWORD>(ASMTask::Add);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::DecAdd)) dwASMToBuild=static_cast<DWORD>(ASMTask::Sub);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastIntToFloat)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastIntToFloat);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastIntToDouble)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastIntToDouble);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastFloatToInt)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastFloatToInt);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastFloatToDouble)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastFloatToDouble);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastDoubleToInt)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastDoubleToInt);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastDoubleToFloat)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastDoubleToFloat);
+		// Wave 15: integer-family widening to int64 (native REG64).
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastIntToInt64)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastIntToInt64);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastDwordToInt64)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastDwordToInt64);
+		// Wave 16: int64 <-> float/double conversions (SSE2 CVT*, REX.W).
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastFloatToInt64)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastFloatToInt64);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastDoubleToInt64)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastDoubleToInt64);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastInt64ToLower)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastInt64ToLower);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastInt64ToFloat)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastInt64ToFloat);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastInt64ToDouble)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastInt64ToDouble);
+		// Wave 17: Power (x^y = exp(y*log(x)), emitter-built).
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Power)) dwASMToBuild=static_cast<DWORD>(ASMTask::Power);
+		// Wave 18: narrowing casts to byte/word/dword (store-width truncation).
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastToNarrow)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastToNarrow);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastFloatToNarrow)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastFloatToNarrow);
+		// Wave 19: widening casts from byte/word (MOVZX + width store/CVT*).
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastWiden)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastWiden);
+		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::CastWidenToFloat)) dwASMToBuild=static_cast<DWORD>(ASMTask::CastWidenToFloat);
 
 		// Call hard code builder
 		CResultData* pA = m_pLeftMathOp->FindResultData();

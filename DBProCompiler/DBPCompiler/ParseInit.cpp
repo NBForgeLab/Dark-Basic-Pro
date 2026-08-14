@@ -57,7 +57,7 @@ bool CParseInit::WriteDBMBit(DWORD dwLineNumber, LPSTR pText)
 			CResultData* pDataItem = m_pDataParamList->GetMathItem()->FindResultData();
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Push), pDataItem);
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Push), pVarItem);
-			g_pASMWriter->WriteASMCall(dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+			g_pASMWriter->WriteASMCall(dwLineNumber, "dbprocore.dll", "?EquateSS@@YA_K_K_K@Z");
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), pVarItem);
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);

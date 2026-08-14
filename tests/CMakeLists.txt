@@ -23,6 +23,24 @@ add_executable(dbp_tests
     test_target_abi.cpp
     test_x64_assembler.cpp
     test_x64_intensive_verification.cpp
+    test_x64_opcode_emission.cpp
+    test_x64_call_convention.cpp
+    test_x64_user_function_frames.cpp
+    test_x64_string_pointers.cpp
+    test_x64_array_abi.cpp
+    test_x64_array_api.cpp
+    test_x64_list_instructions.cpp
+    test_x64_literal_preference.cpp
+    test_x64_scalar_declarations.cpp
+    test_x64_sse2_math.cpp
+    test_x64_int64_math.cpp
+    test_x64_addressof.cpp
+    test_x64_ptrmath.cpp
+    test_x64_cast_family.cpp
+    test_x64_power.cpp
+    test_x64_narrowing_casts.cpp
+    test_x64_widening_casts.cpp
+    test_x64_modff.cpp
     test_plugin_build_matrix.cpp
     test_executable_preparation_pipeline.cpp
     test_asmwriter_preparation_services.cpp
@@ -115,6 +133,15 @@ endif()
 
 dbp_apply_modern_cpp_options(dbp_tests)
 
+# Test-only PE module whose bitness matches the host build. MemoryPE tests
+# use it instead of the legacy 32-bit runtime DLLs, which cannot execute
+# inside a 64-bit process.
+add_library(dbp_test_memory_module SHARED
+    test_memory_module.cpp
+)
+dbp_apply_modern_cpp_options(dbp_test_memory_module)
+add_dependencies(dbp_tests dbp_test_memory_module)
+
 target_link_libraries(dbp_tests PRIVATE
     dbp_package
     dbp_compiler_lib
@@ -126,6 +153,7 @@ target_link_libraries(dbp_tests PRIVATE
 target_compile_definitions(dbp_tests PRIVATE
     DBP_TESTS_COMPILATION
     DBP_TEST_SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
+    DBP_TEST_MEMORY_MODULE_PATH="$<TARGET_FILE:dbp_test_memory_module>"
 )
 
 if(DBP_ENABLE_COVERAGE)

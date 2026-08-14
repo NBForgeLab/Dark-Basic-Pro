@@ -28,7 +28,7 @@ std::map<std::string, void*> BaselineSymbols() {
         {"?CreateDataSpace@@YAKK@Z", reinterpret_cast<void*>(&StubOnePointer)},
         {"?DeleteDataSpace@@YAXXZ", reinterpret_cast<void*>(&StubOnePointer)},
         {"?DeleteSingleVariableAllocation@@YAXPAK@Z", reinterpret_cast<void*>(&StubOnePointer)},
-        {"?UnDimDD@@YAKK@Z", reinterpret_cast<void*>(&StubOnePointer)},
+        {"?UnDimDD@@YA_K_K@Z", reinterpret_cast<void*>(&StubOnePointer)},
         {"?Sync@@YAXXZ", reinterpret_cast<void*>(&StubOnePointer)}};
 }
 

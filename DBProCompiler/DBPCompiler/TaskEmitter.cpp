@@ -5,6 +5,28 @@
 
 DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept
 {
+    // Strings (type 3), relative-addresses to string elements (203), address-of
+    // results (107: DWORD POINTER / RELATIVE ADDRESS) and full-width pointer
+    // values (1002: the runtime array-pointer API) are heap pointers: every
+    // memory load/store of such a value must move 8 bytes on x64. Map to the
+    // REX.W variants directly so dword/byte/word types keep their exact
+    // 32-bit byte streams.
+    if (dwTypeValue == 3 || dwTypeValue == 203 || dwTypeValue == 1002 || dwTypeValue == 107)
+    {
+        switch (dwASMCodeAsAByte)
+        {
+            case static_cast<DWORD>(ASMOp::MOVEAXMEM1):    return static_cast<DWORD>(ASMOp::MOVEAXMEM8);
+            case static_cast<DWORD>(ASMOp::MOVMEMEAX1):    return static_cast<DWORD>(ASMOp::MOVMEMEAX8);
+            case static_cast<DWORD>(ASMOp::MOVEAXEBP1):    return static_cast<DWORD>(ASMOp::MOVEAXEBP8);
+            case static_cast<DWORD>(ASMOp::MOVEBPEAX1):    return static_cast<DWORD>(ASMOp::MOVEBPEAX8);
+            case static_cast<DWORD>(ASMOp::MOVEAXECXOFF1): return static_cast<DWORD>(ASMOp::MOVEAXECXOFF8);
+            case static_cast<DWORD>(ASMOp::MOVECXOFFEAX1): return static_cast<DWORD>(ASMOp::MOVECXOFFEAX8);
+            case static_cast<DWORD>(ASMOp::MOVEAXECXREL1): return static_cast<DWORD>(ASMOp::MOVEAXECXREL8);
+            case static_cast<DWORD>(ASMOp::MOVEAXEAXREL1): return static_cast<DWORD>(ASMOp::MOVEAXEAXREL8);
+            default: break;
+        }
+    }
+
     // First Determine SizeCode From Type
     DWORD dwAddressSizeCode = 0;
     switch (dwTypeValue)
@@ -22,6 +44,21 @@ DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) 
 
 DWORD CTaskEmitter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept
 {
+	// String arrays (103) hold 8-byte heap pointers: the element value access
+	// (and only that) must move a full QWORD on x64. Address-of results (107,
+	// DWORD POINTER / RELATIVE ADDRESS) carry the full 8-byte address the same
+	// way (wave 14).
+	if (dwTypeValue == 103 || dwTypeValue == 107)
+	{
+		switch (dwASMCodeAsAByte)
+		{
+			case static_cast<DWORD>(ASMOp::MOVECXEAXOFF1): return static_cast<DWORD>(ASMOp::MOVECXEAXOFF8);
+			case static_cast<DWORD>(ASMOp::MOVEAXECX1):    return static_cast<DWORD>(ASMOp::MOVEAXECX8);
+			case static_cast<DWORD>(ASMOp::MOVEAXOFFECX1): return static_cast<DWORD>(ASMOp::MOVEAXOFFECX8);
+			default: break;
+		}
+	}
+
 	DWORD dwAddressSizeCode=0;
 	switch(dwTypeValue)
 	{
@@ -30,7 +67,6 @@ DWORD CTaskEmitter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeV
 		case 106 :	dwAddressSizeCode=1;	break;	// RELATIVE ADDRESS TO A WORD
 		case 101 :	
 		case 102 :	
-		case 103 :	
 		case 107 :	dwAddressSizeCode=2;	break;	// RELATIVE ADDRESS TO A DWORD
 		case 108 :	dwAddressSizeCode=3;	break;	// RELATIVE ADDRESS TO A DWORDx2
 		case 109 :	dwAddressSizeCode=3;	break;	// RELATIVE ADDRESS TO A DWORDx2
@@ -122,7 +158,8 @@ void CTaskEmitter::WriteASMARRtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* 
 	}
 
 	pASMWriter->CalculateArrayOffsetInEBX(pOffset);
-	pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXSIB4), "");
+	// Runtime ref table stores 8-byte element addresses on x64 (scale ×8).
+	pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXSIB8), "");
 
 	switch(dwPType-100)
 	{
@@ -131,14 +168,13 @@ void CTaskEmitter::WriteASMARRtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* 
 					break;
 
 		case 8:
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0EAX8), pOffset1Str->GetStr());
+					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDXMM0EAX), pOffset1Str->GetStr());
 					break;
 
 		case 9:
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAXOFF4), pOffset2Str->GetStr());
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXECX4), "");
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAXOFF4), pOffset1Str->GetStr());
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECX4), "");
+					// int64 element: single 8-byte move (wave 8b).
+					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAXOFF8), pOffset1Str->GetStr());
+					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECX8), "");
 					break;
 
 		default:
@@ -202,13 +238,18 @@ void CTaskEmitter::WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 							pTemp1Str->SetText("@$_TEMPA_");
 							pTemp2Str->SetText("@$_TEMPB_");
 							pASMWriter->WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp1Str->GetStr(), pDWORD1Str->GetStr(),2);
-							pASMWriter->WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp2Str->GetStr(), pDWORD2Str->GetStr(),2);
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0MEM8), pTemp1Str->GetStr());
+							pASMWriter->WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp2Str->GetStr(), pDWORD2Str->GetStr(),2);							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDXMM0MEM), pTemp1Str->GetStr());
 							break;
 
-				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXIMM4), pDWORD2Str->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXIMM4), pDWORD1Str->GetStr());
+					case 9:
+							// int64 literal: low dword to TEMPA, high dword to TEMPB
+							// (adjacent 4-byte temps, same contract the double path
+							// uses), then one 8-byte load into RAX (wave 8b).
+							pTemp1Str->SetText("@$_TEMPA_");
+							pTemp2Str->SetText("@$_TEMPB_");
+							pASMWriter->WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp1Str->GetStr(), pDWORD1Str->GetStr(), 2);
+							pASMWriter->WriteASMLine2IMM(static_cast<DWORD>(ASMOp::MOVMEMIMM4), pTemp2Str->GetStr(), pDWORD2Str->GetStr(), 2);
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM8), pTemp1Str->GetStr());
 							break;
 
 				case 3:
@@ -233,13 +274,12 @@ void CTaskEmitter::WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0MEM8), pP->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDXMM0MEM), pP->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pDoubleStr->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP->GetStr());
+							// int64: single 8-byte load into RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM8), pP->GetStr());
 							break;
 
 				default:
@@ -256,13 +296,12 @@ void CTaskEmitter::WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0ECXOFF8), pOffset1Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDXMM0ECXOFF), pOffset1Str->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECXOFF4), pOffset2Str->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECXOFF4), pOffset1Str->GetStr());
+							// int64: single 8-byte load into RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXECXOFF8), pOffset1Str->GetStr());
 							break;
 	
 				default:
@@ -280,13 +319,12 @@ void CTaskEmitter::WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0EBP8), (pP->GetStr()+2));
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDXMM0EBP), (pP->GetStr()+2));
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pDoubleStr->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), (pP->GetStr()+2));
+							// int64: single 8-byte load into RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP8), (pP->GetStr()+2));
 							break;
 
 				default:
@@ -305,13 +343,12 @@ void CTaskEmitter::WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVST0EBP8), pOffset1Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDXMM0EBP), pOffset1Str->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pOffset2Str->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEDXEAX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), pOffset1Str->GetStr());
+							// int64: single 8-byte load into RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP8), pOffset1Str->GetStr());
 							break;
 
 				default:
@@ -322,12 +359,14 @@ void CTaskEmitter::WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			break;
 
 		case static_cast<DWORD>(ParamMode::MemArr):
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP->GetStr());
+			// The array pointer lives in an 8-byte address slot on x64.
+			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM8), pP->GetStr());
 			WriteASMARRtoEAX(pASMWriter, dwMode, pP, pPIndex, dwPType, dwPOffset);
 			break;
 
 		case static_cast<DWORD>(ParamMode::EbpArr):
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), (pP->GetStr()+2));
+			// The array pointer lives in an 8-byte address slot on x64.
+			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP8), (pP->GetStr()+2));
 			WriteASMARRtoEAX(pASMWriter, dwMode, pP, pPIndex, dwPType, dwPOffset);
 			break;
 
@@ -383,7 +422,8 @@ void CTaskEmitter::WriteASMEAXtoARR(CASMWriter* pASMWriter, DWORD dwMode, CStr* 
 	}
 
 	pASMWriter->CalculateArrayOffsetInEBX(pOffset);
-	pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXSIB4), "");
+	// Runtime ref table stores 8-byte element addresses on x64 (scale ×8).
+	pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXSIB8), "");
 
 	switch(dwPType-100)
 	{
@@ -392,13 +432,12 @@ void CTaskEmitter::WriteASMEAXtoARR(CASMWriter* pASMWriter, DWORD dwMode, CStr* 
 					break;
 
 		case 8:
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXST08), pOffset1Str->GetStr());
+					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDEAXXMM0), pOffset1Str->GetStr());
 					break;
 
 		case 9:
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXOFFECX4), pOffset1Str->GetStr());
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEDX4), "");
-					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXOFFECX4), pOffset2Str->GetStr());
+					// int64 element: single 8-byte store (wave 8b).
+					pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXOFFECX8), pOffset1Str->GetStr());
 					break;
 
 		default:
@@ -450,13 +489,12 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMST08), pP->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDMEMXMM0), pP->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX4), pP->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX4), pDoubleStr->GetStr());
+							// int64: single 8-byte store from RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMEAX8), pP->GetStr());
 							break;
 	
 				default:
@@ -473,13 +511,12 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFST08), pOffset1Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDECXOFFXMM0), pOffset1Str->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFEAX4), pOffset1Str->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFEAX4), pOffset2Str->GetStr());
+							// int64: single 8-byte store from RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXOFFEAX8), pOffset1Str->GetStr());
 							break;
 	
 				default:
@@ -497,13 +534,12 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPST08), (pP->GetStr()+2));
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDEBPXMM0), (pP->GetStr()+2));
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), (pP->GetStr()+2));
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), pDoubleStr->GetStr());
+							// int64: single 8-byte store from RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX8), (pP->GetStr()+2));
 							break;
 
 				default:
@@ -522,13 +558,12 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			switch(dwPType)
 			{
 				case 8:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPST08), pOffset1Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDEBPXMM0), pOffset1Str->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), pOffset1Str->GetStr());
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEDX4), "");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX4), pOffset2Str->GetStr());
+							// int64: single 8-byte store from RAX (wave 8b).
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEBPEAX8), pOffset1Str->GetStr());
 							break;
 
 				default:
@@ -539,14 +574,26 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			break;
 
 		case static_cast<DWORD>(ParamMode::MemArr):
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pP->GetStr());
+			// Value guard: strings and int64 values keep the full 64-bit
+			// width (strings hold heap pointers, int64 holds a QWORD).
+			if(dwPType==3 || dwPType==103 || dwPType==203 || dwPType==9 || dwPType==109)
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX8), "");
+			else
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
+			// The array pointer lives in an 8-byte address slot on x64.
+			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM8), pP->GetStr());
 			WriteASMEAXtoARR(pASMWriter, dwMode, pP, pPIndex, dwPType, dwPOffset);
 			break;
 
 		case static_cast<DWORD>(ParamMode::EbpArr):
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP4), (pP->GetStr()+2));
+			// Value guard: strings and int64 values keep the full 64-bit
+			// width (strings hold heap pointers, int64 holds a QWORD).
+			if(dwPType==3 || dwPType==103 || dwPType==203 || dwPType==9 || dwPType==109)
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX8), "");
+			else
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
+			// The array pointer lives in an 8-byte address slot on x64.
+			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXEBP8), (pP->GetStr()+2));
 			WriteASMEAXtoARR(pASMWriter, dwMode, pP, pPIndex, dwPType, dwPOffset);
 			break;
 
@@ -557,7 +604,7 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 				case 108:
 							pTemp1Str->SetText("@$_TEMPA_");
 							pTemp2Str->SetText("@$_TEMPB_");
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVMEMST08), pTemp1Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVSDMEMXMM0), pTemp1Str->GetStr());
 							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pTemp2Str->GetStr());
 							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), pTemp1Str->GetStr());
@@ -566,7 +613,8 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 
 				case 9:		
 				case 109:
-							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEDX), "");
+							// int64: one 8-byte slot (PUSH RAX) for the x64 call ABI
+							// (wave 8b — __int64 rides a single integer register).
 							pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEAX), "");
 							break;
 
@@ -577,7 +625,11 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			break;
 
 		case static_cast<DWORD>(ParamMode::MemRel):
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
+			// Value guard: strings need the full 64-bit pointer in RCX.
+			if(dwPType==3)
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX8), "");
+			else
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 			pDoubleStr->SetText("+");
 			pDoubleStr->AddText(pP->GetStr());
 			switch(dwPType)
@@ -594,7 +646,11 @@ void CTaskEmitter::WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 			break;
 
 		case static_cast<DWORD>(ParamMode::EbpRel):
-			pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
+			// Value guard: strings need the full 64-bit pointer in RCX.
+			if(dwPType==3)
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX8), "");
+			else
+				pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVECXEAX4), "");
 			switch(dwPType)
 			{
 				case 8: break;

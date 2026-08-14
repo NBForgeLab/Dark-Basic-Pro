@@ -60,7 +60,8 @@ CoreApiResult ResolveCoreRuntimeApi(
     RESOLVE_REQUIRED(deleteDataSpace, CoreVoid, "?DeleteDataSpace@@YAXXZ");
     RESOLVE_REQUIRED(deleteVariableItem, CoreVoidDwordPointer,
                      "?DeleteSingleVariableAllocation@@YAXPAK@Z");
-    RESOLVE_REQUIRED(unDim, CoreVoidDwordPointer, "?UnDimDD@@YAKK@Z");
+    // Wave 7: UnDimDD now takes a full-width uintptr_t array pointer.
+    RESOLVE_REQUIRED(unDim, CoreUintptrPointer, "?UnDimDD@@YA_K_K@Z");
     RESOLVE_REQUIRED(sync, CoreVoid, "?Sync@@YAXXZ");
 #undef RESOLVE_REQUIRED
     return CoreApiResult::Success(std::move(api));

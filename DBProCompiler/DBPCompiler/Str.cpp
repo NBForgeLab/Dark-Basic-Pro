@@ -1289,10 +1289,13 @@ bool CStr::TranslateForDBM(CResultData* pResultPtr)
 					CDeclaration* pLastParamDec = pThisStruct->GetDecChain();
 					for(DWORD n = 0; n < dwParamMax; n++) if(pLastParamDec->GetNext()) pLastParamDec = pLastParamDec->GetNext();
 					DWORD dOffsetToLastParamInStruct = pLastParamDec->GetOffset();
+					// x64: 4-byte chain units become 8-byte slots, so every frame
+					// displacement doubles (returnvalue at RBP-8, first param at
+					// RBP+16, locals below RBP-16).
 					int iDisplacement = 0;
-					if(dwOffset == 0) { iDisplacement = -4; }
-					else if(dwOffset <= dOffsetToLastParamInStruct) { iDisplacement = dwOffset + 4; }
-					else { iDisplacement = ((dOffsetToLastParamInStruct) - dwOffset) - dwSizeOfData; }
+					if(dwOffset == 0) { iDisplacement = -8; }
+					else if(dwOffset <= dOffsetToLastParamInStruct) { iDisplacement = (dwOffset * 2) + 8; }
+					else { iDisplacement = 2 * (((dOffsetToLastParamInStruct) - dwOffset) - dwSizeOfData); }
 					CStr pStr("@:");
 					pStr.AddNumericText(iDisplacement);
 					SetText(pStr.GetStr());

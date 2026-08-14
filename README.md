@@ -2,10 +2,10 @@
 
 [![Build & Test Status](https://img.shields.io/badge/tests-CMake%20%2B%20CTest-brightgreen.svg)]()
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-17%20%2F%2020-blue.svg)]()
-[![Target](https://img.shields.io/badge/active%20target-Windows%20PE32%20%2F%20x86-lightgrey.svg)]()
+[![Target](https://img.shields.io/badge/target-Windows%20x64%20only-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A modernizing, open-source game development language, compilation engine, and toolchain suite for Windows. The active executable target remains PE32/x86 while the compiler architecture is being prepared for a deliberate PE32+/x64 port.
+A modernizing, open-source game development language, compilation engine, and toolchain suite for Windows. The project is **64-bit (x64) only**: the toolchain builds and runs exclusively as 64-bit processes, and the generated-program backend is being converted in place from x86/PE32 to x64/PE32+ (no parallel 32-bit writers).
 
 ---
 
@@ -29,7 +29,7 @@ A modernizing, open-source game development language, compilation engine, and to
 
 ## 🚀 Overview & Architectural Highlights
 
-DarkBasic Pro is a complete language implementation that compiles high-level BASIC source code (`.dba`) directly into standalone Windows Portable Executable (`.exe`) binaries with raw x86 machine code emission.
+DarkBasic Pro is a complete language implementation that compiles high-level BASIC source code (`.dba`) directly into standalone Windows Portable Executable (`.exe`) binaries with raw machine code emission. The compiler host is 64-bit only; the code emitter (`CASMWriter`) is being converted in place to emit 64-bit x86-64 machine code and PE32+ images.
 
 ### Target ABI and x64 Roadmap
 
@@ -70,28 +70,28 @@ The project includes pre-configured CMake presets in `CMakePresets.json`:
 
 | Preset Name | Configuration | Purpose |
 | :--- | :--- | :--- |
-| **`windows-x86-debug`** | Debug | Default compatibility baseline with compiler and CTest coverage. |
-| **`windows-x86-release`** | Release | Optimized release build with full runtime compiler. |
-| **`windows-x86-asan`** | Debug | MSVC AddressSanitizer instrumented build (`DBP_ENABLE_ASAN=ON`). |
-| **`windows-x86-ubsan`** | Debug | MSVC UndefinedBehaviorSanitizer instrumented build (`DBP_ENABLE_UBSAN=ON`). |
-| **`windows-x86-coverage`** | Debug | Code coverage instrumented build (`DBP_ENABLE_COVERAGE=ON`). |
-| **`windows-x86-clang-tidy`**| Debug | Static analysis build with `clang-tidy` integration (`DBP_ENABLE_CLANG_TIDY=ON`). |
+| **`windows-x64-debug`** | Debug | Official 64-bit native debug build with compiler and CTest coverage. |
+| **`windows-x64-release`** | Release | Official 64-bit native optimized release build with compiler and CTest coverage. |
+| **`windows-x64-asan`** | Debug | MSVC AddressSanitizer instrumented build (`DBP_ENABLE_ASAN=ON`). |
+| **`windows-x64-ubsan`** | Debug | MSVC UndefinedBehaviorSanitizer instrumented build (`DBP_ENABLE_UBSAN=ON`). |
+| **`windows-x64-coverage`** | Debug | Code coverage instrumented build (`DBP_ENABLE_COVERAGE=ON`). |
+| **`windows-x64-clang-tidy`**| Debug | Static analysis build with `clang-tidy` integration (`DBP_ENABLE_CLANG_TIDY=ON`). |
 
 #### Building with CMake Presets:
 
 ```powershell
 # Configure Debug Preset
-cmake --preset windows-x86-debug
+cmake --preset windows-x64-debug
 
 # Build Targets
-cmake --build --preset windows-x86-debug
+cmake --build --preset windows-x64-debug
 ```
 
 For Release builds:
 
 ```powershell
-cmake --preset windows-x86-release
-cmake --build --preset windows-x86-release
+cmake --preset windows-x64-release
+cmake --build --preset windows-x64-release
 ```
 
 #### Manual Build:
@@ -121,7 +121,7 @@ Executes the C++ unit and integration suite covering AST parsing, IR lowering, t
 ctest -C Debug --output-on-failure
 
 # Or via CMake Test Preset:
-ctest --preset windows-x86-debug
+ctest --preset windows-x64-debug
 
 # Or execute directly:
 .\build\bin\Debug\dbp_tests.exe
@@ -142,14 +142,14 @@ Generate coverage reports or run memory/undefined-behavior sanitizers:
 
 ```powershell
 # AddressSanitizer test run:
-cmake --preset windows-x86-asan
-cmake --build --preset windows-x86-asan
-ctest --preset windows-x86-asan
+cmake --preset windows-x64-asan
+cmake --build --preset windows-x64-asan
+ctest --preset windows-x64-asan
 
 # Coverage report generation:
-cmake --preset windows-x86-coverage
-cmake --build --preset windows-x86-coverage
-ctest --preset windows-x86-coverage
+cmake --preset windows-x64-coverage
+cmake --build --preset windows-x64-coverage
+ctest --preset windows-x64-coverage
 .\scripts\coverage-report.ps1 -OutputFormat json
 ```
 

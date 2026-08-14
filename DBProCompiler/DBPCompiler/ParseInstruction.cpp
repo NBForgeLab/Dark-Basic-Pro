@@ -70,7 +70,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 		// CALL EQUATE to create a NEW STRING from CURRENT STRING
-		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YA_K_K_K@Z");
 
 		// Put EAX overwrites DEST
 		g_pASMWriter->WriteASMEAXtoX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
@@ -412,11 +412,11 @@ bool CParseInstruction::WriteDBMBit(void)
 			CStr* pLabelParam=GetLabelParam();
 			if(pLabelParam) g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::JumpSubroutine), pLabelParam, 10);
 			
-			// Return stack pointer to normal
+			// Return stack pointer to normal (x64: each stack slot is 8 bytes)
 			if(dwMustPopStack>0)
 			{
 				CStr pData("");
-				pData.SetNumericText(dwMustPopStack*4);
+				pData.SetNumericText(dwMustPopStack*8);
 				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::AddEsp), &pData, 7);
 			}
 
@@ -677,6 +677,23 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 				}
 				DWORD dwInstructionValue=g_pInstructionTable->GetIIValue(dwUseNewInstruction);
 				CInstructionTableEntry* pRef = g_pInstructionTable->GetRef(dwUseNewInstruction);
+
+				// Wave 8: float/double INC/DEC now resolves to a hardcoded SSE2
+				// Add/Sub build (AddFFF/AddOOO are no longer DLL calls) — route
+				// through the emitter instead of calling an empty DLL name.
+				if(pRef && pRef->GetBuildID()>0)
+				{
+					const DWORD dwASMToBuild = (dwMathSymbol==4)
+						? static_cast<DWORD>(ASMTask::Add)
+						: static_cast<DWORD>(ASMTask::Sub);
+					g_pASMWriter->WriteASMTaskCore(	m_dwLineNumber, dwASMToBuild,
+													pP1->m_pStringToken.get(), pP1->m_pAdditionalOffset.get(), pP1->m_dwType, pP1->m_dwDataOffset,
+													pValue->m_pStringToken.get(), pValue->m_pAdditionalOffset.get(), pValue->m_dwType, pValue->m_dwDataOffset,
+													pP1->m_pStringToken.get(), pP1->m_pAdditionalOffset.get(), pP1->m_dwType, pP1->m_dwDataOffset);
+					pDynValue.reset();
+					return true;
+				}
+
 				LPSTR pMathDLL=pRef->GetDLL()->GetStr();
 				LPSTR pMathCommand=pRef->GetDecoratedName()->GetStr();
 				g_pASMWriter->WriteASMCall(m_dwLineNumber, pMathDLL, pMathCommand);
@@ -773,7 +790,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 					// Put new string address in EAX for return passing
-					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YA_K_K_K@Z");
 				}
 				else
 				{

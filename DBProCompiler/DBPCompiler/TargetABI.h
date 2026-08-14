@@ -28,8 +28,12 @@ struct TargetAbiTraits<64> {
 using TargetAbi32 = TargetAbiTraits<32>;
 using TargetAbi64 = TargetAbiTraits<64>;
 
-// Dark Basic Professional compiler target program ABI representation
-using ActiveTargetAbi = TargetAbi32;
+// Dark Basic Professional compiler target program ABI representation.
+// The project is x64-only (x86 CI/workflows removed): varspace address slots
+// (strings, arrays, UDT pointers) are 8 bytes and pointer reads/writes in
+// the backend are full-width. Kept behind the alias so a 32-bit target can
+// be reintroduced as a pure compile-time switch.
+using ActiveTargetAbi = TargetAbi64;
 
 static_assert(TargetAbi32::address_size == 4);
 static_assert(TargetAbi64::address_size == 8);

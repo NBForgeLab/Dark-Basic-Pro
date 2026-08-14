@@ -207,7 +207,7 @@ DBPRO_GLOBAL LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -1182,7 +1182,7 @@ DARKSDK DWORD NetMsgString(DWORD pDestStr)
 		strcpy(m_pWorkString, (char*)gpNetDataDWORD);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 
 	// mike - 250604 - clear

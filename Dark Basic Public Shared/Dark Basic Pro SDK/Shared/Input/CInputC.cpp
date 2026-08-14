@@ -366,7 +366,7 @@ DARKSDK void ClearEntryBuffer ( void )
 DARKSDK DWORD GetEntryEx ( DWORD pDestStr, int iAutoBackSpaceMode )
 {
 	// Free old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
 	// lee - 110206 - prepare alternate string if auto-backspace-mode
 	LPSTR pRefStr = (LPSTR)*g_pWindowsEntryString;
@@ -396,7 +396,7 @@ DARKSDK DWORD GetEntryEx ( DWORD pDestStr, int iAutoBackSpaceMode )
 	if(pRefStr)
 	{
 		DWORD dwSize=strlen(pRefStr);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, pRefStr);
 	}
 
@@ -830,7 +830,7 @@ DARKSDK void WriteToClipboard ( LPSTR pString )
 DARKSDK DWORD GetClipboard ( DWORD pDestStr )
 {
 	// Free old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
 	// Clipboard Vars
 	HGLOBAL hglb = NULL;
@@ -858,7 +858,7 @@ DARKSDK DWORD GetClipboard ( DWORD pDestStr )
 			ClipboardDataSize++;
 
 			// Allocate new size
-			g_pCreateDeleteStringFunction((DWORD*)&pString, ClipboardDataSize+1);
+			g_pCreateDeleteStringFunction((uintptr_t*)&pString, ClipboardDataSize+1);
 			ZeroMemory(pString, ClipboardDataSize+1);
 			memcpy(pString, pClipboardData, ClipboardDataSize);
 			GlobalUnlock(hglb);        
@@ -1011,10 +1011,10 @@ DARKSDK DWORD GetRegistryS ( DWORD pDestStr, LPSTR pfolder, LPSTR valuekey )
 		CoreReadStringFromRegistry ( pfolder, valuekey, pStr );
 
 		// Free old string
-		if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+		if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
 		// Allocate new size
-		g_pCreateDeleteStringFunction((DWORD*)&pString, strlen(pStr)+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pString, strlen(pStr)+1);
 		ZeroMemory(pString, strlen(pStr)+1);
 		memcpy(pString, pStr, strlen(pStr));
 	}
@@ -1508,7 +1508,7 @@ DARKSDK void SetControlDeviceIndex ( int iIndex )
 
 DARKSDK DWORD GetControlDevice ( DWORD pDestStr )
 {
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
 	LPSTR pReturnString=NULL;
 	XINPUT_STATE state;
@@ -1518,12 +1518,12 @@ DARKSDK DWORD GetControlDevice ( DWORD pDestStr )
 		char name[256];
 		wsprintf(name, "Xbox Controller %d", m_iCDI + 1);
 		DWORD dwSize=strlen(name);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, name);
 	}
 	else
 	{
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, 1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, 1);
 		pReturnString[0] = '\0';
 	}
 	return (DWORD)pReturnString;

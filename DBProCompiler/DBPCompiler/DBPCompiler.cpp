@@ -195,8 +195,8 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 		if(g_pErrorReport->IsError())
 		{
 			// Create Virtual File for Error Transfer
-			HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
-			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
+			HANDLE hFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
+			LPVOID lpVoid = hFileMap ? MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256) : NULL;
 			LPSTR lpString = g_pErrorReport->GetParserErrorString();
 			if(g_pErrorReport->IsParserError())
 				lpString = g_pErrorReport->GetParserErrorString();
@@ -204,15 +204,18 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 				lpString = g_pErrorReport->GetErrorString();
 
 			// Copy Error to Virtual File
-			if ( strlen ( lpString )>255 )
+			if(lpVoid)
 			{
-				char ErrorSpace[256];
-				strncpy ( ErrorSpace, lpString, 255 );
-				ErrorSpace[255]=0;
-				strcpy((LPSTR)lpVoid, ErrorSpace);
+				if ( strlen ( lpString )>255 )
+				{
+					char ErrorSpace[256];
+					strncpy ( ErrorSpace, lpString, 255 );
+					ErrorSpace[255]=0;
+					strcpy((LPSTR)lpVoid, ErrorSpace);
+				}
+				else
+					strcpy((LPSTR)lpVoid, lpString);
 			}
-			else
-				strcpy((LPSTR)lpVoid, lpString);
 
 			// Find Editor to send to
 			if (!g_bJsonDiagnostics)
@@ -231,8 +234,10 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 			}
 
 			// Release virtual file
-			UnmapViewOfFile(lpVoid);
-			CloseHandle(hFileMap);
+			if(lpVoid)
+				UnmapViewOfFile(lpVoid);
+			if(hFileMap)
+				CloseHandle(hFileMap);
 
 			// Deposit Verbose Error File (test mode only)
 			g_pErrorReport->OutputInternalErrorReport();
@@ -1357,7 +1362,7 @@ bool CDBPCompiler::MakeProgram(void)
 
 			// Parse Main Program
 			db3::CProfile<> prof3("CDBPCompiler::MakeProgram() -> g_pStatementList->MakeStatements()");
-			if(!g_pStatementList->MakeStatements(m_pFileData, m_FileDataSize))
+			if(!g_pStatementList->MakeStatements(m_pFileData, m_FileDataSize, m_bDoubleLiterals))
 			{
 				g_pErrorReport->AddErrorString("Failed to 'MakeStatements'");
 				bResult=false;
@@ -1375,7 +1380,7 @@ bool CDBPCompiler::MakeProgram(void)
 			pMiniData.reset(pMiniDataRaw);
 
 			// Parse Mini Program
-			if(!g_pStatementList->AddMiniStatements(pMiniData.get(), dwMiniSize))
+			if(!g_pStatementList->AddMiniStatements(pMiniData.get(), dwMiniSize, m_bDoubleLiterals))
 			{
 				// Report Error to Debugger
 				LPSTR pData = g_pErrorReport->GetParserErrorString();

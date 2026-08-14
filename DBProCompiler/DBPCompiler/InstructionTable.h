@@ -116,6 +116,7 @@ enum class InternalInstruction : int {
 	NotEqualLRR       = 39,
 	GreaterEqualLRR   = 40,
 	LessEqualRR       = 41,
+	ModRRR            = 42,
 
 	// Bitwise math
 	ShiftLLLL         = 141,
@@ -236,6 +237,19 @@ enum class InternalInstruction : int {
 	DecVar            = 307,
 	PureReturn        = 308,
 	EndError          = 309,
+
+	// Wave 11: runtime list API — ArrayInsert / ArrayDelete / Queue / Stack.
+	// These register in the internal DB with the widened uintptr_t decorated
+	// names (the .rc resource strings still carry 32-bit names).
+	ArrayInsertTop      = 401,
+	ArrayInsertBottom   = 402,
+	ArrayInsertElement  = 403,
+	ArrayDeleteElement  = 404,
+	EmptyArray          = 405,
+	AddToQueue          = 406,
+	RemoveFromQueue     = 407,
+	PushStack           = 408,
+	PopStack            = 409,
 };
 
 // Build-in-instruction task codes (converted from #define constants)
@@ -279,6 +293,35 @@ enum class BuildTask : int {
 	Dec               = 1002,
 	IncAdd            = 1003,
 	DecAdd            = 1004,
+
+	// Wave 8: emitter-side int<->float conversions (SSE2 CVT* instructions).
+	CastIntToFloat    = 1101,
+	CastIntToDouble   = 1102,
+	CastFloatToInt    = 1103,
+	CastFloatToDouble = 1104,
+	CastDoubleToInt   = 1105,
+	CastDoubleToFloat = 1106,
+
+	// Wave 15: integer-family widening to int64 (REG64, no DLL).
+	CastIntToInt64    = 1107,
+	CastDwordToInt64  = 1108,
+
+	// Wave 16: int64 <-> float/double conversions (SSE2 CVT*, REX.W).
+	CastFloatToInt64  = 1109,
+	CastDoubleToInt64 = 1110,
+	CastInt64ToLower  = 1111, // int64 -> int/dword/byte/word (truncating store)
+	CastInt64ToFloat  = 1112,
+	CastInt64ToDouble = 1113,
+
+	// Wave 18: narrowing casts to byte/word/dword (store-width truncation).
+	CastToNarrow      = 1114, // L/D -> B/Y/W/D
+	CastFloatToNarrow = 1115, // F/O -> B/Y/W
+
+	// Wave 19: widening casts from byte/word (MOVZX then width store/CVT*).
+	CastWiden         = 1116, // B/Y/W -> L/W/D
+	CastWidenToFloat  = 1117, // B/Y/W -> F/O
+
+	// Wave 17: Power (x^y = exp(y*log(x)), emitter-built; legacy 101 entry).
 };
 
 

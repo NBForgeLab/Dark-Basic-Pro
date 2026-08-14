@@ -400,6 +400,21 @@ bool CParameter::CastAllParametersToInstruction(CInstructionTableEntry* pRef)
 				// No need to cast if type is an array of require type
 				if(pCurrent->GetResultType()>=100 && pCurrent->GetResultType()-100==dwRequiredTypeValue) bCastingRequired=false;
 
+				// Address-of results (107 = DWORD POINTER / RELATIVE ADDRESS)
+				// already carry the full 8-byte address on x64; integer-family
+				// destinations receive it at their own width, so no conversion
+				// (and no cast DLL) is needed (wave 14).
+				if (pCurrent->GetResultType()==107)
+				{
+					switch (dwRequiredTypeValue)
+					{
+						case 1: case 4: case 5: case 6: case 7: case 9:
+							bCastingRequired=false;
+							break;
+						default: break;
+					}
+				}
+
 				// Casting must be performed
 				if(bCastingRequired)
 				{
@@ -408,8 +423,10 @@ bool CParameter::CastAllParametersToInstruction(CInstructionTableEntry* pRef)
 //					if(dwRequiredTypeValue==7 && pCurrent->GetResultType()>=101 && pCurrent->GetResultType()<=109)
 					if(bForceParamToTheArrayAddress==true)
 					{
-						// No cast, source type is reassigned as a DWORD (Pointer to address rather than contents)
-						pCurrent->GetResultData()->m_dwType=7;
+						// No cast, source type is reassigned as a full-width pointer
+						// value (1002) so the array address flows 8 bytes on x64 —
+						// same convention as DoAllocation/DoDeAllocation (wave 7).
+						pCurrent->GetResultData()->m_dwType=1002;
 					}
 					else
 					{
@@ -424,7 +441,7 @@ bool CParameter::CastAllParametersToInstruction(CInstructionTableEntry* pRef)
 							std::unique_ptr<CMathOp> pValueToCast(pCheckParam->ReleaseMathItem());
 							pValueToCast->SetLineNumber(StatementLineNumber);
 							CMathOp* pCastCaller = pValueToCast.get();
-							if(pCastCaller->DoCastOnMathOp(pValueToCast, dwRequiredTypeValue)==false)
+							if(pCastCaller->DoCastOnMathOp(pValueToCast, dwRequiredTypeValue, g_pStatementList->GetDoubleLiterals())==false)
 							{
 								std::unique_ptr<char[]> pTypeStr(g_pVarTable->MakeTypeNameOfTypeValue(dwRequiredTypeValue));
 								LPSTR pR = pValueToCast->FindResultStringTokenForDBM()->GetStr();

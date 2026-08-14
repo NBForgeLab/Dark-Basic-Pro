@@ -17,6 +17,7 @@ using CoreVoid = void (*)();
 using CoreDword = DWORD (*)();
 using CoreDwordParameter = DWORD (*)(DWORD);
 using CoreVoidDwordPointer = void (*)(DWORD*);
+using CoreUintptrPointer = void (*)(uintptr_t);
 using CoreInitializeDisplay = DWORD (*)(
     DWORD, DWORD, DWORD, DWORD, HINSTANCE, char*);
 using CoreSymbolLookup = std::function<void*(const char*)>;
@@ -38,7 +39,7 @@ struct CoreRuntimeApi {
     CoreDwordParameter createDataSpace = nullptr;
     CoreVoid deleteDataSpace = nullptr;
     CoreVoidDwordPointer deleteVariableItem = nullptr;
-    CoreVoidDwordPointer unDim = nullptr;
+    CoreUintptrPointer unDim = nullptr;
     CoreVoid sync = nullptr;
 };
 

@@ -32,7 +32,7 @@ void WriteCoreFixture(const std::filesystem::path& path,
             "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z", "?CloseDisplay@@YAKXZ",
             "?CreateVariableSpace@@YAKK@Z", "?DeleteVariableSpace@@YAXXZ",
             "?CreateDataSpace@@YAKK@Z", "?DeleteDataSpace@@YAXXZ",
-            "?DeleteSingleVariableAllocation@@YAXPAK@Z", "?UnDimDD@@YAKK@Z",
+            "?DeleteSingleVariableAllocation@@YAXPAK@Z", "?UnDimDD@@YA_K_K@Z",
             "?Sync@@YAXXZ"};
         exports.insert(exports.end(), lifecycle.begin(), lifecycle.end());
     }

@@ -1,24 +1,24 @@
 #include <gtest/gtest.h>
-#include "ASMWriterx64.h"
+#include "ASMWriter.h"
 
 TEST(X64AssemblerTest, AssignsRegistersForFirstFourArguments) {
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(0), X64Register::RCX);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(1), X64Register::RDX);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(2), X64Register::R8);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(3), X64Register::R9);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(4), X64Register::None);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(0), X64Register::RCX);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(1), X64Register::RDX);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(2), X64Register::R8);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(3), X64Register::R9);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(4), X64Register::None);
 }
 
 TEST(X64AssemblerTest, CalculatesShadowSpaceAndStackAlignment) {
-    EXPECT_EQ(CASMWriterx64::GetShadowSpaceSize(), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(0U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(24U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(32U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(36U), 48U);
+    EXPECT_EQ(CASMWriter::GetShadowSpaceSize(), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(0U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(24U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(32U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(36U), 48U);
 }
 
 TEST(X64AssemblerTest, InstantiatesAndReportsArraySafetyFlags) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.SetDefaultCompileFlags(true);
     EXPECT_TRUE(writer.GetArrayCheckFlag());
 
@@ -27,7 +27,7 @@ TEST(X64AssemblerTest, InstantiatesAndReportsArraySafetyFlags) {
 }
 
 TEST(X64AssemblerTest, EmitsMovRegImm64Opcode) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.EmitMovRegImm64(X64Register::RAX, 0x1122334455667788ULL);
     const auto& buf = writer.GetCodeBuffer();
     ASSERT_EQ(buf.size(), 10U);
@@ -38,7 +38,7 @@ TEST(X64AssemblerTest, EmitsMovRegImm64Opcode) {
 }
 
 TEST(X64AssemblerTest, EmitsPushAndPopOpcodes) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.EmitPushReg(X64Register::RAX);
     writer.EmitPushReg(X64Register::R8);
     writer.EmitPopReg(X64Register::RAX);
@@ -54,7 +54,7 @@ TEST(X64AssemblerTest, EmitsPushAndPopOpcodes) {
 }
 
 TEST(X64AssemblerTest, EmitsSubAndAddRspStackAlignment) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.EmitSubRegImm32(X64Register::RSP, 32);
     writer.EmitAddRegImm32(X64Register::RSP, 32);
     writer.EmitRet();
@@ -75,7 +75,7 @@ TEST(X64AssemblerTest, EmitsSubAndAddRspStackAlignment) {
 }
 
 TEST(X64AssemblerTest, EmitsCmpAndTestRegRegOpcodes) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.EmitCmpRegReg(X64Register::RAX, X64Register::RCX);
     writer.EmitTestRegReg(X64Register::R8, X64Register::R9);
     const auto& buf = writer.GetCodeBuffer();
@@ -91,7 +91,7 @@ TEST(X64AssemblerTest, EmitsCmpAndTestRegRegOpcodes) {
 }
 
 TEST(X64AssemblerTest, EmitsControlFlowJumpAndCallOpcodes) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.EmitJmpRel32(16);
     writer.EmitJneRel32(32);
     writer.EmitJeRel32(-8);
@@ -123,7 +123,7 @@ TEST(X64AssemblerTest, EmitsControlFlowJumpAndCallOpcodes) {
 }
 
 TEST(X64AssemblerTest, EmitsSSE2FloatingPointOpcodes) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     writer.EmitMovss(XMMRegister::XMM0, XMMRegister::XMM1);
     writer.EmitAddss(XMMRegister::XMM0, XMMRegister::XMM2);
     writer.EmitMulss(XMMRegister::XMM8, XMMRegister::XMM9);

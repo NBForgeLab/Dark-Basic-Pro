@@ -156,11 +156,13 @@ bool CInstructionTable::DefineHardCodedCommand(void)
 	AddBuildCommand("+mathint", "CONDLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualLLL), static_cast<DWORD>(BuildTask::LessEqual));
 
 	// External Maths
-	AddCommandCore("+math", "dbprocore.dll", "?PowerLLL@@YAKHH@Z", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::PowerLLL), 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerBBB@@YAKKK@Z", "BB", 4, 2, static_cast<DWORD>(InternalInstruction::PowerBBB), 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerBBB@@YAKKK@Z", "YY", 5, 2, static_cast<DWORD>(InternalInstruction::PowerYYY), 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerWWW@@YAKKK@Z", "WW", 6, 2, static_cast<DWORD>(InternalInstruction::PowerWWW), 0);
-	AddCommandCore("+math", "dbprocore.dll", "?PowerDDD@@YAKKK@Z", "DD", 7, 2, static_cast<DWORD>(InternalInstruction::PowerDDD), 0);
+	// Wave 17/20: every Power row is the emitter-built exp/log sequence
+	// (ASMTask::Power); byte/boolean share the unsigned-char DLL semantics.
+	AddBuildCommand("+math", "POWERLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::PowerLLL), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+math", "POWERBBB", "BB", 4, 2, static_cast<DWORD>(InternalInstruction::PowerBBB), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+math", "POWERYYY", "YY", 5, 2, static_cast<DWORD>(InternalInstruction::PowerYYY), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+math", "POWERWWW", "WW", 6, 2, static_cast<DWORD>(InternalInstruction::PowerWWW), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+math", "POWERDDD", "DD", 7, 2, static_cast<DWORD>(InternalInstruction::PowerDDD), static_cast<DWORD>(BuildTask::Power));
 
 	// INT Math
 	AddBuildCommand("+math", "MULLLL", "LL", 1, 2, static_cast<DWORD>(InternalInstruction::MulLLL), static_cast<DWORD>(BuildTask::Mul));
@@ -258,12 +260,36 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 
 	// Internal Commands (generated internally)
 	AddCommandCore("+exitfunction", "", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::UserFunctionExit), static_cast<DWORD>(BuildTask::UserFunctionExit));
-	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YAKKKKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
-	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YAKK@Z", "D", 7, 1, static_cast<DWORD>(InternalInstruction::Free), 0);
+	// Wave 7: the runtime array-pointer API widened to uintptr_t — the
+	// decorated names now carry the _K (unsigned __int64) type.
+	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YA_K_KKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
+	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YA_K_K@Z", "D", 7, 1, static_cast<DWORD>(InternalInstruction::Free), 0);
+
+	// Wave 11: the runtime list API (ArrayInsert/ArrayDelete/Queue/Stack)
+	// widened to uintptr_t. The DBDLLCore.rc resource strings still carry the
+	// 32-bit decorated names, so register the x64 names internally — the
+	// internal DB loads before the DLL surface, so these win the friend chain.
+	// The H param passes the array pointer as input (bPassArrayAsInput); the
+	// star-commands write the returned (possibly reallocated) pointer back
+	// through the first param (dwPlace=1), exactly like the .rc %H*% forms.
+	AddCommandCore2("ARRAY INSERT AT TOP", "dbprocore.dll", "?ArrayInsertAtTop@@YA_K_K@Z", "H", 7, 1, static_cast<DWORD>(InternalInstruction::ArrayInsertTop), 0, 1, true, NULL, NULL);
+	AddCommandCore2("ARRAY INSERT AT TOP", "dbprocore.dll", "?ArrayInsertAtTop@@YA_K_KH@Z", "HL", 7, 2, static_cast<DWORD>(InternalInstruction::ArrayInsertTop), 0, 1, true, NULL, NULL);
+	AddCommandCore2("ARRAY INSERT AT BOTTOM", "dbprocore.dll", "?ArrayInsertAtBottom@@YA_K_K@Z", "H", 7, 1, static_cast<DWORD>(InternalInstruction::ArrayInsertBottom), 0, 1, true, NULL, NULL);
+	AddCommandCore2("ARRAY INSERT AT BOTTOM", "dbprocore.dll", "?ArrayInsertAtBottom@@YA_K_KH@Z", "HL", 7, 2, static_cast<DWORD>(InternalInstruction::ArrayInsertBottom), 0, 1, true, NULL, NULL);
+	AddCommandCore2("ARRAY INSERT AT ELEMENT", "dbprocore.dll", "?ArrayInsertAtElement@@YA_K_KH@Z", "HL", 7, 2, static_cast<DWORD>(InternalInstruction::ArrayInsertElement), 0, 1, true, NULL, NULL);
+	AddCommandCore2("ARRAY DELETE ELEMENT", "dbprocore.dll", "?ArrayDeleteElement@@YAX_K@Z", "H", 0, 1, static_cast<DWORD>(InternalInstruction::ArrayDeleteElement), 0, 0, false, NULL, NULL);
+	AddCommandCore2("ARRAY DELETE ELEMENT", "dbprocore.dll", "?ArrayDeleteElement@@YAX_KH@Z", "HL", 0, 2, static_cast<DWORD>(InternalInstruction::ArrayDeleteElement), 0, 0, false, NULL, NULL);
+	AddCommandCore2("EMPTY ARRAY", "dbprocore.dll", "?EmptyArray@@YAX_K@Z", "H", 0, 1, static_cast<DWORD>(InternalInstruction::EmptyArray), 0, 0, false, NULL, NULL);
+	AddCommandCore2("ADD TO QUEUE", "dbprocore.dll", "?AddToQueue@@YA_K_K@Z", "H", 7, 1, static_cast<DWORD>(InternalInstruction::AddToQueue), 0, 1, true, NULL, NULL);
+	AddCommandCore2("REMOVE FROM QUEUE", "dbprocore.dll", "?RemoveFromQueue@@YAX_K@Z", "H", 0, 1, static_cast<DWORD>(InternalInstruction::RemoveFromQueue), 0, 0, false, NULL, NULL);
+	AddCommandCore2("ADD TO STACK", "dbprocore.dll", "?PushToStack@@YA_K_K@Z", "H", 7, 1, static_cast<DWORD>(InternalInstruction::PushStack), 0, 1, true, NULL, NULL);
+	AddCommandCore2("REMOVE FROM STACK", "dbprocore.dll", "?PopFromStack@@YAX_K@Z", "H", 0, 1, static_cast<DWORD>(InternalInstruction::PopStack), 0, 0, false, NULL, NULL);
 	AddCommandCore("+assign", "", "MOVLL", "LL", 0, 0, static_cast<DWORD>(InternalInstruction::AssignLL), 0);
 	AddCommandCore("+assign", "", "MOVFF", "FF", 0, 0, static_cast<DWORD>(InternalInstruction::AssignFF), 0);
-	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YAKKK@Z", "S", 3, 2, static_cast<DWORD>(InternalInstruction::AssignSS), 0);
-	AddCommandCore("+free", "dbprocore.dll", "?FreeSS@@YAKK@Z", "S", 3, 1, static_cast<DWORD>(InternalInstruction::StrFree), 0);
+	// x64: string addresses are uintptr_t (_K in MSVC x64 mangling), so the
+	// runtime core must export the widened signatures.
+	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YA_K_K_K@Z", "S", 3, 2, static_cast<DWORD>(InternalInstruction::AssignSS), 0);
+	AddCommandCore("+free", "dbprocore.dll", "?FreeSS@@YA_K_K@Z", "S", 3, 1, static_cast<DWORD>(InternalInstruction::StrFree), 0);
 	
 	// Internal Assignments Commands
 	AddCommandCore("+assign", "", "MOVBB", "BB", 0, 0, static_cast<DWORD>(InternalInstruction::AssignBB), 0);
@@ -306,20 +332,24 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 	AddCommandCore("+mathptr", "dbprocore.dll", "?LessEqualDDD@@YAKKK@Z", "eD", 7, 2, static_cast<DWORD>(InternalInstruction::LessEqualDDD), 0);
 
 	// Internal Math Commands
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?PowerFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::PowerFFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?MulFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::MulFFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?DivFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::DivFFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?AddFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::AddFFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?SubFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::SubFFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?ModFFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::ModFFF), 0);
+	// Wave 8: float arithmetic/comparison is hardcoded SSE2 in the emitter
+	// (Mod stays as a runtime call; Power is emitter-built via exp/log, wave 17).
+	AddBuildCommand("+mathfloat", "POWERFFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::PowerFFF), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+mathfloat", "MULFFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::MulFFF), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+mathfloat", "DIVFFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::DivFFF), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+mathfloat", "ADDFFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::AddFFF), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+mathfloat", "SUBFFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::SubFFF), static_cast<DWORD>(BuildTask::Sub));
+	// Wave 21: float mod is emitter-built via the CRT fmod primitive — the
+	// last scalar-arithmetic row (integer MOD* use the IDIV remainder path).
+	AddBuildCommand("+mathfloat", "MODFFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::ModFFF), static_cast<DWORD>(BuildTask::Mod));
 
 	// Internal Comparison Commands
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?EqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::EqualFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?GreaterLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessLFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?NotEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?GreaterEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLFF), 0);
-	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualLFF), 0);
+	AddBuildCommand("+mathfloat", "EQUALFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::EqualFF), static_cast<DWORD>(BuildTask::Equal));
+	AddBuildCommand("+mathfloat", "GREATERFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLFF), static_cast<DWORD>(BuildTask::Greater));
+	AddBuildCommand("+mathfloat", "LESSFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessLFF), static_cast<DWORD>(BuildTask::Less));
+	AddBuildCommand("+mathfloat", "NOTEQUALFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLFF), static_cast<DWORD>(BuildTask::NotEqual));
+	AddBuildCommand("+mathfloat", "GREATEREQUALFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLFF), static_cast<DWORD>(BuildTask::GreaterEqual));
+	AddBuildCommand("+mathfloat", "LESSEQUALFF", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualLFF), static_cast<DWORD>(BuildTask::LessEqual));
 
 	// Internal Math Commands
 //	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
@@ -338,90 +368,103 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
 
 	// Internal Math Commands
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?PowerOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::PowerOOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?MulOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::MulOOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?DivOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::DivOOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?AddOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::AddOOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?SubOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::SubOOO), 0);
+	// Wave 8: double arithmetic/comparison is hardcoded SSE2 in the emitter;
+	// wave 20 made PowerOOO native too (exp/log with the (float) round-trip).
+	AddBuildCommand("+mathdoublef", "POWEROOO", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::PowerOOO), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+mathdoublef", "MULOOO", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::MulOOO), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+mathdoublef", "DIVOOO", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::DivOOO), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+mathdoublef", "ADDOOO", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::AddOOO), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+mathdoublef", "SUBOOO", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::SubOOO), static_cast<DWORD>(BuildTask::Sub));
 
 	// Internal Comparison Commands
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?EqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::EqualLOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?GreaterLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::GreaterLOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?LessLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::LessLOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?NotEqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::NotEqualLOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?GreaterEqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::GreaterEqualLOO), 0);
-	AddCommandCore("+mathdoublef", "dbprocore.dll", "?LessEqualLOO@@YAKNN@Z", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::LessEqualOO), 0);
+	AddBuildCommand("+mathdoublef", "EQUALOO", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::EqualLOO), static_cast<DWORD>(BuildTask::Equal));
+	AddBuildCommand("+mathdoublef", "GREATERO", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::GreaterLOO), static_cast<DWORD>(BuildTask::Greater));
+	AddBuildCommand("+mathdoublef", "LESSOO", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::LessLOO), static_cast<DWORD>(BuildTask::Less));
+	AddBuildCommand("+mathdoublef", "NOTEQUALOO", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::NotEqualLOO), static_cast<DWORD>(BuildTask::NotEqual));
+	AddBuildCommand("+mathdoublef", "GREATEREQUALOO", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::GreaterEqualLOO), static_cast<DWORD>(BuildTask::GreaterEqual));
+	AddBuildCommand("+mathdoublef", "LESSEQUALOO", "OO", 1, 8, static_cast<DWORD>(InternalInstruction::LessEqualOO), static_cast<DWORD>(BuildTask::LessEqual));
 
 	// Internal Math Commands
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?PowerRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::PowerRRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?MulRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::MulRRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?DivRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::DivRRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?AddRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::AddRRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?SubRRR@@YA_J_J0@Z", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::SubRRR), 0);
+	// Wave 8b: int64 arithmetic is hardcoded full-width REG64 in the emitter;
+	// wave 20 made PowerRRR native too (REX.W exp/log with truncating store).
+	AddBuildCommand("+mathdoublei", "POWERRRR", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::PowerRRR), static_cast<DWORD>(BuildTask::Power));
+	AddBuildCommand("+mathdoublei", "MULRRR", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::MulRRR), static_cast<DWORD>(BuildTask::Mul));
+	AddBuildCommand("+mathdoublei", "DIVRRR", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::DivRRR), static_cast<DWORD>(BuildTask::Div));
+	AddBuildCommand("+mathdoublei", "ADDRRR", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::AddRRR), static_cast<DWORD>(BuildTask::Add));
+	AddBuildCommand("+mathdoublei", "SUBRRR", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::SubRRR), static_cast<DWORD>(BuildTask::Sub));
+	AddBuildCommand("+mathdoublei", "MODRRR", "RR", 9, 2, static_cast<DWORD>(InternalInstruction::ModRRR), static_cast<DWORD>(BuildTask::Mod));
 
 	// Internal Comparison Commands
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?EqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::EqualLRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?GreaterLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::GreaterLRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?LessLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::LessLRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?NotEqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::NotEqualLRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?GreaterEqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::GreaterEqualLRR), 0);
-	AddCommandCore("+mathdoublei", "dbprocore.dll", "?LessEqualLRR@@YAK_J0@Z", "RR", 1, 9, static_cast<DWORD>(InternalInstruction::LessEqualRR), 0);
+	AddBuildCommand("+mathdoublei", "CONDRRR", "RR", 1, 2, static_cast<DWORD>(InternalInstruction::EqualLRR), static_cast<DWORD>(BuildTask::Equal));
+	AddBuildCommand("+mathdoublei", "CONDRRR", "RR", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLRR), static_cast<DWORD>(BuildTask::Greater));
+	AddBuildCommand("+mathdoublei", "CONDRRR", "RR", 1, 2, static_cast<DWORD>(InternalInstruction::LessLRR), static_cast<DWORD>(BuildTask::Less));
+	AddBuildCommand("+mathdoublei", "CONDRRR", "RR", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLRR), static_cast<DWORD>(BuildTask::NotEqual));
+	AddBuildCommand("+mathdoublei", "CONDRRR", "RR", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLRR), static_cast<DWORD>(BuildTask::GreaterEqual));
+	AddBuildCommand("+mathdoublei", "CONDRRR", "RR", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualRR), static_cast<DWORD>(BuildTask::LessEqual));
 
 	// Cast Instructions
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoF@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoB@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToB), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoB@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToY), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoW@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoD@@YAKH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoO@@YANH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToO), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastLtoR@@YA_JH@Z", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoL@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoB@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOB), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoB@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOY), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoW@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoD@@YAKM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoO@@YANM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOO), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastFtoR@@YA_JM@Z", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoL@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoF@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoW@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoD@@YAKE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoO@@YANE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOO), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoR@@YA_JE@Z", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoL@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoF@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoW@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoD@@YAKE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoO@@YANE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOO), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastBtoR@@YA_JE@Z", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoL@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoF@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoB@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOB), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoB@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOY), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoD@@YAKG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoO@@YANG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOO), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastWtoR@@YA_JG@Z", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoL@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoF@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoB@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOB), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoB@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOY), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoW@@YAKK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoO@@YANK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOO), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastDtoR@@YA_JK@Z", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoL@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoF@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoB@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOB), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoB@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOY), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoW@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoD@@YAKN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastOtoR@@YA_JN@Z", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOR), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoL@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOL), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoF@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOF), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoB@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOB), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoB@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOY), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoW@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOW), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoD@@YAK_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOD), 0);
-	AddCommandCore("+cast", "dbprocore.dll", "?CastRtoO@@YAN_J@Z", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOO), 0);
+	// Wave 8: the float-family casts (int<->float/double, dword<->float/double)
+	// are hardcoded SSE2 CVT* instructions in the emitter; the rest stay DLL.
+	AddBuildCommand("+cast", "CASTLTOF", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToF), static_cast<DWORD>(BuildTask::CastIntToFloat));
+	AddBuildCommand("+cast", "CASTLTOB", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToB), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTLTOY", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToY), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTLTOW", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToW), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTLTOD", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToD), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTLTOO", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToO), static_cast<DWORD>(BuildTask::CastIntToDouble));
+	// Wave 15: int -> int64 widening is native MOVSXD RAX,EAX, not a DLL call.
+	AddBuildCommand("+cast", "CASTLTOR", "L", 1, 1, static_cast<DWORD>(InternalInstruction::CastLToR), static_cast<DWORD>(BuildTask::CastIntToInt64));
+	AddBuildCommand("+cast", "CASTFTOL", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOL), static_cast<DWORD>(BuildTask::CastFloatToInt));
+	AddBuildCommand("+cast", "CASTFTOB", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOB), static_cast<DWORD>(BuildTask::CastFloatToNarrow));
+	AddBuildCommand("+cast", "CASTFTOY", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOY), static_cast<DWORD>(BuildTask::CastFloatToNarrow));
+	AddBuildCommand("+cast", "CASTFTOW", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOW), static_cast<DWORD>(BuildTask::CastFloatToNarrow));
+	AddBuildCommand("+cast", "CASTFTOD", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOD), static_cast<DWORD>(BuildTask::CastFloatToInt));
+	AddBuildCommand("+cast", "CASTFTOO", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOO), static_cast<DWORD>(BuildTask::CastFloatToDouble));
+	AddBuildCommand("+cast", "CASTFTOR", "F", 1, 1, static_cast<DWORD>(InternalInstruction::CastFTOR), static_cast<DWORD>(BuildTask::CastFloatToInt64));
+	// Wave 19: the widening casts (B/Y/W sources) are emitter-native MOVZX
+	// zero-extensions; W->B/Y stay truncations via CastToNarrow. B/Y share
+	// the unsigned-char semantics of the DLL entries they replace.
+	AddBuildCommand("+cast", "CASTBTOL", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOL), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTBTOF", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOF), static_cast<DWORD>(BuildTask::CastWidenToFloat));
+	AddBuildCommand("+cast", "CASTBTOW", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOW), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTBTOD", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOD), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTBTOO", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOO), static_cast<DWORD>(BuildTask::CastWidenToFloat));
+	AddBuildCommand("+cast", "CASTBTOR", "B", 1, 1, static_cast<DWORD>(InternalInstruction::CastBTOR), static_cast<DWORD>(BuildTask::CastDwordToInt64));
+	AddBuildCommand("+cast", "CASTYTOL", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOL), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTYTOF", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOF), static_cast<DWORD>(BuildTask::CastWidenToFloat));
+	AddBuildCommand("+cast", "CASTYTOW", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOW), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTYTOD", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOD), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTYTOO", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOO), static_cast<DWORD>(BuildTask::CastWidenToFloat));
+	AddBuildCommand("+cast", "CASTYTOR", "Y", 1, 1, static_cast<DWORD>(InternalInstruction::CastYTOR), static_cast<DWORD>(BuildTask::CastDwordToInt64));
+	AddBuildCommand("+cast", "CASTWTOL", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOL), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTWTOF", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOF), static_cast<DWORD>(BuildTask::CastWidenToFloat));
+	AddBuildCommand("+cast", "CASTWTOB", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOB), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTWTOY", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOY), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTWTOD", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOD), static_cast<DWORD>(BuildTask::CastWiden));
+	AddBuildCommand("+cast", "CASTWTOO", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOO), static_cast<DWORD>(BuildTask::CastWidenToFloat));
+	AddBuildCommand("+cast", "CASTWTOR", "W", 1, 1, static_cast<DWORD>(InternalInstruction::CastWTOR), static_cast<DWORD>(BuildTask::CastDwordToInt64));
+	AddBuildCommand("+cast", "CASTDTOL", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOL), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTDTOF", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOF), static_cast<DWORD>(BuildTask::CastIntToFloat));
+	AddBuildCommand("+cast", "CASTDTOB", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOB), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTDTOY", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOY), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTDTOW", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOW), static_cast<DWORD>(BuildTask::CastToNarrow));
+	AddBuildCommand("+cast", "CASTDTOO", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOO), static_cast<DWORD>(BuildTask::CastIntToDouble));
+	// Wave 15: dword/address -> int64 widening is native (zero-extension), not
+	// a DLL call.
+	AddBuildCommand("+cast", "CASTDTOR", "D", 1, 1, static_cast<DWORD>(InternalInstruction::CastDTOR), static_cast<DWORD>(BuildTask::CastDwordToInt64));
+	AddBuildCommand("+cast", "CASTOTOL", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOL), static_cast<DWORD>(BuildTask::CastDoubleToInt));
+	AddBuildCommand("+cast", "CASTOTOF", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOF), static_cast<DWORD>(BuildTask::CastDoubleToFloat));
+	AddBuildCommand("+cast", "CASTOTOB", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOB), static_cast<DWORD>(BuildTask::CastFloatToNarrow));
+	AddBuildCommand("+cast", "CASTOTOY", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOY), static_cast<DWORD>(BuildTask::CastFloatToNarrow));
+	AddBuildCommand("+cast", "CASTOTOW", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOW), static_cast<DWORD>(BuildTask::CastFloatToNarrow));
+	AddBuildCommand("+cast", "CASTOTOD", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOD), static_cast<DWORD>(BuildTask::CastDoubleToInt));
+	AddBuildCommand("+cast", "CASTOTOR", "O", 1, 1, static_cast<DWORD>(InternalInstruction::CastOTOR), static_cast<DWORD>(BuildTask::CastDoubleToInt64));
+	AddBuildCommand("+cast", "CASTRTOL", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOL), static_cast<DWORD>(BuildTask::CastInt64ToLower));
+	AddBuildCommand("+cast", "CASTRTOF", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOF), static_cast<DWORD>(BuildTask::CastInt64ToFloat));
+	AddBuildCommand("+cast", "CASTRTOB", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOB), static_cast<DWORD>(BuildTask::CastInt64ToLower));
+	AddBuildCommand("+cast", "CASTRTOY", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOY), static_cast<DWORD>(BuildTask::CastInt64ToLower));
+	AddBuildCommand("+cast", "CASTRTOW", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOW), static_cast<DWORD>(BuildTask::CastInt64ToLower));
+	AddBuildCommand("+cast", "CASTRTOD", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOD), static_cast<DWORD>(BuildTask::CastInt64ToLower));
+	AddBuildCommand("+cast", "CASTRTOO", "R", 1, 1, static_cast<DWORD>(InternalInstruction::CastRTOO), static_cast<DWORD>(BuildTask::CastInt64ToDouble));
 
 	return true;
 }
@@ -2285,6 +2328,7 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 			case 3 :	return static_cast<DWORD>(InternalInstruction::DivRRR);
 			case 4 :	return static_cast<DWORD>(InternalInstruction::AddRRR);
 			case 5 :	return static_cast<DWORD>(InternalInstruction::SubRRR);
+			case 6 :	return static_cast<DWORD>(InternalInstruction::ModRRR);
 			case 27 :	return static_cast<DWORD>(InternalInstruction::EqualLRR);
 			case 25 :	return static_cast<DWORD>(InternalInstruction::GreaterLRR);
 			case 26 :	return static_cast<DWORD>(InternalInstruction::LessLRR);

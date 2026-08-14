@@ -962,7 +962,7 @@ DARKSDK  LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -1029,7 +1029,7 @@ DARKSDK DWORD Bin	( DWORD pDestStr, int iValue )
 	text[t]=0;
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1041,7 +1041,7 @@ DARKSDK DWORD	  Chr	( DWORD pDestStr, int iValue )
 	m_pWorkString[1]=0;
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1052,7 +1052,7 @@ DARKSDK DWORD Hex	( DWORD pDestStr, int iValue )
 	wsprintf(m_pWorkString, "%X", iValue);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1082,7 +1082,7 @@ DARKSDK DWORD Left	( DWORD pDestStr, DWORD szText, int iValue )
 			strcpy(text, "");
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1107,7 +1107,7 @@ DARKSDK DWORD Lower ( DWORD pDestStr, DWORD szText )
 	_strlwr(m_pWorkString);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1142,7 +1142,7 @@ DARKSDK DWORD Mid	( DWORD pDestStr, DWORD szText, int iValue )
 		text[0]=0;
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1179,7 +1179,7 @@ DARKSDK DWORD Right ( DWORD pDestStr, DWORD szText, int iValue )
 			strcpy(text, "");
 		
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1190,7 +1190,7 @@ DARKSDK DWORD Str	( DWORD pDestStr, float fValue )
 	sprintf(m_pWorkString, "%.12g", fValue);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1203,7 +1203,7 @@ DARKSDK DWORD StrEx	( DWORD pDestStr, float fValue, int iDecPlaces )
 	sprintf(m_pWorkString, format, fValue);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1214,7 +1214,7 @@ DARKSDK DWORD Str	( DWORD pDestStr, int iValue )
 	sprintf(m_pWorkString, "%d", iValue);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1231,7 +1231,7 @@ DARKSDK DWORD Upper ( DWORD pDestStr, DWORD szText )
 	_strupr(m_pWorkString);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1272,7 +1272,7 @@ DARKSDK DWORD StrDouble	( DWORD pDestStr, double dValue )
 	sprintf(m_pWorkString, "%.16g", dValue);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1283,7 +1283,7 @@ DARKSDK DWORD StrDoubleInt	( DWORD pDestStr, LONGLONG lValue )
 	sprintf(m_pWorkString, "%I64d", lValue);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1437,7 +1437,7 @@ DARKSDK DWORD TextFont ( DWORD pDestStr )
 	strcpy(m_pWorkString, m_strFontName);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -1595,9 +1595,9 @@ DARKSDK DWORD Spaces ( DWORD pDestStr, int iSpaces )
 	// mike - 250604 - addition for negative input
 	if ( iSpaces < 0 )
 	{
-		if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+		if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 		LPSTR pReturnString=NULL;
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, 2 );
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, 2 );
 
 		memset((LPSTR)pReturnString, 32, 2);
 
@@ -1608,9 +1608,9 @@ DARKSDK DWORD Spaces ( DWORD pDestStr, int iSpaces )
 	}
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=NULL;
-	g_pCreateDeleteStringFunction((DWORD*)&pReturnString, iSpaces+1 );
+	g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, iSpaces+1 );
 	memset((LPSTR)pReturnString, 32, iSpaces);
 	pReturnString[iSpaces]=0;
 	return (DWORD)pReturnString;
@@ -1634,7 +1634,7 @@ DARKSDK char* SetupString ( char* szInput )
 	char* pReturn = NULL;
 	DWORD dwSize  = strlen ( szInput );
 
-	g_pGlob->CreateDeleteString ( ( DWORD* ) &pReturn, dwSize + 1 );
+	g_pGlob->CreateDeleteString ( ( uintptr_t* ) &pReturn, dwSize + 1 );
 
 	// error
 	if ( !pReturn )
@@ -1735,7 +1735,7 @@ DARKSDK DWORD FirstToken ( DWORD dwReturn, DWORD dwSource, DWORD dwDelim )
     }
 
 	// U74 BETA9 - 060709 - free old string and create new one
-	g_pGlob->CreateDeleteString ( ( DWORD* ) &dwReturn, 0 );
+	g_pGlob->CreateDeleteString ( ( uintptr_t* ) &dwReturn, 0 );
     char* szToken = strtok ( m_szTokenString, szDelim );
     if ( szToken )
     {
@@ -1755,7 +1755,7 @@ DARKSDK DWORD NextToken ( DWORD dwReturn, DWORD dwDelim )
     }
 
 	// U74 BETA9 - 060709 - free old string and create new one
-	g_pGlob->CreateDeleteString ( ( DWORD* ) &dwReturn, 0 );
+	g_pGlob->CreateDeleteString ( ( uintptr_t* ) &dwReturn, 0 );
 	char* szToken = strtok ( NULL, szDelim );
     if ( szToken )
     {

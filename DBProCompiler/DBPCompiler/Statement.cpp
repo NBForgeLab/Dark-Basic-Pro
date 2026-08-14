@@ -755,7 +755,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		initStr.AddText(&stepValue);
 		initStr.AddText(")");
 		pForNextInitParameter = std::make_unique<CParameter>();
-		if(DoExpression(&initStr, pForNextInitParameter.get())==false)
+		if(DoExpression(&initStr, pForNextInitParameter.get(), g_pStatementList->GetDoubleLiterals())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
 			return false;
@@ -788,7 +788,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		incStr.AddText(&stepValue);
 
 		pForNextIncParameter = std::make_unique<CParameter>();
-		if(DoExpression(&incStr, pForNextIncParameter.get())==false)
+		if(DoExpression(&incStr, pForNextIncParameter.get(), g_pStatementList->GetDoubleLiterals())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
 			return false;
@@ -853,7 +853,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			compareStr.AddText(")");
 		}
 		pForNextCheckParameter = std::make_unique<CParameter>();
-		if(DoExpression(&compareStr, pForNextCheckParameter.get())==false)
+		if(DoExpression(&compareStr, pForNextCheckParameter.get(), g_pStatementList->GetDoubleLiterals())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoLoop::DoExpression'");
 			return false;
@@ -1095,7 +1095,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			std::unique_ptr<CMathOp> pValueToCast(pConditionParameter->ReleaseMathItem());
 			CMathOp* pCastCaller = pValueToCast.get();
-			pCastCaller->DoCastOnMathOp ( pValueToCast, 1 );
+			pCastCaller->DoCastOnMathOp ( pValueToCast, 1, g_pStatementList->GetDoubleLiterals() );
 			pConditionParameter->SetMathItem(pValueToCast.release());
 		}
 	}
@@ -1273,7 +1273,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 						{
 							// Ensure param is literal constant!
 							DWORD dwType=0;
-							if(pOneCaseParam->GetMathItem()->IsLiteral(pOneCaseParam->GetMathItem()->GetResultStringToken(), &dwType)==false)
+							if(pOneCaseParam->GetMathItem()->IsLiteral(pOneCaseParam->GetMathItem()->GetResultStringToken(), &dwType, g_pStatementList->GetDoubleLiterals())==false)
 							{
 								// Not literal, leave to report error
 								bAtLeastOne=false;
@@ -1798,14 +1798,30 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			pDecArrValue.reset(pRawArrValue);
 			if(bSeperateOK==false)
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+43);
-				return false;
+				// No array brackets: this is a scalar declaration (ie DIM MYVAR AS TYPE).
+				// ProduceNextArrayToken returned NULL and left the pointer at the
+				// start of the name, so re-read it as a plain variable token -- the
+				// same handling as the GLOBAL/LOCAL (non-DIM) branch below.
+				pString.reset(ProduceNextToken(&pPointer, true, bTerminatorIsCRTK, true));
+				if(stricmp(pString.get(),"")!=NULL)
+				{
+					// Variable Name (ie MYVAR [=x])
+					pDecInit.reset(StatementHelper::SeperateInitFromType(pString.get()));
+					pDecName=std::move(pString);
+					dwDecArr=0;
+				}
+				else
+				{
+					// Leave declaration processing
+					break;
+				}
 			}
-
-			dwDecArr=1;
-			pDecName=std::move(pArrayName);
-			pDecInit=std::move(pInitValue);
+			else
+			{
+				dwDecArr=1;
+				pDecName=std::move(pArrayName);
+				pDecInit=std::move(pInitValue);
+			}
 		}
 		else
 		{
@@ -2122,7 +2138,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			CStr varInitName(dwDecArr==1 ? "&" : "");
 			varInitName.AddText(pDecName.get());
 
-			if(pMathOp->DoValue(&varInitName)==false)
+			if(pMathOp->DoValue(&varInitName, g_pStatementList->GetDoubleLiterals())==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoDeclaration::DoValue(pVarInitName)'");
 				return false;
@@ -2684,7 +2700,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 					pInputAsOutputAssignment.reset(new CStatement);
 					std::unique_ptr<CParameter> pInputAsOutputParam(new CParameter);
 					CMathOp* pCastCaller = pMathOpOwner.get();
-					if(pCastCaller->DoCastOnMathOp(pMathOpOwner, dwRequiredTypeValue)==false)
+					if(pCastCaller->DoCastOnMathOp(pMathOpOwner, dwRequiredTypeValue, g_pStatementList->GetDoubleLiterals())==false)
 					{
 						g_pErrorReport->AddErrorString("Failed to 'DoInstruction::DoCastOnMathOp'");
 						return false;
@@ -2904,7 +2920,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Create Parameter Object to hold Array Name
 	std::unique_ptr<CParameter> pFirstParameter(new CParameter);
-	if(DoExpression(&arrName, pFirstParameter.get())==false)
+	if(DoExpression(&arrName, pFirstParameter.get(), g_pStatementList->GetDoubleLiterals())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression'");
 		return false;
@@ -2949,7 +2965,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 				// Parse param string as ARRAY SIZE for this dimension
 				std::unique_ptr<CParameter> pSizeParameterOne(new CParameter);
-				if(DoExpression(&numStr, pSizeParameterOne.get())==false)
+				if(DoExpression(&numStr, pSizeParameterOne.get(), g_pStatementList->GetDoubleLiterals())==false)
 				{
 					g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression'");
 					return false;
@@ -2966,7 +2982,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 	{
 		CStr zeroStr("0");
 		std::unique_ptr<CParameter> pSizeParameterOne(new CParameter);
-		if(DoExpression(&zeroStr, pSizeParameterOne.get())==false)
+		if(DoExpression(&zeroStr, pSizeParameterOne.get(), g_pStatementList->GetDoubleLiterals())==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression2'");
 			return false;
@@ -3023,7 +3039,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Parse third param string as TYPE SIZE
 	std::unique_ptr<CParameter> pTypeSizeParameter(new CParameter);
-	if(DoExpression(&dataTypeSize, pTypeSizeParameter.get())==false)
+	if(DoExpression(&dataTypeSize, pTypeSizeParameter.get(), g_pStatementList->GetDoubleLiterals())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoAllocation::DoExpression'");
 		return false;
@@ -3039,7 +3055,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 				// Create New Math Op to Cast Value
 				std::unique_ptr<CMathOp> pValueToCast(pSizeParameter[d]->ReleaseMathItem());
 				CMathOp* pCastCaller = pValueToCast.get();
-				pCastCaller->DoCastOnMathOp(pValueToCast, 7);
+				pCastCaller->DoCastOnMathOp(pValueToCast, 7, g_pStatementList->GetDoubleLiterals());
 				pSizeParameter[d]->SetMathItem(pValueToCast.release());
 			}
 		}
@@ -3051,7 +3067,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 		// Create New Math Op to Cast Value
 		std::unique_ptr<CMathOp> pValueToCast(pTypeSizeParameter->ReleaseMathItem());
 		CMathOp* pCastCaller = pValueToCast.get();
-		pCastCaller->DoCastOnMathOp(pValueToCast, 7);
+		pCastCaller->DoCastOnMathOp(pValueToCast, 7, g_pStatementList->GetDoubleLiterals());
 		pTypeSizeParameter->SetMathItem(pValueToCast.release());
 	}
 
@@ -3063,8 +3079,9 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 		if(pSizeParameter[d])
 			pFirstParameter->Add(pSizeParameter[d].release());
 
-	// Make Sure First Param is DWORD (so actual alloc address goes into array ptr var)
-	pFirstParameter->GetMathItem()->GetResultData()->m_dwType=7;
+	// Make Sure First Param is a full-width pointer value (type 1002) so the
+	// actual alloc address goes into the array ptr var at 8 bytes on x64.
+	pFirstParameter->GetMathItem()->GetResultData()->m_dwType=1002;
 
 	// Complete Object Data
 	pInstruction->SetType(2);
@@ -3113,21 +3130,24 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 
 	// Create pArrayParameter Object
 	std::unique_ptr<CParameter> pArrayParameter(new CParameter);
-	if(DoExpression(&addressString, pArrayParameter.get())==false)
+	if(DoExpression(&addressString, pArrayParameter.get(), g_pStatementList->GetDoubleLiterals())==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoDeAllocation::pArrayParameter::DoExpression'");
 		return false;
 	}
 
-	// Ensure dealloc address uses POINTER MATHS (actual address, not relative address(as in array use))
-	pArrayParameter->GetMathItem()->SetResultType(7);
+	// Ensure dealloc address uses POINTER MATHS (actual address, not relative
+	// address (as in array use)) at full pointer width on x64 (type 1002).
+	pArrayParameter->GetMathItem()->SetResultType(1002);
 
 	// Complete Object Data
 	pInstruction->SetType(2);
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::Free)));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::Free)));
 	pInstruction->SetParamMax(1);
-	pInstruction->SetReturnParameter(new CStr(addressString.GetStr()));
+	// No explicit return parameter: the call's return (NULL) is stored back
+	// through the first (array-pointer) parameter at full width on x64,
+	// clearing the varspace slot exactly like the DIM return store.
 	pInstruction->SetParameter(pArrayParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 
@@ -3914,7 +3934,7 @@ bool CStatement::DoExpressionListString(CParameter** ppParameter, CStr* pExpress
 	DWORD length=pStringPointer-pStartStringPointer;
 	LPSTR pPointerEnd=pStringPointerEnd;
 	StrOneExpressionString.CopyFromPtr(pStartStringPointer, pPointerEnd, length);
-	if(DoExpression(&StrOneExpressionString, (*ppParameter))==false)
+	if(DoExpression(&StrOneExpressionString, (*ppParameter), g_pStatementList->GetDoubleLiterals())==false)
 	{
 		return false;
 	}
@@ -3922,12 +3942,12 @@ bool CStatement::DoExpressionListString(CParameter** ppParameter, CStr* pExpress
 	return true;
 }
 
-bool CStatement::DoExpression(CStr* pStr, CParameter* pParameter)
+bool CStatement::DoExpression(CStr* pStr, CParameter* pParameter, bool bDoubleLiterals)
 {
 	// Owned locally until parsed; ownership passes to the parameter on success
 	// (the dead null-check on operator new is dropped - it never returns null).
 	std::unique_ptr<CMathOp> pMathOp = std::make_unique<CMathOp>();
-	if(pMathOp->DoValue(pStr)==false)
+	if(pMathOp->DoValue(pStr, bDoubleLiterals)==false)
 		return false;
 
 	// Place in param obj (ownership passes to the parameter)

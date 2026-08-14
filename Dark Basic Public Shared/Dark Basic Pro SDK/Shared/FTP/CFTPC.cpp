@@ -71,7 +71,7 @@ DARKSDK LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -175,7 +175,7 @@ DARKSDK int GetFailure(void)
 DARKSDK DWORD GetError( DWORD pDestStr )
 {
 	FTP_GetError(m_pWorkString);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -183,7 +183,7 @@ DARKSDK DWORD GetError( DWORD pDestStr )
 DARKSDK DWORD GetDir( DWORD pDestStr )
 {
 	FTP_GetDir(m_pWorkString);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -191,7 +191,7 @@ DARKSDK DWORD GetDir( DWORD pDestStr )
 DARKSDK DWORD GetFileName( DWORD pDestStr )
 {
 	FTP_GetFileName(m_pWorkString);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD)pReturnString;
 }
@@ -243,7 +243,7 @@ DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName
 	// 20120418 IanM - Ensure that the verb is set
 	if (!lpVerb || !*lpVerb)
 	{
-		if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+		if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 		return NULL;
 	}
 
@@ -263,13 +263,13 @@ DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName
 	LPSTR pReturnData = HTTP_RequestData ( lpVerb, lpObjectName, pHeader, dwHeaderSize, lpPostData, dwPostDataSize, dwAccessFlag );
 
 	// delete old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
 	// make new string
 	LPSTR pReturnString = NULL;
 	DWORD dwSize = strlen(g_pFeedbackAreaString);
 	if ( pReturnData ) dwSize = strlen(pReturnData);
-	g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+	g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 	if ( pReturnData ) 
 		strcpy ( pReturnString, pReturnData );
 	else

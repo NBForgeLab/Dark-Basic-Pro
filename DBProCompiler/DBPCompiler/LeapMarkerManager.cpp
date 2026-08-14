@@ -72,7 +72,7 @@ bool CLeapMarkerManager::WriteASMLineLeapToTop(DWORD dwOp, CASMWriter* pWriter)
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(pWriter->m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(const_cast<LPSTR>(pWriter->m_ASMDebugStrings[dwOp].c_str()));
+	strDBMLine.AddText(const_cast<LPSTR>(pWriter->GetASMOpcodeDef(dwOp).name ? pWriter->GetASMOpcodeDef(dwOp).name : ""));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText("LEAP TO TOP");
 	if (g_pDBMWriter && g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
@@ -83,7 +83,7 @@ bool CLeapMarkerManager::WriteASMLineLeapToTop(DWORD dwOp, CASMWriter* pWriter)
 	// ASM Code
 	CStr offsetStr;
 	offsetStr.SetNumericText(iOffset);
-	pWriter->CreateASMMiddle(pWriter->m_iASMPreOp[dwOp], pWriter->m_iASMOp1[dwOp], pWriter->m_iASMOp2[dwOp], offsetStr.GetStr());
+	pWriter->CreateASMMiddle(pWriter->GetASMOpcodeDef(dwOp).preOp, pWriter->GetASMOpcodeDef(dwOp).op1, pWriter->GetASMOpcodeDef(dwOp).op2, offsetStr.GetStr());
 
 	// Complete
 	return true;
@@ -106,13 +106,13 @@ bool CLeapMarkerManager::WriteASMLineLeap(DWORD dwOp, DWORD di, CASMWriter* pWri
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(pWriter->m_dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(const_cast<LPSTR>(pWriter->m_ASMDebugStrings[dwOp].c_str()));
+	strDBMLine.AddText(const_cast<LPSTR>(pWriter->GetASMOpcodeDef(dwOp).name ? pWriter->GetASMOpcodeDef(dwOp).name : ""));
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText("LEAP");
 	if (g_pDBMWriter && g_pDBMWriter->OutputDBM(&strDBMLine) == false) return false;
 
 	// ASM Code
-	pWriter->CreateASMMiddle(pWriter->m_iASMPreOp[dwOp], pWriter->m_iASMOp1[dwOp], pWriter->m_iASMOp2[dwOp], "0");
+	pWriter->CreateASMMiddle(pWriter->GetASMOpcodeDef(dwOp).preOp, pWriter->GetASMOpcodeDef(dwOp).op1, pWriter->GetASMOpcodeDef(dwOp).op2, "0");
 
 	// Complete
 	return true;

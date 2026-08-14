@@ -9638,7 +9638,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 		return NULL;
 
 	// Free old string
-	if(lpStr) g_pGlob->CreateDeleteString((DWORD*)&lpStr, 0);
+	if(lpStr) g_pGlob->CreateDeleteString((uintptr_t*)&lpStr, 0);
 
 	// texture name to return
 	LPSTR pTextureLimbName = NULL;
@@ -9689,7 +9689,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 	// Allocate new size
 	LPSTR pString = NULL;
 	DWORD dwSize = strlen ( pTextureLimbName );
-	g_pGlob->CreateDeleteString((DWORD*)&pString, dwSize+1);
+	g_pGlob->CreateDeleteString((uintptr_t*)&pString, dwSize+1);
 	ZeroMemory ( pString, dwSize+1 );
 	memcpy ( pString, pTextureLimbName, dwSize );
 
@@ -9713,7 +9713,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbName ( SDK_RETSTR int iID, int iLimbID )
 		return NULL;
 
 	// Free old string
-	if(lpStr) g_pGlob->CreateDeleteString((DWORD*)&lpStr, 0);
+	if(lpStr) g_pGlob->CreateDeleteString((uintptr_t*)&lpStr, 0);
 
 	// get name of frame
 	sObject* pObject = g_ObjectList [ iID ];
@@ -9722,7 +9722,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbName ( SDK_RETSTR int iID, int iLimbID )
 	// Allocate new size
 	LPSTR pString = NULL;
 	DWORD dwSize = strlen ( pLimbName );
-	g_pGlob->CreateDeleteString((DWORD*)&pString, dwSize+1);
+	g_pGlob->CreateDeleteString((uintptr_t*)&pString, dwSize+1);
 	ZeroMemory ( pString, dwSize+1 );
 	memcpy ( pString, pLimbName, dwSize );
 

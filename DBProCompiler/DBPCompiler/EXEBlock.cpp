@@ -43,7 +43,7 @@ GDI_RetVoidParamVoidPFN				g_CORE_DeleteVarSpace;
 GDI_RetDWORDParamDWORDPFN			g_CORE_CreateDataSpace;
 GDI_RetVoidParamVoidPFN				g_CORE_DeleteDataSpace;
 GDI_RetVoidParamDWORDPTRPFN			g_CORE_DeleteVarItem;
-GDI_RetVoidParamDWORDPTRPFN			g_CORE_UnDim;
+GDI_RetVoidParamUINTPTRPFN			g_CORE_UnDim;
 GDI_RetVoidParamVoidPFN				g_CORE_SyncRefresh;
 GDI_RetIntParamVoidPFN				g_CORE_GetSecurityCode;
 GDI_RetVoidParamVoidPFN				g_CORE_WipeSecurityCode;
@@ -1448,11 +1448,12 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	}
 
 	// [EXE] Replace all XXXX Pointers with Dynamic Creations (RAII owner + raw alias)
-	std::unique_ptr<DWORD[]> pProgramRefPtrOwner;
-	DWORD* pProgramRefPtr = NULL;
+	// Pointer-width storage: on x64 the resolved values are 64-bit addresses.
+	std::unique_ptr<uintptr_t[]> pProgramRefPtrOwner;
+	uintptr_t* pProgramRefPtr = NULL;
 	if(bResult==true)
 	{
-		pProgramRefPtrOwner = std::make_unique<DWORD[]>(m_dwNumberOfReferences);
+		pProgramRefPtrOwner = std::make_unique<uintptr_t[]>(m_dwNumberOfReferences);
 		pProgramRefPtr = pProgramRefPtrOwner.get();
 		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
 		{
@@ -1502,7 +1503,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						uintptr_t dwAdd = (uintptr_t)Hook_GetProcAddress(hDLLMod[dll], pStr);
 						if(dwAdd!=0)
 						{
-							*(pProgramRefPtr+ref)=(DWORD)dwAdd;
+							*(pProgramRefPtr+ref)=dwAdd;
 						}
 						else
 						{
@@ -1527,7 +1528,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						break;
 					}
 					char* pStr = (char*)m_pStringsArray[index];
-					DWORD dwAdd = (DWORD)pStr;
+					uintptr_t dwAdd = reinterpret_cast<uintptr_t>(pStr);
 					if(dwAdd!=NULL)
 						*(pProgramRefPtr+ref)=dwAdd;
 					else
@@ -1543,7 +1544,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(index==4)
 					{
 						// Pointer to Runtime Error DWORD (filled by DLLs)
-						*(pProgramRefPtr+ref) = (DWORD)(&m_dwRuntimeErrorDWORD);
+						*(pProgramRefPtr+ref) = reinterpret_cast<uintptr_t>(&m_dwRuntimeErrorDWORD);
 					}
 					else
 					{
@@ -1551,7 +1552,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						if(index==8)
 						{
 							// Pointer to Runtime Escape Value DWORD (filled by DLLs)
-							*(pProgramRefPtr+ref) = (DWORD)(&g_dwEscapeValueMem);
+							*(pProgramRefPtr+ref) = reinterpret_cast<uintptr_t>(&g_dwEscapeValueMem);
 						}
 						else
 						{
@@ -1559,19 +1560,19 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							if(index==12)
 							{
 								// Pointer to Runtime Escape Value DWORD (filled by DLLs)
-								*(pProgramRefPtr+ref) = (DWORD)(&g_dwBreakOutPosition);
+								*(pProgramRefPtr+ref) = reinterpret_cast<uintptr_t>(&g_dwBreakOutPosition);
 							}
 							else
 							{
 								if(index==16)
 								{
 									// NEW Pointer to Runtime Error Line DWORD - now protection value
-									*(pProgramRefPtr+ref) = (DWORD)(&m_dwRuntimeErrorLineDWORD);
+									*(pProgramRefPtr+ref) = reinterpret_cast<uintptr_t>(&m_dwRuntimeErrorLineDWORD);
 								}
 								else
 								{
 									// Variable + Plus Offset stored representing global var
-									*(pProgramRefPtr+ref) = (DWORD)(m_pVariableSpace+index);
+									*(pProgramRefPtr+ref) = reinterpret_cast<uintptr_t>(m_pVariableSpace+index);
 								}
 							}
 						}
@@ -1590,7 +1591,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				if(iRefType==6)
 				{
 					// Data Position is index(byte offset)
-					*(pProgramRefPtr+ref)=(DWORD)(m_pDataSpace+(index*10));
+					*(pProgramRefPtr+ref)=reinterpret_cast<uintptr_t>(m_pDataSpace+(index*10));
 				}
 			}
 		}
@@ -1602,23 +1603,14 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	// [EXE] Replace Tokens with Data in Byte Positions
 	if(bResult==true)
 	{
-		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
-		{
-			DWORD dwDWORD=*(pProgramRefPtr+ref);
-			DWORD dwBytePosition=m_pRefArray[ref];
-			int iRefType=(int)m_pRefTypeArray[ref];
-			if(iRefType==5)
-			{
-				// Adjust Label by making it a relative offset from 'here'
-				DWORD dwInstructionPos=dwBytePosition+4;
-				int iSigned = dwDWORD-dwInstructionPos;
-				*(int*)((char*)m_pMachineCodeBlock+dwBytePosition)=iSigned;
-			}
-			else
-			{
-				*(DWORD*)((char*)m_pMachineCodeBlock+dwBytePosition)=dwDWORD;
-			}
-		}
+		// x64-aware patching: address kinds write sizeof(void*) bytes,
+		// values write 4 bytes, code labels write rel32 (base pos+4).
+		PatchReferenceValues(
+			pProgramRefPtr,
+			m_dwNumberOfReferences,
+			m_pRefArray,
+			m_pRefTypeArray,
+			reinterpret_cast<char*>(m_pMachineCodeBlock));
 	}
 
 	// Disable EscapeKey (WHEN running debug mode)
@@ -1718,11 +1710,11 @@ void CEXEBlock::FreeUptoDisplay(void)
 					m_pDynamicVarsArray[dv]);
 				continue;
 			}
-			DWORD* pMemoryAllocation = *allocation;
+			uintptr_t pMemoryAllocation = (uintptr_t)*allocation;
 			if(m_pDynamicVarsArrayType[dv] == static_cast<DWORD>(DataType::Array))
 				g_CORE_UnDim(pMemoryAllocation);
 			else
-				g_CORE_DeleteVarItem(pMemoryAllocation);
+				g_CORE_DeleteVarItem((DWORD*)pMemoryAllocation);
 		}
 	}
 
@@ -1777,6 +1769,55 @@ void CEXEBlock::Free(void)
 			else
 				FreeLibrary(hDLLMod[dll]);
 			hDLLMod[dll]=NULL;
+		}
+	}
+}
+
+void CEXEBlock::PatchReferenceValues(
+	const uintptr_t* values,
+	std::size_t count,
+	const DWORD* positions,
+	const DWORD* types,
+	char* machineCode)
+{
+	if (values == nullptr || positions == nullptr || types == nullptr ||
+		machineCode == nullptr || count == 0)
+	{
+		return;
+	}
+
+	for (std::size_t ref = 0; ref < count; ++ref)
+	{
+		const auto kind = static_cast<ReferenceKind>(types[ref]);
+		const DWORD position = positions[ref];
+		const uintptr_t value = values[ref];
+
+		switch (kind)
+		{
+			case ReferenceKind::CodeLabel:
+			{
+				// Relative displacement: target - (pos + 4). The disp32 field
+				// ends at pos+4 for every rel32 form in the x64 opcode table.
+				const int32_t rel = static_cast<int32_t>(
+					static_cast<uint32_t>(value) - (position + 4u));
+				std::memcpy(machineCode + position, &rel, sizeof(rel));
+				break;
+			}
+			case ReferenceKind::Immediate:
+			{
+				// 4-byte value patch (immediates are 32-bit DWORDs).
+				const uint32_t v = static_cast<uint32_t>(value);
+				std::memcpy(machineCode + position, &v, sizeof(v));
+				break;
+			}
+			default:
+			{
+				// Address kinds (Command/StringLiteral/Variable/DataLabel):
+				// the emitter reserves a sizeof(void*) slot on x64, so the
+				// full pointer is written without truncation.
+				std::memcpy(machineCode + position, &value, sizeof(value));
+				break;
+			}
 		}
 	}
 }

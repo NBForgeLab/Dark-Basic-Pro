@@ -19,8 +19,14 @@ class CStatementList
 	
 	public:
 		bool			UnfoldIncludes(LPSTR* ppData, DWORD* pSize); 
-		bool			MakeStatements(LPSTR pData, DWORD Size);
-		bool			AddMiniStatements(LPSTR pData, DWORD Size);
+		bool			MakeStatements(LPSTR pData, DWORD Size, bool bDoubleLiterals = false);
+		bool			AddMiniStatements(LPSTR pData, DWORD Size, bool bDoubleLiterals = false);
+
+		// Literal preference (double vs float) is parse-context state supplied
+		// by the caller of MakeStatements/AddMiniStatements — it must not be
+		// read from a global compiler object deep inside the parse pipeline.
+		void			SetDoubleLiterals(bool bState) noexcept { m_bDoubleLiterals = bState; }
+		[[nodiscard]] bool			GetDoubleLiterals(void) const noexcept { return m_bDoubleLiterals; }
 
 		[[nodiscard]] CStatement*		GetPreScanStatements(void) noexcept { return m_pPreScanStatements; }
 		[[nodiscard]] const CStatement* GetPreScanStatements(void) const noexcept { return m_pPreScanStatements; }
@@ -180,6 +186,7 @@ class CStatementList
 		DWORD			m_dwInstructionParamMax;
 
 		// Parsing Control
+		bool			m_bDoubleLiterals = false;
 		bool			m_bParseVariableAdds;
 		bool			m_bParseImplementation;
 		bool			m_bDisableParsingToCR;

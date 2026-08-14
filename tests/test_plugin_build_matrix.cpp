@@ -4,7 +4,8 @@
 #include "globstruct.h"
 
 TEST(PluginBuildMatrixTest, VerifiesInputPluginAbiTargetTraits) {
-    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    // Wave 5: x64-only build — varspace address slots are 8 bytes.
+    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 8U);
 }
 
 TEST(PluginBuildMatrixTest, ValidatesInputPluginExportsStructSize) {

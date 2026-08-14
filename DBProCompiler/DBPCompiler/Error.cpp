@@ -28,9 +28,13 @@ CError::CError()
 	  m_lpVoidMonitor(NULL), m_dwMaxLines(0)
 {
 	// Establish Connection To A Progress Monitor
+	// (HANDLE)0xFFFFFFFF was 32-bit INVALID_HANDLE_VALUE; on a 64-bit process it
+	// is a bogus 8-byte handle, so the mapping fails and the monitor view is NULL.
 	m_bEstablishedConnectionToMonitor=true;
-	m_hMonitorFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
+	m_hMonitorFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
 	m_lpVoidMonitor = MapViewOfFile(m_hMonitorFileMap,FILE_MAP_WRITE,0,0,256);
+	if(m_lpVoidMonitor==NULL)
+		m_bEstablishedConnectionToMonitor=false;
 }
 
 CError::~CError()
@@ -572,18 +576,21 @@ void CError::ProgressReport(LPSTR lpString, DWORD dwValue)
 	{
 		// Find Editor to send to
 		// Create Virtual File for Error Transfer
-		HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
-		LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
+		HANDLE hFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
+		LPVOID lpVoid = hFileMap ? MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256) : NULL;
+		if(lpVoid)
+		{
+			// Copy to Virtual File
+			char pTemp[256];
+			sprintf_s(pTemp, 256, "%s %d", lpString, dwValue);
+			*(DWORD*)lpVoid = dwValue;
+			strcpy((LPSTR)lpVoid+4, pTemp);
 
-		// Copy to Virtual File
-		char pTemp[256];
-		sprintf_s(pTemp, 256, "%s %d", lpString, dwValue);
-		*(DWORD*)lpVoid = dwValue;
-		strcpy((LPSTR)lpVoid+4, pTemp);
-
-		// Release virtual file
-		UnmapViewOfFile(lpVoid);
-		CloseHandle(hFileMap);
+			// Release virtual file
+			UnmapViewOfFile(lpVoid);
+		}
+		if(hFileMap)
+			CloseHandle(hFileMap);
 	}
 }
 

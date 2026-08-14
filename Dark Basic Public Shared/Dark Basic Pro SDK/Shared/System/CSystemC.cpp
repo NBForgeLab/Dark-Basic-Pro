@@ -457,14 +457,14 @@ DARKSDK void ExitPrompt(DWORD pString, DWORD pString2)
 	if(pString)
 	{
 		DWORD dwSize=strlen((LPSTR)pString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		g_pGlob->pExitPromptString = pReturnString;
 		strcpy(pReturnString, (LPSTR)pString);
 	}
 	if(pString2)
 	{
 		DWORD dwSize=strlen((LPSTR)pString2);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		g_pGlob->pExitPromptString2 = pReturnString;
 		strcpy(pReturnString, (LPSTR)pString2);
 	}
@@ -590,14 +590,14 @@ DARKSDK DWORD ChecklistString( DWORD pDestStr, int iIndex )
 	}
 
 	// Free old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((uintptr_t*)&pDestStr, 0);
 
 	// Return string
 	LPSTR pReturnString=NULL;
 	if(g_pGlob->checklist[iIndex-1].string)
 	{
 		DWORD dwSize=strlen(g_pGlob->checklist[iIndex-1].string);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((uintptr_t*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, g_pGlob->checklist[iIndex-1].string);
 	}
 	return (DWORD)pReturnString;

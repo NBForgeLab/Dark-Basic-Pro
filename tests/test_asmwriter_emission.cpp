@@ -110,6 +110,8 @@ TEST_F(ASMWriterEmissionTest, EmitsMultidimensionalArrayOffsetCalculation) {
     EXPECT_GT(m_pWriter->GetCurrentMCPosition(), before);
 }
 
+// Compiler-generated prologue saves the register file before the program body.
+// On x64 PUSHAD (0x60) does not exist; the expansion begins with PUSH RAX (0x50).
 TEST_F(ASMWriterEmissionTest, CompilerGeneratedLineZeroEmitsPrologueTasks) {
     ASSERT_TRUE(m_pWriter->WriteASMTaskCoreP1(
         0u, static_cast<DWORD>(ASMTask::PushRegisters), nullptr, 0u));
@@ -117,7 +119,7 @@ TEST_F(ASMWriterEmissionTest, CompilerGeneratedLineZeroEmitsPrologueTasks) {
     EXPECT_EQ(
         static_cast<unsigned char>(
             m_pWriter->GetMachineCodeBuffer().GetProgramStart()[0]),
-        0x60u);
+        0x50u);
 }
 
 // The debug statement hook pushes four numeric strings to the stack

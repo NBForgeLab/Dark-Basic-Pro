@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ASMWriterx64.h"
+#include "ASMWriter.h"
 #include "PEBuilder.h"
 #include "CompilerContext.h"
 #include "globstruct.h"
@@ -20,7 +20,7 @@ TEST(X64IntensiveVerificationTest, VerifiesAllRegisterMOVImm64EncodingBitPattern
     uint64_t testPattern = 0xA1B2C3D4E5F67890ULL;
 
     for (size_t i = 0; i < allRegs.size(); ++i) {
-        CASMWriterx64 writer;
+        CASMWriter writer;
         writer.EmitMovRegImm64(allRegs[i], testPattern);
         const auto& code = writer.GetCodeBuffer();
 
@@ -50,11 +50,11 @@ TEST(X64IntensiveVerificationTest, VerifiesAllRegisterPushPopEncoding) {
     };
 
     for (size_t i = 0; i < allRegs.size(); ++i) {
-        CASMWriterx64 writerPush;
+        CASMWriter writerPush;
         writerPush.EmitPushReg(allRegs[i]);
         const auto& pushCode = writerPush.GetCodeBuffer();
 
-        CASMWriterx64 writerPop;
+        CASMWriter writerPop;
         writerPop.EmitPopReg(allRegs[i]);
         const auto& popCode = writerPop.GetCodeBuffer();
 
@@ -80,7 +80,7 @@ TEST(X64IntensiveVerificationTest, VerifiesStackSubAddImmediateBoundaries) {
     const std::vector<uint32_t> testOffsets = { 32U, 64U, 256U, 4096U };
 
     for (uint32_t offset : testOffsets) {
-        CASMWriterx64 writer;
+        CASMWriter writer;
         writer.EmitSubRegImm32(X64Register::RSP, offset);
         writer.EmitAddRegImm32(X64Register::RSP, offset);
         const auto& code = writer.GetCodeBuffer();
@@ -106,22 +106,22 @@ TEST(X64IntensiveVerificationTest, VerifiesStackSubAddImmediateBoundaries) {
 }
 
 TEST(X64IntensiveVerificationTest, VerifiesMSx64AbiCallingConventionRules) {
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(0), X64Register::RCX);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(1), X64Register::RDX);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(2), X64Register::R8);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(3), X64Register::R9);
-    EXPECT_EQ(CASMWriterx64::GetArgumentRegister(4), X64Register::None);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(0), X64Register::RCX);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(1), X64Register::RDX);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(2), X64Register::R8);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(3), X64Register::R9);
+    EXPECT_EQ(CASMWriter::GetArgumentRegister(4), X64Register::None);
 
-    EXPECT_EQ(CASMWriterx64::GetShadowSpaceSize(), 32U);
+    EXPECT_EQ(CASMWriter::GetShadowSpaceSize(), 32U);
 
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(0U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(8U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(16U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(24U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(32U), 32U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(36U), 48U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(48U), 48U);
-    EXPECT_EQ(CASMWriterx64::AlignStackFrame(60U), 64U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(0U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(8U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(16U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(24U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(32U), 32U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(36U), 48U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(48U), 48U);
+    EXPECT_EQ(CASMWriter::AlignStackFrame(60U), 64U);
 }
 
 TEST(X64IntensiveVerificationTest, VerifiesPE32Plus64BitHeaderIntegrityAndAlignments) {
@@ -141,7 +141,7 @@ TEST(X64IntensiveVerificationTest, VerifiesPE32Plus64BitHeaderIntegrityAndAlignm
 }
 
 TEST(X64IntensiveVerificationTest, VerifiesDirectJITExecutionWithStackFrameAndRegisters) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     
     // Construct a compound x64 JIT routine:
     // SUB RSP, 32
