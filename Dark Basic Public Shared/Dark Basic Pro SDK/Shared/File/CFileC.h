@@ -76,7 +76,7 @@ DARKSDK void	StopExecutable					( DWORD hIndiExecuteFileProcess );
 DARKSDK void	WriteFilemapValue				( DWORD pFilemapname, DWORD dwValue );
 DARKSDK void	WriteFilemapString				( DWORD pFilemapname, DWORD pString );
 DARKSDK DWORD	ReadFilemapValue				( DWORD pFilemapname );
-DARKSDK DWORD	ReadFilemapString				( DWORD pDestStr, DWORD pFilemapname );
+DARKSDK DWORD_PTR ReadFilemapString( DWORD_PTR pDestStr, DWORD pFilemapname );
 
 DARKSDK void	OpenToRead						( int f, DWORD pFilename );
 DARKSDK void	OpenToWrite						( int f, DWORD pFilename );
@@ -103,20 +103,20 @@ DARKSDK void	MakeMemblockFromFile			( int mbi, int f );
 DARKSDK void	WriteMemblock					( int f, int mbi );
 DARKSDK void	MakeFileFromMemblock			( int f, int mbi );
 
-DARKSDK DWORD	GetDir							( DWORD pDestStr );
-DARKSDK DWORD	GetFileName						( DWORD pDestStr );
+DARKSDK DWORD_PTR GetDir( DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR GetFileName( DWORD_PTR pDestStr );
 DARKSDK int		GetFileType						( void );
-DARKSDK DWORD	GetFileDate						( DWORD pDestStr );
-DARKSDK DWORD	GetFileCreation					( DWORD pDestStr );
+DARKSDK DWORD_PTR GetFileDate( DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR GetFileCreation( DWORD_PTR pDestStr );
 DARKSDK int		FileExist						( DWORD pFilename );
 DARKSDK int		FileSize						( DWORD pFilename );
 DARKSDK int		PathExist						( DWORD pFilename );
 DARKSDK int		FileOpen						( int f );
 DARKSDK int		FileEnd							( int f );
 
-DARKSDK DWORD	Appname							( DWORD pDestStr );
-DARKSDK DWORD	Windir							( DWORD pDestStr );
-DARKSDK DWORD	Mydocdir						( DWORD pDestStr );
+DARKSDK DWORD_PTR Appname( DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR Windir( DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR Mydocdir( DWORD_PTR pDestStr );
 DARKSDK int		GetExecutableRunning			( DWORD hIndiExecuteFileProcess );
 
 #ifdef DARKSDK_COMPILE

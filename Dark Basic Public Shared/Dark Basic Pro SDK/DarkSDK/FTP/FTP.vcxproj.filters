@@ -24,13 +24,9 @@
     <ClCompile Include="..\..\Shared\FTP\HTTPComm.cpp">
       <Filter>HTTP</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
     <ClCompile Include="..\..\Shared\Core\globstruct.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\FTP\CFTPC.h">
-      <Filter>FTP</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\FTP\ftp.h">
       <Filter>FTP</Filter>
     </ClInclude>
@@ -41,6 +37,9 @@
       <Filter>HTTP</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\..\Include\CFTPC.h">
+      <Filter>FTP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Ftp.rc" />

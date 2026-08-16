@@ -77,7 +77,7 @@ protected:
 		CAutolock autoDeadLock(m_DeadLock);
 		obj = m_DeadList.First();
 		if (!obj)
-			return (SObject *)NULL;
+			return nullptr;
 
 		obj->Link.Unlink();
 		return obj;
@@ -204,7 +204,7 @@ public:
 	TObject() {}
 	virtual ~TObject() {}
 
-	inline void *operator new(uint n) {
+	inline void *operator new([[maybe_unused]] uint n) {
 		assert_msg(n == sizeof(T), "Attempted to allocate an object other than TObject<T>!");
 
 		return reinterpret_cast<void *>(g_Pool.Alloc());

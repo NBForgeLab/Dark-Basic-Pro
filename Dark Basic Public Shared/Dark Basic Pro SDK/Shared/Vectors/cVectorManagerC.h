@@ -6,7 +6,6 @@
 #pragma comment ( lib, "dxguid.lib" )
 #pragma comment ( lib, "d3d9.lib"   )
 #pragma comment ( lib, "d3dx9.lib"  )
-#pragma comment ( lib, "dxerr9.lib" )
 
 #include <d3d9.h>
 #include <d3dx9.h>
@@ -36,6 +35,7 @@ public:
     };
 
     BaseVector() {}
+    virtual ~BaseVector() = default;
     virtual eVectorType GetType() const = 0;
 };
 

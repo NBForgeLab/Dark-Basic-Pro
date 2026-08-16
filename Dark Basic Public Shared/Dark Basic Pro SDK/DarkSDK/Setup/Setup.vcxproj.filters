@@ -21,7 +21,6 @@
     <ClCompile Include="..\..\Shared\Setup\CGfxC.cpp">
       <Filter>Setup</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
     <ClCompile Include="..\..\Shared\Core\globstruct.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -31,11 +30,11 @@
     <ClInclude Include="..\..\Shared\Error\CRuntimeErrors.h">
       <Filter>Error</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\Setup\CGfxC.h">
-      <Filter>Setup</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Core\globstruct.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\Include\CGfxC.h">
+      <Filter>Setup</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="icon.bmp" />

@@ -32,11 +32,6 @@ extern GlobStruct* g_pGlob;
 #include "vorbis/vorbisfile.h"
 #include "vorbis/vorbisenc.h"
 
-#pragma comment ( lib, "vorbis/lib/ogg_static.lib"        )
-#pragma comment ( lib, "vorbis/lib/vorbis_static.lib"     )
-#pragma comment ( lib, "vorbis/lib/vorbisfile_static.lib" )
-#pragma comment ( lib, "vorbis/lib/vorbisenc_static.lib"  )
-
 LPDIRECTSOUNDBUFFER* CSoundManager::LoadOggVorbis ( char* dwFileName, DWORD* pdwSizeOfSound )
 {
 	LPDIRECTSOUNDBUFFER* pDSBuffer = NULL;

@@ -15,13 +15,12 @@
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Basic2D\CBasic2DC.h">
+    <ClInclude Include="..\..\Shared\Core\globstruct.h" />
+    <ClInclude Include="..\..\..\..\Include\CBasic2DC.h">
       <Filter>Basic2D</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\Core\globstruct.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Basic2D.rc" />

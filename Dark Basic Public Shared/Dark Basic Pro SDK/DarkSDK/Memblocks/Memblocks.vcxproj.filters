@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DLLMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Shared\Memblocks\CMemblocks.cpp">
       <Filter>Source Files\Memblocks</Filter>
     </ClCompile>
@@ -37,14 +34,14 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Memblocks\CMemblocks.h">
-      <Filter>Source Files\Memblocks</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Source Files\Error</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CRuntimeErrors.h">
       <Filter>Source Files\Error</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Include\CMemblocks.h">
+      <Filter>Source Files\Memblocks</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

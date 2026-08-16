@@ -740,6 +740,11 @@ DARKSDK void SetImageAutoMipMap ( int iGenerateMipMaps )
 		g_dwMipMapGenMode = D3DX_FROM_FILE;
 }
 
+bool CheckForWorkshopFile ( char* szFilename )
+{
+	return false;
+}
+
 DARKSDK bool LoadFullTex ( char* szFilename, LPDIRECT3DTEXTURE9* pImage, D3DXIMAGE_INFO* info, int iFullTexturePlateMode, int iDivideTextureSize )
 {
 	// Uses actual or virtual file..

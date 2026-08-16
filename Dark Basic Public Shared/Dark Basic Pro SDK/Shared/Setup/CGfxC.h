@@ -207,7 +207,7 @@ DARKSDK void 				GetWindowSize    					( int* piWidth, int* piHeight );
 DARKSDK int   				CheckDisplayMode					( int iWidth, int iHeight, int iDepth );
 DARKSDK int 				CheckDisplayModeANTIALIAS			( int iWidth, int iHeight, int iDepth, int iVSyncOn, int iMultisamplingFactor, int iMultimonitorMode );
 
-DARKSDK DWORD 				CurrentGraphicsCard					( DWORD pDestStr );
+DARKSDK DWORD_PTR CurrentGraphicsCard( DWORD_PTR pDestStr );
 DARKSDK int   				EmulationMode 						( void );
 DARKSDK void  				PerformChecklistForDisplayModes		( void );
 DARKSDK void  				PerformChecklistForGraphicsCards	( void );
@@ -272,7 +272,7 @@ DARKSDK void				TextureScreen						( int iStageIndex, int iImageNumber );
 DARKSDK void				SetScreenEffect						( int iEffectNumber );
 
 // lee - 030414 - Reloaded
-DARKSDK DWORD				GetDirectXVersion					( DWORD pDestStr );
+DARKSDK DWORD_PTR GetDirectXVersion( DWORD_PTR pDestStr );
 DARKSDK int					GetDirectXRefreshRate					( void );
 
 #ifdef DARKSDK_COMPILE

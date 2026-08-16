@@ -735,7 +735,7 @@ DARKSDK BOOL DB_CloseFile(int FileIndex)
 		// Re-encrypt
 		if(pVirtFileEncrypted[FileIndex])
 		{
-			g_pGlob->Encrypt( (DWORD)pVirtFileEncrypted[FileIndex] );
+			g_pGlob->Encrypt( (DWORD_PTR)pVirtFileEncrypted[FileIndex] );
 			delete pVirtFileEncrypted[FileIndex];
 			pVirtFileEncrypted[FileIndex]=NULL;
 		}
@@ -752,7 +752,7 @@ DARKSDK LPSTR GetReturnStringFromWorkString(char* WorkString = m_pWorkString)
 	if(WorkString)
 	{
 		DWORD dwSize=strlen(WorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, WorkString);
 	}
 	return pReturnString;
@@ -1302,7 +1302,7 @@ DARKSDK DWORD ReadFilemapValue ( DWORD pFilemapname )
 	return dwValue;
 }
 
-DARKSDK DWORD ReadFilemapString ( DWORD pDestStr, DWORD pFilemapname )
+DARKSDK DWORD_PTR ReadFilemapString( DWORD_PTR pDestStr, DWORD pFilemapname )
 {
 	// Open or create filemap for reading
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_READ, TRUE, (LPSTR)pFilemapname);
@@ -1317,11 +1317,11 @@ DARKSDK DWORD ReadFilemapString ( DWORD pDestStr, DWORD pFilemapname )
 //	CloseHandle(hFileMap);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 
 	// return data
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 //
@@ -1499,7 +1499,7 @@ DARKSDK DWORD ReadString( int f, DWORD pDestStr )
         optional buffer to be provided (defaults to m_pWorkString).
     */
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
     LPSTR pReturnString=0;
 
@@ -1553,7 +1553,7 @@ DARKSDK DWORD ReadString( int f, DWORD pDestStr )
 
 fileerror:
 
-    return (DWORD)pReturnString;
+    return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK void ReadFileBlockCore(char* FilenameString, int f )
@@ -2222,25 +2222,25 @@ DARKSDK void WriteMemblock( int f, int mbi )
 // Command Expression Functions
 //
 
-DARKSDK DWORD GetDir( DWORD pDestStr )
+DARKSDK DWORD_PTR GetDir( DWORD_PTR pDestStr )
 {
 	// Create and return string
 	getcwd(m_pWorkString, 1024);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD GetFileName( DWORD pDestStr )
+DARKSDK DWORD_PTR GetFileName( DWORD_PTR pDestStr )
 {
 	if(hInternalFile)
 		strcpy(m_pWorkString, filedata.name);
 	else
 		strcpy(m_pWorkString, "");
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK int GetFileType( void )
@@ -2251,28 +2251,28 @@ DARKSDK int GetFileType( void )
 		return FGetActualTypeValue(filedata.attrib);
 }
 
-DARKSDK DWORD GetFileDate( DWORD pDestStr )
+DARKSDK DWORD_PTR GetFileDate( DWORD_PTR pDestStr )
 {
 	if(hInternalFile)
 		wsprintf(m_pWorkString, "%.24s", ctime( &( filedata.time_write)));
 	else
 		strcpy(m_pWorkString, "");
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD GetFileCreation( DWORD pDestStr )
+DARKSDK DWORD_PTR GetFileCreation( DWORD_PTR pDestStr )
 {
 	if(hInternalFile)
 		wsprintf(m_pWorkString, "%.24s", ctime( &( filedata.time_create)));
 	else
 		strcpy(m_pWorkString, "");
 
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK int FileExist( DWORD pFilename )
@@ -2326,31 +2326,31 @@ DARKSDK int FileEnd( int f )
 	return 0;
 }
 
-DARKSDK DWORD Appname( DWORD pDestStr )
+DARKSDK DWORD_PTR Appname( DWORD_PTR pDestStr )
 {
 	// Create and return string
 	GetModuleFileName(g_pGlob->hInstance, m_pWorkString, 1024);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD Windir( DWORD pDestStr )
+DARKSDK DWORD_PTR Windir( DWORD_PTR pDestStr )
 {
 	// Create and return string
 	GetWindowsDirectory(m_pWorkString, 1024);	
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD Mydocdir( DWORD pDestStr )
+DARKSDK DWORD_PTR Mydocdir( DWORD_PTR pDestStr )
 {
 	// lee - 040407 - return the My Documents folder in full
 	SHGetFolderPath( NULL, CSIDL_PERSONAL, NULL, 0, m_pWorkString );
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -2384,7 +2384,7 @@ void PassCoreDataFile( LPVOID pGlobPtr )
 
 void dbSetDir ( char* pString )
 {
-	SetDir ( ( DWORD ) pString );
+	SetDir ( (DWORD_PTR)pString );
 }
 
 void dbDir ( void )
@@ -2419,47 +2419,47 @@ void dbFindNext ( void )
 
 void dbMakeFile ( char* pFilename )
 {
-	MakeFile ( ( DWORD ) pFilename );
+	MakeFile ( (DWORD_PTR)pFilename );
 }
 
 void dbDeleteFile ( char* pFilename )
 {
-	DeleteFile ( ( DWORD ) pFilename );
+	DeleteFile ( (DWORD_PTR)pFilename );
 }
 
 void dbCopyFile ( char* pFilename, char* pFilename2 )
 {
-	CopyFile ( ( DWORD ) pFilename, ( DWORD ) pFilename2 );
+	CopyFile ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2 );
 }
 
 void dbRenameFile ( char* pFilename, char* pFilename2 )
 {
-	RenameFile ( ( DWORD ) pFilename, ( DWORD ) pFilename2 );
+	RenameFile ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2 );
 }
 
 void dbMoveFile ( char* pFilename, char* pFilename2 )
 {
-	MoveFile ( ( DWORD ) pFilename, ( DWORD ) pFilename2 );
+	MoveFile ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2 );
 }
 
 void dbWriteByteToFile ( char* pFilename, int iPos, int iByte )
 {
-	WriteByteToFile ( ( DWORD ) pFilename, iPos, iByte );
+	WriteByteToFile ( (DWORD_PTR)pFilename, iPos, iByte );
 }
 
 int dbReadByteFromFile ( char* pFilename, int iPos )
 {
-	return ReadByteFromFile ( ( DWORD ) pFilename, iPos );
+	return ReadByteFromFile ( (DWORD_PTR)pFilename, iPos );
 }
 
 void dbMakeDirectory ( char* pFilename )
 {
-	MakeDir ( ( DWORD ) pFilename );
+	MakeDir ( (DWORD_PTR)pFilename );
 }
 
 void dbDeleteDirectory ( char* pFilename )
 {
-	DeleteDir ( ( DWORD ) pFilename );
+	DeleteDir ( (DWORD_PTR)pFilename );
 }
 
 void dbDeleteDirectory ( char* pFilename, int iFlag )
@@ -2469,22 +2469,22 @@ void dbDeleteDirectory ( char* pFilename, int iFlag )
 
 void dbExecuteFile ( char* pFilename, char* pFilename2, char* pFilename3 )
 {
-	ExecuteFile ( ( DWORD ) pFilename, ( DWORD ) pFilename2, ( DWORD ) pFilename3 );
+	ExecuteFile ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2, (DWORD_PTR)pFilename3 );
 }
 
 void dbExecuteFile ( char* pFilename, char* pFilename2, char* pFilename3, int iFlag )
 {
-	ExecuteFileEx ( ( DWORD ) pFilename, ( DWORD ) pFilename2, ( DWORD ) pFilename3, iFlag );
+	ExecuteFileEx ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2, (DWORD_PTR)pFilename3, iFlag );
 }
 
 DWORD dbExecuteExecutable ( char* pFilename, char* pFilename2, char* pFilename3 )
 {
-	return ExecuteFileIndi ( ( DWORD ) pFilename, ( DWORD ) pFilename2, ( DWORD ) pFilename3 );
+	return ExecuteFileIndi ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2, (DWORD_PTR)pFilename3 );
 }
 
 DWORD dbExecuteExecutable ( char* pFilename, char* pFilename2, char* pFilename3, int iPriority )
 {
-	return ExecuteFileIndi ( ( DWORD ) pFilename, ( DWORD ) pFilename2, ( DWORD ) pFilename3, iPriority );
+	return ExecuteFileIndi ( (DWORD_PTR)pFilename, (DWORD_PTR)pFilename2, (DWORD_PTR)pFilename3, iPriority );
 }
 
 void dbStopExecutable ( DWORD hIndiExecuteFileProcess )
@@ -2494,42 +2494,42 @@ void dbStopExecutable ( DWORD hIndiExecuteFileProcess )
 
 void dbWriteFilemapValue ( char* pFilemapname, DWORD dwValue )
 {
-	WriteFilemapValue ( ( DWORD ) pFilemapname, dwValue );
+	WriteFilemapValue ( (DWORD_PTR)pFilemapname, dwValue );
 }
 
 void dbWriteFilemapString ( char* pFilemapname, char* pString )
 {
-	WriteFilemapString ( ( DWORD ) pFilemapname, ( DWORD ) pString );
+	WriteFilemapString ( (DWORD_PTR)pFilemapname, (DWORD_PTR)pString );
 }
 
 DWORD dbReadFilemapValue ( char* pFilemapname )
 {
-	return ReadFilemapValue ( ( DWORD ) pFilemapname );
+	return ReadFilemapValue ( (DWORD_PTR)pFilemapname );
 }
 
 char* dbReadFilemapString ( char* pFilemapname )
 {
 	static char* szReturn = NULL;
-	DWORD		 dwReturn = ReadFilemapString ( NULL, ( DWORD ) pFilemapname );
+	DWORD		 dwReturn = ReadFilemapString ( NULL, (DWORD_PTR)pFilemapname );
 
 	szReturn = ( char* ) dwReturn;
 
 	return szReturn;
 }
 
-DWORD dbReadFilemapString ( DWORD pDestStr, DWORD pFilemapname )
+DWORD_PTR dbReadFilemapString( DWORD_PTR pDestStr, DWORD pFilemapname )
 {
-	return ReadFilemapString ( ( DWORD ) pDestStr, ( DWORD ) pFilemapname );
+	return ReadFilemapString ( (DWORD_PTR)pDestStr, (DWORD_PTR)pFilemapname );
 }
 
 void dbOpenToRead ( int f, char* pFilename )
 {
-	OpenToRead ( f, ( DWORD ) pFilename );
+	OpenToRead ( f, (DWORD_PTR)pFilename );
 }
 
 void dbOpenToWrite ( int f, char* pFilename )
 {
-	OpenToWrite ( f, ( DWORD ) pFilename );
+	OpenToWrite ( f, (DWORD_PTR)pFilename );
 }
 
 void dbCloseFile ( int f )
@@ -2571,7 +2571,7 @@ char* dbReadString ( int f )
 
 void dbReadFileBlock ( int f, char* pFilename )
 {
-	ReadFileBlock ( f, ( DWORD ) pFilename );
+	ReadFileBlock ( f, (DWORD_PTR)pFilename );
 }
 
 void dbSkipBytes ( int f, int iSkipValue )
@@ -2581,7 +2581,7 @@ void dbSkipBytes ( int f, int iSkipValue )
 
 void dbReadDirBlock ( int f, char* pFilename )
 {
-	ReadDirBlock ( f, ( DWORD ) pFilename );
+	ReadDirBlock ( f, (DWORD_PTR)pFilename );
 }
 
 void dbWriteByte ( int f, int iValue )
@@ -2606,12 +2606,12 @@ void dbWriteFloat ( int f, float fValue )
 
 void dbWriteString ( int f, char* pString )
 {
-	WriteString ( f, ( DWORD ) pString );
+	WriteString ( f, (DWORD_PTR)pString );
 }
 
 void dbWriteFileBlock ( int f, char* pFilename )
 {
-	WriteFileBlock ( f, ( DWORD ) pFilename );
+	WriteFileBlock ( f, (DWORD_PTR)pFilename );
 }
 
 void dbWriteFileBlockEx ( int f, char* pFilename, int iFlag )
@@ -2621,7 +2621,7 @@ void dbWriteFileBlockEx ( int f, char* pFilename, int iFlag )
 
 void dbWriteDirBlock ( int f, char* pFilename )
 {
-	WriteDirBlock ( f, ( DWORD ) pFilename );
+	WriteDirBlock ( f, (DWORD_PTR)pFilename );
 }
 
 void dbReadMemblock ( int f, int mbi )
@@ -2691,17 +2691,17 @@ char* dbGetFileCreation ( void )
 
 int dbFileExist ( char* pFilename )
 {
-	return FileExist ( ( DWORD ) pFilename );
+	return FileExist ( (DWORD_PTR)pFilename );
 }
 
 int dbFileSize ( char* pFilename )
 {
-	return FileSize ( ( DWORD ) pFilename );
+	return FileSize ( (DWORD_PTR)pFilename );
 }
 
 int dbPathExist ( char* pFilename )
 {
-	return PathExist ( ( DWORD ) pFilename );
+	return PathExist ( (DWORD_PTR)pFilename );
 }
 
 int dbFileOpen ( int f )
@@ -2774,7 +2774,7 @@ int	dbReadLong ( int f, int* pLong )
 }
 void dbCD ( char* pPath )
 {
-	SetDir ( (DWORD)pPath );
+	SetDir ( (DWORD_PTR)pPath );
 }
 void dbWriteFile ( int f, int iValue )
 {

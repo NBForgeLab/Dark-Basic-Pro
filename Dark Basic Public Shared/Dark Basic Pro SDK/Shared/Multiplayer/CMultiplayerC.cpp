@@ -207,7 +207,7 @@ DBPRO_GLOBAL LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -1175,21 +1175,21 @@ DARKSDK DWORD NetMsgFloat(void)
 	return 0;
 }
 
-DARKSDK DWORD NetMsgString(DWORD pDestStr)
+DARKSDK DWORD_PTR NetMsgString( DWORD_PTR pDestStr)
 {
 	strcpy(m_pWorkString, "");
 	if(pCNetwork && gpNetDataDWORD && gGameSessionActive>0 && gdwNetDataType==3)
 		strcpy(m_pWorkString, (char*)gpNetDataDWORD);
 
 	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 
 	// mike - 250604 - clear
 	delete (char*)gpNetDataDWORD;
 	gpNetDataDWORD = NULL;
 
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK void NetMsgMemblock(int mbi)

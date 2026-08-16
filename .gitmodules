@@ -1,0 +1,3 @@
+[submodule "SDK/ODE/ode"]
+	path = SDK/ODE/ode
+	url = https://github.com/NBForgeLab/ODE.git

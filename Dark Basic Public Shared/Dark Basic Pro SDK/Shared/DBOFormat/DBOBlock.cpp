@@ -745,11 +745,11 @@ DARKSDK_DLL bool ScanTextures ( sTexture* pTextureArray, DWORD dwTextureCount, L
 			WriteCR ( ppBlock, pdwSize );
 
 			WriteCODE ( DBOBLOCK_TEXTURE_PRIMST, 4, ppBlock, pdwSize );
-			WriteDWORD ( (DWORD) pTexture->iStartIndex, ppBlock, pdwSize );
+			WriteDWORD ( (DWORD_PTR)pTexture->iStartIndex, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
 
 			WriteCODE ( DBOBLOCK_TEXTURE_PRIMCN, 4, ppBlock, pdwSize );
-			WriteDWORD ( (DWORD) pTexture->iPrimitiveCount, ppBlock, pdwSize );
+			WriteDWORD ( (DWORD_PTR)pTexture->iPrimitiveCount, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
 
 			// end of this texture
@@ -872,7 +872,7 @@ DARKSDK_DLL bool ScanMesh ( sMesh* pMesh, LPSTR* ppBlock, DWORD* pdwSize )
 // leefix - 060306 - huge size specified, when only 4 bytes are written
 //		WriteCODE	( DBOBLOCK_MESH_PRIMTYPE, pMesh->dwIndexCount*sizeof(WORD), ppBlock, pdwSize );
 		WriteCODE	( DBOBLOCK_MESH_PRIMTYPE, 4, ppBlock, pdwSize );
-		WriteDWORD ( (DWORD)pMesh->iPrimitiveType, ppBlock, pdwSize );
+		WriteDWORD ( (DWORD_PTR)pMesh->iPrimitiveType, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
 		
 		// Write draw vertex count
@@ -1292,7 +1292,7 @@ DARKSDK_DLL bool ScanAnimationSet ( sAnimationSet* pAnimSet, LPSTR* ppBlock, DWO
 
 		// Write length
 		WriteCODE	( DBOBLOCK_ANIMSET_LENGTH, 4, ppBlock, pdwSize );
-		WriteDWORD ( (DWORD)pAnimSet->ulLength, ppBlock, pdwSize );
+		WriteDWORD ( (DWORD_PTR)pAnimSet->ulLength, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
 
 		// Write animation data
@@ -1864,7 +1864,7 @@ DARKSDK_DLL bool ConstructObject ( sObject** ppObject, LPSTR* ppBlock )
 // BLOCK FUNCTIONS ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-DARKSDK_DLL bool DBOConvertObjectToBlock ( sObject* pObject, DWORD* ppBlock, DWORD* pdwBlockSize )
+DARKSDK_DLL bool DBOConvertObjectToBlock ( sObject* pObject, DWORD_PTR* ppBlock, DWORD* pdwBlockSize )
 {
 	// determine size of block
 	DWORD dwSize = 0;
@@ -1888,14 +1888,14 @@ DARKSDK_DLL bool DBOConvertObjectToBlock ( sObject* pObject, DWORD* ppBlock, DWO
 	}
 
 	// store block size
-	*ppBlock = (DWORD)pBlockBase;
+	*ppBlock = (DWORD_PTR)pBlockBase;
 	*pdwBlockSize = dwSize;
 
 	// return okay
 	return true;
 }
 
-DARKSDK_DLL bool DBOConvertBlockToObject ( DWORD pBlock, DWORD dwBlockSize, sObject** ppObject )
+DARKSDK_DLL bool DBOConvertBlockToObject ( DWORD_PTR pBlock, DWORD dwBlockSize, sObject** ppObject )
 {
 	// U74 - used to track DBO sizes (to find bugs)
 	g_pBlockStart = (LPSTR)pBlock;
@@ -1911,7 +1911,7 @@ DARKSDK_DLL bool DBOConvertBlockToObject ( DWORD pBlock, DWORD dwBlockSize, sObj
 	return true;
 }
 
-DARKSDK_DLL bool DBOLoadBlockFile ( LPSTR pFilename, DWORD* ppBlock, DWORD* pdwSize )
+DARKSDK_DLL bool DBOLoadBlockFile ( LPSTR pFilename, DWORD_PTR* ppBlock, DWORD* pdwSize )
 {
 	// load file
 	HANDLE hfile = CreateFile ( pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
@@ -1919,7 +1919,7 @@ DARKSDK_DLL bool DBOLoadBlockFile ( LPSTR pFilename, DWORD* ppBlock, DWORD* pdwS
 	{
 		DWORD bytesread=0;
 		*pdwSize = GetFileSize ( hfile, NULL );
-		*ppBlock = (DWORD)new char[*pdwSize];
+		*ppBlock = (DWORD_PTR)new char[*pdwSize];
 		ReadFile( hfile, (LPSTR)(*ppBlock), *pdwSize, &bytesread, NULL ); 
 		CloseHandle ( hfile );
 	}
@@ -1933,7 +1933,7 @@ DARKSDK_DLL bool DBOLoadBlockFile ( LPSTR pFilename, DWORD* ppBlock, DWORD* pdwS
 	return true;
 }
 
-DARKSDK_DLL bool DBOSaveBlockFile ( LPSTR pFilename, DWORD pBlock, DWORD dwSize )
+DARKSDK_DLL bool DBOSaveBlockFile ( LPSTR pFilename, DWORD_PTR pBlock, DWORD dwSize )
 {
 	// save new file
 	DeleteFile ( pFilename );

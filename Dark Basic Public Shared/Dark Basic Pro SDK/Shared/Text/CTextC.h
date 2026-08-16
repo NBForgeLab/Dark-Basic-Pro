@@ -129,30 +129,30 @@ DARKSDK int  GetTextHeight         ( char* szString );
 // COMMAND FUNCTIONS /////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-DARKSDK int	  Asc	( DWORD dwSrcStr);
-DARKSDK DWORD Bin	( DWORD pDestStr, int iValue );
-DARKSDK DWORD Chr	( DWORD pDestStr, int iValue );
-DARKSDK DWORD Hex	( DWORD pDestStr, int iValue );
-DARKSDK DWORD Left	( DWORD pDestStr, DWORD szText, int iValue );
-DARKSDK int	  Len	( DWORD dwSrcStr );
-DARKSDK DWORD Lower ( DWORD szText, DWORD pDestStr );
-DARKSDK DWORD Mid	( DWORD pDestStr, DWORD szText, int iValue );
-DARKSDK DWORD Right ( DWORD pDestStr, DWORD szText, int iValue );
-DARKSDK DWORD Str	( DWORD pDestStr, float fValue );
-DARKSDK DWORD StrEx	( DWORD pDestStr, float fValue, int iDecPlaces );
-DARKSDK DWORD Str	( DWORD pDestStr, int iValue );
-DARKSDK DWORD Upper ( DWORD pDestStr, DWORD szText );
-//DARKSDK int	  ValL	( DWORD dwSrcStr );  LEEFIX - 041002 - removed in favour of casted Float version
-DARKSDK DWORD ValF	( DWORD dwSrcStr );
-DARKSDK DWORD StrDouble ( DWORD pDestStr, double dValue );
-DARKSDK DWORD StrDoubleInt ( DWORD pDestStr, LONGLONG lValue );
-DARKSDK LONGLONG ValR ( DWORD dwSrcStr );
+DARKSDK int	  Asc	( DWORD_PTR dwSrcStr);
+DARKSDK DWORD_PTR Bin( DWORD_PTR pDestStr, int iValue );
+DARKSDK DWORD_PTR Chr( DWORD_PTR pDestStr, int iValue );
+DARKSDK DWORD_PTR Hex( DWORD_PTR pDestStr, int iValue );
+DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue );
+DARKSDK int	  Len	( DWORD_PTR dwSrcStr );
+DARKSDK DWORD_PTR Lower( DWORD_PTR szText, DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue );
+DARKSDK DWORD_PTR Right( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue );
+DARKSDK DWORD_PTR Str( DWORD_PTR pDestStr, float fValue );
+DARKSDK DWORD_PTR StrEx( DWORD_PTR pDestStr, float fValue, int iDecPlaces );
+DARKSDK DWORD_PTR Str( DWORD_PTR pDestStr, int iValue );
+DARKSDK DWORD_PTR Upper( DWORD_PTR pDestStr, DWORD_PTR szText );
+//DARKSDK int	  ValL	( DWORD_PTR dwSrcStr );  LEEFIX - 041002 - removed in favour of casted Float version
+DARKSDK DWORD ValF	( DWORD_PTR dwSrcStr );
+DARKSDK DWORD_PTR StrDouble( DWORD_PTR pDestStr, double dValue );
+DARKSDK DWORD_PTR StrDoubleInt( DWORD_PTR pDestStr, LONGLONG lValue );
+DARKSDK LONGLONG ValR ( DWORD_PTR dwSrcStr );
 
 DARKSDK void PerformChecklistForFonts ( void );
-DARKSDK void BasicText ( int iX, int iY, DWORD szText );
-DARKSDK void CenterText ( int iX, int iY, DWORD szText );						// centre text at x and y coordinates
-DARKSDK void SetBasicTextFont     ( DWORD szTypeface );							// set the text font
-DARKSDK void SetBasicTextFont     ( DWORD szTypeface, int iCharacterSet );		// set the text font and character set
+DARKSDK void BasicText ( int iX, int iY, DWORD_PTR szText );
+DARKSDK void CenterText ( int iX, int iY, DWORD_PTR szText );						// centre text at x and y coordinates
+DARKSDK void SetBasicTextFont     ( DWORD_PTR szTypeface );							// set the text font
+DARKSDK void SetBasicTextFont     ( DWORD_PTR szTypeface, int iCharacterSet );		// set the text font and character set
 DARKSDK void SetTextSize          ( int iSize );								// set the size
 DARKSDK void SetTextToNormal      ( void );										// set text to normal style
 DARKSDK void SetTextToItalic      ( void );										// set text to italic
@@ -162,25 +162,25 @@ DARKSDK void SetTextToOpaque      ( void );										// set text to opaque
 DARKSDK void SetTextToTransparent ( void );										// set text to transparent
 
 DARKSDK int   TextBackgroundType ( void );
-DARKSDK DWORD TextFont			 ( DWORD pDestStr );
+DARKSDK DWORD_PTR TextFont( DWORD_PTR pDestStr );
 DARKSDK int   TextSize           ( void );
 DARKSDK int   TextStyle          ( void );
-DARKSDK int   TextWidth          ( DWORD szString );
-DARKSDK int   TextHeight         ( DWORD szString );
+DARKSDK int   TextWidth          ( DWORD_PTR szString );
+DARKSDK int   TextHeight         ( DWORD_PTR szString );
 
 DARKSDK void Text3D     ( char* szText );										// print 3D text at x and y coordinates
 
-DARKSDK DWORD	  Spaces	( DWORD dwSrcStr, int iSpaces );
+DARKSDK DWORD_PTR Spaces	( DWORD_PTR dwSrcStr, int iSpaces );
 
 // u74b7 - removed append statement as not fixable
-//DARKSDK void  Append        ( DWORD dwA, DWORD dwB );
-DARKSDK void  Reverse       ( DWORD dwA );
-DARKSDK int   FindFirstChar ( DWORD dwSource, DWORD dwChar );
-DARKSDK int   FindLastChar  ( DWORD dwSource, DWORD dwChar );
-DARKSDK int   FindSubString ( DWORD dwSource, DWORD dwString );
-DARKSDK int   CompareCase   ( DWORD dwA, DWORD dwB );
-DARKSDK DWORD FirstToken    ( DWORD dwReturn, DWORD dwSource, DWORD dwDelim );
-DARKSDK DWORD NextToken     ( DWORD dwReturn, DWORD dwDelim );
+//DARKSDK void  Append        ( DWORD_PTR dwA, DWORD_PTR dwB );
+DARKSDK void  Reverse       ( DWORD_PTR dwA );
+DARKSDK int   FindFirstChar ( DWORD_PTR dwSource, DWORD_PTR dwChar );
+DARKSDK int   FindLastChar  ( DWORD_PTR dwSource, DWORD_PTR dwChar );
+DARKSDK int   FindSubString ( DWORD_PTR dwSource, DWORD_PTR dwString );
+DARKSDK int   CompareCase   ( DWORD_PTR dwA, DWORD_PTR dwB );
+DARKSDK DWORD_PTR FirstToken    ( DWORD_PTR dwReturn, DWORD_PTR dwSource, DWORD_PTR dwDelim );
+DARKSDK DWORD_PTR NextToken     ( DWORD_PTR dwReturn, DWORD_PTR dwDelim );
 
 #ifdef DARKSDK_COMPILE
 		int			dbAsc						( char* dwSrcStr);

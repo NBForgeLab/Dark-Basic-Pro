@@ -8,12 +8,12 @@
 // Handler Passed into DLL
 extern CRuntimeErrorHandler* g_pErrorHandler;
 
-void Error ( char* szMessage );
-void Message ( int iID, char* szMessage, char* szTitle );
+void Error ( const char* szMessage );
+void Message ( int iID, const char* szMessage, const char* szTitle );
 
 void			RunTimeError(DWORD dwErrorCode);
 void			RunTimeWarning(DWORD dwErrorCode);
 void			RunTimeSoftWarning ( DWORD dwErrorCode );
-void			RunTimeError(DWORD dwErrorCode, LPSTR pStrClue);
+void			RunTimeError(DWORD dwErrorCode, const char* pStrClue);
 
-#endif _CERROR_H_
+#endif // _CERROR_H_

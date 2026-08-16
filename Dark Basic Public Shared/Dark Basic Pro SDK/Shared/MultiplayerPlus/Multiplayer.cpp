@@ -267,7 +267,7 @@ static char* SetupString ( char* szInput )
 	char* pReturn = NULL;
 	DWORD dwSize  = strlen ( szInput );
 
-	g_pGlob->CreateDeleteString ( ( DWORD* ) &pReturn, dwSize + 1 );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
 
 	if ( !pReturn )
 		return NULL;
@@ -279,12 +279,12 @@ static char* SetupString ( char* szInput )
 	return pReturn;
 }
 
-DWORD MultiplayerGetPlayerName ( DWORD pDestStr, int iID )
+DWORD_PTR MultiplayerGetPlayerName( DWORD_PTR pDestStr, int iID )
 {
 	if ( iID >= (int) g_PlayerList.size ( ) )
-		return ( DWORD ) SetupString ( "" );
+		return (DWORD_PTR)SetupString ( "" );
 
-	return ( DWORD ) SetupString ( g_PlayerList [ iID ].strPlayerName );
+	return (DWORD_PTR)SetupString ( g_PlayerList [ iID ].strPlayerName );
 }
 
 DWORD MultiplayerGetPlayerID ( int iID )
@@ -1270,7 +1270,7 @@ void MultiplayerGetMessageMemblock ( int iMemblock )
 	}
 }
 
-DWORD MultiplayerGetMessageString ( DWORD pDestStr )
+DWORD_PTR MultiplayerGetMessageString( DWORD_PTR pDestStr )
 {
 	//strcpy ( szString, g_CurrentMessage.szString );
 
@@ -1278,7 +1278,7 @@ DWORD MultiplayerGetMessageString ( DWORD pDestStr )
 
 	//memcpy ( szString, ( char* ) &g_CurrentMessage.pData, g_CurrentMessage.dwSize );
 
-	return ( DWORD ) SetupString ( g_CurrentMessage.szString );
+	return (DWORD_PTR)SetupString ( g_CurrentMessage.szString );
 }
 
 int MultiplayerGetQueueSize ( int iType )
@@ -1583,7 +1583,7 @@ DWORD MultiplayerGetIPAddress ( void )
 		return 0;
 	}
 	
-	return ( DWORD ) SetupString ( szName );
+	return (DWORD_PTR)SetupString ( szName );
 }
 */
 
@@ -1695,7 +1695,7 @@ DWORD MultiplayerGetIPAddress ( void )
 		{
 			return 0;
 		}
-		return ( DWORD ) SetupString ( szName );
+		return (DWORD_PTR)SetupString ( szName );
     }
     
 
@@ -1771,5 +1771,5 @@ LCleanReturn:
     SAFE_DELETE_ARRAY( rpAddresses );
 
 	// return IP address in string
-	return ( DWORD ) SetupString ( strStatus );
+	return (DWORD_PTR)SetupString ( strStatus );
 }

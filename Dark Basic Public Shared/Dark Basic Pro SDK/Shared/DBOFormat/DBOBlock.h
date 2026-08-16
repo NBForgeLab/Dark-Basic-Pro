@@ -152,10 +152,10 @@
 // FUNCTIONS /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 
-DARKSDK bool DBOConvertObjectToBlock	( sObject* pObject, DWORD* ppBlock, DWORD* pdwBlockSize );
-DARKSDK bool DBOConvertBlockToObject	( DWORD pBlock, DWORD dwBlockSize, sObject** ppObject );
-DARKSDK bool DBOLoadBlockFile			( LPSTR pFilename, DWORD* ppBlock, DWORD* pdwSize );
-DARKSDK bool DBOSaveBlockFile			( LPSTR pFilename, DWORD pBlock, DWORD dwSize );
+DARKSDK bool DBOConvertObjectToBlock	( sObject* pObject, DWORD_PTR* ppBlock, DWORD* pdwBlockSize );
+DARKSDK bool DBOConvertBlockToObject	( DWORD_PTR pBlock, DWORD dwBlockSize, sObject** ppObject );
+DARKSDK bool DBOLoadBlockFile			( LPSTR pFilename, DWORD_PTR* ppBlock, DWORD* pdwSize );
+DARKSDK bool DBOSaveBlockFile			( LPSTR pFilename, DWORD_PTR pBlock, DWORD dwSize );
 DARKSDK bool ConstructObject            ( sObject** ppObject, LPSTR* ppBlock );
 
 //////////////////////////////////////////////////////////////////////////////////////

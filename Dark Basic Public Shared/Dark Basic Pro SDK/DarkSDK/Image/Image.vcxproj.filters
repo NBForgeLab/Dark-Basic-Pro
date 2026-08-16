@@ -24,16 +24,12 @@
     <ClCompile Include="..\..\Shared\Image\icons\ICONS.C">
       <Filter>Icons</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
     <ClCompile Include="..\..\Shared\Core\globstruct.cpp" />
-    <ClCompile Include="..\..\Shared\Core\SteamCheckForWorkshop.cpp">
+    <ClCompile Include="..\..\..\..\SDK\DirectXTex\DDSTextureLoader\DDSTextureLoader.cpp">
       <Filter>Image</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Image\CImageC.h">
-      <Filter>Image</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Error</Filter>
     </ClInclude>
@@ -51,6 +47,9 @@
     </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\..\Shared\Core\SteamCheckForWorkshop.h">
+      <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Include\CImageC.h">
       <Filter>Image</Filter>
     </ClInclude>
   </ItemGroup>

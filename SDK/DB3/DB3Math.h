@@ -122,7 +122,7 @@ public:
 		uint i;
 
 		for(i=0; i<RESOLUTION; i++) {
-			rad = (((f64)i)/RESOLUTION)*TAU;
+			rad = (((f64)i)/static_cast<f64>(RESOLUTION))*TAU;
 
 			//g_sin[i] = ::sin(rad);
 			g_pGlob->f64SinTable[i] = ::sin(rad);
@@ -143,9 +143,9 @@ template<typename T>
 __forceinline T CosFast(T x) { return static_cast<T>(g_pGlob->f64SinTable[CMathTable::Degrees(x + 90)]); }
 
 template<typename T>
-__forceinline T SinPrec(T x) { return ::sin(Radians(x)); }
+__forceinline T SinPrec(T x) { return static_cast<T>(::sin(Radians(x))); }
 template<typename T>
-__forceinline T CosPrec(T x) { return ::cos(Radians(x)); }
+__forceinline T CosPrec(T x) { return static_cast<T>(::cos(Radians(x))); }
 
 #if DB3_PRECISE
 template<typename T>
@@ -163,13 +163,13 @@ template<typename T>
 __forceinline T Tan(T x) { return Sin(x)/Cos(x); }
 
 template<typename T>
-__forceinline T ACos(T x) { return Degrees(acos(x)); }
+__forceinline T ACos(T x) { return static_cast<T>(Degrees(acos(x))); }
 template<typename T>
-__forceinline T ASin(T x) { return Degrees(asin(x)); }
+__forceinline T ASin(T x) { return static_cast<T>(Degrees(asin(x))); }
 template<typename T>
-__forceinline T ATan(T x) { return Degrees(atan(x)); }
+__forceinline T ATan(T x) { return static_cast<T>(Degrees(atan(x))); }
 template<typename T>
-__forceinline T ATan2(T y, T x) { return Degrees(atan2(y, x)); }
+__forceinline T ATan2(T y, T x) { return static_cast<T>(Degrees(atan2(y, x))); }
 
 //----------------------------------------------------------------------------------------------------------------------
 

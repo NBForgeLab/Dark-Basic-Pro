@@ -28,7 +28,11 @@ DepthTexture::DepthTexture(const LPDIRECT3D9 d3d)
 		currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, FOURCC_RAWZ ) == D3D_OK;
 
 	// determine if RESZ or NVAPI supported
+#ifndef SKIPD3DHACKS
 	m_isSupported = ( NvAPI_Initialize() == NVAPI_OK || m_isRESZ ) && ( m_isRAWZ || m_isINTZ );
+#else
+	m_isSupported = ( m_isRESZ || m_isRAWZ || m_isINTZ );
+#endif
 
 	// can we use the AMD Depth Stencil Texture for PCF
 	HRESULT hRes = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, D3DFMT_D16);
@@ -50,10 +54,12 @@ void DepthTexture::createTexture( const LPDIRECT3DDEVICE9 device, int width, int
 			D3DFORMAT format = m_isINTZ ? FOURCC_INTZ : FOURCC_RAWZ;
 			device->CreateTexture(width, height, 1, D3DUSAGE_DEPTHSTENCIL, format, D3DPOOL_DEFAULT, &m_pTexture, NULL);
 
+#ifndef SKIPD3DHACKS
 			if (!m_isRESZ)
 			{
 				NvAPI_D3D9_RegisterResource(m_pTexture);
 			}
+#endif
 		}
 	}
 }
@@ -63,22 +69,30 @@ DepthTexture::~DepthTexture()
 	if ( m_bDepthStencilTexturesSupported==true )
 	{
 		// simply release depth stencil texture
-		m_pTexture->Release();
+		if ( m_pTexture )
+		{
+			m_pTexture->Release();
+			m_pTexture = NULL;
+		}
 	}
 	else
 	{
 		if (m_pTexture)
 		{
+#ifndef SKIPD3DHACKS
 			if (!m_isRESZ)
 			{
 				NvAPI_D3D9_UnregisterResource(m_pTexture);
 			}
+#endif
 			m_pTexture->Release();
 		}
+#ifndef SKIPD3DHACKS
 		if (m_registeredDSS != NULL)
 		{
 			NvAPI_D3D9_UnregisterResource(m_registeredDSS);
 		}
+#endif
 	}
 }
 

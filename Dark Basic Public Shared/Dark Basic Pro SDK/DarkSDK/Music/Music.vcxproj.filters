@@ -30,19 +30,12 @@
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
-    <ClCompile Include="..\..\Shared\Core\SteamCheckForWorkshop.cpp">
-      <Filter>Music</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Shared\Music\BasePlayer.h">
       <Filter>Music</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Music\CdPlayer.h">
-      <Filter>Music</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Shared\Music\CMusicC.h">
       <Filter>Music</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Music\CMusicManagerC.h">
@@ -56,6 +49,9 @@
     </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Error</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Include\CMusicC.h">
+      <Filter>Music</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

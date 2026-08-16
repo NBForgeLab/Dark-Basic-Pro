@@ -26,9 +26,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DLLMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Source Files\Error</Filter>
     </ClCompile>
@@ -43,14 +40,14 @@
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Source Files\Error</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\Bitmap\CBitmapC.h">
-      <Filter>Source Files\Bitmap</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Core\globstruct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Include\CBitmapC.h">
+      <Filter>Source Files\Bitmap</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

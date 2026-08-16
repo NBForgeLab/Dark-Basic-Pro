@@ -117,7 +117,7 @@ inline CScopeGuard<_Functor> MakeScopeGuard(const _Functor &func)
 
 inline bool g_bHeadlessMode = false;
 
-inline void crash(const char *file, unsigned int line, const char *func, const char *msg)
+inline void crash([[maybe_unused]] const char *file, [[maybe_unused]] unsigned int line, [[maybe_unused]] const char *func, [[maybe_unused]] const char *msg)
 {
 #if defined(_DEBUG)||defined(DEBUG)||defined(__debug__)
 	static bool stopAsking = false;
@@ -128,12 +128,11 @@ inline void crash(const char *file, unsigned int line, const char *func, const c
 	char buf[512];
 	char m[256];
 
-	const char *p;
-	p = strchr(msg, '\0');
-	if (static_cast<size_t>(p - msg) >= sizeof(m))
-		p = msg + (sizeof(m) - 1);
-	memcpy(m, msg, p - msg);
-	m[p - msg] = '\0';
+	const char *msgEnd = strchr(msg, '\0');
+	if (static_cast<size_t>(msgEnd - msg) >= sizeof(m))
+		msgEnd = msg + (sizeof(m) - 1);
+	memcpy(m, msg, msgEnd - msg);
+	m[msgEnd - msg] = '\0';
 	sprintf_s(buf, sizeof(buf),
 		"%s(%u) %s\nDEBUG BUILD: %s\nContinue with crash? (Cancel to stop asking)",
 		file, line, func, m);
@@ -148,8 +147,12 @@ inline void crash(const char *file, unsigned int line, const char *func, const c
 
 	if (r==IDYES)
 	{
-		volatile int *p = nullptr;
-		*p = 5;
+#if defined(_MSC_VER)
+		__debugbreak();
+#else
+		volatile int *crashPtr = nullptr;
+		*crashPtr = 5;
+#endif
 	}
 #endif
 }
@@ -182,9 +185,12 @@ inline void HandleAssert(const char *file, uint line, const char *func, const ch
 	int r = MessageBoxA(GetActiveWindow(), boxbuf, "Assert Error", MB_ICONERROR|MB_YESNO);
 	if (r==IDYES)
 	{
-		volatile int *p = nullptr;
-		*p = 7;
-
+#if defined(_MSC_VER)
+		__debugbreak();
+#else
+		volatile int *assertCrashPtr = nullptr;
+		*assertCrashPtr = 7;
+#endif
 		return;
 	}
 

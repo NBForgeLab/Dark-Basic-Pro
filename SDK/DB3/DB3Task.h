@@ -324,7 +324,7 @@ public:
 	inline void Sync() {
 		m_event.Sync();
 	}
-	inline bool Wait(uint milliseconds) {
+	inline bool Wait(u32 milliseconds) {
 		return m_event.Wait(milliseconds);
 	}
 	inline bool TryWait() {
@@ -364,9 +364,6 @@ public:
 	};
 
 protected:
-	template<class T> struct remove_const          { typedef T type; };
-	template<class T> struct remove_const<const T> { typedef T type; };
-
 	std::condition_variable m_cv;
 	bool m_terminate;
 

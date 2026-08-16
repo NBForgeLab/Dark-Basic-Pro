@@ -27,9 +27,6 @@
     <ClInclude Include="..\..\SHARED\System\dxdiaginfo.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\System\CSystemC.h">
-      <Filter>Source Files\System</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Source Files\Error</Filter>
     </ClInclude>
@@ -42,11 +39,11 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\Include\CSystemC.h">
+      <Filter>Source Files\System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DLLMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\SHARED\System\dxdiaginfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

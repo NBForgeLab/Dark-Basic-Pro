@@ -26,9 +26,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DLLMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Shared\Animation\CAnimation.cpp">
       <Filter>Source Files\Animation</Filter>
     </ClCompile>
@@ -37,9 +34,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Animation\CAnimation.h">
-      <Filter>Source Files\Animation</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Animation\ImageSupport.h">
       <Filter>Source Files\Animation</Filter>
     </ClInclude>
@@ -51,6 +45,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Shared\Core\globstruct.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Include\CAnimation.h">
+      <Filter>Source Files\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Include\CAnimation.h">
+      <Filter>Source Files\Animation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

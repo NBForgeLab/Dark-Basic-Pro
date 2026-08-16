@@ -18,13 +18,9 @@
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
     <ClCompile Include="..\..\Shared\Core\globstruct.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Input\CInputC.h">
-      <Filter>Input</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Input\Controller.h">
       <Filter>Input</Filter>
     </ClInclude>
@@ -32,6 +28,9 @@
       <Filter>Error</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\..\Include\CInputC.h">
+      <Filter>Input</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Input.rc" />

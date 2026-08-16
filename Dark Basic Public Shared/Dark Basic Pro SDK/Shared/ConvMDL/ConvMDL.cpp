@@ -976,7 +976,7 @@ void	PassCoreDataMDL ( LPVOID pGlobPtr )
 	PassCoreData ( pGlobPtr );
 }
 
-bool	ConvertMDL	( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+bool ConvertMDL ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
 {
 	return Convert	( pFilename, pBlock, pdwSize );
 }

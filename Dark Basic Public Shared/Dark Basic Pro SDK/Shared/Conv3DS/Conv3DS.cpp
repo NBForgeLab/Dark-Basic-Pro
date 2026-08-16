@@ -128,7 +128,7 @@ void PassCoreData3DS	( LPVOID pGlobPtr )
 	PassCoreData ( pGlobPtr );
 }
 
-bool Convert3DS	( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+bool Convert3DS ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
 {
 	return Convert	( pFilename, pBlock, pdwSize );
 }

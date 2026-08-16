@@ -146,14 +146,50 @@ DARKSDK bool CallExist(HINSTANCE hDLLModule, char* DecoratedName)
 		return false;
 }
 
-extern "C" DWORD __cdecl asm_dynamic_call(void* func, const DWORD* args, int argc);
+extern "C" DWORD_PTR __cdecl asm_dynamic_call(void* func, const DWORD* args, int argc)
+{
+	if (!func) return 0;
+	typedef DWORD_PTR (*fn0)();
+	typedef DWORD_PTR (*fn1)(DWORD_PTR);
+	typedef DWORD_PTR (*fn2)(DWORD_PTR, DWORD_PTR);
+	typedef DWORD_PTR (*fn3)(DWORD_PTR, DWORD_PTR, DWORD_PTR);
+	typedef DWORD_PTR (*fn4)(DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+	typedef DWORD_PTR (*fn5)(DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+	typedef DWORD_PTR (*fn6)(DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+	typedef DWORD_PTR (*fn7)(DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+	typedef DWORD_PTR (*fn8)(DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR, DWORD_PTR);
 
-DARKSDK bool Call(HINSTANCE hDLLModule, char* DecoratedName, DWORD* pDataAddress, int paramnum, DWORD* ReturnData)
+	DWORD_PTR a[8] = {0};
+	for (int i = 0; i < argc && i < 8; ++i)
+	{
+		if (args) a[i] = (DWORD_PTR)args[i];
+	}
+
+	DWORD_PTR res = 0;
+	switch (argc)
+	{
+		case 0: res = ((fn0)func)(); break;
+		case 1: res = ((fn1)func)(a[0]); break;
+		case 2: res = ((fn2)func)(a[0], a[1]); break;
+		case 3: res = ((fn3)func)(a[0], a[1], a[2]); break;
+		case 4: res = ((fn4)func)(a[0], a[1], a[2], a[3]); break;
+		case 5: res = ((fn5)func)(a[0], a[1], a[2], a[3], a[4]); break;
+		case 6: res = ((fn6)func)(a[0], a[1], a[2], a[3], a[4], a[5]); break;
+		case 7: res = ((fn7)func)(a[0], a[1], a[2], a[3], a[4], a[5], a[6]); break;
+		default:
+			if (argc >= 8) res = ((fn8)func)(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+			else res = ((fn0)func)();
+			break;
+	}
+	return res;
+}
+
+DARKSDK bool Call(HINSTANCE hDLLModule, char* DecoratedName, DWORD* pDataAddress, int paramnum, DWORD_PTR* ReturnData)
 {
 	FARPROC fpAddress = (FARPROC)GetProcAddress(hDLLModule, DecoratedName);
 	if(!fpAddress) return false;
 
-	DWORD res = asm_dynamic_call((void*)fpAddress, pDataAddress, paramnum);
+	DWORD_PTR res = asm_dynamic_call((void*)fpAddress, pDataAddress, paramnum);
 
 	if(ReturnData)
 		*ReturnData = res;
@@ -161,9 +197,9 @@ DARKSDK bool Call(HINSTANCE hDLLModule, char* DecoratedName, DWORD* pDataAddress
 	return true;
 }
 
-DARKSDK DWORD CallDLL_Param( int dllid, LPSTR pDLLFunction, int paramnum, DWORD* pDataAddress )
+DARKSDK DWORD_PTR CallDLL_Param( int dllid, LPSTR pDLLFunction, int paramnum, DWORD* pDataAddress )
 {
-	DWORD ReturnData=0;
+	DWORD_PTR ReturnData=0;
 	if(dllid>=1 && dllid<=255)
 	{
 		if(hDLLModule[dllid])
@@ -457,14 +493,14 @@ DARKSDK void ExitPrompt(DWORD pString, DWORD pString2)
 	if(pString)
 	{
 		DWORD dwSize=strlen((LPSTR)pString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		g_pGlob->pExitPromptString = pReturnString;
 		strcpy(pReturnString, (LPSTR)pString);
 	}
 	if(pString2)
 	{
 		DWORD dwSize=strlen((LPSTR)pString2);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		g_pGlob->pExitPromptString2 = pReturnString;
 		strcpy(pReturnString, (LPSTR)pString2);
 	}
@@ -566,7 +602,7 @@ DARKSDK DWORD ChecklistFValueD ( int iIndex )
 	return *(DWORD*)&g_pGlob->checklist[iIndex-1].fvalued;
 }
 
-DARKSDK DWORD ChecklistString( DWORD pDestStr, int iIndex )
+DARKSDK DWORD_PTR ChecklistString( DWORD_PTR pDestStr, int iIndex )
 {
 	if(g_pGlob->checklistexists==false)
 	{
@@ -590,17 +626,17 @@ DARKSDK DWORD ChecklistString( DWORD pDestStr, int iIndex )
 	}
 
 	// Free old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
 	// Return string
 	LPSTR pReturnString=NULL;
 	if(g_pGlob->checklist[iIndex-1].string)
 	{
 		DWORD dwSize=strlen(g_pGlob->checklist[iIndex-1].string);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, g_pGlob->checklist[iIndex-1].string);
 	}
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 // DLL Commands
@@ -685,62 +721,62 @@ DARKSDK int DLLCallExist( int dllid, DWORD pDLLFunction )
 	return iRes;
 }
 
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction )
 {
 	DWORD Data[1]; Data[0]=0;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 0, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1 )
 {
 	DWORD Data[2]; Data[0]=P1;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 1, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2 )
 {
 	DWORD Data[3]; Data[0]=P1; Data[1]=P2;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 2, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3 )
 {
 	DWORD Data[4]; Data[0]=P1; Data[1]=P2; Data[2]=P3;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 3, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4 )
 {
 	DWORD Data[5]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 4, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5 )
 {
 	DWORD Data[6]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4; Data[4]=P5;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 5, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6 )
 {
 	DWORD Data[7]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4; Data[4]=P5; Data[5]=P6;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 6, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7 )
 {
 	DWORD Data[8]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4; Data[4]=P5; Data[5]=P6; Data[6]=P7;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 7, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8 )
 {
 	DWORD Data[9]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4; Data[4]=P5; Data[5]=P6; Data[6]=P7; Data[7]=P8;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 8, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9 )
 {
 	DWORD Data[10]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4; Data[4]=P5; Data[5]=P6; Data[6]=P7; Data[7]=P8; Data[8]=P9;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 9, Data );
 }
-DARKSDK DWORD CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9,DWORD P10 )
+DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9,DWORD P10 )
 {
 	DWORD Data[10]; Data[0]=P1; Data[1]=P2; Data[2]=P3; Data[3]=P4; Data[4]=P5; Data[5]=P6; Data[6]=P7; Data[7]=P8; Data[8]=P9; Data[9]=P10;
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, 10, Data );
 }
-DARKSDK DWORD CallDLLX( int dllid, DWORD pDLLFunction, DWORD pDataPtr, DWORD dwNumberOfDWORDS )
+DARKSDK DWORD_PTR CallDLLX( int dllid, DWORD_PTR pDLLFunction, DWORD_PTR pDataPtr, DWORD dwNumberOfDWORDS )
 {
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, (int)dwNumberOfDWORDS, (DWORD*)pDataPtr );
 }
@@ -862,7 +898,7 @@ void dbEnableSystemKeys(void)
 
 void dbExitPrompt(char* pString, char* pString2)
 {
-	ExitPrompt( ( DWORD ) pString, ( DWORD ) pString2);
+	ExitPrompt( (DWORD_PTR)pString, (DWORD_PTR)pString2);
 }
 
 void dbEmptyChecklist( void )
@@ -952,67 +988,67 @@ int dbDLLExist( int dllid )
 
 int dbDLLCallExist( int dllid, char* pDLLFunction )
 {
-	return DLLCallExist(  dllid,  ( DWORD ) pDLLFunction );
+	return DLLCallExist(  dllid,  (DWORD_PTR)pDLLFunction );
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4, P5);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4, P5);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4, P5, P6);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4, P5, P6);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4, P5, P6, P7);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4, P5, P6, P7);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8)
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4, P5, P6, P7, P8);
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4, P5, P6, P7, P8);
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9 )
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4, P5, P6, P7, P8, P9 );
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4, P5, P6, P7, P8, P9 );
 }
 
 DWORD dbCallDLL( int dllid, char* pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9,DWORD P10 )
 {
-	return CallDLL(  dllid,  ( DWORD ) pDLLFunction,  P1, P2, P3, P4, P5, P6, P7, P8, P9, P10 );
+	return CallDLL(  dllid,  (DWORD_PTR)pDLLFunction,  P1, P2, P3, P4, P5, P6, P7, P8, P9, P10 );
 }
 
 DWORD dbCallDLLX( int dllid, char* pDLLFunction, DWORD pDataPtr, DWORD dwNumberOfDWORDS )
 {
-	return CallDLLX(  dllid,  ( DWORD ) pDLLFunction,  pDataPtr,  dwNumberOfDWORDS );
+	return CallDLLX(  dllid,  (DWORD_PTR)pDLLFunction,  pDataPtr,  dwNumberOfDWORDS );
 }
 
 void* dbGetGlobalStructure ( void )
@@ -1022,14 +1058,14 @@ void* dbGetGlobalStructure ( void )
 
 void dbLoadDLL ( char* pDLLFile, int dllid )
 {
-	dbDLLLoad ( ( DWORD ) pDLLFile, dllid );
+	dbDLLLoad ( (DWORD_PTR)pDLLFile, dllid );
 }
 
 // lee - 300706 - GDK fixes
 //void dbLoadDLL ( DWORD pDLLFile, int dllid ) { dbDLLLoad ( pDLLFile, dllid ); }
 void dbDeleteDLL ( int dllid ) { dbDLLDelete ( dllid ); }
 int	dbExistDLL ( int dllid ) { return dbDLLExist ( dllid ); }
-//int	dbDLLCallExist ( int dllid, char* pDLLFunction ) { return dbDLLCallExist ( dllid, (DWORD)pDLLFunction ); }
+//int	dbDLLCallExist ( int dllid, char* pDLLFunction ) { return dbDLLCallExist ( dllid, (DWORD_PTR)pDLLFunction ); }
 int	dbSystemTmemAvailable ( void ) { return dbSystemTMEMAvailable (); }
 int	dbSystemDmemAvailable ( void ) { return dbSystemDMEMAvailable (); }
 int	dbSystemSmemAvailable ( void ) { return dbSystemSMEMAvailable (); }

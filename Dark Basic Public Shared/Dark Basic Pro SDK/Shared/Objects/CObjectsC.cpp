@@ -258,6 +258,11 @@ DARKSDK_DLL void LoadCore ( SDK_LPSTR szFilename, int iID, int iDBProMode, int i
 	}
 }
 
+bool CheckForWorkshopFile ( char* szFilename )
+{
+	return false;
+}
+
 DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID )
 {
 	// Uses actual or virtual file..
@@ -1328,7 +1333,7 @@ DARKSDK_DLL void MakeObjectFromLimbEx ( int iNewID, int iSrcID, int iLimbID, int
 					for ( DWORD b=0; b<dwBoneCount; b++ )
 					{
 						bool bNeedThisBone = false;
-						for ( DWORD l=0; l<(DWORD)pNewObject->iFrameCount; l++ )
+						for ( DWORD l=0; l<(DWORD_PTR)pNewObject->iFrameCount; l++ )
 							if ( strcmp ( pSrcMesh->pBones [ b ].szName, pNewObject->ppFrameList [ l ]->szName )==NULL )
 								{ bNeedThisBone = true; break; }
 
@@ -1396,7 +1401,7 @@ DARKSDK_DLL void MakeObjectFromLimbEx ( int iNewID, int iSrcID, int iLimbID, int
 				{
 					// if animation name same as any frame in new object, copy anim from src obj to new obj
 					bool bNeedThisAnim = false;
-					for ( DWORD l=0; l<(DWORD)pNewObject->iFrameCount; l++ )
+					for ( DWORD l=0; l<(DWORD_PTR)pNewObject->iFrameCount; l++ )
 						if ( strcmp ( pOrigAnim->szName, pNewObject->ppFrameList [ l ]->szName )==NULL )
 							{ bNeedThisAnim = true; break; }
 
@@ -4343,7 +4348,7 @@ DARKSDK_DLL void DeleteEffect ( int iEffectID )
 		sObject* pObject = g_ObjectList [ dwObject ];
 		if ( pObject )
 		{
-			for ( DWORD dwMesh = 0; dwMesh < (DWORD)pObject->iMeshCount; dwMesh++ )
+			for ( DWORD dwMesh = 0; dwMesh < (DWORD_PTR)pObject->iMeshCount; dwMesh++ )
 			{
 				if ( pObject->ppMeshList [ dwMesh ]->pVertexShaderEffect == m_EffectList [ iEffectID ]->pEffectObj )
 				{
@@ -9638,7 +9643,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 		return NULL;
 
 	// Free old string
-	if(lpStr) g_pGlob->CreateDeleteString((DWORD*)&lpStr, 0);
+	if(lpStr) g_pGlob->CreateDeleteString((DWORD_PTR*)&lpStr, 0);
 
 	// texture name to return
 	LPSTR pTextureLimbName = NULL;
@@ -9689,12 +9694,12 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 	// Allocate new size
 	LPSTR pString = NULL;
 	DWORD dwSize = strlen ( pTextureLimbName );
-	g_pGlob->CreateDeleteString((DWORD*)&pString, dwSize+1);
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pString, dwSize+1);
 	ZeroMemory ( pString, dwSize+1 );
 	memcpy ( pString, pTextureLimbName, dwSize );
 
 	// Return String
-	return (DWORD)pString;
+	return (DWORD_PTR)pString;
 }
 
 DARKSDK_DLL SDK_LPSTR GetLimbTextureName ( SDK_RETSTR int iID, int iLimbID )
@@ -9713,7 +9718,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbName ( SDK_RETSTR int iID, int iLimbID )
 		return NULL;
 
 	// Free old string
-	if(lpStr) g_pGlob->CreateDeleteString((DWORD*)&lpStr, 0);
+	if(lpStr) g_pGlob->CreateDeleteString((DWORD_PTR*)&lpStr, 0);
 
 	// get name of frame
 	sObject* pObject = g_ObjectList [ iID ];
@@ -9722,12 +9727,12 @@ DARKSDK_DLL SDK_LPSTR GetLimbName ( SDK_RETSTR int iID, int iLimbID )
 	// Allocate new size
 	LPSTR pString = NULL;
 	DWORD dwSize = strlen ( pLimbName );
-	g_pGlob->CreateDeleteString((DWORD*)&pString, dwSize+1);
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pString, dwSize+1);
 	ZeroMemory ( pString, dwSize+1 );
 	memcpy ( pString, pLimbName, dwSize );
 
 	// Return String
-	return (DWORD)pString;
+	return (DWORD_PTR)pString;
 }
 
 DARKSDK_DLL int GetLimbCount ( int iID )
@@ -10965,7 +10970,7 @@ void dbMakeObjectTriangle ( int iID, float x1, float y1, float z1, float x2, flo
 
 void dbAppendObject ( char* pString, int iID, int iFrame )
 {
-	Append ( ( DWORD ) pString, iID, iFrame );
+	Append ( (DWORD_PTR)pString, iID, iFrame );
 }
 
 void dbPlayObject ( int iID )
@@ -11310,12 +11315,12 @@ void dbSetRainbowShadingOn ( int iID, int iStandardImage )
 
 void dbSetEffectOn ( int iID, char* pFilename, int iUseDefaultTextures )
 {
-	SetEffectOn ( iID, ( DWORD ) pFilename, iUseDefaultTextures );
+	SetEffectOn ( iID, (DWORD_PTR)pFilename, iUseDefaultTextures );
 }
 
 void dbLoadEffect ( char* pFilename, int iEffectID, int iUseDefaultTextures )
 {
-	LoadEffect ( ( DWORD ) pFilename, iEffectID, iUseDefaultTextures );
+	LoadEffect ( (DWORD_PTR)pFilename, iEffectID, iUseDefaultTextures );
 }
 
 void dbDeleteEffect ( int iEffectID )
@@ -11355,32 +11360,32 @@ void dbSetEffectTranspose ( int iEffectID, int iTransposeFlag )
 
 void dbSetEffectConstantBoolean ( int iEffectID, char* pConstantName, int iValue )
 {
-	SetEffectConstantB ( iEffectID, ( DWORD ) pConstantName, iValue );
+	SetEffectConstantB ( iEffectID, (DWORD_PTR)pConstantName, iValue );
 }
 
 void dbSetEffectConstantInteger ( int iEffectID, char* pConstantName, int iValue )
 {
-	SetEffectConstantI ( iEffectID, ( DWORD ) pConstantName, iValue );
+	SetEffectConstantI ( iEffectID, (DWORD_PTR)pConstantName, iValue );
 }
 
 void dbSetEffectConstantFloat ( int iEffectID, char* pConstantName, float fValue )
 {
-	SetEffectConstantF ( iEffectID, ( DWORD ) pConstantName, fValue );
+	SetEffectConstantF ( iEffectID, (DWORD_PTR)pConstantName, fValue );
 }
 
 void dbSetEffectConstantVector ( int iEffectID, char* pConstantName, int iValue )
 {
-	SetEffectConstantV ( iEffectID, ( DWORD ) pConstantName, iValue );
+	SetEffectConstantV ( iEffectID, (DWORD_PTR)pConstantName, iValue );
 }
 
 void dbSetEffectConstantMatrix ( int iEffectID, char* pConstantName, int iValue )
 {
-	SetEffectConstantM ( iEffectID, ( DWORD ) pConstantName, iValue );
+	SetEffectConstantM ( iEffectID, (DWORD_PTR)pConstantName, iValue );
 }
 
 void dbSetEffectTechnique ( int iEffectID, char* pTechniqueName )
 {
-	SetEffectTechnique ( iEffectID, ( DWORD ) pTechniqueName );
+	SetEffectTechnique ( iEffectID, (DWORD_PTR)pTechniqueName );
 }
 
 int dbEffectExist ( int iEffectID )
@@ -11506,12 +11511,12 @@ void dbSetPixelShaderTexture ( int iShader, int iSlot, int iTexture )
 
 void dbSaveObjectAnimation ( int iID, char* pFilename )
 {
-	SaveAnimation ( iID, ( DWORD ) pFilename );
+	SaveAnimation ( iID, (DWORD_PTR)pFilename );
 }
 
 void dbAppendObjectAnimation ( int iID, char* pFilename )
 {
-	AppendAnimation ( iID, ( DWORD ) pFilename );
+	AppendAnimation ( iID, (DWORD_PTR)pFilename );
 }
 
 void dbClearAllObjectKeyFrames ( int iID )
@@ -11586,12 +11591,12 @@ void dbEnableStaticOcclusion ( void )
 
 void dbSaveStaticObjects ( char* pFilename )
 {
-	SaveNodeTreeObjects ( ( DWORD ) pFilename );
+	SaveNodeTreeObjects ( (DWORD_PTR)pFilename );
 }
 
 void dbLoadStaticObjects ( char* pFilename, int iDivideTextureSize )
 {
-	LoadNodeTreeObjects ( ( DWORD ) pFilename, iDivideTextureSize );
+	LoadNodeTreeObjects ( (DWORD_PTR)pFilename, iDivideTextureSize );
 }
 
 void dbAttachObjectToStatic ( int iID )
@@ -11907,7 +11912,7 @@ void dbAddLODToObject ( int iCurrentID, int iLODModelID, int iLODLevel, float fD
 
 void dbLoadMesh ( char* pFilename, int iID )
 {
-	LoadMesh ( ( DWORD ) pFilename, iID );
+	LoadMesh ( (DWORD_PTR)pFilename, iID );
 }
 
 void dbDeleteMesh ( int iID )
@@ -11917,7 +11922,7 @@ void dbDeleteMesh ( int iID )
 
 void dbSaveMesh ( char* pFilename, int iMeshID )
 {
-	SaveMesh ( ( DWORD ) pFilename, iMeshID );
+	SaveMesh ( (DWORD_PTR)pFilename, iMeshID );
 }
 
 void dbChangeMesh ( int iObjectID, int iLimbID, int iMeshID )
@@ -12132,7 +12137,7 @@ void dbEnableTNL ( void )
 
 void dbConvert3DStoX ( char* pFilename1, char* pFilename2 )
 {
-	Convert3DStoX ( ( DWORD ) pFilename1, ( DWORD ) pFilename2 );
+	Convert3DStoX ( (DWORD_PTR)pFilename1, (DWORD_PTR)pFilename2 );
 }
 
 int dbPickObject ( int iX, int iY, int iObjectStart, int iObjectEnd )
@@ -13145,7 +13150,7 @@ void dbSetAlphaMappingOn ( int iID, int iPercentage ) { return dbSetAlphaMapping
 void dbSetLimbSmoothing	( int iID, int iLimbID, int iPercentage ) { return dbSetLimbSmoothing (iID, iLimbID, (float)iPercentage); }
 bool dbAnistropicfilteringAvailable ( void ) { return GetAnisotropicFiltering (); }
 bool dbBlitSysToLocalAvailable ( void ) { return GetBlitSysOntoLocal (); }
-char* dbLimbTextureName	( int iID, int iLimbID ) { char* pStr=NULL; return (char*)GetLimbTextureNameEx ( (DWORD)pStr, iID, iLimbID, 0 ); }
+char* dbLimbTextureName	( int iID, int iLimbID ) { char* pStr=NULL; return (char*)GetLimbTextureNameEx ( (DWORD_PTR)pStr, iID, iLimbID, 0 ); }
 
 // lee - 020906 - GDK tweaks
 void dbPerformChecklistForObjectLimbs ( int iID ) { dbPerformCheckListForObjectLimbs ( iID ); }

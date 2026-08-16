@@ -46,7 +46,7 @@ using namespace std;
 #ifdef DARKSDK_COMPILE
 	#include ".\..\..\..\DarkGDK\Code\Include\DarkSDKDisplay.h"
 #endif
-#pragma comment ( lib, "d3dxof.lib" )
+//#pragma comment ( lib, "d3dxof.lib" )
 
 //////////////////////////////////////////////////////////////////////////////////
 // GLOBALS ///////////////////////////////////////////////////////////////////////
@@ -443,10 +443,23 @@ DARKSDK bool LoadModelData ( char* szFilename, sFrame* pFrame, bool bAnim )
 	IDirectXFileEnumObject* pDXEnum       = NULL;	// object interface
 	IDirectXFileData*		pDXData       = NULL;	// data interface
 	char*					szTexturePath = "";		// default texture path
-
 	// create the file object
-	if ( FAILED ( DirectXFileCreate ( &pDXFile ) ) )
-		return false;
+	typedef HRESULT (WINAPI *pfnDXFileCreate)(LPDIRECTXFILE*);
+	static pfnDXFileCreate pDXFileCreate = NULL;
+	if (!pDXFileCreate)
+	{
+		HMODULE hMod = LoadLibraryA("d3dxof.dll");
+		if (hMod) pDXFileCreate = (pfnDXFileCreate)GetProcAddress(hMod, "DirectXFileCreate");
+	}
+	if (pDXFileCreate)
+	{
+		if (FAILED(pDXFileCreate(&pDXFile))) return false;
+	}
+	else
+	{
+		if (FAILED(CoCreateInstance(CLSID_CDirectXFile, NULL, CLSCTX_INPROC_SERVER, IID_IDirectXFile, (void**)&pDXFile)))
+			return false;
+	}
 
 	// register the templates from RM
 	if ( FAILED ( pDXFile->RegisterTemplates ( ( LPVOID ) D3DRM_XTEMPLATES, D3DRM_XTEMPLATE_BYTES ) ) )
@@ -537,7 +550,7 @@ DARKSDK bool Delete ( void )
 bool	Convert		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
 void	Free		( LPSTR );
 
-bool ConvertX ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+bool ConvertX ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
 {
 	return Convert ( pFilename, pBlock, pdwSize );
 }

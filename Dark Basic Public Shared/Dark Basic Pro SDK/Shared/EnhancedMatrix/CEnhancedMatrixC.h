@@ -7,7 +7,6 @@
 #pragma comment ( lib, "dxguid.lib" )
 #pragma comment ( lib, "d3d9.lib"   )
 #pragma comment ( lib, "d3dx9.lib"  )
-#pragma comment ( lib, "dxerr9.lib" )
 
 #include ".\..\data\cdatac.h"
 #include "cenhancedmatrixdatac.h"
@@ -17,7 +16,6 @@
 #include ".\modes\quadtrees\cquadtreesc.h"
 
 #include < d3d9.h >
-#include < Dxerr9.h >
 #include < D3dx9tex.h >
 #include < D3dx9core.h >
 #include < basetsd.h >
@@ -47,7 +45,7 @@
  #define SDK_FLOAT DWORD
  #define SDK_LPSTR DWORD
  #define SDK_RETFLOAT(f) *(DWORD*)&f 
- #define SDK_RETSTR DWORD pDestStr,
+ #define SDK_RETSTR DWORD_PTR pDestStr,
 #else
  #define SDK_BOOL bool
  #define SDK_FLOAT float

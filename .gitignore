@@ -1,21 +1,37 @@
 # CMake build directories
+build*/
 /build/
 /out/
 /.cmake/
 CMakeUserPresets.json
 /.worktrees/
 
+# Build output directories (Visual Studio / MSBuild / CMake)
+x64/
+Win32/
+Release*/
+Debug*/
+ipch/
+.freebuff/
+
 # CMake output binaries
 /bin/
 /bin/Debug/
 /bin/Release/
 
-# Visual Studio user files
+# Visual Studio user and IDE files
 *.user
 *.suo
 *.userOS
 *.sln.docstates
 .vs/
+*.VC.db
+*.VC.opendb
+*.sdf
+*.opensdf
+*.ncb
+*.SUP
+*.aps
 
 # Compilation outputs
 *.obj
@@ -29,6 +45,9 @@ CMakeUserPresets.json
 *.exp
 *.tlog
 *.log
+*.pch
+*.lastbuildstate
+*.unsuccessfulbuild
 
 # Visual C++ browser and incremental build databases
 *.sbr
@@ -36,3 +55,4 @@ CMakeUserPresets.json
 *.idb
 *.ipdb
 *.iobj
+

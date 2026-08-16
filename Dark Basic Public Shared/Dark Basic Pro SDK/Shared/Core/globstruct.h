@@ -59,7 +59,7 @@ enum {
 };
 
 // Typdefs shared by all DLLs
-typedef void ( *PTR_FuncCreateStr ) ( DWORD*, DWORD );
+typedef void ( *PTR_FuncCreateStr ) ( DWORD_PTR*, DWORD );
 typedef DWORD ( *PTR_ProcessMessages ) ( void );
 typedef void ( *PTR_PrintString ) ( LPSTR, bool );
 typedef void ( *PTR_VOID ) ( void );
@@ -211,9 +211,9 @@ struct GlobStruct
 	// Executable Media Handling Data
 	char						pEXEUnpackDirectory[_MAX_PATH];
 	DWORD						dwEncryptionUniqueKey;
-	DWORD						ppEXEAbsFilename;
+	DWORD_PTR					ppEXEAbsFilename;
 	DWORD						dwInternalFunctionCode;
-	DWORD						g_pMachineCodeBlock;
+	DWORD_PTR					g_pMachineCodeBlock;
 	DWORD						dwEMHDSpare4;
 	DWORD						dwEMHDSpare5;
 
@@ -354,14 +354,14 @@ inline char *dbReturnString(char *oldstr, const char *newstr) {
 	p = nullptr;
 
 	if (oldstr)
-		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD *>(&oldstr), 0);
+		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR *>(&oldstr), 0);
 
 	if (!newstr)
 		return nullptr;
 
 	l = strlen(newstr) + 1;
 
-	g_pGlob->CreateDeleteString(reinterpret_cast<DWORD *>(&p), l);
+	g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR *>(&p), static_cast<DWORD>(l));
 	memcpy(reinterpret_cast<void *>(p), reinterpret_cast<const void *>(newstr), l);
 
 	return p;

@@ -15,16 +15,12 @@
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
     <ClCompile Include="..\..\Shared\Core\globstruct.cpp" />
     <ClCompile Include="..\..\Shared\Core\SteamCheckForWorkshop.cpp">
       <Filter>File</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\File\CFileC.h">
-      <Filter>File</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Error</Filter>
     </ClInclude>
@@ -32,6 +28,9 @@
       <Filter>Error</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\Include\CFileC.h">
+      <Filter>File</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FilePlus.rc" />

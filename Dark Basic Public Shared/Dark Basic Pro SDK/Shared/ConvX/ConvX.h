@@ -101,7 +101,7 @@ extern "C"
 	DARKSDK void	Free				( LPSTR );
 }
 #else
-	bool	ConvertX		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+	bool ConvertX ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize );
 	void	FreeX			( LPSTR );
 #endif
 

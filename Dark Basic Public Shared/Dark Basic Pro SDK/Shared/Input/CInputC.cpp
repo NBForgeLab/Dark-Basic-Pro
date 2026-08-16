@@ -78,7 +78,7 @@ DBPRO_GLOBAL HKEY		g_hkeyRegistry						= HKEY_LOCAL_MACHINE;
 
 // Global settings
 DBPRO_GLOBAL HWND		g_phWnd								= NULL;		// handle to window
-DBPRO_GLOBAL DWORD*		g_pWindowsEntryString				= NULL;		// passed in from window core
+DBPRO_GLOBAL char**		g_pWindowsEntryString				= NULL;		// passed in from window core
 DBPRO_GLOBAL int			g_iMouseLocalZ						= 0;
 DBPRO_GLOBAL int			g_iMouseDeltaX						= 0;
 DBPRO_GLOBAL int			g_iMouseDeltaY						= 0;
@@ -105,7 +105,7 @@ DBPRO_GLOBAL int			g_iJoystickDeadzone					= 200;
 // INTERNAL FUNCTIONS ////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-DARKSDK void Constructor ( HINSTANCE hInstance )
+DARKSDK void Constructor ([[maybe_unused]] HINSTANCE hInstance)
 {
 	// clear out the keyboard buffer
 	memset ( &m_KeyBuffer, 0, sizeof ( m_KeyBuffer ) );
@@ -148,7 +148,7 @@ DARKSDK void Destructor ( void )
 {
 }
 
-DARKSDK void RefreshD3D ( int iMode )
+DARKSDK void RefreshD3D ([[maybe_unused]] int iMode)
 {
 }
 
@@ -158,27 +158,33 @@ DARKSDK void SetErrorHandler ( LPVOID pErrorHandlerPtr )
 	g_pErrorHandler = (CRuntimeErrorHandler*)pErrorHandlerPtr;
 }
 
-DARKSDK void PassCoreData( LPVOID pGlobPtr )
+DARKSDK void PassCoreData ( LPVOID pGlobPtr )
 {
-	// Held in Core, used here..
+	// Get Glob Structure
 	g_pGlob = (GlobStruct*)pGlobPtr;
-	g_pCreateDeleteStringFunction = g_pGlob->CreateDeleteString;
-	g_pWindowsEntryString = (DWORD*)&g_pGlob->pWindowsTextEntry;
-	g_phWnd = g_pGlob->hWnd;
-	g_iMouseLocalZ = 0;
 
-	// new HWND, so new setups
-	FreeDevices();
-	SetupKeyboard      ( );		// keyboard
-	SetupMouse         ( );		// mouse
-	SetupForceFeedback ( );		// force feedback
+	// Pass function pointer for string creation
+	if(g_pGlob)
+	{
+		g_pCreateDeleteStringFunction = (PTR_FuncCreateStr)g_pGlob->CreateDeleteString;
+		g_phWnd                       = g_pGlob->hWnd;
+		g_pWindowsEntryString         = &g_pGlob->pWindowsTextEntry;
+	}
+}
+
+DARKSDK void ForceReload ( void )
+{
+}
+
+DARKSDK void ReleaseAll ( void )
+{
 }
 
 //
 // Setups
 //
 
-DARKSDK void SetupKeyboardEx ( DWORD dwForeOrBackGround )
+DARKSDK void SetupKeyboardEx ([[maybe_unused]] DWORD dwForeOrBackGround)
 {
 	if (g_phWnd)
 	{
@@ -191,7 +197,7 @@ DARKSDK void SetupKeyboard ( void )
 	SetupKeyboardEx ( 0 );
 }
 
-DARKSDK void SetupMouseEx ( DWORD dwForeOrBackGround )
+DARKSDK void SetupMouseEx ([[maybe_unused]] DWORD dwForeOrBackGround)
 {
 	if (g_phWnd)
 	{
@@ -208,12 +214,12 @@ DARKSDK void SetupMouse ( void )
 
 // Legacy DirectInput joystick enumeration callbacks removed
 
-DARKSDK bool DB_CreateFFDirectionEffect(short id, int magnitude, bool bStart) { return false; }
-DARKSDK bool DB_CreateFFAngleEffect(int magnitude, int angle, int delay, bool bStart) { return false; }
-DARKSDK bool DB_CreateFFChainsawEffect(int magnitude, int delay, bool bStart) { return false; }
-DARKSDK bool DB_CreateFFShootEffect(int magnitude, int delay, bool bStart) { return false; }
-DARKSDK bool DB_CreateFFImpactEffect(int magnitude, int delay, bool bStart) { return false; }
-DARKSDK bool DB_CreateFFWaterEffect(int magnitude, int delay, bool bStart) { return false; }
+DARKSDK bool DB_CreateFFDirectionEffect([[maybe_unused]] short id, [[maybe_unused]] int magnitude, [[maybe_unused]] bool bStart) { return false; }
+DARKSDK bool DB_CreateFFAngleEffect([[maybe_unused]] int magnitude, [[maybe_unused]] int angle, [[maybe_unused]] int delay, [[maybe_unused]] bool bStart) { return false; }
+DARKSDK bool DB_CreateFFChainsawEffect([[maybe_unused]] int magnitude, [[maybe_unused]] int delay, [[maybe_unused]] bool bStart) { return false; }
+DARKSDK bool DB_CreateFFShootEffect([[maybe_unused]] int magnitude, [[maybe_unused]] int delay, [[maybe_unused]] bool bStart) { return false; }
+DARKSDK bool DB_CreateFFImpactEffect([[maybe_unused]] int magnitude, [[maybe_unused]] int delay, [[maybe_unused]] bool bStart) { return false; }
+DARKSDK bool DB_CreateFFWaterEffect([[maybe_unused]] int magnitude, [[maybe_unused]] int delay, [[maybe_unused]] bool bStart) { return false; }
 
 DARKSDK bool DB_SelectNewControlDevice(void)
 {
@@ -227,7 +233,7 @@ DARKSDK bool DB_SelectNewControlDevice(void)
 }
 
 DARKSDK void DB_StopFFEffect() {}
-DARKSDK void DB_AutoCenter(bool AutoCenterOn) {}
+DARKSDK void DB_AutoCenter([[maybe_unused]] bool AutoCenterOn) {}
 
 DARKSDK void SetupForceFeedback ( void )
 {
@@ -291,7 +297,7 @@ void MapXInputToDIJoyState(const XINPUT_STATE& state, DIJOYSTATE2& joyState)
 	joyState.rgbButtons[8] = (wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 0x80 : 0x00;
 	joyState.rgbButtons[9] = (wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 0x80 : 0x00;
 
-	DWORD pov = -1;
+	DWORD pov = 0xFFFFFFFF;
 	if (wButtons & XINPUT_GAMEPAD_DPAD_UP) {
 		if (wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 4500;
 		else if (wButtons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 31500;
@@ -338,18 +344,22 @@ DARKSDK char InKey ( void )
 	// return the character of the current key
 	int iTemp = 0;
 
+	// update keyboard data
 	UpdateKeyboard ( );
 
-	for ( iTemp = 0; iTemp < sizeof ( m_KeyScanCodes ) / sizeof ( char ); iTemp++ )
+	// see if a character has been pressed
+	for ( iTemp = 0; iTemp < 256; iTemp++ )
 	{
-		if ( KEYDOWN ( m_KeyBuffer, m_KeyScanCodes [ iTemp ] ) )
+		// check if the key is pressed
+		if ( m_KeyBuffer [ iTemp ] & 0x80 )
 		{
-			memset ( &m_KeyBuffer, 0, sizeof ( m_KeyBuffer ) );
-			return m_KeyCharacters [ iTemp ];
+			// return the character
+			return ( char ) iTemp;
 		}
 	}
 
-	return -1;
+	// no key is currently pressed
+	return 0;
 }
 
 
@@ -360,21 +370,21 @@ DARKSDK char InKey ( void )
 DARKSDK void ClearEntryBuffer ( void )
 {
 	// Clear Windows String
-	if((LPSTR)*g_pWindowsEntryString) strcpy((LPSTR)*g_pWindowsEntryString,"");
+	if(g_pWindowsEntryString && *g_pWindowsEntryString) strcpy(*g_pWindowsEntryString, "");
 }
 
-DARKSDK DWORD GetEntryEx ( DWORD pDestStr, int iAutoBackSpaceMode )
+DARKSDK DWORD_PTR GetEntryEx( DWORD_PTR pDestStr, int iAutoBackSpaceMode )
 {
 	// Free old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
 	// lee - 110206 - prepare alternate string if auto-backspace-mode
-	LPSTR pRefStr = (LPSTR)*g_pWindowsEntryString;
+	LPSTR pRefStr = (g_pWindowsEntryString) ? *g_pWindowsEntryString : NULL;
 	LPSTR pTempStr = NULL;
 	if ( iAutoBackSpaceMode==1 && pRefStr )
 	{
 		// go through insert/backspace history of entry$() string to make final string result
-		DWORD dwSize = strlen(pRefStr);
+		DWORD dwSize = static_cast<DWORD>(strlen(pRefStr));
 		pTempStr = new char [ dwSize+1 ];
 		DWORD i = 0;
 		for ( DWORD c=0; c<dwSize; c++ )
@@ -395,8 +405,8 @@ DARKSDK DWORD GetEntryEx ( DWORD pDestStr, int iAutoBackSpaceMode )
 	LPSTR pReturnString=NULL;
 	if(pRefStr)
 	{
-		DWORD dwSize=strlen(pRefStr);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		DWORD dwSize = static_cast<DWORD>(strlen(pRefStr));
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, pRefStr);
 	}
 
@@ -404,10 +414,10 @@ DARKSDK DWORD GetEntryEx ( DWORD pDestStr, int iAutoBackSpaceMode )
 	delete[] pTempStr;
 
 	// return DB string
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD GetEntry ( DWORD pDestStr )
+DARKSDK DWORD_PTR GetEntry( DWORD_PTR pDestStr )
 {
 	return GetEntryEx ( pDestStr, 0 );
 }
@@ -722,13 +732,12 @@ DARKSDK int GetMouseClick ( void )
 	// so if button 1 and 2 were clicked you
 	// would get a return value of 3
 
-	int iTemp  = 0;
 	int iCount = 0;
 
 	// update the mouse data
 	UpdateMouse ( );
 
-    for (int i = 0; i < sizeof(m_MouseBuffer.rgbButtons); ++i)
+    for (size_t i = 0; i < sizeof(m_MouseBuffer.rgbButtons); ++i)
     {
         if (m_MouseBuffer.rgbButtons[i] & 0x80)
         {
@@ -827,10 +836,10 @@ DARKSDK void WriteToClipboard ( LPSTR pString )
 	CloseClipboard();
 }
 
-DARKSDK DWORD GetClipboard ( DWORD pDestStr )
+DARKSDK DWORD_PTR GetClipboard( DWORD_PTR pDestStr )
 {
 	// Free old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
 	// Clipboard Vars
 	HGLOBAL hglb = NULL;
@@ -858,7 +867,7 @@ DARKSDK DWORD GetClipboard ( DWORD pDestStr )
 			ClipboardDataSize++;
 
 			// Allocate new size
-			g_pCreateDeleteStringFunction((DWORD*)&pString, ClipboardDataSize+1);
+			g_pCreateDeleteStringFunction((DWORD_PTR*)&pString, ClipboardDataSize+1);
 			ZeroMemory(pString, ClipboardDataSize+1);
 			memcpy(pString, pClipboardData, ClipboardDataSize);
 			GlobalUnlock(hglb);        
@@ -867,7 +876,7 @@ DARKSDK DWORD GetClipboard ( DWORD pDestStr )
 	CloseClipboard(); 
 
 	// Return String
-	return (DWORD)pString;
+	return (DWORD_PTR)pString;
 }
 
 DARKSDK void SetRegistryHKEY ( int iMode )
@@ -924,7 +933,7 @@ DARKSDK bool CoreWriteStringToRegistry(char* PerfmonNamesKey, char* valuekey, ch
 	}
     if(Status==ERROR_SUCCESS)
 	{
-        Status = RegSetValueEx(hKeyNames, valuekey, 0, REG_SZ, (LPBYTE)string, (strlen(string)+1)*sizeof(char));
+        Status = RegSetValueEx(hKeyNames, valuekey, 0, REG_SZ, (LPBYTE)string, static_cast<DWORD>((strlen(string)+1)*sizeof(char)));
 	}
 	RegCloseKey(hKeyNames);
 	hKeyNames=0;
@@ -936,7 +945,6 @@ DARKSDK void CoreReadStringFromRegistry(char* PerfmonNamesKey, char* valuekey, c
 	HKEY hKeyNames = 0;
 	DWORD Status;
 	char ObjectType[256];
-	DWORD Datavalue = 0;
 
 	strcpy(string,"");
 	strcpy(ObjectType,"Num");
@@ -948,9 +956,9 @@ DARKSDK void CoreReadStringFromRegistry(char* PerfmonNamesKey, char* valuekey, c
 		Status = RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, NULL, &Size);
 		if(Size<255)
 			RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, (LPBYTE)string, &Size);
-
-		RegCloseKey(hKeyNames);
 	}
+	RegCloseKey(hKeyNames);
+	hKeyNames=0;
 }
 
 DARKSDK int GetRegistry ( LPSTR pfolder, LPSTR valuekey )
@@ -960,18 +968,14 @@ DARKSDK int GetRegistry ( LPSTR pfolder, LPSTR valuekey )
 	{
 		HKEY hKeyNames = 0;
 		DWORD Status;
-		char ObjectType[256];
-		DWORD Datavalue = 0;
-		strcpy(ObjectType,"Num");
 		Status = RegOpenKeyEx(g_hkeyRegistry, pfolder, 0L, KEY_READ, &hKeyNames);
 		if(Status==ERROR_SUCCESS)
 		{
 			DWORD Type=REG_DWORD;
 			DWORD Size=sizeof(DWORD);
-			Status = RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, (LPBYTE)&Datavalue, &Size);
+			Status = RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, (LPBYTE)&iValue, &Size);
 			RegCloseKey(hKeyNames);
 		}
-		memcpy(&iValue,&Datavalue,4);
 	}
 	else
 	{
@@ -980,7 +984,7 @@ DARKSDK int GetRegistry ( LPSTR pfolder, LPSTR valuekey )
 	return iValue;
 }
 
-DARKSDK void WriteToRegistryS ( LPSTR pfolder, LPSTR valuekey, DWORD pString )
+DARKSDK void WriteToRegistryS ( LPSTR pfolder, LPSTR valuekey, DWORD_PTR pString )
 {
 	if(strlen(pfolder)<255 && strlen(valuekey)<255)
 	{
@@ -994,27 +998,26 @@ DARKSDK void WriteToRegistryS ( LPSTR pfolder, LPSTR valuekey, DWORD pString )
 	}
 }
 
-DARKSDK void WriteToRegistrySL ( LPSTR pfolder, LPSTR valuekey, DWORD pString, int iCurrentUserMode )
+DARKSDK void WriteToRegistrySL ( LPSTR pfolder, LPSTR valuekey, DWORD_PTR pString, int iCurrentUserMode )
 {
 	SetRegistryHKEY ( iCurrentUserMode );
 	return WriteToRegistryS ( pfolder, valuekey, pString );
 }
 
-DARKSDK DWORD GetRegistryS ( DWORD pDestStr, LPSTR pfolder, LPSTR valuekey )
+DARKSDK DWORD_PTR GetRegistryS( DWORD_PTR pDestStr, LPSTR pfolder, LPSTR valuekey )
 {
 	LPSTR pString=NULL;
 
-	int iValue=0;
 	if(strlen(pfolder)<255 && strlen(valuekey)<255)
 	{
 		char pStr[256];
 		CoreReadStringFromRegistry ( pfolder, valuekey, pStr );
 
 		// Free old string
-		if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+		if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
 		// Allocate new size
-		g_pCreateDeleteStringFunction((DWORD*)&pString, strlen(pStr)+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pString, static_cast<DWORD>(strlen(pStr)+1));
 		ZeroMemory(pString, strlen(pStr)+1);
 		memcpy(pString, pStr, strlen(pStr));
 	}
@@ -1024,10 +1027,10 @@ DARKSDK DWORD GetRegistryS ( DWORD pDestStr, LPSTR pfolder, LPSTR valuekey )
 	}
 
 	// Return String
-	return (DWORD)pString;
+	return (DWORD_PTR)pString;
 }
 
-DARKSDK DWORD GetRegistrySL ( DWORD pDestStr, LPSTR pfolder, LPSTR valuekey, int iCurrentUserMode )
+DARKSDK DWORD_PTR GetRegistrySL( DWORD_PTR pDestStr, LPSTR pfolder, LPSTR valuekey, int iCurrentUserMode )
 {
 	SetRegistryHKEY ( iCurrentUserMode );
 	return GetRegistryS ( pDestStr, pfolder, valuekey );
@@ -1458,13 +1461,13 @@ DARKSDK void PerformChecklistControlDevices( void )
 				wsprintf(productname, "Xbox Controller %d", i + 1);
 
 				int qty = g_pGlob->checklistqty;
-				GlobExpandChecklist(qty, strlen(productname) + 1);
+				GlobExpandChecklist(qty, static_cast<DWORD>(strlen(productname) + 1));
 
 				g_pGlob->checklist[qty].valuea = 1;
 				g_pGlob->checklist[qty].valueb = i;
 				g_pGlob->checklist[qty].valuec = 0;
 				g_pGlob->checklist[qty].valued = 0;
-				g_pGlob->checklist[qty].dwStringSize = strlen(productname);
+				g_pGlob->checklist[qty].dwStringSize = static_cast<DWORD>(strlen(productname));
 				strcpy(g_pGlob->checklist[qty].string, productname);
 
 				g_pGlob->checklistqty++;
@@ -1474,7 +1477,7 @@ DARKSDK void PerformChecklistControlDevices( void )
 	}
 }
 
-DARKSDK void SetControlDeviceEx( DWORD pName, int iSubIndex )
+DARKSDK void SetControlDeviceEx( DWORD_PTR pName, int iSubIndex )
 {
 	strcpy(gFindController, (LPSTR)pName);
 	giChoseSameControllerByIndex = iSubIndex;
@@ -1495,7 +1498,7 @@ DARKSDK void SetControlDeviceEx( DWORD pName, int iSubIndex )
 	}
 }
 
-DARKSDK void SetControlDevice( DWORD pName )
+DARKSDK void SetControlDevice( DWORD_PTR pName )
 {
 	SetControlDeviceEx ( pName, 0 );
 }
@@ -1506,9 +1509,9 @@ DARKSDK void SetControlDeviceIndex ( int iIndex )
 		m_iCDI = iIndex;
 }
 
-DARKSDK DWORD GetControlDevice ( DWORD pDestStr )
+DARKSDK DWORD_PTR GetControlDevice( DWORD_PTR pDestStr )
 {
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
 	LPSTR pReturnString=NULL;
 	XINPUT_STATE state;
@@ -1517,16 +1520,16 @@ DARKSDK DWORD GetControlDevice ( DWORD pDestStr )
 	{
 		char name[256];
 		wsprintf(name, "Xbox Controller %d", m_iCDI + 1);
-		DWORD dwSize=strlen(name);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		DWORD dwSize = static_cast<DWORD>(strlen(name));
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, name);
 	}
 	else
 	{
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, 1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, 1);
 		pReturnString[0] = '\0';
 	}
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK int ControlDeviceX( void )
@@ -1680,7 +1683,7 @@ int dbGetRegistry ( LPSTR a, LPSTR b )
 
 void dbWriteToRegistryS ( LPSTR pfolder, LPSTR valuekey, char* pString )
 {
-	WriteToRegistryS ( pfolder, valuekey, ( DWORD ) pString );
+	WriteToRegistryS ( pfolder, valuekey, (DWORD_PTR)pString );
 }
 
 char* dbGetRegistryS ( char* pfolder, char* valuekey )
@@ -1915,7 +1918,7 @@ void dbPerformChecklistControlDevices ( void )
 
 void dbSetControlDevice ( char* pName )
 {
-	SetControlDevice ( ( DWORD ) pName );
+	SetControlDevice ( (DWORD_PTR)pName );
 }
 
 char* dbGetControlDevice ( void )

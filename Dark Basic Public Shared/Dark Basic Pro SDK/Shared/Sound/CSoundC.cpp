@@ -173,7 +173,7 @@ DARKSDK void Update ( void )
 			ptr->pSound->GetBuffer(0)->GetCurrentPosition(&pos, &wpos);
 			if ( ptr->iLoopStartPos>=0 )
 			{
-				if(pos<(DWORD)ptr->iLoopStartPos)
+				if(pos<(DWORD_PTR)ptr->iLoopStartPos)
 				{
 					// bring to start of loop
 					ptr->pSound->GetBuffer(0)->SetCurrentPosition(ptr->iLoopStartPos);
@@ -181,7 +181,7 @@ DARKSDK void Update ( void )
 			}
 			if ( ptr->iLoopEndPos>=0 )
 			{
-				if(pos>(DWORD)ptr->iLoopEndPos)
+				if(pos>(DWORD_PTR)ptr->iLoopEndPos)
 				{
 					// bring to start of loop
 					ptr->pSound->GetBuffer(0)->SetCurrentPosition(ptr->iLoopStartPos);

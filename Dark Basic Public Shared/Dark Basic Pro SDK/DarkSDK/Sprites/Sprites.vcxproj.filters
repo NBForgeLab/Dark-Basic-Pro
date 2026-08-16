@@ -18,7 +18,6 @@
     <ClCompile Include="..\..\Shared\Sprites\CSpritesC.cpp">
       <Filter>Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
     <ClCompile Include="..\..\Shared\Core\SteamCheckForWorkshop.cpp">
       <Filter>Sprites</Filter>
     </ClCompile>
@@ -36,13 +35,13 @@
     <ClInclude Include="..\..\Shared\Sprites\CSpriteManagerC.h">
       <Filter>Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\Sprites\CSpritesC.h">
-      <Filter>Sprites</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Sprites\ImageSupport.h">
       <Filter>Sprites</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\Include\CSpritesC.h">
+      <Filter>Sprites</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sprites.rc" />

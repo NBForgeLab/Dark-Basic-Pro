@@ -52,6 +52,6 @@ extern "C"
 }
 #else
 	void	PassCoreData3DS	( LPVOID pGlobPtr );
-	bool	Convert3DS		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+	bool Convert3DS ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize );
 	void	Free3DS			( LPSTR );
 #endif

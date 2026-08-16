@@ -2199,7 +2199,8 @@ DARKSDK void BuildReflectionMatrix ( int iResult, float a, float b, float c, flo
 		return;
 	}
 
-	D3DXMatrixReflect ( &pResult->Get(), &D3DXPLANE ( a, b, c, d ) ); 
+	D3DXPLANE plane(a, b, c, d);
+	D3DXMatrixReflect ( &pResult->Get(), &plane ); 
 }
 
 DARKSDK void BuildRotationAxisMatrix ( int iResult, int iVectorAxis, float fAngle )

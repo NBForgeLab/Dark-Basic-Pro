@@ -13,14 +13,11 @@
       <UniqueIdentifier>{1fc51468-8d57-49a3-8b24-a1a656a49655}</UniqueIdentifier>
       <Extensions>ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
     </Filter>
-    <Filter Include="Encryptor">
-      <UniqueIdentifier>{be6f0ba3-9cd1-4bcf-8d32-5848f839d1c6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Error">
       <UniqueIdentifier>{3e8b5ed7-d4d3-4330-8f4b-a26888a8dd36}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\MM">
-      <UniqueIdentifier>{6c74c6f4-87ce-45c6-85c4-e80c3484b995}</UniqueIdentifier>
+    <Filter Include="Source Files\KMaths">
+      <UniqueIdentifier>{60fc315e-ba2f-4928-b9e7-4cffe367b43c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -48,16 +45,25 @@
     <ClCompile Include="..\..\Shared\Core\RenderList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\DBPCompiler\Encryptor.cpp">
-      <Filter>Encryptor</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Shared\MemoryManager\DarkMemoryManager.cpp">
-      <Filter>Source Files\MM</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Shared\Core\SteamCheckForWorkshop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Core\KMaths\cMatrix.cpp">
+      <Filter>Source Files\KMaths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Core\KMaths\cVector2D.cpp">
+      <Filter>Source Files\KMaths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Core\KMaths\cVector3D.cpp">
+      <Filter>Source Files\KMaths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Core\KMaths\cVector4D.cpp">
+      <Filter>Source Files\KMaths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Core\DBDLLCoreEncryptCall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,26 +86,17 @@
     <ClInclude Include="..\..\Shared\Core\DBDLLGDI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\Core\globstruct.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Core\RenderList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\DBPCompiler\Encryptor.h">
-      <Filter>Encryptor</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CError.h">
       <Filter>Error</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CRuntimeErrors.h">
       <Filter>Error</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Shared\MemoryManager\DarkMemoryManager.h">
-      <Filter>Source Files\MM</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Core\SteamCheckForWorkshop.h">
       <Filter>Header Files</Filter>

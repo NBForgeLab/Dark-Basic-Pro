@@ -99,7 +99,7 @@ DARKSDK void  SendNetMsgMesh(int playerid, int meshindex, int gua);
 DARKSDK void  GetNetMsg(void);
 DARKSDK int   NetMsgInteger(void);
 DARKSDK DWORD NetMsgFloat(void);
-DARKSDK DWORD NetMsgString(DWORD pDestStr);
+DARKSDK DWORD_PTR NetMsgString( DWORD_PTR pDestStr);
 
 // get memblock based net meseages
 DARKSDK void  NetMsgMemblock(int mbi);

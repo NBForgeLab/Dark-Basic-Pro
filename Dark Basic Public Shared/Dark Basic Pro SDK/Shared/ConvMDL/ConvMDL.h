@@ -51,7 +51,7 @@ extern "C"
 }
 #else
 	void	PassCoreDataMDL	( LPVOID pGlobPtr );
-	bool	ConvertMDL		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+	bool ConvertMDL ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize );
 	void	FreeMDL			( LPSTR );
 #endif
 

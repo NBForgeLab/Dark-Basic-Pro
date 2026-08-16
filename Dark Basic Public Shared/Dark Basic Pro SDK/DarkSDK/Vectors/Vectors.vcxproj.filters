@@ -18,12 +18,8 @@
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Vectors\cVectorC.h">
-      <Filter>Vectors &amp; Matrices</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Vectors\cVectorDataC.h">
       <Filter>Vectors &amp; Matrices</Filter>
     </ClInclude>
@@ -32,6 +28,9 @@
     </ClInclude>
     <ClInclude Include="..\..\Shared\Error\CRuntimeErrors.h">
       <Filter>Error</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Include\cVectorC.h">
+      <Filter>Vectors &amp; Matrices</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -2043,7 +2043,7 @@ bool CObjectManager::SetVertexShader ( sMesh* pMesh )
 
 	// regular or custom shader
 	if ( pMesh->bUseVertexShader )
-		m_dwCurrentShader = (DWORD)pMesh->pVertexShader;
+		m_dwCurrentShader = (DWORD_PTR)pMesh->pVertexShader;
 	else
 		m_dwCurrentShader = 0;
 
@@ -3618,13 +3618,13 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 	// special objects have built-in LOD handling
 	bool bUseSpecialBuiltInLOD = false;
 	int iLODHIGH = -1, iLODMEDIUM = -1;
-	for ( DWORD iFrameScan = 0; iFrameScan < (DWORD)pParentObject->iFrameCount; iFrameScan++ )
+	for ( DWORD iFrameScan = 0; iFrameScan < (DWORD_PTR)pParentObject->iFrameCount; iFrameScan++ )
 	{
 		LPSTR pFrameName = pParentObject->ppFrameList[iFrameScan]->szName;
 		if ( stricmp ( pFrameName, "lod_0" )==NULL ) iLODHIGH = iFrameScan;
 		if ( stricmp ( pFrameName, "lod_1" )==NULL ) iLODMEDIUM = iFrameScan;
 	}
-	for ( DWORD iFrameScan = 0; iFrameScan < (DWORD)pParentObject->iFrameCount; iFrameScan++ )
+	for ( DWORD iFrameScan = 0; iFrameScan < (DWORD_PTR)pParentObject->iFrameCount; iFrameScan++ )
 	{
 		LPSTR pFrameName = pParentObject->ppFrameList[iFrameScan]->szName;
 		if ( stricmp ( pFrameName, "lod_2" )==NULL ) iLODMEDIUM = iFrameScan;
@@ -3635,7 +3635,7 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 	// for later when rendering the QUAD IMPOSTER texture
 	if ( iLODMEDIUM!=-1 )
 	{
-		for ( DWORD dwFrameScan=0; dwFrameScan<(DWORD)pParentObject->iFrameCount; dwFrameScan++ )
+		for ( DWORD dwFrameScan=0; dwFrameScan<(DWORD_PTR)pParentObject->iFrameCount; dwFrameScan++ )
 			if ( pParentObject->ppFrameList[dwFrameScan]->pMesh )
 				pParentObject->ppFrameList[dwFrameScan]->pMesh->bVisible = false;
 		if ( pParentObject->ppFrameList[iLODMEDIUM]->pMesh )
@@ -3643,7 +3643,7 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 	}
 
 	// go through all frames of this parent object
-	for ( DWORD iFrame = 0; iFrame < (DWORD)pParentObject->iFrameCount; iFrame++ )
+	for ( DWORD iFrame = 0; iFrame < (DWORD_PTR)pParentObject->iFrameCount; iFrame++ )
 	{
 		// HIGH LOD and LOW LOD use actual object frame meshes
 		DWORD dwMaxVBSize = 12 * 3 * 32;

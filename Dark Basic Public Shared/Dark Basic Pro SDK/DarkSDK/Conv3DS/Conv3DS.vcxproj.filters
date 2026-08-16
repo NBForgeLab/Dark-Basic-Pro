@@ -85,7 +85,7 @@
     <ClInclude Include="..\..\Shared\Error\CRuntimeErrors.h">
       <Filter>Error</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Shared\Conv3DS\Conv3DS.h" />
     <ClInclude Include="..\..\Shared\Conv3DS\d3dmath.h" />
+    <ClInclude Include="..\..\..\..\Include\Conv3DS.h" />
   </ItemGroup>
 </Project>

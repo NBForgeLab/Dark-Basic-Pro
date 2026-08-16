@@ -163,12 +163,12 @@ DARKSDK void			MultiplayerGetMessage						( void );
 DARKSDK int				MultiplayerGetMessageType					( void );
 DARKSDK int				MultiplayerGetMessageInteger				( void );
 DARKSDK float			MultiplayerGetMessageFloat					( void );
-DARKSDK DWORD			MultiplayerGetMessageString					( DWORD pDestStr );
+DARKSDK DWORD_PTR MultiplayerGetMessageString( DWORD_PTR pDestStr );
 DARKSDK void			MultiplayerGetMessageMemblock				( int iMemblock );
 DARKSDK DWORD			MultiplayerGetMessagePlayerFrom				( void );
 
 DARKSDK int				MultiplayerGetPlayerCount					( void );
-DARKSDK DWORD			MultiplayerGetPlayerName					( DWORD pDestStr, int iID );
+DARKSDK DWORD_PTR MultiplayerGetPlayerName( DWORD_PTR pDestStr, int iID );
 DARKSDK DWORD			MultiplayerGetPlayerID						( int iID );
 DARKSDK DWORD			MultiplayerGetID							( void );
 

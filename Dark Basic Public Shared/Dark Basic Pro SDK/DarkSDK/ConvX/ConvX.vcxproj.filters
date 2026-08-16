@@ -54,9 +54,6 @@
     <ClCompile Include="..\..\Shared\Core\globstruct.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\ConvX\ConvX.h">
-      <Filter>Convert</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\DBOFormat\DBOBlock.h">
       <Filter>DBOFormat</Filter>
     </ClInclude>
@@ -94,5 +91,8 @@
       <Filter>Error</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Core\globstruct.h" />
+    <ClInclude Include="..\..\..\..\Include\ConvX.h">
+      <Filter>Convert</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

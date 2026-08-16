@@ -204,8 +204,8 @@ DARKSDK void 			RefreshD3D 					( int iMode );
 
 // entry commands
 DARKSDK void 			ClearEntryBuffer 					( void );					// clear holding buffer
-DARKSDK DWORD			GetEntryEx							( DWORD pDestStr, int iAutoBackSpaceMode );
-DARKSDK DWORD 			GetEntry 							( DWORD pDestStr );			// get from windows entry buffer
+DARKSDK DWORD_PTR GetEntryEx( DWORD_PTR pDestStr, int iAutoBackSpaceMode );
+DARKSDK DWORD_PTR GetEntry( DWORD_PTR pDestStr );			// get from windows entry buffer
 
 // keyboard commands
 DARKSDK int 			UpKey      							( void );					// is the up key being pressed
@@ -228,12 +228,12 @@ DARKSDK int 			ScanCode   							( void );					// return the scan code of the cu
 DARKSDK void 			WriteToClipboard					( LPSTR );				// write to clkipboard
 DARKSDK void 			SetRegistryHKEY						( int );
 DARKSDK void 			WriteToRegistry						( LPSTR, LPSTR, int );		// write to registry
-DARKSDK DWORD			GetClipboard						( DWORD );					// get from clipboard
+DARKSDK DWORD_PTR GetClipboard( DWORD_PTR );					// get from clipboard
 DARKSDK int 			GetRegistry							( LPSTR, LPSTR );				// get from registry
-DARKSDK void 			WriteToRegistryS					( LPSTR pfolder, LPSTR valuekey, DWORD pString );
-DARKSDK void 			WriteToRegistrySL					( LPSTR pfolder, LPSTR valuekey, DWORD pString, int iCurrentUserMode );
-DARKSDK DWORD 			GetRegistryS						( DWORD pDestStr, LPSTR pfolder, LPSTR valuekey );
-DARKSDK DWORD 			GetRegistrySL						( DWORD pDestStr, LPSTR pfolder, LPSTR valuekey, int iCurrentUserMode );
+DARKSDK void 			WriteToRegistryS					( LPSTR pfolder, LPSTR valuekey, DWORD_PTR pString );
+DARKSDK void 			WriteToRegistrySL					( LPSTR pfolder, LPSTR valuekey, DWORD_PTR pString, int iCurrentUserMode );
+DARKSDK DWORD_PTR GetRegistryS( DWORD_PTR pDestStr, LPSTR pfolder, LPSTR valuekey );
+DARKSDK DWORD_PTR GetRegistrySL( DWORD_PTR pDestStr, LPSTR pfolder, LPSTR valuekey, int iCurrentUserMode );
 
 // mouse commands
 DARKSDK void 			HideMouse     						( void );	// hide
@@ -287,10 +287,10 @@ DARKSDK void 			ForceAutoCenterOff					( void );
 
 // control device commands
 DARKSDK void 			PerformChecklistControlDevices		( void );
-DARKSDK void			SetControlDeviceEx					( DWORD pName, int iSubIndex );
-DARKSDK void 			SetControlDevice					( DWORD pName );
+DARKSDK void			SetControlDeviceEx					( DWORD_PTR pName, int iSubIndex );
+DARKSDK void 			SetControlDevice					( DWORD_PTR pName );
 DARKSDK void			SetControlDeviceIndex				( int iIndex );
-DARKSDK DWORD 			GetControlDevice 					( DWORD pDestStr );
+DARKSDK DWORD_PTR GetControlDevice( DWORD_PTR pDestStr );
 DARKSDK int 			ControlDeviceX						( void );
 DARKSDK int 			ControlDeviceY						( void );
 DARKSDK int 			ControlDeviceZ						( void );

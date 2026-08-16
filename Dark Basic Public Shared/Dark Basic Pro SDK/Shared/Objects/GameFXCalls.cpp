@@ -64,17 +64,17 @@ DARKSDK void GFEnableNodeTreeOcclusion				( void )
 
 DARKSDK void GFSaveNodeTreeObjects					( LPSTR pFilename )
 {
-	SaveNodeTreeObjects	( (DWORD)pFilename );
+	SaveNodeTreeObjects	( (DWORD_PTR)pFilename );
 }
 
 DARKSDK void GFSetNodeTreeEffectTechnique			( LPSTR pFilename )
 {
-	SetNodeTreeEffectTechnique	( (DWORD)pFilename );
+	SetNodeTreeEffectTechnique	( (DWORD_PTR)pFilename );
 }
 
 DARKSDK void GFLoadNodeTreeObjects					( LPSTR pFilename, int iDivideTextureSize )
 {
-	LoadNodeTreeObjects	( (DWORD)pFilename, iDivideTextureSize );
+	LoadNodeTreeObjects	( (DWORD_PTR)pFilename, iDivideTextureSize );
 }
 
 DARKSDK void GFAttachObjectToNodeTree				( int iID )

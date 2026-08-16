@@ -424,7 +424,7 @@ DARKSDK bool Draw ( void )
 			if ( pFrame->pMesh->iNextFrame > 200 )
 				pFrame->pMesh->iNextFrame = 0;
 
-			if ( (DWORD)pFrame->pMesh->iNextFrame >= pFrame->pMesh->dwSubMeshListCount )
+			if ( (DWORD_PTR)pFrame->pMesh->iNextFrame >= pFrame->pMesh->dwSubMeshListCount )
 				pFrame->pMesh->iNextFrame = 0;
 
 
@@ -433,7 +433,7 @@ DARKSDK bool Draw ( void )
 			GetFVFOffsetMap ( pMesh, &offsetMap );
 
 			// copy the vertices across
-			if ( (DWORD)pFrame->pMesh->iCurrentFrame < pFrame->pMesh->dwSubMeshListCount )
+			if ( (DWORD_PTR)pFrame->pMesh->iCurrentFrame < pFrame->pMesh->dwSubMeshListCount )
 			{
 				for ( int iVertex = 0; iVertex < ( int ) pMesh->dwVertexCount; iVertex++ )
 				{
@@ -903,7 +903,7 @@ DARKSDK bool GetD3DFromModule ( HINSTANCE hSetup )
 bool	Convert		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
 void	Free		( LPSTR );
 
-bool ConvertMD3 ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+bool ConvertMD3 ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
 {
 	return Convert ( pFilename, pBlock, pdwSize );
 }

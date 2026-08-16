@@ -145,7 +145,7 @@ extern "C"
 	DARKSDK void	Free		( LPSTR );
 }
 #else
-	bool	ConvertMD3		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+	bool ConvertMD3 ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize );
 	void	FreeMD3			( LPSTR );
 #endif
 //////////////////////////////////////////////////////////////////////////////////

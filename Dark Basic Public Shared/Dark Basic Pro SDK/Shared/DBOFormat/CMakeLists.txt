@@ -10,6 +10,7 @@ set(DBOFORMAT_SOURCES
     DBOFrame.cpp
     DBOMesh.cpp
     DBORawMesh.cpp
+    Extras/NVMeshMenderD3DX.cpp
 )
 
 add_library(dbp_plugin_dboformat STATIC ${DBOFORMAT_SOURCES})
@@ -23,6 +24,7 @@ target_compile_definitions(dbp_plugin_dboformat PRIVATE
 
 target_include_directories(dbp_plugin_dboformat PUBLIC
     .
+    Extras
     ${CMAKE_SOURCE_DIR}/SDK/BaseClasses
     ${CMAKE_SOURCE_DIR}/SDK/DB3
     ${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared
@@ -35,6 +37,7 @@ if(DXSDK_LIBRARY_DIR)
 endif()
 
 target_link_libraries(dbp_plugin_dboformat PRIVATE
+    winmm
     d3d9
     d3dx9
     dxguid

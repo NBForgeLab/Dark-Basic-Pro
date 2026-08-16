@@ -71,7 +71,7 @@ DARKSDK LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -172,28 +172,28 @@ DARKSDK int GetFailure(void)
 	return FTP_GetFailureState();
 }
 
-DARKSDK DWORD GetError( DWORD pDestStr )
+DARKSDK DWORD_PTR GetError( DWORD_PTR pDestStr )
 {
 	FTP_GetError(m_pWorkString);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD GetDir( DWORD pDestStr )
+DARKSDK DWORD_PTR GetDir( DWORD_PTR pDestStr )
 {
 	FTP_GetDir(m_pWorkString);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD GetFileName( DWORD pDestStr )
+DARKSDK DWORD_PTR GetFileName( DWORD_PTR pDestStr )
 {
 	FTP_GetFileName(m_pWorkString);
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK int GetFileType(void)
@@ -234,7 +234,7 @@ DARKSDK void HTTPConnect ( DWORD dwUrl, DWORD port, int secure )
 		HTTP_Connect ( lpUrl, port, secure );
 }
 
-DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData, DWORD dwAccessFlag )
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData, DWORD dwAccessFlag )
 {
 	char* lpVerb = (char*)dwVerb;
 	char* lpObjectName = (char*)dwObjectName;
@@ -243,7 +243,7 @@ DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName
 	// 20120418 IanM - Ensure that the verb is set
 	if (!lpVerb || !*lpVerb)
 	{
-		if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+		if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 		return NULL;
 	}
 
@@ -263,13 +263,13 @@ DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName
 	LPSTR pReturnData = HTTP_RequestData ( lpVerb, lpObjectName, pHeader, dwHeaderSize, lpPostData, dwPostDataSize, dwAccessFlag );
 
 	// delete old string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD*)&pDestStr, 0);
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
 
 	// make new string
 	LPSTR pReturnString = NULL;
 	DWORD dwSize = strlen(g_pFeedbackAreaString);
 	if ( pReturnData ) dwSize = strlen(pReturnData);
-	g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+	g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 	if ( pReturnData ) 
 		strcpy ( pReturnString, pReturnData );
 	else
@@ -280,10 +280,10 @@ DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName
 	SAFE_DELETE(pHeader);
 
 	// return new string
-	return (DWORD)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD HTTPRequestData ( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData )
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData )
 {
 	// 20120416 IanM - Cleared default security type
 	return HTTPRequestData ( pDestStr, dwVerb, dwObjectName, dwPostData, 0 );

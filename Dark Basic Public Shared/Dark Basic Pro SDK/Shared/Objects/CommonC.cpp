@@ -692,7 +692,7 @@ DARKSDK_DLL LPSTR GetReturnStringFromWorkString(void)
 	if(m_pWorkString)
 	{
 		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD*)&pReturnString, dwSize+1);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;

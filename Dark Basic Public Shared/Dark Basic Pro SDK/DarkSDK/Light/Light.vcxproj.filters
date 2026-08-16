@@ -20,9 +20,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\Light\CLightC.h">
-      <Filter>Light</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\Light\CLightDataC.h">
       <Filter>Light</Filter>
     </ClInclude>
@@ -36,6 +33,9 @@
       <Filter>Error</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\..\Include\CLightC.h">
+      <Filter>Light</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Light.rc" />

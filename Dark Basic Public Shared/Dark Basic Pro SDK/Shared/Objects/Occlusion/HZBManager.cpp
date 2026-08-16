@@ -765,7 +765,7 @@ bool HZBManager::FillDepthRenderWithVerts ( sObject* pObject, DWORD* pdwVertexSt
 
 		// special objects have built-in LOD handling
 		int iLowestLOD = -1, iLODLevel = -1;
-		for ( DWORD iFrameScan = 0; iFrameScan < (DWORD)pActualObject->iFrameCount; iFrameScan++ )
+		for ( DWORD iFrameScan = 0; iFrameScan < (DWORD_PTR)pActualObject->iFrameCount; iFrameScan++ )
 		{
 			LPSTR pFrameName = pActualObject->ppFrameList[iFrameScan]->szName;
 			if ( pFrameName[0]=='l' )
@@ -777,7 +777,7 @@ bool HZBManager::FillDepthRenderWithVerts ( sObject* pObject, DWORD* pdwVertexSt
 		}
 
 		// add meshes to occlusion depth render
-		for ( DWORD iFrame = 0; iFrame < (DWORD)pActualObject->iFrameCount; iFrame++ )
+		for ( DWORD iFrame = 0; iFrame < (DWORD_PTR)pActualObject->iFrameCount; iFrame++ )
 		{
 			sFrame* pFrame = pActualObject->ppFrameList[iFrame];
 			if ( pFrame && (iLowestLOD==-1 || iLowestLOD==iFrame) )

@@ -7,7 +7,7 @@
 // Handler Passed into DLL
 CRuntimeErrorHandler* g_pErrorHandler = NULL;
 
-void Error ( char* szMessage )
+void Error ([[maybe_unused]] const char* szMessage)
 {
 	#if DB_PRO
 		if(g_pErrorHandler)
@@ -19,14 +19,14 @@ void Error ( char* szMessage )
 		//HWND mHwnd =  gHwnd;
 		ShowCursor ( true );
 		//ShowWindow ( mHwnd, SW_HIDE );
-		MessageBox ( NULL, szMessage, "DarkBASIC Pro Error", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_TOPMOST );
+		MessageBoxA ( NULL, szMessage, "DarkBASIC Pro Error", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_TOPMOST );
 		//PostQuitMessage ( 0 );
 	#endif
 }
 
-void Message ( int iID, char* szMessage, char* szTitle )
+void Message ([[maybe_unused]] int iID, const char* szMessage, const char* szTitle )
 {
-	MessageBox ( NULL, szMessage, szTitle, MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL | MB_TOPMOST );
+	MessageBoxA ( NULL, szMessage, szTitle, MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL | MB_TOPMOST );
 }
 
 void RunTimeError ( DWORD dwErrorCode )
@@ -35,17 +35,17 @@ void RunTimeError ( DWORD dwErrorCode )
 	if(g_pErrorHandler) g_pErrorHandler->dwErrorCode = dwErrorCode;
 }
 
-void RunTimeWarning ( DWORD dwErrorCode )
+void RunTimeWarning ([[maybe_unused]] DWORD dwErrorCode)
 {
 	// Assign Run Time Error To Global Error Handler
 //	if(g_pErrorHandler) g_pErrorHandler->dwErrorCode = dwErrorCode;
 }
 
-void RunTimeSoftWarning ( DWORD dwErrorCode )
+void RunTimeSoftWarning ([[maybe_unused]] DWORD dwErrorCode)
 {
 }
 
-void RunTimeError(DWORD dwErrorCode, LPSTR pExtraErrorString)
+void RunTimeError(DWORD dwErrorCode, const char* pExtraErrorString)
 {
 	// lee - 180407 - now would it not be a good idea to know what the
 	// data was that caused the runtime error?
@@ -57,15 +57,16 @@ void RunTimeError(DWORD dwErrorCode, LPSTR pExtraErrorString)
 		DWORD dwUsedChars = 0;
 		if ( g_pGlob )
 			if ( g_pGlob->pEXEUnpackDirectory )
-				dwUsedChars = strlen ( g_pGlob->pEXEUnpackDirectory );
+				dwUsedChars = (DWORD)strlen ( g_pGlob->pEXEUnpackDirectory );
 		if ( dwUsedChars > 0 )
+			if ( dwUsedChars > 0 )
 		{
 			// hack the error string into the large pEXEUnpackDirectory string path
 			DWORD dwCanUse = _MAX_PATH - 3 - dwUsedChars;
 			char pSecretErrorString [ _MAX_PATH ];
 			strcpy ( pSecretErrorString, pExtraErrorString );
 			pSecretErrorString [ dwCanUse ] = 0; // cut short in case too long
-			DWORD dwSecretLength = strlen ( pSecretErrorString ) + 1;
+			DWORD dwSecretLength = (DWORD)strlen ( pSecretErrorString ) + 1;
 			memcpy ( g_pGlob->pEXEUnpackDirectory + dwUsedChars + 1, pSecretErrorString, dwSecretLength );
 		}
 	}
@@ -74,10 +75,10 @@ void RunTimeError(DWORD dwErrorCode, LPSTR pExtraErrorString)
 
 void LastSystemError()
 {
-	LPVOID lpBuffer;
-	if (!FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+	LPSTR lpBuffer = NULL;
+	if (!FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 					   NULL, GetLastError ( ), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-					   (LPTSTR)&lpBuffer, 0, NULL)) return;
-	MessageBox ( NULL, (LPCTSTR)lpBuffer, "System Error", MB_OK );
+					   (LPSTR)&lpBuffer, 0, NULL)) return;
+	MessageBoxA ( NULL, lpBuffer, "System Error", MB_OK );
 	LocalFree ( lpBuffer );
 }

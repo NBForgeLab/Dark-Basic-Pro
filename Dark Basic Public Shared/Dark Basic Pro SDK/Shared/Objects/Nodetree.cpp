@@ -52,9 +52,9 @@ struct POLYGON
 // FUNCTIONS /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 
-extern int	g_iNodeTreeSubDivisionCount;
-extern int	g_iNodeTreeMaxTriangleCount;
-extern int	g_iNodeTreeMaxSubDivisionCount;
+int g_iNodeTreeSubDivisionCount = 0;
+int g_iNodeTreeMaxTriangleCount = 500;
+int g_iNodeTreeMaxSubDivisionCount = 5;
 
 cNodeTree::sObjectList::sObjectList ( )
 {

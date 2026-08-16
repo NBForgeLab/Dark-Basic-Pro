@@ -5679,7 +5679,7 @@ DARKSDK_DLL bool DBOFileExist ( LPSTR pFilename )
 	return false;
 }
 
-DARKSDK_DLL bool ConvertToDBOBlock ( LPSTR pFilename, LPSTR pExtension, DWORD* ppDBOBlock, DWORD* pdwBlockSize )
+DARKSDK_DLL bool ConvertToDBOBlock ( LPSTR pFilename, LPSTR pExtension, DWORD_PTR* ppDBOBlock, DWORD* pdwBlockSize )
 {
 	// result var
 	bool bResult=false;
@@ -5697,7 +5697,7 @@ DARKSDK_DLL bool ConvertToDBOBlock ( LPSTR pFilename, LPSTR pExtension, DWORD* p
 
 	#ifdef DARKSDK_COMPILE
 	{
-		DWORD pTempBlock=0, dwTempSize=0;
+		DWORD_PTR pTempBlock=0, dwTempSize=0;
 		bool bOk = false;
 
 		// if ( pPassCoreFn ) pPassCoreFn ( g_pGlob );
@@ -5763,7 +5763,7 @@ DARKSDK_DLL bool ConvertToDBOBlock ( LPSTR pFilename, LPSTR pExtension, DWORD* p
 		typedef void ( *VOIDVOID ) ( void );
 		typedef void ( *PASSCORE ) ( LPVOID );
 		typedef void ( *FREEFUNCTION ) ( LPSTR );
-		typedef bool ( *CONVERTFUNCTION ) ( LPSTR, DWORD*, DWORD* );
+		typedef bool ( *CONVERTFUNCTION ) ( LPSTR, DWORD_PTR*, DWORD* );
 		PASSCORE pPassCoreFn = (PASSCORE) GetProcAddress ( hDLLModule, "PassCoreData" );
 		VOIDVOID pSetLegacyModeOn = (VOIDVOID) GetProcAddress ( hDLLModule, "SetLegacyModeOn" );
 		VOIDVOID pSetLegacyModeOff = (VOIDVOID) GetProcAddress ( hDLLModule, "SetLegacyModeOff" );
@@ -5777,16 +5777,17 @@ DARKSDK_DLL bool ConvertToDBOBlock ( LPSTR pFilename, LPSTR pExtension, DWORD* p
 		if ( g_bSwitchLegacyOn==true && pSetLegacyModeOn ) pSetLegacyModeOn();
 
 		// Call Convert Function
-		DWORD pTempBlock=0, dwTempSize=0;
-		if ( pConvertFn ( pFilename, &pTempBlock, &dwTempSize ) )
+		DWORD_PTR pTempBlock=0;
+		DWORD dwTempSize=0;
+		if ( pConvertFn && pConvertFn ( pFilename, &pTempBlock, &dwTempSize ) )
 		{
 			// Create local memory for block
 			*pdwBlockSize = dwTempSize;
-			*ppDBOBlock = (DWORD) new char [ dwTempSize ];
+			*ppDBOBlock = (DWORD_PTR) new char [ dwTempSize ];
 			memcpy ( (LPSTR)*ppDBOBlock, (LPSTR)pTempBlock, dwTempSize );
 
 			// Call Free Function
-			pFree( (LPSTR)pTempBlock );
+			if ( pFree ) pFree( (LPSTR)pTempBlock );
 
 			// success
 			bResult=true;
@@ -5820,7 +5821,7 @@ DARKSDK_DLL bool LoadDBO ( LPSTR pFilename, sObject** ppObject )
 {
 	// DBOBlock pointer
 	DWORD dwBlockSize = 0;
-	DWORD* pDBOBlock = NULL;
+	DWORD_PTR pDBOBlock = 0;
 
 	// No object to start with
 	*ppObject = NULL;
@@ -5852,7 +5853,7 @@ DARKSDK_DLL bool LoadDBO ( LPSTR pFilename, sObject** ppObject )
 	if ( _stricmp ( pExtension, "DBO" )==NULL )
 	{
 		// load DBO object directly
-		if ( !DBOLoadBlockFile ( pFilename, (DWORD*)&pDBOBlock, &dwBlockSize ) )
+		if ( !DBOLoadBlockFile ( pFilename, &pDBOBlock, &dwBlockSize ) )
 		{
 			RunTimeError ( RUNTIMEERROR_B3DOBJECTLOADFAILED );
 			return false;
@@ -5861,7 +5862,7 @@ DARKSDK_DLL bool LoadDBO ( LPSTR pFilename, sObject** ppObject )
 	else
 	{
 		// call converter DLL (ConvX.dll)
-		if ( !ConvertToDBOBlock ( pFilename, pExtension, (DWORD*)&pDBOBlock, &dwBlockSize ) )
+		if ( !ConvertToDBOBlock ( pFilename, pExtension, &pDBOBlock, &dwBlockSize ) )
 		{
 			RunTimeError ( RUNTIMEERROR_B3DOBJECTLOADFAILED );
 			return false;
@@ -5869,14 +5870,14 @@ DARKSDK_DLL bool LoadDBO ( LPSTR pFilename, sObject** ppObject )
 	}
 
 	// construct the object
-	if ( !DBOConvertBlockToObject ( (DWORD)pDBOBlock, dwBlockSize, ppObject ) )
+	if ( !DBOConvertBlockToObject ( pDBOBlock, dwBlockSize, ppObject ) )
 	{
 		RunTimeError ( RUNTIMEERROR_B3DOBJECTLOADFAILED );
 		return false;
 	}
 
 	// free block when done
-	SAFE_DELETE_ARRAY(pDBOBlock);
+	char* pDeleteDBO = (char*)pDBOBlock; SAFE_DELETE_ARRAY(pDeleteDBO);
 
 	// okay
 	return true;
@@ -5886,7 +5887,7 @@ DARKSDK_DLL bool SaveDBO ( LPSTR pFilename, sObject* pObject )
 {
 	// DBOBlock ptr
 	DWORD dwBlockSize = 0;
-	DWORD* pDBOBlock = NULL;
+	DWORD_PTR pDBOBlock = 0;
 
 	// does file exist
 	if ( DBOFileExist ( pFilename ) )
@@ -5899,15 +5900,15 @@ DARKSDK_DLL bool SaveDBO ( LPSTR pFilename, sObject* pObject )
 	ResetVertexDataInMesh ( pObject );
 
 	// convert pObject to DBOBlock
-	if ( !DBOConvertObjectToBlock ( pObject, (DWORD*)&pDBOBlock, &dwBlockSize ) )
+	if ( !DBOConvertObjectToBlock ( pObject, &pDBOBlock, &dwBlockSize ) )
 		return false;
 		
 	// save DBOBlock to file
-	if ( !DBOSaveBlockFile ( pFilename, (DWORD)pDBOBlock, dwBlockSize ) )
+	if ( !DBOSaveBlockFile ( pFilename, pDBOBlock, dwBlockSize ) )
 		return false;
 
 	// free block when done
-	SAFE_DELETE(pDBOBlock);
+	char* pDeleteDBO = (char*)pDBOBlock; SAFE_DELETE(pDeleteDBO);
 
 	// okay
 	return true;
@@ -5917,18 +5918,18 @@ DARKSDK_DLL bool CloneDBO ( sObject** ppDestObject, sObject* pSrcObject )
 {
 	// DBOBlock ptr
 	DWORD dwBlockSize = 0;
-	DWORD* pDBOBlock = NULL;
+	DWORD_PTR pDBOBlock = 0;
 
 	// convert pObject to DBOBlock
-	if ( !DBOConvertObjectToBlock ( pSrcObject, (DWORD*)&pDBOBlock, &dwBlockSize ) )
+	if ( !DBOConvertObjectToBlock ( pSrcObject, &pDBOBlock, &dwBlockSize ) )
 		return false;
 		
 	// construct the new destination object
-	if ( !DBOConvertBlockToObject ( (DWORD)pDBOBlock, dwBlockSize, ppDestObject ) )
+	if ( !DBOConvertBlockToObject ( pDBOBlock, dwBlockSize, ppDestObject ) )
 		return false;
 
 	// free block when done
-	SAFE_DELETE_ARRAY(pDBOBlock);
+	char* pDeleteDBO = (char*)pDBOBlock; SAFE_DELETE_ARRAY(pDeleteDBO);
 
 	// okay
 	return true;

@@ -7,9 +7,6 @@
     <Filter Include="Particles\Presets">
       <UniqueIdentifier>{1a0def0d-d675-4645-aafc-a30d23d0c063}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Particles\Presets\Snow">
-      <UniqueIdentifier>{59a9feec-3b0b-43f3-9129-8e62843f1955}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Data">
       <UniqueIdentifier>{04ba3fc2-701e-45a8-981d-42be4382c547}</UniqueIdentifier>
     </Filter>
@@ -30,9 +27,6 @@
     <ClCompile Include="..\..\Shared\SpecialEffects\CBaseParticleC.cpp">
       <Filter>Particles\Presets</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Shared\SpecialEffects\CSnowC.cpp">
-      <Filter>Particles\Presets\Snow</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Shared\Data\CDataC.cpp">
       <Filter>Data</Filter>
     </ClCompile>
@@ -42,12 +36,8 @@
     <ClCompile Include="..\..\Shared\Error\CError.cpp">
       <Filter>Error</Filter>
     </ClCompile>
-    <ClCompile Include="DLLMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Shared\SpecialEffects\CParticleC.h">
-      <Filter>Particles</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Shared\SpecialEffects\CParticleDataC.h">
       <Filter>Particles</Filter>
     </ClInclude>
@@ -56,9 +46,6 @@
     </ClInclude>
     <ClInclude Include="..\..\Shared\SpecialEffects\CBaseParticleC.h">
       <Filter>Particles\Presets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Shared\SpecialEffects\CSnowC.h">
-      <Filter>Particles\Presets\Snow</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Shared\Data\CDataC.h">
       <Filter>Data</Filter>
@@ -73,6 +60,9 @@
       <Filter>Error</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="..\..\..\..\Include\CParticleC.h">
+      <Filter>Particles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Particles.rc" />

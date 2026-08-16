@@ -20,7 +20,7 @@
  #define SDK_FLOAT DWORD
  #define SDK_LPSTR DWORD
  #define SDK_RETFLOAT(f) *(DWORD*)&f 
- #define SDK_RETSTR DWORD pDestStr,
+ #define SDK_RETSTR DWORD_PTR pDestStr,
 #else
  #define SDK_BOOL bool
  #define SDK_FLOAT float
@@ -63,7 +63,6 @@
 #pragma comment ( lib, "dxguid.lib" )
 #pragma comment ( lib, "d3d9.lib"   )
 #pragma comment ( lib, "d3dx9.lib"  )
-#pragma comment ( lib, "dxerr9.lib" )
 //////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////

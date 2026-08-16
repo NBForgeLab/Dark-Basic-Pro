@@ -10,46 +10,12 @@
 #include <atlbase.h>
 #include <stdio.h>
 #include <d3d9types.h>
-#include <streams.h>
 
-#include <D3D9.h> // DX headers need to go last otherwise common macros interfere with TCHAT and STRSAFE decl.
+#include <D3D9.h>
 #include <D3DX9.h>
 #include <dshow.h>
 
-//////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////////
-// CLASSES ///////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////
-
-struct __declspec(uuid("{71771540-2017-11cf-ae26-0020afd79767}")) CLSID_TextureRenderer;
-
-class CTextureRenderer : public CBaseVideoRenderer
-{
-	public:
-		CTextureRenderer(LPUNKNOWN pUnk,HRESULT *phr);
-		virtual ~CTextureRenderer();
-
-	public:
-		HRESULT CheckMediaType(const CMediaType *pmt );     // Format acceptable?
-		HRESULT SetMediaType(const CMediaType *pmt );       // Video format notification
-		HRESULT DoRenderSample(IMediaSample *pMediaSample); // New video sample
-		HRESULT CopyBufferToTexture();						// Update texture now
-    
-		LONG					m_lVidWidth;		// Video width
-		LONG					m_lVidHeight;		// Video Height
-		LONG					m_lVidPitch;		// Video Pitch
-
-		D3DFORMAT				m_TextureFormat;	// hold Texture Format
-		LPDIRECT3DTEXTURE9		m_pTexture;			// hold Texture Ptr
-		float					m_ClipU;			// holds UV of texture clip
-		float					m_ClipV;			// holds UV of texture clip
-
-		DWORD					m_dwBitmapSize;
-		LPSTR					m_pSampleBitmap;
-		bool					m_bSampleBeingUsed;
-};
+#include "CTextureRenderer.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////

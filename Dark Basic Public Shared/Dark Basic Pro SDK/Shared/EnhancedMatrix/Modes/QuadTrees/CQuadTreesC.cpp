@@ -103,13 +103,13 @@ float CQuadTreeNode::CalculateRoughness ( UINT32 NW_X, UINT32 NW_Y, UINT32 nQuad
 				UINT32 nCenter   = HeightField ( NW_Y + nRadius,	NW_X + nRadius    );
 
 				// find the error for this node's edges and center
-				UINT32 nErrNorth = (UINT32) abs ( (float) HeightField ( NW_Y,				NW_X + nRadius	  ) - ( ( nNWCorner + nNECorner ) >> 1 ) );
-				UINT32 nErrSouth = (UINT32) abs ( (float) HeightField ( NW_Y + nQuadWidth,	NW_X + nRadius	  ) - ( ( nSWCorner + nSECorner ) >> 1 ) );
-				UINT32 nErrEast  = (UINT32) abs ( (float) HeightField ( NW_Y + nRadius,		NW_X + nQuadWidth ) - ( ( nNECorner + nSECorner ) >> 1 ) );
-				UINT32 nErrWest  = (UINT32) abs ( (float) HeightField ( NW_Y + nRadius,		NW_X			  ) - ( ( nNWCorner + nSWCorner ) >> 1 ) );
+				UINT32 nErrNorth = (UINT32) fabsf ( (float) HeightField ( NW_Y,				NW_X + nRadius	  ) - ( ( nNWCorner + nNECorner ) >> 1 ) );
+				UINT32 nErrSouth = (UINT32) fabsf ( (float) HeightField ( NW_Y + nQuadWidth,	NW_X + nRadius	  ) - ( ( nSWCorner + nSECorner ) >> 1 ) );
+				UINT32 nErrEast  = (UINT32) fabsf ( (float) HeightField ( NW_Y + nRadius,		NW_X + nQuadWidth ) - ( ( nNECorner + nSECorner ) >> 1 ) );
+				UINT32 nErrWest  = (UINT32) fabsf ( (float) HeightField ( NW_Y + nRadius,		NW_X			  ) - ( ( nNWCorner + nSWCorner ) >> 1 ) );
 
-				UINT32 nErrCtr1	 = (UINT32) abs ( (float) nCenter - ( ( nSECorner + nNECorner ) >> 1 ) );
-				UINT32 nErrCtr2	 = (UINT32) abs ( (float) nCenter - ( ( nNWCorner + nSWCorner ) >> 1 ) );
+				UINT32 nErrCtr1	 = (UINT32) fabsf ( (float) nCenter - ( ( nSECorner + nNECorner ) >> 1 ) );
+				UINT32 nErrCtr2	 = (UINT32) fabsf ( (float) nCenter - ( ( nNWCorner + nSWCorner ) >> 1 ) );
 
 				// find the largest error of this node...
 				float fMaxError = ( float ) nErrNorth;

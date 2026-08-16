@@ -28,7 +28,6 @@ void CController::Release()
 void CController::SetName(char* sNewName)
 {
     if (sNewName) {
-        strncpy(sName, sNewName, sizeof(sName) - 1);
-        sName[sizeof(sName) - 1] = '\0';
+        strncpy_s(sName, sizeof(sName), sNewName, _TRUNCATE);
     }
 }

@@ -452,7 +452,7 @@ DARKSDK bool SetupFrame ( sFrame* pFrame, int iFrame )
 bool	Convert		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
 void	Free		( LPSTR );
 
-bool ConvertMD2 ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+bool ConvertMD2 ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
 {
 	return Convert ( pFilename, pBlock, pdwSize );
 }

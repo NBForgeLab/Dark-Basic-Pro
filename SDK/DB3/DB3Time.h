@@ -89,10 +89,9 @@ namespace policy
 	{
 		static inline void report(const char *scope)
 		{
-			FILE *f;
+			FILE *f = nullptr;
 
-			f = fopen(log_filename, "a+");
-			if (!f)
+			if (fopen_s(&f, log_filename, "a+") != 0 || !f)
 				return;
 
 			fprintf(f, "[%s] entered...\n", scope);
@@ -100,10 +99,9 @@ namespace policy
 		}
 		static inline void report(const char *scope, double time)
 		{
-			FILE *f;
+			FILE *f = nullptr;
 
-			f = fopen(log_filename, "a+");
-			if (!f)
+			if (fopen_s(&f, log_filename, "a+") != 0 || !f)
 				return;
 
 			if (time >= 60.0)

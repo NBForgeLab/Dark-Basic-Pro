@@ -76,9 +76,9 @@ DARKSDK void	FindNext			( void );
 DARKSDK void	Terminate			( void );
 DARKSDK void	Proceed				( void );
 
-DARKSDK DWORD	GetError			( DWORD pDestStr );
-DARKSDK DWORD	GetDir				( DWORD pDestStr );
-DARKSDK DWORD	GetFileName			( DWORD pDestStr );
+DARKSDK DWORD_PTR GetError( DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR GetDir( DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR GetFileName( DWORD_PTR pDestStr );
 DARKSDK int		GetFileType			( void );
 DARKSDK int		GetFileSize			( void );
 DARKSDK int		GetProgress			( void );
@@ -86,7 +86,7 @@ DARKSDK int		GetStatus			( void );
 DARKSDK int		GetFailure			( void );
 
 DARKSDK void	HTTPConnect			( DWORD dwUrl );
-DARKSDK DWORD	HTTPRequestData		( DWORD pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData );
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData );
 DARKSDK void	HTTPDisconnect		( void );
 
 #ifdef DARKSDK_COMPILE

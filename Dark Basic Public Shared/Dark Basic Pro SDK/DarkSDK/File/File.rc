@@ -49,7 +49,7 @@ BEGIN
             VALUE "FileDescription", "Dark Basic Professional DLL\0"
             VALUE "FileVersion", "V1.0\0"
             VALUE "InternalName", "Dark Basic Professional DLL\0"
-            VALUE "LegalCopyright", "Copyright © 2002\0"
+            VALUE "LegalCopyright", "Copyright ? 2002\0"
             VALUE "LegalTrademarks", "DarkBASIC\0"
             VALUE "OriginalFilename", "DBProAnimationDebug.dll\0"
             VALUE "PrivateBuild", "\0"
@@ -179,6 +179,12 @@ BEGIN
     IDS_STRING53            "CD%S%?SetDir@@YAXK@Z%Path$"
     IDS_STRING54            "GET FILE CREATION$[%S%?GetFileCreation@@YAKK@Z"
     IDS_STRING55            "MAKE FILE FROM MEMBLOCK%LL%?MakeFileFromMemblock@@YAXHH@Z%File Number, Memblock Number"
+    IDS_STRING56            "WRITE FILEMAP VALUE%SL%?WriteFilemapValue@@YAXKK@Z%Filemap Name, Value"
+    IDS_STRING57            "WRITE FILEMAP STRING%SS%?WriteFilemapString@@YAXKK@Z%Filemap Name, String"
+    IDS_STRING58            "WRITE FILEMAP%SLSL%?WriteFilemap@@YAXKKKH@Z%Filemap Name, Value, String, Type"
+    IDS_STRING59            "READ FILEMAP VALUE[%LS%?ReadFilemapValue@@YAKK@Z%Filemap Name"
+    IDS_STRING60            "READ FILEMAP STRING[%SS%?ReadFilemapString@@YAKKK@Z%Filemap Name"
+    IDS_STRING61            "READ FILEMAP STRING$[%SS%?ReadFilemapString@@YAKKK@Z%Filemap Name"
 END
 
 #endif    // English (U.K.) resources
@@ -195,4 +201,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-

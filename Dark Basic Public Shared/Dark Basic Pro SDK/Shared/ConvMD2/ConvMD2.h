@@ -50,7 +50,7 @@ extern "C"
 	DARKSDK void	Free		( LPSTR );
 }
 #else
-	bool	ConvertMD2		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+	bool ConvertMD2 ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize );
 	void	FreeMD2			( LPSTR );
 #endif
 
