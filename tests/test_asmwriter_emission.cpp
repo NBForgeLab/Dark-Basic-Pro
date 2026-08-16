@@ -53,37 +53,37 @@ protected:
 };
 
 // Double immediate load + push walks the pDWORD1/2Str and pTemp1/2Str
-// temporaries in WriteASMXtoEAX (IMM to ST08) and WriteASMEAXtoX (STACK).
+// temporaries in WriteASMXtoRAX (IMM to XMM0) and WriteASMRAXtoX (STACK).
 TEST_F(ASMWriterEmissionTest, EmitsDoubleImmediateLoadAndPush) {
     CStr value("2.5");
-    m_pWriter->WriteASMXtoEAX(static_cast<DWORD>(ParamMode::Imm), &value, NULL, 8, 0);
-    m_pWriter->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, 8, 0);
+    m_pWriter->WriteASMXtoRAX(static_cast<DWORD>(ParamMode::Imm), &value, NULL, 8, 0);
+    m_pWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, 8, 0);
 }
 
 // MEMOFF round-trip for a double-word pair walks the pOffset1/2Str
 // temporaries in both directions.
 TEST_F(ASMWriterEmissionTest, EmitsMemoryOffsetRoundTrip) {
     CStr var("@myvar");
-    m_pWriter->WriteASMXtoEAX(static_cast<DWORD>(ParamMode::MemOff), &var, NULL, 9, 8);
-    m_pWriter->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::MemOff), &var, NULL, 9, 8);
+    m_pWriter->WriteASMXtoRAX(static_cast<DWORD>(ParamMode::MemOff), &var, NULL, 9, 8);
+    m_pWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::MemOff), &var, NULL, 9, 8);
 }
 
-// EBP and EBP-OFFSET addressing walks the pDoubleStr/pOffset1/2Str
+// RBP and RBP-OFFSET addressing walks the pDoubleStr/pOffset1/2Str
 // temporaries used for local variable access.
 TEST_F(ASMWriterEmissionTest, EmitsLocalVariableRoundTrip) {
     CStr local("@:12");
-    m_pWriter->WriteASMXtoEAX(static_cast<DWORD>(ParamMode::Ebp), &local, NULL, 9, 0);
-    m_pWriter->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Ebp), &local, NULL, 9, 0);
-    m_pWriter->WriteASMXtoEAX(static_cast<DWORD>(ParamMode::EbpOff), &local, NULL, 9, 4);
-    m_pWriter->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::EbpOff), &local, NULL, 9, 4);
+    m_pWriter->WriteASMXtoRAX(static_cast<DWORD>(ParamMode::Rbp), &local, NULL, 9, 0);
+    m_pWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Rbp), &local, NULL, 9, 0);
+    m_pWriter->WriteASMXtoRAX(static_cast<DWORD>(ParamMode::RbpOff), &local, NULL, 9, 4);
+    m_pWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::RbpOff), &local, NULL, 9, 4);
 }
 
-// Array element access walks WriteASMARRtoEAX/WriteASMEAXtoARR with their
+// Array element access walks WriteASMARRtoRAX/WriteASMRAXtoARR with their
 // pOffset1/2Str temporaries (and the array-check leap markers when active).
 TEST_F(ASMWriterEmissionTest, EmitsArrayElementRoundTrip) {
     CStr arr("@myarr");
-    m_pWriter->WriteASMXtoEAX(static_cast<DWORD>(ParamMode::MemArr), &arr, NULL, 2, 0);
-    m_pWriter->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::MemArr), &arr, NULL, 2, 0);
+    m_pWriter->WriteASMXtoRAX(static_cast<DWORD>(ParamMode::MemArr), &arr, NULL, 2, 0);
+    m_pWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::MemArr), &arr, NULL, 2, 0);
 }
 
 // The runtime error hook task owns the pLineStr temporary.
@@ -114,10 +114,15 @@ TEST_F(ASMWriterEmissionTest, CompilerGeneratedLineZeroEmitsPrologueTasks) {
     ASSERT_TRUE(m_pWriter->WriteASMTaskCoreP1(
         0u, static_cast<DWORD>(ASMTask::PushRegisters), nullptr, 0u));
     ASSERT_GT(m_pWriter->GetCurrentMCPosition(), 0u);
-    EXPECT_EQ(
-        static_cast<unsigned char>(
-            m_pWriter->GetMachineCodeBuffer().GetProgramStart()[0]),
-        0x60u);
+    // x64 callee-saved prologue: PUSH RBX (0x53), PUSH RBP (0x55),
+    // PUSH RDI (0x57), PUSH RSI (0x56), PUSH R12-R15 (0x41 0x54..0x57).
+    const auto* code = m_pWriter->GetMachineCodeBuffer().GetProgramStart();
+    EXPECT_EQ(static_cast<unsigned char>(code[0]), 0x53u);
+    EXPECT_EQ(static_cast<unsigned char>(code[1]), 0x55u);
+    EXPECT_EQ(static_cast<unsigned char>(code[2]), 0x57u);
+    EXPECT_EQ(static_cast<unsigned char>(code[3]), 0x56u);
+    EXPECT_EQ(static_cast<unsigned char>(code[4]), 0x41u);
+    EXPECT_EQ(static_cast<unsigned char>(code[5]), 0x54u);
 }
 
 // The debug statement hook pushes four numeric strings to the stack

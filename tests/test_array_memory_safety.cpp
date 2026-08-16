@@ -18,10 +18,10 @@ TEST(ArrayMemorySafetyTest, HeapValidateSafelyDistinguishesStaticLiteralsFromHea
 // Contract test verifying string variable reset on static literals
 TEST(ArrayMemorySafetyTest, FreeingStaticStringPointerDoesNotCorruptHeap) {
     const char* staticLiteral = "DarkBasic Pro Constant String";
-    DWORD varSpace = (DWORD)staticLiteral;
+    uintptr_t varSpace = reinterpret_cast<uintptr_t>(staticLiteral);
 
     // Simulate CreateSingleString dwSize=0 logic:
-    LPSTR strPtr = (LPSTR)varSpace;
+    LPSTR strPtr = reinterpret_cast<LPSTR>(varSpace);
     if (strPtr && HeapValidate(GetProcessHeap(), 0, strPtr)) {
         delete[] strPtr;
     }

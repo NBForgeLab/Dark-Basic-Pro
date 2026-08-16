@@ -79,7 +79,7 @@ TEST(VFSHooksTest, InterceptFileOperations) {
     // Verify reading
     char buffer[100] = {0};
     DWORD bytesRead = 0;
-    BOOL readRes = Hook_ReadFile(hFile, buffer, testData.size(), &bytesRead, NULL);
+    BOOL readRes = Hook_ReadFile(hFile, buffer, static_cast<DWORD>(testData.size()), &bytesRead, NULL);
     EXPECT_TRUE(readRes);
     EXPECT_EQ(bytesRead, testData.size());
     EXPECT_STREQ(buffer, testData.c_str());
@@ -278,6 +278,9 @@ TEST(MemoryPETest, LoadModuleAndResolveExports) {
     FARPROC pFunc = Hook_GetProcAddress(hModule, "Constructor");
     if (!pFunc) {
         pFunc = Hook_GetProcAddress(hModule, "MD5");
+    }
+    if (!pFunc) {
+        pFunc = Hook_GetProcAddress(hModule, "UpdateTransformsPtr");
     }
     EXPECT_NE(pFunc, nullptr);
 

@@ -83,7 +83,7 @@ TEST_F(MachineCodeBufferTest, GetBytePosOfLastInstructionMatchesPosition) {
 
     EXPECT_EQ(buf.GetBytePosOfLastInstruction(), 0u);
 
-    buf.WriteByte(0x55); // PUSH EBP
+    buf.WriteByte(0x55); // PUSH RBP
     EXPECT_EQ(buf.GetBytePosOfLastInstruction(), 1u);
 
     buf.WriteDWORD(0xDEADBEEF, 4);
@@ -289,18 +289,18 @@ TEST_F(MachineCodeBufferIntegrationTest, InitialBytePosIsZero) {
 // Writing an ASM line advances the position.
 TEST_F(MachineCodeBufferIntegrationTest, WriteASMLineAdvancesPosition) {
     DWORD posBefore = g_pASMWriter->GetCurrentMCPosition();
-    g_pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
+    g_pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::POPRAX), "");
     DWORD posAfter = g_pASMWriter->GetCurrentMCPosition();
     EXPECT_GT(posAfter, posBefore);
 }
 
 // Multiple writes accumulate position correctly.
 TEST_F(MachineCodeBufferIntegrationTest, MultipleWritesAccumulatePosition) {
-    g_pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), "");
+    g_pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), "");
     DWORD pos1 = g_pASMWriter->GetCurrentMCPosition();
     EXPECT_GT(pos1, 0u);
 
-    g_pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::POPEBP), "");
+    g_pASMWriter->WriteASMLine(static_cast<DWORD>(ASMOp::POPRBP), "");
     DWORD pos2 = g_pASMWriter->GetCurrentMCPosition();
     EXPECT_GT(pos2, pos1);
 }

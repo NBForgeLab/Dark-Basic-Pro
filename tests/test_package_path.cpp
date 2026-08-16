@@ -13,18 +13,18 @@ using dbp::package::ValidatePersistedPackagePath;
 
 TEST(PackagePathTest, NormalizesInputSeparatorsAndUnicodeToCanonicalUtf8) {
     const auto result =
-        NormalizePackageInputPath(u8"media\\شخصيات\\e\u0301lite.png");
+        NormalizePackageInputPath("media\\شخصيات\\e\u0301lite.png");
 
     ASSERT_TRUE(result) << result.error().message;
-    EXPECT_EQ(result.value(), u8"media/شخصيات/élite.png");
+    EXPECT_EQ(result.value(), "media/شخصيات/élite.png");
 }
 
 TEST(PackagePathTest, AcceptsCanonicalRelativeUtf8Path) {
     const auto result =
-        ValidatePersistedPackagePath(u8"media/أصوات/تنبيه.wav");
+        ValidatePersistedPackagePath("media/أصوات/تنبيه.wav");
 
     ASSERT_TRUE(result) << result.error().message;
-    EXPECT_EQ(result.value(), u8"media/أصوات/تنبيه.wav");
+    EXPECT_EQ(result.value(), "media/أصوات/تنبيه.wav");
 }
 
 class UnsafePackagePathTest
@@ -69,13 +69,13 @@ TEST(PackagePathTest, SortsPathsByCanonicalUtf8Bytes) {
     const auto result = ValidateAndSortPackagePaths({
         "z/file.dat",
         "a/file.dat",
-        u8"media/صوت.wav",
+        "media/صوت.wav",
     });
 
     ASSERT_TRUE(result) << result.error().message;
     EXPECT_EQ(result.value(), (std::vector<std::string>{
         "a/file.dat",
-        u8"media/صوت.wav",
+        "media/صوت.wav",
         "z/file.dat",
     }));
 }
@@ -100,8 +100,8 @@ TEST(PackagePathTest, RejectsWindowsCaseInsensitiveCollision) {
 
 TEST(PackagePathTest, RejectsUnicodeNormalizationCollision) {
     const auto result = ValidateAndSortPackagePaths({
-        u8"media/élite.png",
-        u8"media/e\u0301lite.png",
+        "media/élite.png",
+        "media/e\u0301lite.png",
     });
 
     EXPECT_FALSE(result);

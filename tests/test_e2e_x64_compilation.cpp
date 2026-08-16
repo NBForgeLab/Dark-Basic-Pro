@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ASMWriterx64.h"
+#include "ASMWriter.h"
 #include "PEBuilder.h"
 #include "CompilerContext.h"
 
@@ -8,7 +8,7 @@
 #include <cstring>
 
 TEST(X64E2ECompilationTest, EmitsAndExecutesX64MachineCodeStreamDirectly) {
-    CASMWriterx64 writer;
+    CASMWriter writer;
     
     // Emit a 64-bit function returning 42:
     // MOV RAX, 42 (10 bytes: REX.W 0x48 0xB8 + 64-bit imm)
@@ -61,10 +61,15 @@ TEST(X64E2ECompilationTest, VerifiesX64CompilerHostBootstrapping) {
     CompilerContext context;
     context.Initialize();
 
-    CASMWriterx64 x64Writer;
-    x64Writer.EmitPushReg(X64Register::RBP);
-    x64Writer.EmitPopReg(X64Register::RBP);
-    x64Writer.EmitRet();
+    ASSERT_NE(context.pASMWriter, nullptr);
+    ASSERT_NE(context.pDBMWriter, nullptr);
+    ASSERT_NE(context.pLabelTable, nullptr);
+    ASSERT_NE(context.pDataTable, nullptr);
+    ASSERT_NE(context.pStringTable, nullptr);
+    ASSERT_NE(context.pDLLTable, nullptr);
+    ASSERT_NE(context.pCommandTable, nullptr);
+    ASSERT_NE(context.pVarTable, nullptr);
 
-    EXPECT_EQ(x64Writer.GetCodeSize(), 3U);
+    CASMWriter writer;
+    EXPECT_EQ(writer.GetShadowSpaceSize(), 32U);
 }

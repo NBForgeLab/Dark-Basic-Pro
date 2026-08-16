@@ -1,16 +1,17 @@
 #include <gtest/gtest.h>
 #include <windows.h>
+#include <cstdint>
 
 // Helper functions mirroring DBDLLCore.cpp array index navigation
-static inline void TestArrayIndexToTop(DWORD dwArrayPtr) {
+static inline void TestArrayIndexToTop(uintptr_t dwArrayPtr) {
     if (dwArrayPtr) *((DWORD*)dwArrayPtr - 1) = 0;
 }
 
-static inline void TestArrayIndexToBottom(DWORD dwArrayPtr) {
+static inline void TestArrayIndexToBottom(uintptr_t dwArrayPtr) {
     if (dwArrayPtr) *((DWORD*)dwArrayPtr - 1) = *((DWORD*)dwArrayPtr - 4) - 1;
 }
 
-static inline void TestNextArrayIndex(DWORD dwArrayPtr) {
+static inline void TestNextArrayIndex(uintptr_t dwArrayPtr) {
     if (dwArrayPtr) {
         *((DWORD*)dwArrayPtr - 1) = *((DWORD*)dwArrayPtr - 1) + 1;
         if (*((DWORD*)dwArrayPtr - 1) > *((DWORD*)dwArrayPtr - 4)) {
@@ -19,7 +20,7 @@ static inline void TestNextArrayIndex(DWORD dwArrayPtr) {
     }
 }
 
-static inline void TestPreviousArrayIndex(DWORD dwArrayPtr) {
+static inline void TestPreviousArrayIndex(uintptr_t dwArrayPtr) {
     if (dwArrayPtr) {
         if ((int)*((DWORD*)dwArrayPtr - 1) > 0) {
             *((DWORD*)dwArrayPtr - 1) = (*((DWORD*)dwArrayPtr - 1)) - 1;
@@ -29,7 +30,7 @@ static inline void TestPreviousArrayIndex(DWORD dwArrayPtr) {
     }
 }
 
-static inline DWORD TestArrayIndexValid(DWORD dwArrayPtr) {
+static inline DWORD TestArrayIndexValid(uintptr_t dwArrayPtr) {
     if (dwArrayPtr) {
         if (*((DWORD*)dwArrayPtr - 1) < *((DWORD*)dwArrayPtr - 4))
             return 1;
@@ -40,7 +41,7 @@ static inline DWORD TestArrayIndexValid(DWORD dwArrayPtr) {
     }
 }
 
-static inline DWORD TestArrayCount(DWORD dwArrayPtr) {
+static inline DWORD TestArrayCount(uintptr_t dwArrayPtr) {
     if (dwArrayPtr)
         return (*((DWORD*)dwArrayPtr - 4)) - 1;
     else
@@ -53,7 +54,7 @@ TEST(ArrayIndexTest, PreviousArrayIndexDoesNotUnderflowWhenAlreadyAtMinusOne) {
     header[10] = 10;         // Array size = 10
     header[13] = (DWORD)-1;  // Current index = -1
 
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    uintptr_t dwArrayPtr = (uintptr_t)&header[14];
 
     TestPreviousArrayIndex(dwArrayPtr);
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), (DWORD)-1);
@@ -71,7 +72,7 @@ TEST(ArrayIndexTest, PreviousArrayIndexDecrementsSequentiallyAndTransitionsToMin
     header[10] = 5; // Array size = 5 (indices 0..4)
     header[13] = 3; // Start at index 3
 
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    uintptr_t dwArrayPtr = (uintptr_t)&header[14];
 
     TestPreviousArrayIndex(dwArrayPtr);
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), 2u);
@@ -97,7 +98,7 @@ TEST(ArrayIndexTest, NextArrayIndexIncrementsAndClampsAtMaxCount) {
     header[10] = 4; // Array size = 4 (valid indices 0..3)
     header[13] = 2; // Start at index 2
 
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    uintptr_t dwArrayPtr = (uintptr_t)&header[14];
 
     TestNextArrayIndex(dwArrayPtr);
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), 3u);
@@ -121,7 +122,7 @@ TEST(ArrayIndexTest, ArrayIndexToTopAndBottomSetsCorrectIndices) {
     header[10] = 10; // Array size = 10 (valid indices 0..9)
     header[13] = 5;
 
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    uintptr_t dwArrayPtr = (uintptr_t)&header[14];
 
     TestArrayIndexToTop(dwArrayPtr);
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), 0u);
@@ -138,7 +139,7 @@ TEST(ArrayIndexTest, ArrayIndexToTopAndBottomSetsCorrectIndices) {
 TEST(ArrayIndexTest, FullNavigationCycleIsConsistentAndSafe) {
     DWORD header[14] = {0};
     header[10] = 3; // Array size = 3 (indices 0..2)
-    DWORD dwArrayPtr = (DWORD)&header[14];
+    uintptr_t dwArrayPtr = (uintptr_t)&header[14];
 
     // 1. Go to top (index 0)
     TestArrayIndexToTop(dwArrayPtr);
@@ -179,3 +180,4 @@ TEST(ArrayIndexTest, FullNavigationCycleIsConsistentAndSafe) {
     EXPECT_EQ(*((DWORD*)dwArrayPtr - 1), (DWORD)-1);
     EXPECT_EQ(TestArrayIndexValid(dwArrayPtr), 0u);
 }
+

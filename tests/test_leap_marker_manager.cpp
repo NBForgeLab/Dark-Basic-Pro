@@ -67,7 +67,7 @@ TEST_F(LeapMarkerManagerTest, LeapMarkerTopRecordsPosition) {
 TEST_F(LeapMarkerManagerTest, LineLeapToTopAfterMarker) {
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerTop());
     // Emit a small instruction to advance the machine block
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
     // Leap back to top with a JNE opcode
     ASSERT_TRUE(m_pWriter->WriteASMLineLeapToTop(static_cast<DWORD>(ASMOp::JNE)));
     // Position should have advanced
@@ -80,7 +80,7 @@ TEST_F(LeapMarkerManagerTest, LineLeapToTopAfterMarker) {
 TEST_F(LeapMarkerManagerTest, LeapMarkerJumpToTopEmitsCompareAndLeap) {
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerTop());
     // Emit some code between marker and jump
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerJumpToTop());
     EXPECT_GT(m_pWriter->GetCurrentMCPosition(), 0u);
 }
@@ -100,7 +100,7 @@ TEST_F(LeapMarkerManagerTest, LeapMarkerJumpNotEqualAtMultipleIndices) {
 TEST_F(LeapMarkerManagerTest, LeapMarkerEndAfterJumpNotEqual) {
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerJumpNotEqual(1));
     // Emit some code between marker and end
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerEnd(1));
 }
 
@@ -122,7 +122,7 @@ TEST_F(LeapMarkerManagerTest, LeapForwardMarkerSucceeds) {
 TEST_F(LeapMarkerManagerTest, LeapForwardMarkerThenEnd) {
     ASSERT_TRUE(m_pWriter->WriteASMLeapForwardMarker());
     // Emit some code
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
     // Finalize the forward reference at index 0
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerEnd(0));
 }
@@ -132,7 +132,7 @@ TEST_F(LeapMarkerManagerTest, LeapForwardMarkerThenEnd) {
 // Jump marker with JE opcode at various indices.
 TEST_F(LeapMarkerManagerTest, LeapMarkerJumpWithJE) {
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 1));
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerEnd(1));
 }
 
@@ -146,7 +146,7 @@ TEST_F(LeapMarkerManagerTest, MultipleMarkersInSequence) {
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerJumpNotEqual(3));
 
     // Emit some code
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
 
     // Resolve all three
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerEnd(1));
@@ -171,8 +171,8 @@ TEST_F(LeapMarkerManagerTest, FullTopLeapCycle) {
     DWORD posAfterMarker = m_pWriter->GetCurrentMCPosition();
 
     // Emit several instructions
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBX), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBX), nullptr);
 
     // Leap back to top
     ASSERT_TRUE(m_pWriter->WriteASMLineLeapToTop(static_cast<DWORD>(ASMOp::JNE)));
@@ -187,11 +187,11 @@ TEST_F(LeapMarkerManagerTest, FullTopLeapCycle) {
 TEST_F(LeapMarkerManagerTest, ReuseMarkerIndex) {
     // First use of index 2
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerJumpNotEqual(2));
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBP), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBP), nullptr);
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerEnd(2));
 
     // Second use of index 2
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerJumpNotEqual(2));
-    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHEBX), nullptr);
+    m_pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRBX), nullptr);
     ASSERT_TRUE(m_pWriter->WriteASMLeapMarkerEnd(2));
 }

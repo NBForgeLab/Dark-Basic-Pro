@@ -60,7 +60,7 @@ TEST(StatementStringHelpersTest, ContainsAssignmentOperatorFalseWithoutEquals) {
 
 TEST(StatementStringHelpersTest, SeperateValueFromArrayStringExtractsValueAndName) {
     LPSTR pName = new char[16];
-    strcpy(pName, "myarr(5)");
+    strcpy_s(pName, 16, "myarr(5)");
     LPSTR pValue = nullptr;
     EXPECT_TRUE(StatementHelper::SeperateValueFromArrayString(&pName, &pValue, false));
     ASSERT_NE(pValue, nullptr);
@@ -72,7 +72,7 @@ TEST(StatementStringHelpersTest, SeperateValueFromArrayStringExtractsValueAndNam
 
 TEST(StatementStringHelpersTest, SeperateValueFromArrayStringExtractsMultiCharValue) {
     LPSTR pName = new char[16];
-    strcpy(pName, "arr(42)");
+    strcpy_s(pName, 16, "arr(42)");
     LPSTR pValue = nullptr;
     EXPECT_TRUE(StatementHelper::SeperateValueFromArrayString(&pName, &pValue, false));
     ASSERT_NE(pValue, nullptr);
@@ -84,7 +84,7 @@ TEST(StatementStringHelpersTest, SeperateValueFromArrayStringExtractsMultiCharVa
 
 TEST(StatementStringHelpersTest, SeperateValueFromArrayStringReturnsFalseWithoutBracket) {
     LPSTR pName = new char[16];
-    strcpy(pName, "myarr");
+    strcpy_s(pName, 16, "myarr");
     LPSTR pValue = nullptr;
     EXPECT_FALSE(StatementHelper::SeperateValueFromArrayString(&pName, &pValue, false));
     EXPECT_EQ(pValue, nullptr);

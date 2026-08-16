@@ -250,7 +250,7 @@ TEST(RuntimeBundleResolverTest, RejectsNonX86Core) {
     auto corePath = bundle.root() / "plugins" / "DBProCore.dll";
     std::fstream stream(corePath, std::ios::binary | std::ios::in | std::ios::out);
     stream.seekp(0x84);
-    const WORD machine = IMAGE_FILE_MACHINE_AMD64;
+    const WORD machine = IMAGE_FILE_MACHINE_ARM64;
     stream.write(reinterpret_cast<const char*>(&machine), sizeof(machine));
     stream.close();
 

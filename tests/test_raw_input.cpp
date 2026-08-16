@@ -4,8 +4,8 @@
 #include <xinput.h>
 
 // Mock functions to satisfy CInputC.cpp linker requirements in test build
-void RunTimeError(unsigned long code) {}
-void GlobExpandChecklist(unsigned long index, unsigned long size) {}
+void RunTimeError([[maybe_unused]] unsigned long code) {}
+void GlobExpandChecklist([[maybe_unused]] unsigned long index, [[maybe_unused]] unsigned long size) {}
 class CRuntimeErrorHandler;
 CRuntimeErrorHandler* g_pErrorHandler = nullptr;
 

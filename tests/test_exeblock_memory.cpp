@@ -15,8 +15,9 @@ namespace {
 
 char* MakeString(const char* pText)
 {
-    char* pStr = new char[strlen(pText) + 1];
-    strcpy(pStr, pText);
+    const size_t len = strlen(pText) + 1;
+    char* pStr = new char[len];
+    strcpy_s(pStr, len, pText);
     return pStr;
 }
 

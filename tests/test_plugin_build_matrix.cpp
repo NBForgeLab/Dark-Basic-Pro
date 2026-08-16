@@ -4,7 +4,7 @@
 #include "globstruct.h"
 
 TEST(PluginBuildMatrixTest, VerifiesInputPluginAbiTargetTraits) {
-    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 4U);
+    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 8U);
 }
 
 TEST(PluginBuildMatrixTest, ValidatesInputPluginExportsStructSize) {
@@ -22,6 +22,8 @@ TEST(PluginBuildMatrixTest, ValidatesGlobStructAlignmentAndPointerTraits) {
     EXPECT_EQ(sizeof(GlobStruct::CreateDeleteString), sizeof(uintptr_t));
     EXPECT_EQ(sizeof(GlobStruct::g_pVariableSpace), sizeof(uintptr_t));
     EXPECT_EQ(sizeof(GlobStruct::g_GFX), sizeof(uintptr_t));
+    EXPECT_EQ(sizeof(GlobStruct::ppEXEAbsFilename), sizeof(uintptr_t));
+    EXPECT_EQ(sizeof(GlobStruct::g_pMachineCodeBlock), sizeof(uintptr_t));
 }
 
 TEST(PluginBuildMatrixTest, ValidatesGlobChecklistStructPointerSafety) {

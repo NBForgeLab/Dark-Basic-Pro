@@ -5,7 +5,7 @@
  * These tests validate that the DBP_ENABLE_COVERAGE CMake option and the
  * dbp_enable_coverage() function are wired correctly into the build system.
  * They run under every preset but are most meaningful when the coverage
- * preset (windows-x86-coverage) is active.
+ * preset (windows-x64-coverage) is active.
  */
 
 #include <gtest/gtest.h>
@@ -54,8 +54,10 @@ TEST(CoverageIntegration, CoveragePresetPresentInCMakePresets) {
 
     std::string content((std::istreambuf_iterator<char>(f)),
                          std::istreambuf_iterator<char>());
-    EXPECT_NE(content.find("windows-x86-coverage"), std::string::npos)
-        << "CMakePresets.json must contain a windows-x86-coverage preset";
+    EXPECT_NE(content.find("windows-x64-coverage"), std::string::npos)
+        << "CMakePresets.json must contain a windows-x64-coverage preset";
+    EXPECT_EQ(content.find("windows-x86"), std::string::npos)
+        << "CMakePresets.json must no longer contain any 32-bit (x86) presets";
     EXPECT_NE(content.find("DBP_ENABLE_COVERAGE"), std::string::npos)
         << "CMakePresets.json coverage preset must set DBP_ENABLE_COVERAGE";
 #else
@@ -87,10 +89,19 @@ TEST(CoverageIntegration, StringOperationsUnderCoverage) {
 TEST(CoverageIntegration, FilesystemAccessUnderCoverage) {
     // Verify we can query the environment without crashing under
     // coverage instrumentation.
-    const char* path = std::getenv("PATH");
+    char* path = nullptr;
+#if defined(_MSC_VER)
+    size_t len = 0;
+    _dupenv_s(&path, &len, "PATH");
+#else
+    path = std::getenv("PATH");
+#endif
     // PATH is expected to be set on every CI platform.
     if (path) {
         EXPECT_GT(std::string(path).size(), 0u);
+#if defined(_MSC_VER)
+        free(path);
+#endif
     } else {
         SUCCEED() << "PATH not set (unusual but not a failure)";
     }

@@ -1,4 +1,4 @@
-$script:CIPath = Join-Path $PSScriptRoot "..\scripts\run-local-ci.ps1"
+﻿$script:CIPath = Join-Path $PSScriptRoot "..\scripts\run-local-ci.ps1"
 
 Describe "Unified Local CI/CD Orchestrator Contract" {
     Context "Release and hardening gates" {
@@ -7,24 +7,24 @@ Describe "Unified Local CI/CD Orchestrator Contract" {
             $presets = Get-Content -LiteralPath $presetPath -Raw |
                 ConvertFrom-Json
             (@($presets.configurePresets.name) -contains
-                "windows-x86-debug") | Should Be $true
+                "windows-x64-debug") | Should Be $true
             (@($presets.configurePresets.name) -contains
-                "windows-x86-release") | Should Be $true
+                "windows-x64-release") | Should Be $true
             (@($presets.configurePresets.name) -contains
-                "windows-x86-asan") | Should Be $true
+                "windows-x64-asan") | Should Be $true
             (@($presets.buildPresets.name) -contains
-                "windows-x86-release") | Should Be $true
+                "windows-x64-release") | Should Be $true
             (@($presets.testPresets.name) -contains
-                "windows-x86-release") | Should Be $true
+                "windows-x64-release") | Should Be $true
         }
 
         It "Runs hosted conformance and has no developer-specific drive path" {
             $workflow = Get-Content -LiteralPath (
                 Join-Path $PSScriptRoot `
-                    "..\.github\workflows\windows-x86.yml") -Raw
+                    "..\.github\workflows\windows-x64.yml") -Raw
             $localCI = Get-Content -LiteralPath $script:CIPath -Raw
             $workflow | Should Match "Run language conformance"
-            $workflow | Should Match "windows-x86-release"
+            $workflow | Should Match "windows-x64-release"
             $workflow | Should Match "FailedCount"
             $localCI | Should Match "FailedCount"
             $localCI | Should Not Match "[A-Za-z]:\\GitHub-repo"
@@ -40,7 +40,7 @@ Describe "Unified Local CI/CD Orchestrator Contract" {
                 Join-Path $PSScriptRoot "..\fuzz\CMakeLists.txt") -Raw
             $workflow = Get-Content -LiteralPath (
                 Join-Path $PSScriptRoot `
-                    "..\.github\workflows\windows-x86.yml") -Raw
+                    "..\.github\workflows\windows-x64.yml") -Raw
             $smoke = Get-Content -LiteralPath (
                 Join-Path $PSScriptRoot `
                     "..\fuzz\run-corpus-smoke.ps1") -Raw

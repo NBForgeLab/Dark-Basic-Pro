@@ -11,9 +11,9 @@
 
 namespace {
 
-TEST(TargetAbiTest, ActiveTargetIsExplicitlyPe32) {
-    static_assert(std::is_same_v<dbp::abi::ActiveTargetAbi, dbp::abi::TargetAbi32>);
-    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 4U);
+TEST(TargetAbiTest, ActiveTargetIsExplicitlyPe64) {
+    static_assert(std::is_same_v<dbp::abi::ActiveTargetAbi, dbp::abi::TargetAbi64>);
+    EXPECT_EQ(dbp::abi::ActiveTargetAbi::address_size, 8U);
 }
 
 TEST(TargetAbiTest, ReadsUnalignedPe32AddressWithoutAdjacentBytes) {
