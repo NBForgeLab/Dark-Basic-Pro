@@ -124,7 +124,6 @@ protected:  // control bar embedded members
 	void OnTutorial();
 	void OnTutorialUpdate(CCmdUI* pCmdUI);
 	void OnUpdate();
-	void OnCheckModules();
 	void OnDBPAbout();
 	void OnDGS();
 	void OnKeyboard();

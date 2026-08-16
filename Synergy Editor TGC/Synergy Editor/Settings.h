@@ -18,7 +18,6 @@ public:
 	static bool ClearOutputOnCompile;
 	static bool ShowWelcomeScreen;
 	static bool OpenAllIncludes;
-	static bool BlockCertificateViewer;
 	static bool AutoLineConcat;
 	static bool ReplaceTabs;
 

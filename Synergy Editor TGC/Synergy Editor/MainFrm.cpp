@@ -81,7 +81,6 @@ BEGIN_MESSAGE_MAP(MainFrame, CBCGPMDIFrameWnd)
 	ON_COMMAND(ID_COMPILE_COMPILERUN, OnCompileRun)
 
 	ON_COMMAND(ID_OPENSTORE, OnOpenGameCreatorStore)
-	ON_COMMAND(ID_CHECKMODULES, OnCheckModules)
 
 	ON_COMMAND(ID_COMPILE_COMPILERUNINDEBUGMODE, OnDebug)
 	ON_COMMAND(ID_COMPILE_COMPILERUNINSTEP, OnStep)
@@ -101,7 +100,6 @@ BEGIN_MESSAGE_MAP(MainFrame, CBCGPMDIFrameWnd)
 	ON_COMMAND(ID_HELP_DARKBASICPROFESSIONALVIDEOS32997, OnTutorial)
 	ON_UPDATE_COMMAND_UI(ID_HELP_DARKBASICPROFESSIONALVIDEOS32997, OnTutorialUpdate)
 	ON_COMMAND(ID_HELP_CHECKFORUPDATES, OnUpdate)
-	ON_COMMAND(ID_HELP_CHECKFORMODULES, OnCheckModules)
 	ON_COMMAND(ID_HELP_KEYBOARDMAP, OnKeyboard)
 	ON_COMMAND(ID_HELP_ABOUTDARKBASICPROFESSIONAL, OnDBPAbout)
 	ON_COMMAND(ID_HELP_DARKGAMESTUDIOWEBSITE, OnDGS)
@@ -454,15 +452,7 @@ int MainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		wd->Create(this);
 	}
 
-	// U75 - 171109 - only reveal viewer if NOT a NETBOOK version
-	if ( g_bIsNETBOOKVersion==false && !Settings::BlockCertificateViewer)
-	{
-		CString certificate(Settings::DBPLocation + _T("Compiler\\"));
-		if(Utilities::CheckFileExists(certificate + _T("TGCCertificateViewer.exe")))
-		{
-			ShellExecuteW(this->GetSafeHwnd(), _T("open"), certificate + _T("TGCCertificateViewer.exe"), NULL, certificate, 1);
-		}
-	}
+	// U75 - 171109 - certificate viewer retired with the legacy TGC online tooling
 
 	// File change checker
 	SetTimer(Variables::FileChangeChecker, 10000, 0);
@@ -1425,17 +1415,6 @@ void MainFrame::OnUpdate()
 {
 	UpdateTool up(this);
 	up.DoModal();
-}
-
-void MainFrame::OnCheckModules()
-{
-	// LEE - U75 - 051009 - using DBPLocation instead of extacting from apppath
-	CString appPath = Utilities::GetApplicationPath();
-	char pANSI[512];
-	BOOL b = FALSE;
-	WideCharToMultiByte ( CP_ACP, WC_NO_BEST_FIT_CHARS, Settings::DBPLocation, -1, pANSI, 512, "_", &b);
-	strcat ( pANSI, "Compiler\\" );
-	ShellExecuteA ( NULL, "open", "TGCCertificateViewerKEEPACTIVE.exe", "", pANSI, SW_SHOWDEFAULT );
 }
 
 void MainFrame::OnOpenGameCreatorStore()

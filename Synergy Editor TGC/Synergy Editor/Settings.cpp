@@ -19,7 +19,6 @@ bool Settings::ShowOutputWindow;
 bool Settings::ClearOutputOnCompile;
 bool Settings::ShowWelcomeScreen;
 bool Settings::OpenAllIncludes;
-bool Settings::BlockCertificateViewer;
 bool Settings::AutoLineConcat;
 bool Settings::ReplaceTabs;
 
@@ -147,8 +146,7 @@ bool Settings::LoadSettings()
 	handleBool(_T("ClearOutputOnCompile"), _T("FALSE"), ClearOutputOnCompile);
 	handleBool(_T("ShowWelcomeScreen"), _T("FALSE"), ShowWelcomeScreen);
 	handleBool(_T("OpenAllIncludes"), _T("FALSE"), OpenAllIncludes);
-	handleBool(_T("BlockCertificateViewer"), _T("FALSE"), BlockCertificateViewer);	
-	handleBool(_T("AutoLineConcat"), _T("FALSE"), AutoLineConcat);		
+	handleBool(_T("AutoLineConcat"), _T("FALSE"), AutoLineConcat);
 	handleBool(_T("ReplaceTabs"), _T("FALSE"), ReplaceTabs);
 
 	handleBool(_T("CollapseFunctions"), _T("FALSE"), CollapseFunctions);
