@@ -1,5 +1,5 @@
 # Modernization Roadmap & Guide
-This guide details the structural and code modernization process for the **DarkBasic Pro** engine to make the legacy codebase more flexible, maintainable, extensible, and easier to debug, while keeping the engine targeting 32-bit (x86) in the initial phases, and leaving the 64-bit transition as the final step.
+This guide details the structural and code modernization process for the **DarkBasic Pro** engine to make the legacy codebase more flexible, maintainable, extensible, and easier to debug. The compiler host now builds x64 by default (Win32 remains a compatibility preset), while the programs it emits still target 32-bit (x86) until the x64 code-generation backend lands as the final step.
 
 ---
 

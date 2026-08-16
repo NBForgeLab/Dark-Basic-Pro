@@ -105,7 +105,7 @@
      ```
   5. Refactor `CreateProcess` at line 717:
      ```cpp
-     wchar_t wFullLine[_MAX_PATH] = L"TGCOnline.exe";
+     wchar_t wFullLine[_MAX_PATH] = L"DarkEXE.exe";
      if(CreateProcessW(	NULL, wFullLine,
      					NULL, NULL, false,
      					NORMAL_PRIORITY_CLASS,

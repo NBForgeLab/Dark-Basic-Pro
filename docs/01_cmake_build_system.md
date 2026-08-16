@@ -11,17 +11,15 @@ The root `CMakeLists.txt` file is located in the repository root. It initializes
 
 ### Implemented Root `CMakeLists.txt`
 ```cmake
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.2)
 
-# Must be set before the project() command to enforce 32-bit (x86)
-set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Force Win32 Platform" FORCE)
+# Must be set before the project() command; x64 is the default target
+# platform, Win32 remains available via the windows-x86-* presets.
+if(NOT CMAKE_GENERATOR_PLATFORM)
+    set(CMAKE_GENERATOR_PLATFORM x64 CACHE STRING "Target Platform (x64 or Win32)" FORCE)
+endif()
 
 project(DarkBasicPro LANGUAGES C CXX)
-
-# Verify 32-bit (x86) target
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "This project is currently 32-bit (x86) only. Please configure CMake with -A Win32.")
-endif()
 
 # C++ Standard configuration
 set(CMAKE_CXX_STANDARD 17)
@@ -77,7 +75,7 @@ add_subdirectory(DBProCompiler/DBPCompilerEXE)
 
 ### 1. DBPCompiler Subdirectory (`DBProCompiler/DBPCompiler/CMakeLists.txt`)
 * Compiles the core compiler `DBPCompiler.exe`.
-* Includes `icons/DIB.C` and `icons/ICONS.C` for file building support, and `../TGCOnline/CertificateKey.cpp` for license and keys.
+* Includes `icons/DIB.C` and `icons/ICONS.C` for file building support.
 * **C Compilation Rule Forcing**: Standard MSVC treats files with capital `.C` extensions as C++ source files. Since these legacy files use C-style implicit pointer conversions (e.g. `void*` to struct pointers), we forced C compilation using `/TC` compiler flags:
   ```cmake
   if(MSVC)
