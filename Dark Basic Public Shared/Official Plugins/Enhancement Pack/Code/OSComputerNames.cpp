@@ -44,7 +44,7 @@ DWORD GetComputerNameEx ( DWORD dwReturn )
 
 	GetComputerName ( szBuffer, &dwSize );
 	
-	return ( DWORD ) SetupString ( szBuffer );
+	return (DWORD_PTR)SetupString ( szBuffer );
 }
 
 DWORD GetUserNameEx ( DWORD dwReturn )
@@ -54,7 +54,7 @@ DWORD GetUserNameEx ( DWORD dwReturn )
 
 	GetUserName ( szBuffer, &dwSize );
 	
-	return ( DWORD ) SetupString ( szBuffer );
+	return (DWORD_PTR)SetupString ( szBuffer );
 }
 
 ////////////////////////////////////////////////////////////////////

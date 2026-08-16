@@ -59,7 +59,7 @@ DWORD OpenFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitl
 	
 	GetOpenFileName ( &ofn );
 
-	return ( DWORD ) SetupString ( ofn.lpstrFile );
+	return (DWORD_PTR)SetupString ( ofn.lpstrFile );
 }
 
 DWORD SaveFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitle )
@@ -83,7 +83,7 @@ DWORD SaveFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitl
 	
 	GetSaveFileName ( &ofn );
 
-	return ( DWORD ) SetupString ( ofn.lpstrFile );
+	return (DWORD_PTR)SetupString ( ofn.lpstrFile );
 }
 
 ////////////////////////////////////////////////////////////////////

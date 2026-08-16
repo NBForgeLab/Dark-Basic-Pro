@@ -1241,7 +1241,7 @@ DLLEXPORT DWORD LMGetStatus( DWORD szReturnString )
 
 #pragma warning ( disable : 4312 )	//convert DWORD to 'char *'
 
-	g_pGlob->CreateDeleteString ( (DWORD*) &szReturnString, 0 );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&szReturnString, 0 );
 	
 	char szNewString[256];
 	bool bOK = g_pShared && g_pShared->GetStatus( szNewString );
@@ -1249,13 +1249,13 @@ DLLEXPORT DWORD LMGetStatus( DWORD szReturnString )
 	
 	DWORD dwSize = (DWORD) strlen ( (char*) szNewString );
 
-	g_pGlob->CreateDeleteString ( (DWORD*) &szReturnString, dwSize+1 );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&szReturnString, dwSize+1 );
 	
 	strcpy_s ( (char*) szReturnString, dwSize+1, szNewString);
 
 #pragma warning ( default : 4312 )
 	
-	return (DWORD) szReturnString;
+	return (DWORD_PTR)szReturnString;
 }
 
 DLLEXPORT DWORD LMGetPercent( )

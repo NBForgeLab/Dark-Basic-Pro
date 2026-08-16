@@ -81,7 +81,7 @@ int GetProcessorCount ( void )
 
 DWORD GetProcessorVendor ( DWORD dwReturn, int iID )
 {
-	return ( DWORD ) SetupString ( g_CPU.GetVendorID ( ) );
+	return (DWORD_PTR)SetupString ( g_CPU.GetVendorID ( ) );
 }
 
 int GetProcessorTypeID ( int iID )
@@ -147,7 +147,7 @@ int GetProcessorSteppingID ( int iID )
 
 DWORD GetProcessorBrand ( DWORD dwReturn, int iID )
 {
-	return ( DWORD ) SetupString ( g_CPU.GetVendorString ( ) );
+	return (DWORD_PTR)SetupString ( g_CPU.GetVendorString ( ) );
 }
 
 DWORD GetProcessorPlatform ( DWORD dwReturn, int iID )
@@ -161,12 +161,12 @@ DWORD GetProcessorPlatform ( DWORD dwReturn, int iID )
 
 	return dwA;
 
-	return ( DWORD ) SetupString ( GetOS ( ) );
+	return (DWORD_PTR)SetupString ( GetOS ( ) );
 }
 
 DWORD GetProcessorName ( DWORD dwReturn, int iID )
 {
-	return ( DWORD ) SetupString ( g_CPU.GetExtendedProcessorName ( ) );
+	return (DWORD_PTR)SetupString ( g_CPU.GetExtendedProcessorName ( ) );
 }
 
 int GetProcessorFrequency ( int iID )

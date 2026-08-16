@@ -74,7 +74,7 @@ DWORD GetWebClient ( void )
 
 	FreeLibrary ( hBrowser );
 
-	return ( DWORD ) SetupString ( szBuffer );
+	return (DWORD_PTR)SetupString ( szBuffer );
 }
 
 DWORD GetIPAddress ( void )
@@ -107,7 +107,7 @@ DWORD GetIPAddress ( void )
 		return 0;
 	}
 	
-	return ( DWORD ) SetupString ( szName );
+	return (DWORD_PTR)SetupString ( szName );
 }
 
 ////////////////////////////////////////////////////////////////////

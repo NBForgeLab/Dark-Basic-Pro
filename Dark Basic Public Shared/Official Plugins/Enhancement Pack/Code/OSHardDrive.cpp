@@ -312,7 +312,7 @@ DWORD GetDriveSerial ( DWORD dwReturn, int iID )
 	}
 	
 	// return the string
-	return ( DWORD ) SetupString ( szSerialB );
+	return (DWORD_PTR)SetupString ( szSerialB );
 }
 
 DWORD GetDriveFileSystem ( DWORD dwReturn, int iID )
@@ -326,7 +326,7 @@ DWORD GetDriveFileSystem ( DWORD dwReturn, int iID )
 	if ( GetVolumeInformation ( g_HardDiskLetters [ iID ], NULL, 0, NULL, NULL, NULL, szFS, 256 ) )
 		sprintf ( szFileSystem, "%s", szFS );
 	
-	return ( DWORD ) SetupString ( szFileSystem );
+	return (DWORD_PTR)SetupString ( szFileSystem );
 }
 
 int GetCDCount ( void )
@@ -377,7 +377,7 @@ DWORD GetCDLetter ( DWORD dwReturn, int iNTHCDIndex )
 	}
 
 	// return string
-	return ( DWORD ) SetupString ( szLetter );
+	return (DWORD_PTR)SetupString ( szLetter );
 }
 
 ////////////////////////////////////////////////////////////////////

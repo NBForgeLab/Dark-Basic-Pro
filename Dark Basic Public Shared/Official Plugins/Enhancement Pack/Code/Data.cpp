@@ -157,7 +157,7 @@ DWORD GetDataFileCell ( DWORD dwReturn, int iID, int iColumn, int iRow )
 
 	strcpy ( szReturn, sData );
 
-	return ( DWORD ) SetupString ( szReturn );
+	return (DWORD_PTR)SetupString ( szReturn );
 }
 
 int GetDataFileRowCount ( int iID )

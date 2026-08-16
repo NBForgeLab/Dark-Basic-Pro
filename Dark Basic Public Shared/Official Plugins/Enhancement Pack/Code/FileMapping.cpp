@@ -224,13 +224,13 @@ DWORD GetFileMapString ( DWORD dwReturn, int iID, DWORD dwOffset )
 	char* pReturnString	= NULL;	
 
 	if ( dwReturn )
-		g_pGlob->CreateDeleteString ( ( DWORD* ) &dwReturn, 0 );
+		g_pGlob->CreateDeleteString((DWORD_PTR*)&dwReturn, 0 );
 
-	g_pGlob->CreateDeleteString ( ( DWORD* ) &pReturnString, dwSize + 1 );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturnString, dwSize + 1 );
 		
 	strcpy ( pReturnString, szString );
 
-	return ( DWORD ) pReturnString;
+	return (DWORD_PTR)pReturnString;
 
 	/*
 	g_FileMap [ iID ].hOpen = OpenFileMapping ( FILE_MAP_ALL_ACCESS, TRUE, ( char* ) g_FileMap [ iID ].szName );
@@ -246,15 +246,15 @@ DWORD GetFileMapString ( DWORD dwReturn, int iID, DWORD dwOffset )
 		char* pReturnString	= NULL;	
 
 		if ( dwReturn )
-			g_pGlob->CreateDeleteString ( ( DWORD* ) &dwReturn, 0 );
+			g_pGlob->CreateDeleteString((DWORD_PTR*)&dwReturn, 0 );
 
-		g_pGlob->CreateDeleteString ( ( DWORD* ) &pReturnString, dwSize + 1 );
+		g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturnString, dwSize + 1 );
 		
 		strcpy ( pReturnString, pszString );
 
 		UnmapViewOfFile ( g_FileMap [ iID ].pData );
 
-		return ( DWORD ) pReturnString;
+		return (DWORD_PTR)pReturnString;
 	}
 
 	return 0;

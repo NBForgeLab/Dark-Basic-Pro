@@ -102,7 +102,7 @@ char* SetupString ( char* szInput )
 	char* pReturn = NULL;
 	DWORD dwSize  = strlen ( szInput );
 
-	g_pGlob->CreateDeleteString ( ( DWORD* ) &pReturn, dwSize + 1 );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
 
 	if ( !pReturn )
 	{
