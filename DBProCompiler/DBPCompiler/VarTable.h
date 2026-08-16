@@ -18,13 +18,13 @@ class CVarTable
 {
 	public:
 		CVarTable();
-		CVarTable(LPSTR pStr);
+		CVarTable(LPCSTR pStr);
 		virtual ~CVarTable();
 		void Free(void);
 
 		void Add(CVarTable* pNew);
 		void Insert(CVarTable* pNew);
-		void AddInOrder(LPSTR pName, CVarTable* pNew);
+		void AddInOrder(LPCSTR pName, CVarTable* pNew);
 		CVarTable* Advance(DWORD dwCountdown);
 		CVarTable* Subtract(DWORD dwCountdown);
 		[[nodiscard]] CVarTable* GetNext(void) noexcept { return m_pNext; }
@@ -33,15 +33,15 @@ class CVarTable
 		[[nodiscard]] const CVarTable* GetPrev(void) const noexcept { return m_pPrev; }
 		void SetVarDefaults(void);
 
-		bool			AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal);
-		CVarTable*		FindVariable(LPSTR pScope, LPSTR pName, DWORD dwArrFlag);
-		bool			FindVariableExist(LPSTR pFindVar, DWORD dwArrType);
-		bool			FindTypeOfVariable(LPSTR pFindVar, DWORD dwArrType, LPSTR* pReturnType);
-		DWORD			MakeDefaultVarTypeValue(LPSTR pDecName);
-		std::string		MakeDefaultVarType(LPSTR pDecName);
+		bool			AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal);
+		CVarTable*		FindVariable(LPCSTR pScope, LPCSTR pName, DWORD dwArrFlag);
+		bool			FindVariableExist(LPCSTR pFindVar, DWORD dwArrType);
+		bool			FindTypeOfVariable(LPCSTR pFindVar, DWORD dwArrType, LPSTR* pReturnType);
+		DWORD			MakeDefaultVarTypeValue(LPCSTR pDecName);
+		std::string		MakeDefaultVarType(LPCSTR pDecName);
 		LPSTR			MakeTypeNameOfTypeValue(DWORD dwTypeValue);
-		DWORD			GetBasicTypeValue(LPSTR pTypeString);
-		CStructTable*	GetStruct(LPSTR pTypeString);
+		DWORD			GetBasicTypeValue(LPCSTR pTypeString);
+		CStructTable*	GetStruct(LPCSTR pTypeString);
 		char			GetCharOfType(DWORD dwTypeValue);
 		DWORD			GetTypeValueOfChar(unsigned char cTypeChar);
 

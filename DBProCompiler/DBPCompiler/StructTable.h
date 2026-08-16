@@ -39,8 +39,8 @@ class CStructTable
 			return m_dwTargetAddressSize;
 		}
 
-		bool			SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize);
-		bool			AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize);
+		bool			SetStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize);
+		bool			AddStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize);
 		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode);
 		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* bReportError );
 		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError, DWORD dwParamInUserFunction );
@@ -68,7 +68,7 @@ class CStructTable
 
 		bool			CalculateAllSizes(void);
 		bool			CalculateSize(void);
-		CStructTable*	DoesTypeEvenExist(LPSTR pName);
+		CStructTable*	DoesTypeEvenExist(LPCSTR pName);
 		DWORD			GetSizeOfType(LPSTR pName);
 		CDeclaration*	FindDecInType(LPSTR pTypename, LPSTR pFieldname);
 		CDeclaration*	FindFieldInType(LPSTR pTypename, LPSTR pFieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset);

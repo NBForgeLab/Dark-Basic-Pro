@@ -33,7 +33,7 @@ static void CreateMinidump(_EXCEPTION_POINTERS* apExceptionInfo) {
     MINIDUMPWRITEDUMP pfnMiniDumpWriteDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDbgHelp, "MiniDumpWriteDump");
     if (pfnMiniDumpWriteDump) {
         WCHAR dumpPath[MAX_PATH];
-        GetModuleFileNameW(NULL, dumpPath, MAX_PATH);
+        GetModuleFileNameW(nullptr, dumpPath, MAX_PATH);
         // Replace extension with _crash.dmp
         LPWSTR ext = wcsrchr(dumpPath, L'.');
         if (ext) {
@@ -47,10 +47,10 @@ static void CreateMinidump(_EXCEPTION_POINTERS* apExceptionInfo) {
             dumpPath,
             GENERIC_WRITE,
             FILE_SHARE_READ,
-            NULL,
+            nullptr,
             CREATE_ALWAYS,
             FILE_ATTRIBUTE_NORMAL,
-            NULL
+            nullptr
         );
 
         if (hFile != INVALID_HANDLE_VALUE) {
@@ -65,8 +65,8 @@ static void CreateMinidump(_EXCEPTION_POINTERS* apExceptionInfo) {
                 hFile,
                 MiniDumpNormal,
                 &mei,
-                NULL,
-                NULL
+                nullptr,
+                nullptr
             );
 
             CloseHandle(hFile);
@@ -76,10 +76,78 @@ static void CreateMinidump(_EXCEPTION_POINTERS* apExceptionInfo) {
     FreeLibrary(hDbgHelp);
 }
 
+static void PrintStackTrace(PCONTEXT contextRecord) {
+    if (!contextRecord) return;
+    
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+
+    SymInitialize(process, nullptr, TRUE);
+
+    CONTEXT context = *contextRecord;
+    STACKFRAME64 stackFrame = {};
+#if defined(_M_X64) || defined(__x86_64__)
+    DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
+    stackFrame.AddrPC.Offset = context.Rip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context.Rbp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context.Rsp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+#elif defined(_M_IX86)
+    DWORD machineType = IMAGE_FILE_MACHINE_I386;
+    stackFrame.AddrPC.Offset = context.Eip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context.Ebp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context.Esp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+#endif
+
+    std::cerr << "[CRITICAL] Stack Trace:" << std::endl;
+
+    for (int frame = 0; frame < 32; ++frame) {
+        if (!StackWalk64(machineType, process, thread, &stackFrame, &context,
+                         nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr)) {
+            break;
+        }
+
+        if (stackFrame.AddrPC.Offset == 0) break;
+
+        DWORD64 displacement = 0;
+        char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)] = {};
+        PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen = MAX_SYM_NAME;
+
+        IMAGEHLP_LINE64 line = {};
+        line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+        DWORD lineDisplacement = 0;
+
+        std::cerr << "  [" << frame << "] 0x" << std::hex << stackFrame.AddrPC.Offset << std::dec << " ";
+        if (SymFromAddr(process, stackFrame.AddrPC.Offset, &displacement, symbol)) {
+            std::cerr << symbol->Name;
+        } else {
+            std::cerr << "???";
+        }
+
+        if (SymGetLineFromAddr64(process, stackFrame.AddrPC.Offset, &lineDisplacement, &line)) {
+            std::cerr << " (" << line.FileName << ":" << line.LineNumber << ")";
+        }
+        std::cerr << std::endl;
+    }
+
+    SymCleanup(process);
+}
+
 // Unhandled Exception Filter
 static LONG WINAPI UnhandledCrashFilter(_EXCEPTION_POINTERS* apExceptionInfo) {
     std::cerr << "[CRITICAL] Unhandled crash detected! Exception Code: 0x" 
               << std::hex << apExceptionInfo->ExceptionRecord->ExceptionCode << std::dec << std::endl;
+
+    if (apExceptionInfo && apExceptionInfo->ContextRecord) {
+        PrintStackTrace(apExceptionInfo->ContextRecord);
+    }
 
     CreateMinidump(apExceptionInfo);
 
@@ -89,7 +157,7 @@ static LONG WINAPI UnhandledCrashFilter(_EXCEPTION_POINTERS* apExceptionInfo) {
 }
 
 // CRT Assert Report Hook (prevents GUI dialogs in headless builds)
-static int CrtReportHook(int reportType, char* message, int* returnValue) {
+static int CrtReportHook([[maybe_unused]] int reportType, char* message, int* returnValue) {
     std::cerr << "[CRITICAL] CRT Assertion Failed: " << (message ? message : "Unknown assert") << std::endl;
     if (returnValue) {
         *returnValue = 0;

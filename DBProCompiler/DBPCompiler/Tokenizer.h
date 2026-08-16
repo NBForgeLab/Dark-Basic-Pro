@@ -79,7 +79,7 @@ public:
      * @brief Extracts an array declaration token including bracket content and optional initializer.
      * @param[in,out] pOrigPointer  Pointer into source; advanced past the consumed array expression.
      * @return Heap-allocated string containing the full array token (e.g. `arr(10)=5`).
-     *         Caller owns the memory (free with `delete[]`). Returns NULL if no token found.
+     *         Caller owns the memory (free with `delete[]`). Returns nullptr if no token found.
      */
     [[nodiscard]] LPSTR ProduceNextArrayToken(LPSTR* pOrigPointer) const;
 
@@ -87,7 +87,7 @@ public:
      * @brief Extracts a full statement segment up to a colon separator or line ending.
      * @param[in,out] pOrigPointer  Pointer into source; advanced past the consumed segment.
      * @return Heap-allocated segment string. Caller owns the memory (free with `delete[]`).
-     *         Returns NULL if the segment is empty.
+     *         Returns nullptr if the segment is empty.
      */
     [[nodiscard]] LPSTR ProduceFullSegment(LPSTR* pOrigPointer) const;
 

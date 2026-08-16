@@ -18,21 +18,21 @@ class CLabelTable
 {
 	public:
 		CLabelTable();
-		CLabelTable(LPSTR pChar);
+		CLabelTable(LPCSTR pChar);
 		virtual ~CLabelTable();
 		void Free(void);
 
 		void Add(CLabelTable* pNew);
 		void Insert(CLabelTable* pNew);
-		void AddInOrder(LPSTR pName, CLabelTable* pNew);
+		void AddInOrder(LPCSTR pName, CLabelTable* pNew);
 		CLabelTable* Advance(DWORD dwCountdown);
 		CLabelTable* Subtract(DWORD dwCountdown);
 		CLabelTable* GetNext(void) { return m_pNext; }
 		CLabelTable* GetPrev(void) { return m_pPrev; }
 
-		bool			AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef);
-		CLabelTable*	FindLabel(LPSTR pLabelName);
-		bool			UpdateLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef);
+		bool			AddLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef);
+		CLabelTable*	FindLabel(LPCSTR pLabelName);
+		bool			UpdateLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef);
 
 		void			SetName(CStr* pName) { m_pName.reset(pName); }
 		void			SetCodeIndex(DWORD dwIndex) { m_dwCodeIndex=dwIndex; }

@@ -22,8 +22,8 @@ CInstructionTableEntry::CInstructionTableEntry()
 	m_dwBuildID=0;
 	m_pDecChain=nullptr;
 
-	m_pPrev=NULL;
-	m_pNext=NULL;
+	m_pPrev=nullptr;
+	m_pNext=nullptr;
 }
 
 CInstructionTableEntry::~CInstructionTableEntry()

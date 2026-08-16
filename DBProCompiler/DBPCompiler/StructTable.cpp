@@ -3,29 +3,28 @@
 //////////////////////////////////////////////////////////////////////
 
 // Common Includes
-#define _CRT_SECURE_NO_DEPRECATE
-#pragma warning(disable : 4996)
 #include "StructTable.h"
 
 // Special access to global pointer to struct table (so can do full scan)
 extern CStructTable* g_pStructTable;
 
-#ifdef __AARON_STRUCPERF__
 #include <algorithm>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 std::unordered_map<std::string, CStructTable*> CStructTable::g_Table;
 
 namespace {
-static std::string struct_to_lower(const std::string& s)
+static std::string struct_to_lower(std::string_view s)
 {
-	std::string res = s;
-	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+	std::string res(s);
+	std::transform(res.begin(), res.end(), res.begin(), [](unsigned char c) {
+		return static_cast<char>(std::tolower(c));
+	});
 	return res;
 }
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -41,10 +40,10 @@ CStructTable::CStructTable()
 	m_dwTargetAddressSize =
 		static_cast<DWORD>(dbp::abi::ActiveTargetAbi::address_size);
 
-	m_pDecChain=NULL;
-	m_pDecBlock=NULL;
+	m_pDecChain=nullptr;
+	m_pDecBlock=nullptr;
 
-	m_pNext=NULL;
+	m_pNext=nullptr;
 }
 
 CStructTable::~CStructTable()
@@ -123,7 +122,7 @@ void CStructTable::SetStructDefaults(DWORD dwTargetAddressSize)
 	AddStruct(1101, "userdefined array ptr",'e', dwTargetAddressSize);
 }
 
-bool CStructTable::SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize)
+bool CStructTable::SetStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize)
 {
 	// Set Struct Data
 	CStr* pStrTypeName = new CStr(pStructName);
@@ -142,7 +141,7 @@ bool CStructTable::SetStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 	return true;
 }
 
-bool CStructTable::AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cStructChar, DWORD dwSize)
+bool CStructTable::AddStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize)
 {
 	// Create structure
 	CStructTable* pNewType = new CStructTable;
@@ -154,8 +153,8 @@ bool CStructTable::AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 	pNewType->SetTypeName(pStrTypeName);
 	pNewType->SetTypeChar(cStructChar);
 	pNewType->SetTypeSize(dwSize);
-	pNewType->SetDecChain(NULL);
-	pNewType->SetTypeBlock(NULL);
+	pNewType->SetDecChain(nullptr);
+	pNewType->SetTypeBlock(nullptr);
 
 #ifdef __AARON_STRUCPERF__
 	std::string lowerName = struct_to_lower(pStructName);
@@ -173,7 +172,7 @@ bool CStructTable::AddStruct(DWORD dwValue, LPSTR pStructName, unsigned char cSt
 bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError, DWORD dwParamInUserFunction )
 {
 	// Only add if unique
-	if(DoesTypeEvenExist(pStructName)!=NULL)
+	if(DoesTypeEvenExist(pStructName)!=nullptr)
 		return false;
 
 	// lee - 150206 - u60 - add only if known type at this point (typeA before typeB if typeB uses typeA)
@@ -183,9 +182,9 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 		// check all dec types
 		while ( pCurrent )
 		{
-			if ( strcmp ( pCurrent->GetType()->GetStr(), "" )!=NULL )
+			if ( strcmp ( pCurrent->GetType()->GetStr(), "" )!=0 )
 			{
-				if ( g_pStructTable->DoesTypeEvenExist ( pCurrent->GetType()->GetStr() )==false )
+				if ( g_pStructTable->DoesTypeEvenExist ( pCurrent->GetType()->GetStr() ) == nullptr )
 				{
 					// fail here as type is unknown and so cannot create a struct based on an unknown type
 					if ( pbReportError ) *pbReportError = true;
@@ -239,7 +238,7 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 
 bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode )
 {
-	return AddStructUserType( dwMode, pStructName, cStructChar, pDecChain, pTypeBlock, dwStructTypeMode, NULL );
+	return AddStructUserType( dwMode, pStructName, cStructChar, pDecChain, pTypeBlock, dwStructTypeMode, nullptr );
 }
 
 bool CStructTable::CalculateAllSizes(void)
@@ -362,31 +361,23 @@ bool CStructTable::CalculateSize(void)
 	return true;
 }
 
-CStructTable* CStructTable::DoesTypeEvenExist(LPSTR pName)
+CStructTable* CStructTable::DoesTypeEvenExist(LPCSTR pName)
 {
-#ifdef __AARON_STRUCPERF__
+	if (!pName)
+		return nullptr;
+
 	std::string lowerName = struct_to_lower(pName);
 	auto it = g_Table.find(lowerName);
 	if (it == g_Table.end() || !it->second)
-		return NULL;
+		return nullptr;
 
 	return it->second;
-#else
-	if(GetTypeName())
-		if(stricmp(pName, GetTypeName()->GetStr())==NULL)
-			return this;
-
-	if(GetNext())
-		return GetNext()->DoesTypeEvenExist(pName);
-
-	return NULL;
-#endif
 }
 
 DWORD CStructTable::GetSizeOfType(LPSTR pName)
 {
 	if(GetTypeName())
-		if(stricmp(pName, GetTypeName()->GetStr())==NULL)
+		if(_stricmp(pName, GetTypeName()->GetStr())==0)
 			return GetTypeSize();
 
 	if(GetNext())
@@ -397,45 +388,21 @@ DWORD CStructTable::GetSizeOfType(LPSTR pName)
 
 CDeclaration* CStructTable::FindDecInType(LPSTR pTypename, LPSTR pFieldname)
 {
-#ifdef __AARON_STRUCPERF__
-	CStructTable *struc;
-	CDeclaration *dec;
+	if (!pTypename || !pFieldname)
+		return nullptr;
 
 	std::string lowerTypeName = struct_to_lower(pTypename);
 	auto it = g_Table.find(lowerTypeName);
 	if (it == g_Table.end() || !it->second)
-		return NULL;
+		return nullptr;
 
-	struc = it->second;
-	for(dec=struc->m_pDecChain; dec; dec=dec->GetNext()) {
-		if (stricmp(dec->GetName()->GetStr(), pFieldname)==0)
-			break;
+	CStructTable *struc = it->second;
+	for(CDeclaration *dec = struc->m_pDecChain; dec; dec = dec->GetNext()) {
+		if (dec->GetName() && _stricmp(dec->GetName()->GetStr(), pFieldname) == 0)
+			return dec;
 	}
 
-	return dec;
-#else
-	if(stricmp(GetTypeName()->GetStr(), pTypename)==NULL)
-	{
-		if(m_pDecChain)
-		{
-			CDeclaration* pDec = m_pDecChain;
-			while(pDec)
-			{
-				if(stricmp(pDec->GetName()->GetStr(), pFieldname)==NULL)
-				{
-					return pDec;
-				}
-				pDec = pDec->GetNext();
-			}
-		}
-		return NULL;
-	}
-	
-	if(GetNext())
-		return GetNext()->FindDecInType(pTypename, pFieldname);
-	else
-		return NULL;
-#endif
+	return nullptr;
 }
 
 CDeclaration* CStructTable::FindFieldInType(LPSTR pTypename, LPSTR pFieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset)
@@ -445,14 +412,14 @@ CDeclaration* CStructTable::FindFieldInType(LPSTR pTypename, LPSTR pFieldname, L
 	{
 		// Create string and copy typename of field
 		*pReturnType = new char[pDec->GetType()->Length()+1];
-		strcpy(*pReturnType, pDec->GetType()->GetStr());
+		snprintf(*pReturnType, pDec->GetType()->Length()+1, "%s", pDec->GetType()->GetStr());
 		*pdwArrFlag=pDec->GetArrFlag();
 		*pdwOffset=pDec->GetOffset();
 		return pDec;
 	}
 
 	// Not found soft fail
-	return NULL;
+	return nullptr;
 }
 
 bool CStructTable::FindOffsetFromField(LPSTR pTypename, LPSTR pFieldname, DWORD* pReturnOffset, DWORD* pdwSizeData)
@@ -478,7 +445,7 @@ int CStructTable::FindIndex(LPSTR pTypename)
 	while(pCurrent)
 	{
 		// if find type, exit now to retain iIndex
-		if ( stricmp ( pCurrent->GetTypeName()->GetStr(), pTypename )==NULL )
+		if ( _stricmp ( pCurrent->GetTypeName()->GetStr(), pTypename )==0 )
 			break;
 
 		// next structure

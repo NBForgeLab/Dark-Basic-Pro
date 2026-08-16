@@ -1,8 +1,3 @@
-// IncludeTable.cpp: implementation of the CIncludeTable class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#define _CRT_SECURE_NO_DEPRECATE
 #include "IncludeTable.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -10,34 +5,47 @@
 //////////////////////////////////////////////////////////////////////
 
 CIncludeTable::CIncludeTable()
+	: m_dwFirstByte(0)
 {
-	m_dwFirstByte=0;
-}
-
-CIncludeTable::~CIncludeTable()
-{
-	// unique_ptr members auto-cleanup
 }
 
 void CIncludeTable::Add(CIncludeTable* pNew)
 {
-	if(m_pNext==nullptr)
-		m_pNext.reset(pNew);
-	else
-		m_pNext->Add(pNew);
+	if(pNew == nullptr) return;
+	Add(std::unique_ptr<CIncludeTable>(pNew));
 }
 
-bool CIncludeTable::FindInclude(LPSTR pFilename)
+void CIncludeTable::Add(std::unique_ptr<CIncludeTable> pNew)
 {
-	CIncludeTable* pCurrent = this;
+	if(!pNew) return;
+	db3::CAutolock autolock(m_Lock);
+	if(!m_pNext)
+		m_pNext = std::move(pNew);
+	else
+		m_pNext->Add(std::move(pNew));
+}
+
+bool CIncludeTable::FindInclude(LPCSTR pFilename) const
+{
+	if (!pFilename || pFilename[0] == '\0') return false;
+	return FindInclude(std::string_view(pFilename));
+}
+
+bool CIncludeTable::FindInclude(std::string_view filename) const
+{
+	if (filename.empty()) return false;
+	db3::CAutolock autolock(m_Lock);
+	const CIncludeTable* pCurrent = this;
 	while(pCurrent)
 	{
-		if(stricmp(pFilename, pCurrent->GetFilename()->GetStr())==NULL)
-			return true;
+		if(pCurrent->GetFilename() && pCurrent->GetFilename()->GetStr())
+		{
+			if(_stricmp(filename.data(), pCurrent->GetFilename()->GetStr())==0)
+				return true;
+		}
 
-		pCurrent=pCurrent->GetNext();
+		pCurrent = pCurrent->GetNext();
 	}
 
-	// Could not find soft fail
 	return false;
 }

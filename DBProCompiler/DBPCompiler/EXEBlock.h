@@ -21,8 +21,9 @@ typedef DWORD				( *GDI_RetDWORDParamDWORD3HINSTLPPFN )	( DWORD, DWORD, DWORD, H
 typedef DWORD				( *GDI_RetDWORDParamDWORD4HINSTLPPFN )	( DWORD, DWORD, DWORD, DWORD, HINSTANCE );
 typedef DWORD				( *GDI_RetDWORDParamDWORD4HINSTLPSTRPFN )	( DWORD, DWORD, DWORD, DWORD, HINSTANCE, LPSTR );
 typedef DWORD				( *GDI_RetDWORDParamPASSDLLS )			( HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE, HINSTANCE );
+typedef void*				( *GDI_RetLPVOIDParamVoidPFN )			( void );
 typedef DWORD				( *GDI_RetDWORDParamVoidPFN )			( void );
-typedef DWORD				( *GDI_RetDWORDParamDWORDPFN )			( DWORD );
+typedef void*				( *GDI_CreateSpacePFN )					( DWORD );
 typedef void				( *GDI_RetVoidParamDWORDPTRPFN )		( DWORD* );
 typedef int					( *GDI_RetIntParamVoidPFN )				( void );
 

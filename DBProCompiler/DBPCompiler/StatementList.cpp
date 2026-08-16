@@ -24,9 +24,9 @@ extern CVarTable* g_pVarTable;
 CStatementList::CStatementList()
 {
 	// Reference Vars
-	m_pFileData=NULL;
-	m_pFileDataEnd=NULL;
-	m_pFileDataPointer=NULL;
+	m_pFileData=nullptr;
+	m_pFileDataEnd=nullptr;
+	m_pFileDataPointer=nullptr;
 	m_FileDataSize=0;
 
 	m_dwLastCharInDataPosition=0;
@@ -36,7 +36,7 @@ CStatementList::CStatementList()
 
 	m_dwVarOffsetCounter=0;
 	m_pCurrentUserFunctionName.SetText("");
-	m_pCurrentUserFunctionDecChain=NULL;
+	m_pCurrentUserFunctionDecChain=nullptr;
 
 	m_dwDataIndexCounter=0;
 	m_dwStringIndexCounter=0;
@@ -48,7 +48,7 @@ CStatementList::CStatementList()
 	m_dwLabelQtyCounter=0;
 	m_dwVarQtyCounter=0;
 
-	m_pInstructionRef=NULL;
+	m_pInstructionRef=nullptr;
 	m_dwInstructionType=0;
 	m_dwInstructionValue=0;
 	m_dwInstructionParamMax=0;
@@ -61,11 +61,11 @@ CStatementList::CStatementList()
 
 	m_dwLastLineNumber=0;
 
-	m_pLatestLoopExitLabelRef=NULL;//ref only
+	m_pLatestLoopExitLabelRef=nullptr;//ref only
 
-	m_pPreScanStatements=NULL;
-	m_pProgramStatements=NULL;
-	m_pMiniStatements=NULL;
+	m_pPreScanStatements=nullptr;
+	m_pProgramStatements=nullptr;
+	m_pMiniStatements=nullptr;
 }
 
 CStatementList::~CStatementList()
@@ -74,17 +74,17 @@ CStatementList::~CStatementList()
 	if(m_pPreScanStatements)
 	{
 		m_pPreScanStatements->Free();
-		m_pPreScanStatements=NULL;
+		m_pPreScanStatements=nullptr;
 	}
 	if(m_pProgramStatements)
 	{
 		m_pProgramStatements->Free();
-		m_pProgramStatements=NULL;
+		m_pProgramStatements=nullptr;
 	}
 	if(m_pMiniStatements)
 	{
 		m_pMiniStatements->Free();
-		m_pMiniStatements=NULL;
+		m_pMiniStatements=nullptr;
 	}
 }
 
@@ -160,7 +160,7 @@ bool CStatementList::MakeStatements(LPSTR pData, DWORD Size)
 	// Process all statements starting at beginning
 	m_iNestCount = 0;
 	SetImplementationParse(true);
-	if(m_pProgramStatements->DoBlock(static_cast<DWORD>(Token::End),NULL)==false)
+	if(m_pProgramStatements->DoBlock(static_cast<DWORD>(Token::End),nullptr)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'DoBlock(0)'");
 		return false;
@@ -205,7 +205,7 @@ bool CStatementList::AddMiniStatements(LPSTR pData, DWORD Size)
 
 	// Process all statements starting at beginning
 	SetImplementationParse(true);
-	if(m_pMiniStatements->DoBlock(static_cast<DWORD>(Token::End),NULL)==false)
+	if(m_pMiniStatements->DoBlock(static_cast<DWORD>(Token::End),nullptr)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to m_pMiniStatements 'DoBlock(0)'");
 		return false;
@@ -288,7 +288,7 @@ bool CStatementList::FindStartOfFileDataProgramLine(DWORD dwFindLineNumber, LPST
 	}
 	DWORD length=pNewText->Length();
 	*pReturnText = new char[length+1];
-	strcpy(*pReturnText, pNewText->GetStr());
+	snprintf(*pReturnText, length+1, "%s", pNewText->GetStr());
 	SAFE_DELETE(pNewText);
 
 	return true;

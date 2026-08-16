@@ -14,7 +14,7 @@ extern CStructTable* g_pStructTable;
 extern CInstructionTable* g_pInstructionTable;
 
 // Internal Scope Ptrs (keep track of function within)
-CParseUserFunction* g_pUserFunctionWithin = NULL;
+CParseUserFunction* g_pUserFunctionWithin = nullptr;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -26,17 +26,17 @@ CParseUserFunction::CParseUserFunction()
 	m_dwEndLineNumber=0;
 
 	m_dwParamMax=0;
-	m_pCodeBlock=NULL;
+	m_pCodeBlock=nullptr;
 
 	// Reference Pointer Only
-	m_pDecChainRef=NULL;
+	m_pDecChainRef=nullptr;
 }
 
 CParseUserFunction::~CParseUserFunction()
 {
 	// Statements Deleted One by One
 	m_pCodeBlock->Free();
-	m_pCodeBlock=NULL;
+	m_pCodeBlock=nullptr;
 
 	// unique_ptr members (m_pName, m_pParameter) auto-cleanup
 }
@@ -69,8 +69,8 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 				// CALL EQUATE to create a NEW STRING from CURRENT STRING
 				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
 
-				// Put EAX overwrites DEST
-				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, NULL, 7);
+				// Put RAX overwrites DEST
+				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, nullptr, 7);
 			}
 			else
 			{
@@ -84,7 +84,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 			// Free func-mem (except 'any' return string)
 			bool bValidFree=true;
 			if(pDoNotFree)
-				if(stricmp(pDoNotFree->GetStr(), pData.GetStr())==NULL)
+				if(_stricmp(pDoNotFree->GetStr(), pData.GetStr())==0)
 					bValidFree=false;
 
 			// Only the return string is not freed here
@@ -92,7 +92,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 			{
 				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Push), &pData, 7);
 
-				CInstructionTableEntry* pRef = NULL;
+				CInstructionTableEntry* pRef = nullptr;
 				if(dwType==3) pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::StrFree));
 				if(dwType>100 && dwType<1000) pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::Free));
 				if(dwType==1001) pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::StrFree));
@@ -100,7 +100,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 				
 				LPSTR pMathCommand=pRef->GetDecoratedName()->GetStr();
 				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", pMathCommand);
-				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::PopEbx), NULL, 0);
+				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::PopRbx), nullptr, 0);
 			}
 		}
 	}
@@ -109,7 +109,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 	return true;
 }
 
-bool CParseUserFunction::ActOnType(CStr* pTypeName, int iDisplacement, DWORD PlacementCode, CStr* pDoNotFree, bool bSpecialRecreate)
+bool CParseUserFunction::ActOnType(CStr* pTypeName, int iDisplacement, DWORD PlacementCode, [[maybe_unused]] CStr* pDoNotFree, bool bSpecialRecreate)
 {
 	int iGlobalDisplacement = iDisplacement;
 	CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pTypeName->GetStr());
@@ -126,18 +126,18 @@ bool CParseUserFunction::ActOnType(CStr* pTypeName, int iDisplacement, DWORD Pla
 				DWORD dwFieldType = g_pVarTable->GetBasicTypeValue(pCurrent->GetType()->GetStr());
 
 				// Calculate displacement to Field
-				int iDisplacement = (iGlobalDisplacement + dwOffset);
+				const int iFieldDisplacement = iGlobalDisplacement + static_cast<int>(dwOffset);
 		
 				// Process as basic or user type
 				if(dwFieldType==1001)
 				{
 					// Field is a user type
-					ActOnType(pCurrent->GetType(), iDisplacement, PlacementCode, NULL, bSpecialRecreate);
+					ActOnType(pCurrent->GetType(), iFieldDisplacement, PlacementCode, nullptr, bSpecialRecreate);
 				}
 				else
 				{
 					// Field is a basic type
-					ActOnSingleVar(dwFieldType, iDisplacement, PlacementCode, NULL, bSpecialRecreate);
+					ActOnSingleVar(dwFieldType, iFieldDisplacement, PlacementCode, nullptr, bSpecialRecreate);
 				}
 			}
 
@@ -164,7 +164,7 @@ bool CParseUserFunction::ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree)
 	// Zero ALL elements of local vars for nice function
 	if(PlacementCode==DBMPLACEMENT_TOP)
 	{
-		// ASM Task to clear current ESP position -> 
+		// ASM Task to clear current RSP position -> 
 		CStr pClearSize;
 		pClearSize.SetNumericText(dwSizeOfLocalParams);
 		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::ClearStack), &pClearSize, 7);
@@ -177,7 +177,7 @@ bool CParseUserFunction::ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree)
 		// LEEFIX - 111002 - Strings passed in are not handled correctly - they use the passed in ptr changing rhe original string or crashes
 		// ...
 		// -4 Temp/Function Variables (ONLY process these for strings and arrays)
-		// 00 EBP
+		// 00 RBP
 		// +8 Parameters Passed In (Except STRINGS in the PARAM part of DEC Chain must be re-created/freed locally)
 		// ...
 
@@ -245,21 +245,21 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 	// Use parameters if valid
 	if(PlacementCode==DBMPLACEMENT_TOP)
 	{
-		// Store EBP Register
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PushEbp), NULL, 0);
+		// Store RBP Register
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PushRbp), nullptr, 0);
 
-		// Copy ESP to EBP Register
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::MovBpEsp), NULL, 0);
+		// Copy RSP to RBP Register
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::MovRbpRsp), nullptr, 0);
 
-		// Advance ESP Stack Register to skip 'local function space'
+		// Advance RSP Stack Register to skip 'local function space'
 		CStr pString(GetName()->GetStr());
 		DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pString.GetStr());
 		CStr pStrNum("");
 		pStrNum.SetNumericText(dwTypeSize+4);//extra 4 bytes as start adds some for byte start
-		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::SubEsp), &pStrNum, 7);
+		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::SubRsp), &pStrNum, 7);
 
 		// Clear all vars, and especially strings and array ptrs (and those in usertypes too)
-		ActOnLocalVars(PlacementCode, NULL);
+		ActOnLocalVars(PlacementCode, nullptr);
 
 		// Now within function
 		g_pUserFunctionWithin = this;
@@ -267,7 +267,7 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 	if(PlacementCode==DBMPLACEMENT_BOTTOM)
 	{
 		// Establish Return Param
-		CStr* pReturnData = NULL;
+		CStr* pReturnData = nullptr;
 		DWORD dwReturnDataType = 0;
 		if(GetResultParameter())
 		{
@@ -277,7 +277,7 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 
 		// check if returned string is global
 		bool bDuplicateReturnString=false;
-		CResultData* pResultData = NULL;
+		CResultData* pResultData = nullptr;
 		if(GetResultParameter())
 		{
 			pResultData = GetResultParameter()->GetMathItem()->FindResultDataForDBM();
@@ -297,7 +297,7 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 		// Free any allocated dynamic memory (strings and arrays)
 		ActOnLocalVars(PlacementCode, pReturnData);
 
-		// If user function returns value, store in EAX/EDX/ST0
+		// If user function returns value, store in RAX/RDX/XMM0
 		if(GetResultParameter())
 		{
 			// Direct or 'Duplicate copy of string'
@@ -310,32 +310,32 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 				CStr pNull("0");
 				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
-				// Put new string address in EAX for return passing
+				// Put new string address in RAX for return passing
 				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
 			}
 			else
 			{
-				// direct copy of var ref to outside EAX
-				g_pASMWriter->WriteASMTaskP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::AssignToEax), GetResultParameter()->GetMathItem()->FindResultData());
+				// direct copy of var ref to outside RAX
+				g_pASMWriter->WriteASMTaskP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::AssignToRax), GetResultParameter()->GetMathItem()->FindResultData());
 			}
 		}
 
-		// Restore ESP from EBP Register
-		g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::MovSpEbp), NULL, 0);
+		// Restore RSP from RBP Register
+		g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::MovRspRbp), nullptr, 0);
 
-		// Restore EBP Register
-		g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::PopEbp), NULL, 0);
+		// Restore RBP Register
+		g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::PopRbp), nullptr, 0);
 
 		// RETurn
-		g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::PureReturn), NULL, 0);
+		g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::PureReturn), nullptr, 0);
 
 		// Not within function
-		g_pUserFunctionWithin = NULL;
+		g_pUserFunctionWithin = nullptr;
 	}
 	return true;
 }
 
-bool CParseUserFunction::WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult)
+bool CParseUserFunction::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
 {
 	// Write out text
 	CStr strDBMLine(256);

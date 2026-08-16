@@ -1,4 +1,4 @@
-// MathOp.cpp: implementation of the CMathOp class.
+﻿// MathOp.cpp: implementation of the CMathOp class.
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
@@ -77,12 +77,12 @@ void CMathOp::SetArrayOffsetResult(LPSTR pString)
 
 CStr* CMathOp::FindResultStringTokenForDBM(void)
 {
-	if(m_pNext==NULL && m_Result.m_pStringToken)
+	if(m_pNext==nullptr && m_Result.m_pStringToken)
 	{
 		// Translate result value
 		if(TranslateStringTokenForDBM()==false)
 		{
-			return NULL;
+			return nullptr;
 		}
 		return m_Result.m_pStringToken.get();
 	}
@@ -91,18 +91,18 @@ CStr* CMathOp::FindResultStringTokenForDBM(void)
 		if(m_pNext)
 			return m_pNext->FindResultStringTokenForDBM();
 		else
-			return NULL;
+			return nullptr;
 	}
 }
 
 CResultData* CMathOp::FindResultDataForDBM(void)
 {
-	if(m_pNext==NULL && m_Result.m_pStringToken)
+	if(m_pNext==nullptr && m_Result.m_pStringToken)
 	{
 		// Translate result value
 		if(TranslateStringTokenForDBM()==false)
 		{
-			return NULL;
+			return nullptr;
 		}
 		return &m_Result;
 	}
@@ -111,13 +111,13 @@ CResultData* CMathOp::FindResultDataForDBM(void)
 		if(m_pNext)
 			return m_pNext->FindResultDataForDBM();
 		else
-			return NULL;
+			return nullptr;
 	}
 }
 
 DWORD CMathOp::FindResultTypeValueForDBM(void)
 {
-	if(m_pNext==NULL && m_Result.m_pStringToken)
+	if(m_pNext==nullptr && m_Result.m_pStringToken)
 	{
 		// Result value
 		return m_Result.m_dwType;
@@ -138,12 +138,12 @@ CResultData* CMathOp::GetResultData(void)
 
 CResultData* CMathOp::FindResultData(void)
 {
-	if(m_pNext==NULL && m_Result.m_pStringToken)
+	if(m_pNext==nullptr && m_Result.m_pStringToken)
 	{
 		// Translate result value
 		if(TranslateStringTokenForDBM()==false)
 		{
-			return NULL;
+			return nullptr;
 		}
 		// Result
 		return &m_Result;
@@ -153,14 +153,14 @@ CResultData* CMathOp::FindResultData(void)
 		if(m_pNext)
 			return m_pNext->FindResultData();
 		else
-			return NULL;
+			return nullptr;
 	}
 }
 
 bool CMathOp::TranslateStringTokenForDBM(void)
 {
 	// Ensure string present..
-	if(m_Result.m_pStringToken==NULL)
+	if(m_Result.m_pStringToken==nullptr)
 	{
 		// Nothing to translate
 		return true;
@@ -181,8 +181,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 	DWORD dwExpValueType=0;
 
 	// Before processing, crop spaces, tabs and equal brackets
-	do { pExpression->EatEdgeSpacesandTabs(NULL);
-	} while(pExpression->CropEqualEdgeBrackets(NULL)==true);
+	do { pExpression->EatEdgeSpacesandTabs(nullptr);
+	} while(pExpression->CropEqualEdgeBrackets(nullptr)==true);
 
 	// Upper-case comparisons
 	CStr UpperExpression = CStr(pExpression->GetStr());
@@ -324,14 +324,14 @@ bool CMathOp::DoValue(CStr* pExpression)
 		DWORD dwRightMostPos = ChopOffOneItemFromLeft(&StrRight);
 		dwLeftMostPos+=dwLeftEaten;
 		dwRightMostPos+=dwRightEaten;
-		StrLeft.EatEdgeSpacesandTabs(NULL);
-		StrRight.EatEdgeSpacesandTabs(NULL);
+		StrLeft.EatEdgeSpacesandTabs(nullptr);
+		StrRight.EatEdgeSpacesandTabs(nullptr);
 		dwRightMostPos=dwPosition+dwMathSymbolWidth+dwRightMostPos;
 
 // LEEFIX - 230604 - IS IT NEEDED ANY MORE? AS -X IS DONE ELSEWHEER (I THINK)
 //		// DOES THIS WORK FOR ALL UNARY OPERATORS?
 //		// A blank literal is translated to a numeric zero (so -99 becomes 0-99)
-//		if(strcmp(StrLeft.GetStr(),"")==NULL)
+//		if(strcmp(StrLeft.GetStr(),"") == 0)
 //			StrLeft.SetText("0");
 
 		// for NOT cases, copy string to left side
@@ -350,13 +350,13 @@ bool CMathOp::DoValue(CStr* pExpression)
 			if ( dwMathSymbol==5 )
 			{
 				// A blank literal is translated to a numeric zero (so -99 becomes 0-99)
-				if(strcmp(StrLeft.GetStr(),"")==NULL)
+				if(strcmp(StrLeft.GetStr(),"")==0)
 					StrLeft.SetText("0");
 			}
 			else
 			{
-				if(strcmp(StrLeft.GetStr(),"")==NULL
-				|| strcmp(StrRight.GetStr(),"")==NULL )
+				if(strcmp(StrLeft.GetStr(),"")==0
+				|| strcmp(StrRight.GetStr(),"")==0 )
 				{
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+59);
 					m_pRightMathOp.reset();
@@ -634,7 +634,7 @@ bool CMathOp::DoValue(CStr* pExpression)
 
 		// Store Result String Token
 		SetResult(TempVarToken.GetStr(), dwTypeMode, 0);
-		SetResultStruct(NULL);
+		SetResultStruct(nullptr);
 
 		// When Right Operand L-Value found, record and send it back...
 		DWORD dwDiscoveredOffsetLValueTypeValue = GetResultOffsetLValueTypeValue();
@@ -741,7 +741,7 @@ bool CMathOp::DoCastOnMathOp(std::unique_ptr<CMathOp>& pMathOp, DWORD dwTypeWant
 
 	// Produce result token as var
 	pNewMath->SetResult(pTempVarToken.GetStr(), dwTypeWant, 0);
-	pNewMath->SetResultStruct(NULL);
+	pNewMath->SetResultStruct(nullptr);
 
 	// Types that are ptrs, can only be cast to actual datatypes
 	if(dwTypeWant>=101 && dwTypeWant<=109) dwTypeWant-=100;
@@ -784,7 +784,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 
 	// Create param chain from param string
 	m_pStatement = std::make_unique<CStatement>();
-	CParameter* pFirstParameterRaw = NULL;
+	CParameter* pFirstParameterRaw = nullptr;
 	if(m_pStatement->DoParameterListString(pFunctionDataString.get(), &pFirstParameterRaw)==false)
 	{
 		g_pErrorReport->SetError ( g_pStatementList->GetLineNumber(), ERR_SYNTAX+55, pFunctionNameString->GetStr() );
@@ -804,7 +804,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	}
 
 	// pTrack kicks in on 'second' interation (search list bby entry, not by index)
-	CInstructionTableEntry* pTrack = NULL;
+	CInstructionTableEntry* pTrack = nullptr;
 
 	// Special invalid param reason
 	int iInvalidParamReason=0;
@@ -816,26 +816,23 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	DWORD dwBestScoreSoFar=0;
 	DWORD StatementLineNumber = g_pStatementList->GetLineNumber();
 	DWORD dwValidInstructionToUse=0;
-	CInstructionTableEntry* pFirstEntryRef=NULL; 
-	CInstructionTableEntry* pNextEntryRef=NULL; 
+	CInstructionTableEntry* pFirstEntryRef=nullptr; 
+	CInstructionTableEntry* pNextEntryRef=nullptr; 
 	DWORD dwValidInstructionValue=0, dwValidParamMax=0;
 	DWORD dwTryingIndex=0;
 
 	// LEEFIX - 201102 - CALL DLL has more than 16 instances, so increased to 32 instances..
-	// aaronfix -211112 - There's no need for this...
 	DWORD dwTryInstruction;
-	auto entry = pRef ? pRef : g_pInstructionTable->GetEntryByIndex(dwInstructionValue);
-	while(entry)
+	for(dwTryingIndex=0; dwTryingIndex<32; dwTryingIndex++)
 	{
 		// Try This Instruction
-		//DWORD dwTryInstruction = dwInstructionValue + dwTryingIndex;
-		dwTryInstruction = entry->GetInternalID();
+		dwTryInstruction = dwInstructionValue + dwTryingIndex;
 		if(pTrack) dwTryInstruction = pTrack->GetInternalID();
 
 		// Check for parameter-mismatch
 		bool bInValidParams=false;
-		CInstructionTableEntry* pValidEntryRef=NULL; 
-		CStr* pValidParamTypes = NULL;
+		CInstructionTableEntry* pValidEntryRef=nullptr; 
+		CStr* pValidParamTypes = nullptr;
 		if(dwInstructionType==1)
 		{
 			dwValidInstructionValue=dwInstructionValue;
@@ -872,13 +869,13 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 									if ( pParamData )
 									{
 										CStr* pParamTypeName = pParamData->m_pStruct->GetTypeName();
-										if ( stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=NULL )
+										if ( _stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=0 )
 										{
 											iInvalidParamReason=2;
 											pValidEntryStr.reset(new char [ strlen(pValidEntryRef->GetName()->GetStr())+1 ]);
-											strcpy ( pValidEntryStr.get(), pValidEntryRef->GetName()->GetStr() );
+											snprintf(pValidEntryStr.get(), strlen(pValidEntryRef->GetName()->GetStr())+1, "%s", pValidEntryRef->GetName()->GetStr());
 											pFunctionTypeStr.reset(new char [ strlen(pFunctionTypeName->GetStr())+1 ]);
-											strcpy ( pFunctionTypeStr.get(), pFunctionTypeName->GetStr() );
+											snprintf(pFunctionTypeStr.get(), strlen(pFunctionTypeName->GetStr())+1, "%s", pFunctionTypeName->GetStr());
 											//g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+8, pValidEntryRef->GetName()->GetStr(), pFunctionTypeName->GetStr());
 											bInValidParams=true;
 											break;
@@ -909,7 +906,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		}
 
 		// Ensure first instruction entry ref is recorded
-		if(pFirstEntryRef==NULL)
+		if(pFirstEntryRef==nullptr)
 			pFirstEntryRef=pValidEntryRef;
 		else
 			pNextEntryRef=pValidEntryRef;
@@ -931,9 +928,9 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		else
 		{
 			// if parse-has no params and function HAS params, no dice
-			if(pFirstParameter==NULL)
+			if(pFirstParameter==nullptr)
 			{
-				if(pValidEntryRef->GetParamMax()>0)
+				if(pValidEntryRef && pValidEntryRef->GetParamMax()>0)
 				{
 					bInValidParams=true;
 				}
@@ -963,16 +960,13 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		}
 
 		// Try again with next matching instruction
-		if(pTrack==NULL) pTrack = pValidEntryRef;
+		if(pTrack==nullptr) pTrack = pValidEntryRef;
 		if(pTrack)
 		{
 			pTrack = pTrack->GetNext();
-			if(pTrack==NULL) break;
+			if(pTrack==nullptr) break;
 		}
 
-		// Next try..
-		entry = entry->GetNext();
-		dwTryingIndex++;
 	}
 	if(dwValidInstructionToUse>0)
 	{
@@ -985,7 +979,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 		// Parameter-mismatch
 		if(iInvalidParamReason==0)
 		{
-			CStr* pParamDesc=NULL;
+			CStr* pParamDesc=nullptr;
 			if(pRef) pParamDesc=pRef->GetFullParamDesc();
 			if(pParamDesc)
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+8, pFunctionNameString->GetStr(), pParamDesc->GetStr());
@@ -1016,7 +1010,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 	}
 
 	// Run through parameters of validated user function and make any required casts
-	if(pRef)
+	if(pRef && pFirstParameter)
 	{
 		if(pFirstParameter->CastAllParametersToInstruction(pRef)==false)
 		{
@@ -1041,7 +1035,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 
 	// Also write result param to this math object
 	SetResult(pResultStr->GetStr(), dwTypeValue, 0);
-	SetResultStruct(NULL);
+	SetResultStruct(nullptr);
 
 	// Construct full label name for function
 	auto pFullLabelName = std::make_unique<CStr>();
@@ -1090,10 +1084,10 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 	}
 
 	// Eat spaces and tabs
-	pFirstName->EatEdgeSpacesandTabs(NULL);
+	pFirstName->EatEdgeSpacesandTabs(nullptr);
 
 	// Determine type of this variable
-	LPSTR pTypeName=NULL;
+	LPSTR pTypeName=nullptr;
 	std::unique_ptr<char[]> pTypeNameOwner;
 	if(g_pVarTable->FindVariableExist(pFirstName->GetStr(), dwArrayType)==true)
 	{
@@ -1117,7 +1111,7 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 	DWORD dwTrackLastValidLValueFieldType=g_pVarTable->GetBasicTypeValue(pTypeName);
 
 	// Proceed to find all field names
-	CStructTable* pLastStruct = NULL;
+	CStructTable* pLastStruct = nullptr;
 	DWORD dwTrackOffsetToActualData=0;
 	int iStartNewName=0;
 	DWORD dwEndNewName=0;
@@ -1157,7 +1151,7 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 					pFieldname->AddChar(pFieldData->GetChar(o));
 
 				// Eat spaces and tabs form field name
-				pFieldname->EatEdgeSpacesandTabs(NULL);
+				pFieldname->EatEdgeSpacesandTabs(nullptr);
 
 				// Eat spaces between name and symbol
 				for(; n<length; n++)
@@ -1167,14 +1161,14 @@ bool CMathOp::CalculateDataOffsetAndTypeFromFieldString(CStr* pVarName, DWORD dw
 				// Get name of new type
 				DWORD dwArrFlag=0;
 				DWORD dwFieldOffset=0;
-				LPSTR pNewTypeName=NULL;
+				LPSTR pNewTypeName=nullptr;
 				CDeclaration* pLastDec = g_pStructTable->FindFieldInType(pTypeName, pFieldname->GetStr(), &pNewTypeName, &dwArrFlag, &dwFieldOffset);
 				if ( pLastDec )
 				{
 					CStr* pLastDecTypeName = pLastDec->GetType();
 					pLastStruct = g_pStructTable->DoesTypeEvenExist(pLastDecTypeName->GetStr());
 				}
-				if ( pLastDec==NULL )
+				if ( pLastDec==nullptr )
 				{
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+38, pFieldname->GetStr(), pTypeName);
 					return false;
@@ -1221,8 +1215,8 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	CStr* pName = &nameStorage;
 
 	// Before processing DataType, crop spaces, tabs and equal brackets
-	do { pName->EatEdgeSpacesandTabs(NULL);
-	} while(pName->CropEqualEdgeBrackets(NULL)==true);
+	do { pName->EatEdgeSpacesandTabs(nullptr);
+	} while(pName->CropEqualEdgeBrackets(nullptr)==true);
 	
 	// Just eat all non-important spacea
 	// removed due to: "sample(array count(sample(0))).value" occurance - space would be deleted!
@@ -1250,7 +1244,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 
 	// Check if array-subscript provided for var
 	std::unique_ptr<CStr> pSubscriptStringOwner;
-	CStr* pSubscriptString = NULL;
+	CStr* pSubscriptString = nullptr;
 	int iGrabSubscriptString=-1;
 	DWORD n = 0;
 	for(n=0; n<dwSepPos; n++)
@@ -1295,7 +1289,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 
 	// Calculate actual size of data offset (from type data)
 	DWORD dwDataOffset = 0;
-	CStructTable* pStruct = NULL; // used for inner-UDT type determination
+	CStructTable* pStruct = nullptr; // used for inner-UDT type determination
 	DWORD dwLValueType = g_pVarTable->MakeDefaultVarTypeValue(pName->GetStr());
 	DWORD dwSizeOfWholeType = 0;
 	if(pFixedDataOffset->Length()>0)
@@ -1317,7 +1311,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	}
 
 	// Obtain user-fucntion-scope if any..
-	LPSTR pScope=NULL;
+	LPSTR pScope=nullptr;
 	if(g_pStatementList->GetUserFunctionDecChain())
 		if(g_pStatementList->GetUserFunctionName())
 			pScope = g_pStatementList->GetUserFunctionName();
@@ -1330,7 +1324,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	pFindName->AddText(pName->GetStr());
 	CVarTable* pVarTest;
 	pVarTest = g_pVarTable->FindVariable(pScope, pFindName->GetStr(), dwArrayType);
-	if(pVarTest==NULL)
+	if(pVarTest==nullptr)
 	{
 		pVarTest = g_pVarTable->FindVariable("", pFindName->GetStr(), dwArrayType);
 		if(pVarTest)
@@ -1381,7 +1375,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	}
 
 	// Get UDT of var if not got
-	if ( pStruct==NULL && pVarTest )
+	if ( pStruct==nullptr && pVarTest )
 		pStruct = pVarTest->GetVarStruct();
 
 	// Produce result name
@@ -1411,7 +1405,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 	}
 
 	// Begin with math for dynamic array offset
-	if(pSubscriptString==NULL)
+	if(pSubscriptString==nullptr)
 	{
 		// VAR.VIA TYPEDEF
 		SetLineNumber(StatementLineNumber);
@@ -1454,9 +1448,9 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			}
 			Add(pSubscriptResultOwner.release());
 
-			// Subscript must be INTEGER or DWORD
-			if ( pSubscriptResult->FindResultTypeValueForDBM()%100!=1
-			&&   pSubscriptResult->FindResultTypeValueForDBM()%100!=7 )
+			// Subscript must be INTEGER, DWORD, INT64, BYTE or WORD
+			DWORD dwSubscriptType = pSubscriptResult->FindResultTypeValueForDBM() % 100;
+			if ( dwSubscriptType != 1 && dwSubscriptType != 7 && dwSubscriptType != 9 && dwSubscriptType != 4 && dwSubscriptType != 5 )
 			{
 				// otherwise compiler error
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+63);
@@ -1470,7 +1464,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 				auto pAddSubscript = std::make_unique<CMathOp>();
 				CResultData* pResultFromSubscript = pSubscriptResult->FindResultData();
 				pAddSubscript->SetResult(pResultFromSubscript->m_pStringToken->GetStr(), pResultFromSubscript->m_dwType, pResultFromSubscript->m_dwDataOffset );
-				pAddSubscript->SetResultStruct(NULL);
+				pAddSubscript->SetResultStruct(nullptr);
 				if(pResultFromSubscript->m_pAdditionalOffset)
 				{
 					pAddSubscript->SetArrayOffsetResult(pResultFromSubscript->m_pAdditionalOffset->GetStr());
@@ -1494,7 +1488,7 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 			auto pSubscriptResult = std::make_unique<CMathOp>();
 			pSubscriptResult->SetLineNumber(StatementLineNumber);
 			pSubscriptResult->SetResult(pResultName->GetStr(), 107, 0);
-			pSubscriptResult->SetResultStruct(NULL);
+			pSubscriptResult->SetResultStruct(nullptr);
 			pSubscriptResult->SetMathSymbol(10004);
 			Add(pSubscriptResult.release());
 		}
@@ -1508,13 +1502,13 @@ bool CMathOp::DoValueComplexVariable(CStr* pExpressionValue)
 		auto pPassArrayForOffsetCalc = std::make_unique<CMathOp>();
 		pPassArrayForOffsetCalc->SetLineNumber(StatementLineNumber);
 		pPassArrayForOffsetCalc->SetResult(pResultName->GetStr(), 107, 0);
-		pPassArrayForOffsetCalc->SetResultStruct(NULL);
+		pPassArrayForOffsetCalc->SetResultStruct(nullptr);
 
 		// Math to calculate offset for array
 		auto pCalculateArrayOffset = std::make_unique<CMathOp>();
 		pCalculateArrayOffset->SetLineNumber(StatementLineNumber);
 		pCalculateArrayOffset->SetResult(pTempTokenOffset->GetStr(), 7, dwSubscriptCount);
-		pCalculateArrayOffset->SetResultStruct(NULL);
+		pCalculateArrayOffset->SetResultStruct(nullptr);
 		pCalculateArrayOffset->SetMathSymbol(10003);
 		pCalculateArrayOffset->m_pLeftMathOp = std::move(pPassArrayForOffsetCalc);
 		Add(pCalculateArrayOffset.release());
@@ -1565,7 +1559,7 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 
 			// Use correct L-Value for later resolution to reading/writing
 			DWORD dwLValueType = 0;
-			CStructTable* pStructRef = NULL;
+			CStructTable* pStructRef = nullptr;
 			CDeclaration* pDec=g_pStructTable->FindDecInType(pSubtypename.get(), pFieldname.get());
 			if(pDec)
 			{
@@ -1598,7 +1592,7 @@ bool CMathOp::ResolveStructValue(CStr* pExpressionValue)
 			CStr sizeStr(1);
 			sizeStr.SetNumericText(dwTypeSize);
 			SetResult(sizeStr.GetStr(), 7, 0);
-			SetResultStruct(NULL);
+			SetResultStruct(nullptr);
 		}
 	}
 
@@ -1680,7 +1674,7 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			if(pExpressionValue->CheckChar(0,'&')) dwArr=1;
 
 			// Find Type Of Variable
-			LPSTR pTypeNameRaw=NULL;
+			LPSTR pTypeNameRaw=nullptr;
 			if(g_pVarTable->FindTypeOfVariable(pExpressionValue->GetStr(), dwArr, &pTypeNameRaw)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::FindTypeOfVariable'");
@@ -1710,7 +1704,7 @@ bool CMathOp::DoValueSingleVariable(CStr* pExpressionValue)
 			if(pExpressionValue->CheckChar(0,'&')) dwArr=1;
 
 			// Find Type Of Variable
-			LPSTR pTypeNameRaw=NULL;
+			LPSTR pTypeNameRaw=nullptr;
 			if(g_pVarTable->FindTypeOfVariable(pExpressionValue->GetStr(), dwArr, &pTypeNameRaw)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoValueSingleVariable::FindTypeOfVariable'");
@@ -1747,7 +1741,7 @@ bool CMathOp::DoValueLabel(CStr* pExpressionValue)
 	// Assign Value as Label
 	CStr str(pExpressionValue->GetStr());
 	SetResult(str.GetStr(), 10, 0);
-	SetResultStruct(NULL);
+	SetResultStruct(nullptr);
 
 	// Complete
 	return true;
@@ -1788,7 +1782,7 @@ bool CMathOp::DoValueLiteral(CStr* pExpressionValue, DWORD dwTypeValue)
 
 	// Confirm data result
 	SetResult(str.GetStr(), dwTypeValue, 0);
-	SetResultStruct(NULL);
+	SetResultStruct(nullptr);
 
 	// Complete
 	return true;
@@ -2004,7 +1998,7 @@ bool CMathOp::ProduceNewTempToken(CStr* pTempVarToken, DWORD dwTypeMode)
 	// Any temporary variables created must be added to variable table space
 	LPSTR pDecName = tempName.GetStr();
 	std::unique_ptr<char[]> pDecType(g_pVarTable->MakeTypeNameOfTypeValue(dwTypeMode));
-	if(g_pVarTable->AddVariable(pDecName, pDecType.get(), 0, 0, true, NULL, false)==false)
+	if(g_pVarTable->AddVariable(pDecName, pDecType.get(), 0, 0, true, nullptr, false)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'Produce NewTempToken::AddVariable'");
 		return false;
@@ -2016,11 +2010,11 @@ bool CMathOp::ProduceNewTempToken(CStr* pTempVarToken, DWORD dwTypeMode)
 bool CMathOp::IsReserved ( CStr* pString )
 {
 	// If any of these match, trying to use a sole reserved word in the expression
-	if(stricmp(pString->GetStr(), "AND")==NULL)	return true;
-	if(stricmp(pString->GetStr(), "OR")==NULL)	return true;
-	if(stricmp(pString->GetStr(), "NOT")==NULL)	return true;
-	if(stricmp(pString->GetStr(), "DIV")==NULL)	return true;
-	if(stricmp(pString->GetStr(), "MOD")==NULL)	return true;
+	if(_stricmp(pString->GetStr(), "AND")==0)	return true;
+	if(_stricmp(pString->GetStr(), "OR")==0)	return true;
+	if(_stricmp(pString->GetStr(), "NOT")==0)	return true;
+	if(_stricmp(pString->GetStr(), "DIV")==0)	return true;
+	if(_stricmp(pString->GetStr(), "MOD")==0)	return true;
 
 	// not matched
 	return false;
@@ -2199,7 +2193,7 @@ bool CMathOp::IsLabel(CStr* pExpressionValue)
 	FullLabel.AddText(pExpressionValue);
 
 	// Search for label..
-	if(g_pLabelTable->FindLabel(FullLabel.GetStr())!=NULL)
+	if(g_pLabelTable->FindLabel(FullLabel.GetStr())!=nullptr)
 		return true;
 
 	// Could not recognise soft fail
@@ -2225,10 +2219,10 @@ bool CMathOp::IsAnything(CStr* pExpressionValue)
 bool CMathOp::SearchForFunction(CStr* pFunctionName)
 {
 	// Remove spaces before checking for existence
-	pFunctionName->EatEdgeSpacesandTabs(NULL);
+	pFunctionName->EatEdgeSpacesandTabs(nullptr);
 
 	// Check if a recognised instruction
-	CInstructionTableEntry* pRef = NULL;
+	CInstructionTableEntry* pRef = nullptr;
 	DWORD dwTokenData=0, dwParamMax=0, dwLength=0;
 	if(g_pInstructionTable->FindInstruction(false, pFunctionName->GetStr(), 1, &dwTokenData, &dwParamMax, &dwLength, &pRef))
 	{
@@ -2245,7 +2239,7 @@ bool CMathOp::SearchForFunction(CStr* pFunctionName)
 	if(g_pInstructionTable->FindUserFunction(pFunctionName->GetStr(), 1, &dwTokenData, &dwParamMax, &dwLength))
 	{
 		// Record instruction for later parsing (doinstruction)
-		g_pStatementList->SetInstructionRef(NULL);
+		g_pStatementList->SetInstructionRef(nullptr);
 		g_pStatementList->SetInstructionType(3);
 		g_pStatementList->SetInstructionValue(dwTokenData);
 		g_pStatementList->SetInstructionParamMax(dwParamMax);
@@ -2441,7 +2435,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 	if(dwUseNewInstruction==0)
 	{
 		// Command not yet implemented
-		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), NULL);
+		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), nullptr);
 		return true;
 	}
 
@@ -2450,10 +2444,10 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 
 	// CALL Instruction with current stack state
 	CInstructionTableEntry* pRef=g_pInstructionTable->GetRef(dwUseNewInstruction);
-	if(pRef==NULL)
+	if(pRef==nullptr)
 	{
 		// Command not yet implemented
-		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), NULL);
+		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Unknown), nullptr);
 		return true;
 	}
 
@@ -2463,7 +2457,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 	if(bMathCommandIsHardCoded)
 	{
 		// Work out build
-		DWORD dwASMToBuild;
+		DWORD dwASMToBuild = static_cast<DWORD>(ASMTask::Unknown);
 		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Mul)) dwASMToBuild=static_cast<DWORD>(ASMTask::Mul);
 		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Div)) dwASMToBuild=static_cast<DWORD>(ASMTask::Div);
 		if(pRef->GetBuildID()==static_cast<DWORD>(BuildTask::Add)) dwASMToBuild=static_cast<DWORD>(ASMTask::Add);
@@ -2514,7 +2508,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		// Some Core Instructions require additional 'internal' params
 		if(GetResultData()->m_dwType==3)
 		{
-			// Add Destination string (as it needs to be freed if not-NULL)
+			// Add Destination string (as it needs to be freed if not-nullptr)
 			g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), GetResultData());
 			dwNumberOfPopsToMake++;
 		}
@@ -2525,25 +2519,25 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		g_pASMWriter->WriteASMCall(dwLineNumber, pMathDLL, pMathCommand);
 
 		// Fundamental pop of all calls
-		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+		g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopRbx), nullptr);
 
-		// Copy EAX (holding call result) to temp var used to hold return value
+		// Copy RAX (holding call result) to temp var used to hold return value
 		CStr* pReturnData = GetResultStringToken();
 		if(pReturnData)
 		{
 			DWORD dwReturnDataType = GetResultType();
-			g_pASMWriter->WriteASMTaskP2(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), GetResultData(), NULL);
+			g_pASMWriter->WriteASMTaskP2(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), GetResultData(), nullptr);
 		}
 
 		// Pop params off stack in same quantity as those added
 		for(DWORD i=0; i<dwNumberOfPopsToMake-1; i++)
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEax), NULL);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopRax), nullptr);
 	}
 
 	return true;
 }
 
-bool CMathOp::WriteDBMLine(DWORD dwLineNumber, LPSTR pText, LPSTR pResult)
+bool CMathOp::WriteDBMLine(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
 {
 	// Write out text
 	CStr strDBMLine(256);

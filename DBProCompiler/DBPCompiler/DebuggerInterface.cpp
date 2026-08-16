@@ -27,7 +27,7 @@ void CDebuggerInterface::InitDebuggerState() noexcept
 // Debugger Communication
 //////////////////////////////////////////////////////////////////////
 
-LRESULT CDebuggerInterface::SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize)
+LRESULT CDebuggerInterface::SendDataToDebugger(int iType, LPCSTR pData, DWORD dwDataSize)
 {
 	LRESULT lResult = 0;
 

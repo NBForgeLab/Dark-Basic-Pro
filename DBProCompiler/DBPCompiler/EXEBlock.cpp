@@ -24,6 +24,25 @@
 // Prototype for associated GETDXVER.CPP (or empty true in MAIN.CPP if compiler)
 HRESULT GetDXVersion( DWORD* pdwDirectXVersion, TCHAR* strDirectXVersion, int cchDirectXVersion );
 
+namespace
+{
+// Program reference slots hold 64-bit target-ABI addresses.
+bool WriteTargetAddress(uintptr_t* slot, const void* hostPointer, LPSTR* pReturnError, bool& bResult)
+{
+    const auto address = dbp::abi::FromHostAddress(reinterpret_cast<std::uintptr_t>(hostPointer));
+    if (!address)
+    {
+        if (pReturnError != nullptr && *pReturnError == nullptr) *pReturnError = new char[1024];
+        if (pReturnError != nullptr && *pReturnError != nullptr)
+            snprintf(*pReturnError, 1024, "Host pointer %p does not fit the target address space", hostPointer);
+        bResult = false;
+        return false;
+    }
+    *slot = *address;
+    return true;
+}
+} // namespace
+
 // Internal Function Pointers For Core Management
 GDI_RetVoidParamVoidPFN				g_CORE_Program;
 GDI_RetVoidParamLPVOID				g_CORE_PassCmdLinePtr;
@@ -35,12 +54,12 @@ GDI_RetVoidParamLPSTR2				g_CORE_PassDataPtrs;
 GDI_RetDWORDParamDWORD4HINSTLPSTRPFN	g_CORE_InitDisplay;
 GDI_RetVoidParamVoidPFN				g_CORE_PassDLLs;
 GDI_RetVoidParamVoidPFN				g_CORE_ConstructDLLs;
-GDI_RetDWORDParamVoidPFN			g_CORE_GetGlobPtr;
+GDI_RetLPVOIDParamVoidPFN			g_CORE_GetGlobPtr;
 
 GDI_RetDWORDParamVoidPFN			g_CORE_CloseDisplay;
-GDI_RetDWORDParamDWORDPFN			g_CORE_CreateVarSpace;
+GDI_CreateSpacePFN					g_CORE_CreateVarSpace;
 GDI_RetVoidParamVoidPFN				g_CORE_DeleteVarSpace;
-GDI_RetDWORDParamDWORDPFN			g_CORE_CreateDataSpace;
+GDI_CreateSpacePFN					g_CORE_CreateDataSpace;
 GDI_RetVoidParamVoidPFN				g_CORE_DeleteDataSpace;
 GDI_RetVoidParamDWORDPTRPFN			g_CORE_DeleteVarItem;
 GDI_RetVoidParamDWORDPTRPFN			g_CORE_UnDim;
@@ -94,7 +113,7 @@ bool WriteStringToRegistry(char* PerfmonNamesKey, char* valuekey, char* string)
 	DWORD Status;
 	DWORD dwDisposition;
 	const char* ObjectType = "Num";
-	Status = RegCreateKeyEx(HKEY_CURRENT_USER, PerfmonNamesKey, 0L, const_cast<LPSTR>(ObjectType), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
+	Status = RegCreateKeyEx(HKEY_CURRENT_USER, PerfmonNamesKey, 0L, const_cast<LPSTR>(ObjectType), REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, nullptr, &hKeyNames, &dwDisposition);
 	if(dwDisposition==REG_OPENED_EXISTING_KEY)
 	{
 		RegCloseKey(hKeyNames);
@@ -121,9 +140,9 @@ void ReadStringFromRegistry(char* PerfmonNamesKey, char* valuekey, char* string)
 	{
 		DWORD Type=REG_SZ;
 		DWORD Size=256;
-		Status = RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, NULL, &Size);
+		Status = RegQueryValueEx(hKeyNames, valuekey, nullptr, &Type, nullptr, &Size);
 		if(Size<255)
-			RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, (LPBYTE)string, &Size);
+			RegQueryValueEx(hKeyNames, valuekey, nullptr, &Type, (LPBYTE)string, &Size);
 
 		RegCloseKey(hKeyNames);
 	}
@@ -140,7 +159,7 @@ CEXEBlock::CEXEBlock()
 	m_dwInitialDisplayWidth=0;
 	m_dwInitialDisplayHeight=0;
 	m_dwInitialDisplayDepth=0;
-	m_pInitialAppName=NULL;
+	m_pInitialAppName=nullptr;
 
 	m_OriginalFolderName.clear();
 	m_UnpackFolderName.clear();
@@ -148,15 +167,15 @@ CEXEBlock::CEXEBlock()
 
 	// DLL Data
 	m_dwNumberOfDLLs=0;
-	m_pDLLIndexArray=NULL;
-	m_pDLLFilenameArray=NULL;
-	m_pDLLLoadedAlreadyArray=NULL;
+	m_pDLLIndexArray=nullptr;
+	m_pDLLFilenameArray=nullptr;
+	m_pDLLLoadedAlreadyArray=nullptr;
 
 	// MCB Reference Data
 	m_dwNumberOfReferences=0;
-	m_pRefArray=NULL;
-	m_pRefTypeArray=NULL;
-	m_pRefIndexArray=NULL;
+	m_pRefArray=nullptr;
+	m_pRefTypeArray=nullptr;
+	m_pRefIndexArray=nullptr;
 
 	// Clear runtime error dword
 	m_dwRuntimeErrorDWORD=0;
@@ -164,43 +183,43 @@ CEXEBlock::CEXEBlock()
 
 	// Runtime string array database
 	m_dwNumberOfRuntimeErrorStrings=0;
-	m_pRuntimeErrorStringsArray=NULL;
+	m_pRuntimeErrorStringsArray=nullptr;
 
 	// Machine Code Block (MCB)
 	m_dwSizeOfMCB=0;
-	m_pMachineCodeBlock=NULL;
+	m_pMachineCodeBlock=nullptr;
 	m_dwStartOfMiniMC=0;
 
 	// Commands Data
 	m_dwNumberOfCommands=0;
-	m_pCommandDLLIdArray=NULL;
-	m_pCommandDLLCallArray=NULL;
+	m_pCommandDLLIdArray=nullptr;
+	m_pCommandDLLCallArray=nullptr;
 
 	// Strings Data
 	m_dwNumberOfStrings=0;
-	m_pStringsArray=NULL;
+	m_pStringsArray=nullptr;
 
 	// Data Statements Data
 	m_dwNumberOfDataItems=0;
-	m_pDataArray=NULL;
-	m_pDataStringsArray=NULL;
+	m_pDataArray=nullptr;
+	m_pDataStringsArray=nullptr;
 
 	// Variable Space Data
 	m_dwVariableSpaceSize=0;
-	m_pVariableSpace=NULL;
+	m_pVariableSpace=nullptr;
 
 	// Data Space Data
 	m_dwDataSpaceSize=0;
-	m_pDataSpace=NULL;
+	m_pDataSpace=nullptr;
 
 	// Record Dynamic Variables for auto-freeing
 	m_dwDynamicVarsQuantity=0;
-	m_pDynamicVarsArray=NULL;
-	m_pDynamicVarsArrayType=NULL;
+	m_pDynamicVarsArray=nullptr;
+	m_pDynamicVarsArrayType=nullptr;
 
 	// Record UserTypeStringPatterns - reactivated for U71 (store structure types)
 	m_dwUsertypeStringPatternQuantity=0;
-	m_pUsertypeStringPatternArray=NULL;
+	m_pUsertypeStringPatternArray=nullptr;
 }
 
 CEXEBlock::~CEXEBlock()
@@ -231,7 +250,7 @@ void CEXEBlock::Clear(void)
 
 	// Release MCB Data 9leeadd - 090305 - DEP release)
 	VirtualFree ( m_pMachineCodeBlock, 0, MEM_DECOMMIT | MEM_RELEASE );
-	m_pMachineCodeBlock = NULL;
+	m_pMachineCodeBlock = nullptr;
 
 	// Release Runtime Error Strings Database
 	if ( m_pRuntimeErrorStringsArray ) DeleteArrayContents(m_pRuntimeErrorStringsArray,m_dwNumberOfRuntimeErrorStrings);
@@ -384,7 +403,7 @@ bool CEXEBlock::FileExists(LPSTR pFilename)
 bool CEXEBlock::Save(char* lpFilename)
 {
 	const auto outputPath = TextConvert::UTF8ToUTF16(lpFilename);
-	HANDLE hFile = CreateFileW(outputPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(outputPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		bool success = true;
@@ -474,7 +493,7 @@ bool CEXEBlock::SaveValue(HANDLE hFile, DWORD* Value)
 {
 	DWORD bytes=0;
 	return Value != nullptr &&
-		WriteFile(hFile, Value, sizeof(DWORD), &bytes, NULL) != FALSE &&
+		WriteFile(hFile, Value, sizeof(DWORD), &bytes, nullptr) != FALSE &&
 		bytes == sizeof(DWORD);
 }
 
@@ -483,7 +502,7 @@ bool CEXEBlock::SaveBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize)
 	DWORD bytes=0;
 	if (dwSize == 0) return true;
 	return pMem != nullptr && *pMem != nullptr &&
-		WriteFile(hFile, *pMem, dwSize, &bytes, NULL) != FALSE &&
+		WriteFile(hFile, *pMem, dwSize, &bytes, nullptr) != FALSE &&
 		bytes == dwSize;
 }
 
@@ -496,7 +515,7 @@ bool CEXEBlock::SaveValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 		return false;
 	const DWORD expected = (*Count) * sizeof(DWORD);
 	return *pArray != nullptr &&
-		WriteFile(hFile, *pArray, expected, &bytes, NULL) != FALSE &&
+		WriteFile(hFile, *pArray, expected, &bytes, nullptr) != FALSE &&
 		bytes == expected;
 }
 
@@ -506,7 +525,7 @@ bool CEXEBlock::SaveValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
 	if (pArray == nullptr || Count == nullptr) return false;
 	if (*Count == 0) return true;
 	return *pArray != nullptr &&
-		WriteFile(hFile, *pArray, *Count, &bytes, NULL) != FALSE &&
+		WriteFile(hFile, *pArray, *Count, &bytes, nullptr) != FALSE &&
 		bytes == *Count;
 }
 
@@ -529,7 +548,7 @@ bool CEXEBlock::SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 					return false;
 				length = static_cast<DWORD>(sourceLength);
 			}
-			if (WriteFile(hFile, &length, sizeof(length), &bytes, NULL) == FALSE ||
+			if (WriteFile(hFile, &length, sizeof(length), &bytes, nullptr) == FALSE ||
 				bytes != sizeof(length))
 				bResult=false;
 			if(pStr)
@@ -538,7 +557,7 @@ bool CEXEBlock::SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 				if(length>0)
 				{
 					// Write string if has a length
-					if (WriteFile(hFile, pStr, length, &bytes, NULL) == FALSE ||
+					if (WriteFile(hFile, pStr, length, &bytes, nullptr) == FALSE ||
 						bytes != length)
 						bResult=false;
 				}
@@ -563,7 +582,7 @@ bool CEXEBlock::Load(char* lpFilename)
         Clear();
 
 	// Load EXE Filedata
-	HANDLE hFile = Hook_CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = Hook_CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
                 bool success = true;
@@ -650,7 +669,7 @@ bool CEXEBlock::LoadValue(HANDLE hFile, DWORD* Value)
 {
 	DWORD bytes=0;
         return Value != nullptr &&
-                Hook_ReadFile(hFile, Value, sizeof(DWORD), &bytes, NULL) != FALSE &&
+                Hook_ReadFile(hFile, Value, sizeof(DWORD), &bytes, nullptr) != FALSE &&
                 bytes == sizeof(DWORD);
 }
 
@@ -663,7 +682,7 @@ bool CEXEBlock::LoadBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize)
 	// out-param owned/freed by the caller (Clear via SAFE_DELETE_ARRAY)
 	*pMem = std::make_unique<char[]>(dwSize+1).release();
         return *pMem != nullptr &&
-                Hook_ReadFile(hFile, *pMem, dwSize, &bytes, NULL) != FALSE &&
+                Hook_ReadFile(hFile, *pMem, dwSize, &bytes, nullptr) != FALSE &&
                 bytes == dwSize;
 }
 
@@ -679,7 +698,7 @@ bool CEXEBlock::LoadValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
         // Read data into Array
         const DWORD expected = (*Count) * sizeof(DWORD);
         return *pArray != nullptr &&
-                Hook_ReadFile(hFile, *pArray, expected, &bytes, NULL) != FALSE &&
+                Hook_ReadFile(hFile, *pArray, expected, &bytes, nullptr) != FALSE &&
                 bytes == expected;
 }
 
@@ -694,7 +713,7 @@ bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, 
 
         // Read data into Array
         return *pArray != nullptr &&
-                Hook_ReadFile(hFile, *pArray, (*Count), &bytes, NULL) != FALSE &&
+                Hook_ReadFile(hFile, *pArray, (*Count), &bytes, nullptr) != FALSE &&
                 bytes == *Count;
 }
 
@@ -721,13 +740,13 @@ bool CEXEBlock::LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 		{
 			// Read length of string
 			DWORD length = 0;
-                        if (Hook_ReadFile(hFile, &length, sizeof(DWORD), &bytes, NULL) == FALSE ||
+                        if (Hook_ReadFile(hFile, &length, sizeof(DWORD), &bytes, nullptr) == FALSE ||
                                 bytes != sizeof(DWORD))
                                 return false;
 			char* pStr = std::make_unique<char[]>(length+1).release();
 			if(length>0)
 			{
-                                if (Hook_ReadFile(hFile, pStr, length, &bytes, NULL) == FALSE ||
+                                if (Hook_ReadFile(hFile, pStr, length, &bytes, nullptr) == FALSE ||
                                         bytes != length)
                                         bResult=false;
 			}
@@ -740,17 +759,17 @@ bool CEXEBlock::LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* Count)
 
 bool CEXEBlock::Init(HINSTANCE hInstance, bool bResult, LPSTR* pReturnError, LPSTR pCmdLine)
 {
-	bResult=InitDebug(hInstance, NULL, NULL, NULL, bResult, pReturnError, pCmdLine, false);
+	bResult=InitDebug(hInstance, nullptr, nullptr, nullptr, bResult, pReturnError, pCmdLine, false);
 	return bResult;
 }
 
 bool CEXEBlock::InitMini(LPVOID pDHookS, LPVOID pDHookJ, LPVOID pDHookR, bool bResult, LPSTR* pReturnError)
 {
-	bResult=InitDebug(NULL, pDHookS, pDHookJ, pDHookR, bResult, pReturnError, NULL, true);
+	bResult=InitDebug(nullptr, pDHookS, pDHookJ, pDHookR, bResult, pReturnError, nullptr, true);
 	return bResult;
 }
 
-bool CEXEBlock::CheckIfGotLatestDirectX ( bool bSilent )
+bool CEXEBlock::CheckIfGotLatestDirectX ([[maybe_unused]] bool bSilent)
 {
 	// Modern Windows 10/11 natively supports DirectX runtime execution.
 	return true;
@@ -821,7 +840,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			{
 				// Load the DLL into memory
 				LPSTR pDLLName = (LPSTR)m_pDLLFilenameArray[dll];
-				if(stricmp(pDLLName, "DBProBasic3DDebug.dll")==NULL)
+				if(_stricmp(pDLLName, "DBProBasic3DDebug.dll")==0)
 				{
 					// DX used, so we make sure we have DirectX
 					bBasic3DIsUsedSoWeNeedDirectXCheck = true;
@@ -849,11 +868,12 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	}
 
 	// [EXE] Dependent DLL Linkage Info
-	HINSTANCE hCoreDLL = NULL;
+	HINSTANCE hCoreDLL = nullptr;
 
 	// [EXE] Switch to TEMP Folder (that holds all exe-linked files)
-	{ char cwdBuf[_MAX_PATH]; getcwd(cwdBuf, _MAX_PATH); m_OriginalFolderName = cwdBuf; }
-	_chdir(m_UnpackFolderName.c_str());
+	std::error_code ec;
+	m_OriginalFolderName = std::filesystem::current_path(ec).string();
+	std::filesystem::current_path(m_UnpackFolderName, ec);
 
 	// [EXE] Dynamically load all DLLs
 	if(bResult==true)
@@ -873,86 +893,100 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 					// Load the DLL into memory
 					LPSTR pDLLName = (LPSTR)m_pDLLFilenameArray[dll];
-					if(stricmp(pDLLName, "EXE")==NULL)
+					if(_stricmp(pDLLName, "EXE")==0)
 					{
 						// Module is part of the EXE (functionptrs passed into init above)
 						hDLLMod[dllindex]=0;
 					}
 					else
 					{
-						// Module can be in several places (RAII: freed on every exit path, including break/continue)
-						auto pTryDLLNameOwner = std::make_unique<char[]>((strlen(pDLLName)*2)+256);
-						LPSTR pTryDLLName = pTryDLLNameOwner.get();
-						snprintf(pTryDLLName, (strlen(pDLLName)*2)+256, "%s", pDLLName);
-
-						// leeadd - 270308 - if DLL local to exe, switch to that folder for this DLL
-						bool bSwitchedToLocalEXEfolder = false;
-						_chdir(m_OriginalFolderName.c_str());
-						if(FileExists(pTryDLLName)==true)
-							bSwitchedToLocalEXEfolder = true;
-						else
-							_chdir(m_UnpackFolderName.c_str());
-
-						// leefix - 120104 - DEBUG MODE - may use a plugins-licensed folder
-						if(FileExists(pTryDLLName)==false)
+						// Module is a DLL. Attempt loading via VFS first.
+						hDLLMod[dllindex] = MemoryPE::LoadFromVFS(exe_get_filename_only(pDLLName));
+						if (hDLLMod[dllindex] == nullptr)
 						{
-							snprintf(pTryDLLName, (strlen(pDLLName)*2)+256, "..\\plugins-user\\%s", pDLLName);
-						}
-						if(FileExists(pTryDLLName)==false)
-						{
-							snprintf(pTryDLLName, (strlen(pDLLName)*2)+256, "..\\plugins-licensed\\%s", pDLLName);
+							hDLLMod[dllindex] = MemoryPE::LoadFromVFS(pDLLName);
 						}
 
-						// Module is a DLL
-						if(FileExists(pTryDLLName))
+						// If not loaded from VFS, search possible candidate filesystem paths.
+						if (hDLLMod[dllindex] == nullptr)
 						{
-							hDLLMod[dllindex] = MemoryPE::LoadFromVFS(exe_get_filename_only(pTryDLLName));
-							if (hDLLMod[dllindex] == NULL)
+							std::vector<std::filesystem::path> searchPaths;
+							auto addBaseSearchPaths = [&searchPaths, pDLLName](const std::filesystem::path& base) {
+								if (base.empty()) return;
+								searchPaths.push_back(base / pDLLName);
+								searchPaths.push_back(base / "plugins" / pDLLName);
+								searchPaths.push_back(base / "plugins-user" / pDLLName);
+								searchPaths.push_back(base / "plugins-licensed" / pDLLName);
+								searchPaths.push_back(base / ".." / "Compiler" / "plugins" / pDLLName);
+								searchPaths.push_back(base / ".." / "Compiler" / "plugins-user" / pDLLName);
+								searchPaths.push_back(base / ".." / "Compiler" / "plugins-licensed" / pDLLName);
+								searchPaths.push_back(base / ".." / "plugins" / pDLLName);
+								searchPaths.push_back(base / ".." / "plugins-user" / pDLLName);
+								searchPaths.push_back(base / ".." / "plugins-licensed" / pDLLName);
+								searchPaths.push_back(base / ".." / ".." / "Compiler" / "plugins" / pDLLName);
+								searchPaths.push_back(base / ".." / ".." / "Compiler" / "plugins-user" / pDLLName);
+								searchPaths.push_back(base / ".." / ".." / "Compiler" / "plugins-licensed" / pDLLName);
+								searchPaths.push_back(base / ".." / ".." / "plugins" / pDLLName);
+								searchPaths.push_back(base / ".." / ".." / "plugins-user" / pDLLName);
+								searchPaths.push_back(base / ".." / ".." / "plugins-licensed" / pDLLName);
+							};
+
+							if (!m_AbsoluteAppFile.empty())
 							{
-								hDLLMod[dllindex]=dbp::dll::LoadApplicationDLLW(TextConvert::UTF8ToUTF16(pTryDLLName).c_str());
+								addBaseSearchPaths(std::filesystem::path(m_AbsoluteAppFile).parent_path());
 							}
-							if(hDLLMod[dllindex]==NULL)
+							if (!m_OriginalFolderName.empty())
 							{
-								if(*pReturnError==NULL) *pReturnError = new char[1024];
-								sprintf_s(*pReturnError, 1024, "Failed to load DLL (%d: %s)", dllindex, pTryDLLName);
-								bResult=false;
-								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
-								break;
+								addBaseSearchPaths(std::filesystem::path(m_OriginalFolderName));
 							}
-							else
+							if (!m_UnpackFolderName.empty())
 							{
-								PluginRegistry::GetInstance().RegisterPlugin(pDLLName, hDLLMod[dllindex]);
+								addBaseSearchPaths(std::filesystem::path(m_UnpackFolderName));
 							}
+
+							for (const auto& probePath : searchPaths)
+							{
+								std::error_code probeEc;
+								if (std::filesystem::exists(probePath, probeEc))
+								{
+									hDLLMod[dllindex] = dbp::dll::LoadApplicationDLLW(probePath.wstring().c_str());
+									if (hDLLMod[dllindex] != nullptr)
+									{
+										break;
+									}
+								}
+							}
+						}
+
+						if (hDLLMod[dllindex] != nullptr)
+						{
+							PluginRegistry::GetInstance().RegisterPlugin(pDLLName, hDLLMod[dllindex]);
 						}
 						else
 						{
 							bool bIgnorableDLLs=false;
-							if ( stricmp(pDLLName,"ConvX.dll")==0 ) bIgnorableDLLs=true;
-							if ( stricmp(pDLLName,"Conv3DS.dll")==0 ) bIgnorableDLLs=true;
-							if ( stricmp(pDLLName,"ConvMDL.dll")==0 ) bIgnorableDLLs=true;
-							if ( stricmp(pDLLName,"ConvMD2.dll")==0 ) bIgnorableDLLs=true;
-							if ( stricmp(pDLLName,"ConvMD3.dll")==0 ) bIgnorableDLLs=true;
+							if ( _stricmp(pDLLName,"ConvX.dll")==0 ) bIgnorableDLLs=true;
+							if ( _stricmp(pDLLName,"Conv3DS.dll")==0 ) bIgnorableDLLs=true;
+							if ( _stricmp(pDLLName,"ConvMDL.dll")==0 ) bIgnorableDLLs=true;
+							if ( _stricmp(pDLLName,"ConvMD2.dll")==0 ) bIgnorableDLLs=true;
+							if ( _stricmp(pDLLName,"ConvMD3.dll")==0 ) bIgnorableDLLs=true;
 							if ( bIgnorableDLLs )
 							{
 								// skips rest of nested code
-								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
+								std::filesystem::current_path(m_UnpackFolderName, ec);
 								continue;
 							}
 							else
 							{
-								/* 260614 - silent fail - BulletRagdolLDemo tried to load MATRIX 20 DLL, but was never there!!
-								if(*pReturnError==NULL) *pReturnError = new char[1024];
-								wsprintf(*pReturnError,"Could not find a DLL (%s)", pTryDLLName);
-								SAFE_DELETE(pTryDLLName);
+								if(*pReturnError==nullptr) *pReturnError = new char[1024];
+								sprintf_s(*pReturnError, 1024, "Failed to load DLL (%d: %s)", dllindex, pDLLName);
 								bResult=false;
-								_chdir(m_UnpackFolderName.c_str());//leeadd-270308-ifCWDswitched
+								std::filesystem::current_path(m_UnpackFolderName, ec);
 								break;
-								*/
 							}
 						}
 
-						// leeadd - 270308 - if DLL local to exe, restore folder
-						if ( bSwitchedToLocalEXEfolder==true ) _chdir(m_UnpackFolderName.c_str());
+						std::filesystem::current_path(m_UnpackFolderName, ec);
 
 						// Detect if DLL has the PassCoreData Function..
 						DLL_PassCore g_DLL_PassCoreData;
@@ -965,7 +999,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					bool bIsOfficialDLL=false;
 
 					// Record Internal Functions from COREDLL
-					if(stricmp(pDLLName,pCoreName)==0)
+					if(_stricmp(pDLLName,pCoreName)==0)
 					{
 						// CORE Inits
 						hCoreDLL = hDLLMod[dllindex];
@@ -999,7 +1033,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						}
 						else
 						{
-							if(*pReturnError==NULL) *pReturnError = new char[1024];
+							if(*pReturnError==nullptr) *pReturnError = new char[1024];
 							sprintf_s(*pReturnError, 1024, "%s", coreApiResult.error().message.c_str());
 							bResult=false;
 							break;
@@ -1015,12 +1049,12 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 
 					// Associated DLLs for Minimal DirectX Support
-					if(stricmp(pDLLName,"DBProSetupDebug.dll")==0) { g_pGlob->g_GFX = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("GFX", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProBasic2DDebug.dll")==0) { g_pGlob->g_Basic2D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Basic2D", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProTextDebug.dll")==0) { g_pGlob->g_Text = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Text", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProSetupDebug.dll")==0) { g_pGlob->g_GFX = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("GFX", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProBasic2DDebug.dll")==0) { g_pGlob->g_Basic2D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Basic2D", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProTextDebug.dll")==0) { g_pGlob->g_Text = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Text", hDLLMod[dllindex]); }
 
 					// Transforms Support
-					if(stricmp(pDLLName,"DBProTransformsDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProTransformsDebug.dll")==0)
 					{
 						g_pGlob->g_Transforms = hDLLMod[dllindex];
 						PluginRegistry::GetInstance().RegisterPlugin("Transforms", hDLLMod[dllindex]);
@@ -1033,7 +1067,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 
 					// Sprite Support
-					if(stricmp(pDLLName,"DBProSpritesDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProSpritesDebug.dll")==0)
 					{
 						// SPRITES Inits
 						g_pGlob->g_Sprites = hDLLMod[dllindex];
@@ -1047,7 +1081,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 
 					// Image Support
-					if(stricmp(pDLLName,"DBProImageDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProImageDebug.dll")==0)
 					{
 						// IMAGE Inits
 						g_pGlob->g_Image = hDLLMod[dllindex];
@@ -1060,7 +1094,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 
 					// Input Support
-					if(stricmp(pDLLName,"DBProInputDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProInputDebug.dll")==0)
 					{
 						g_pGlob->g_Input = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1068,7 +1102,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}
 
 					// System Support
-					if(stricmp(pDLLName,"DBProSystemDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProSystemDebug.dll")==0)
 					{
 						g_pGlob->g_System = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1076,11 +1110,11 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}	
 					
 					// Sound and Music Support
-					if(stricmp(pDLLName,"DBProSoundDebug.dll")==0) { g_pGlob->g_Sound = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Sound", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProMusicDebug.dll")==0) { g_pGlob->g_Music = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Music", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProSoundDebug.dll")==0) { g_pGlob->g_Sound = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Sound", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProMusicDebug.dll")==0) { g_pGlob->g_Music = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Music", hDLLMod[dllindex]); }
 					
 					// File Support
-					if(stricmp(pDLLName,"DBProFileDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProFileDebug.dll")==0)
 					{
 						g_pGlob->g_File = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1088,7 +1122,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}	
 					
 					// FTP Support
-					if(stricmp(pDLLName,"DBProFTPDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProFTPDebug.dll")==0)
 					{
 						g_pGlob->g_FTP = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1096,7 +1130,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}			
 
 					// Memblocks Support
-					if(stricmp(pDLLName,"DBProMemblocksDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProMemblocksDebug.dll")==0)
 					{
 						g_pGlob->g_Memblocks = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1104,7 +1138,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}			
 
 					// Animation Support
-					if(stricmp(pDLLName,"DBProAnimationDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProAnimationDebug.dll")==0)
 					{
 						g_pGlob->g_Animation = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1112,7 +1146,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}	
 					
 					// Bitmap Support
-					if(stricmp(pDLLName,"DBProBitmapDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProBitmapDebug.dll")==0)
 					{
 						g_pGlob->g_Bitmap = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1120,7 +1154,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}	
 
 					// Multiplayer Support
-					if(stricmp(pDLLName,"DBProMultiplayerDebug.dll")==0)
+					if(_stricmp(pDLLName,"DBProMultiplayerDebug.dll")==0)
 					{
 						g_pGlob->g_Multiplayer = hDLLMod[dllindex];
 						bIsOfficialDLL=true;
@@ -1128,24 +1162,24 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					}	
 
 					// 3D System Support
-					if(stricmp(pDLLName,"DBProCameraDebug.dll")==0) { g_pGlob->g_Camera3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Camera3D", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProLightDebug.dll")==0) { g_pGlob->g_Light3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Light3D", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProMatrixDebug.dll")==0) { g_pGlob->g_Matrix3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Matrix3D", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProBasic3DDebug.dll")==0) { g_pGlob->g_Basic3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Basic3D", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProWorld3DDebug.dll")==0) { g_pGlob->g_World3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("World3D", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProQ2BSPDebug.dll")==0) { g_pGlob->g_Q2BSP = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Q2BSP", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProOwnBSPDebug.dll")==0) { g_pGlob->g_OwnBSP = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("OwnBSP", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProBSPCompilerDebug.dll")==0) { g_pGlob->g_BSPCompiler = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("BSPCompiler", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProParticlesDebug.dll")==0) { g_pGlob->g_Particles = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Particles", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProCameraDebug.dll")==0) { g_pGlob->g_Camera3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Camera3D", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProLightDebug.dll")==0) { g_pGlob->g_Light3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Light3D", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProMatrixDebug.dll")==0) { g_pGlob->g_Matrix3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Matrix3D", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProBasic3DDebug.dll")==0) { g_pGlob->g_Basic3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Basic3D", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProWorld3DDebug.dll")==0) { g_pGlob->g_World3D = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("World3D", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProQ2BSPDebug.dll")==0) { g_pGlob->g_Q2BSP = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Q2BSP", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProOwnBSPDebug.dll")==0) { g_pGlob->g_OwnBSP = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("OwnBSP", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProBSPCompilerDebug.dll")==0) { g_pGlob->g_BSPCompiler = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("BSPCompiler", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProParticlesDebug.dll")==0) { g_pGlob->g_Particles = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Particles", hDLLMod[dllindex]); }
 
 					// Support DLLs
-					if(stricmp(pDLLName,"DBProPrimObjectDebug.dll")==0) { g_pGlob->g_PrimObject = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("PrimObject", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProVectorsDebug.dll")==0) { g_pGlob->g_Vectors = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Vectors", hDLLMod[dllindex]); }
-					if(stricmp(pDLLName,"DBProLODTerrainDebug.dll")==0) { g_pGlob->g_LODTerrain = hDLLMod[dllindex]; bIsOfficialDLL=true; }
-					if(stricmp(pDLLName,"DBProCSGDebug.dll")==0) { g_pGlob->g_CSG = hDLLMod[dllindex]; bIsOfficialDLL=true; }
+					if(_stricmp(pDLLName,"DBProPrimObjectDebug.dll")==0) { g_pGlob->g_PrimObject = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("PrimObject", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProVectorsDebug.dll")==0) { g_pGlob->g_Vectors = hDLLMod[dllindex]; bIsOfficialDLL=true; PluginRegistry::GetInstance().RegisterPlugin("Vectors", hDLLMod[dllindex]); }
+					if(_stricmp(pDLLName,"DBProLODTerrainDebug.dll")==0) { g_pGlob->g_LODTerrain = hDLLMod[dllindex]; bIsOfficialDLL=true; }
+					if(_stricmp(pDLLName,"DBProCSGDebug.dll")==0) { g_pGlob->g_CSG = hDLLMod[dllindex]; bIsOfficialDLL=true; }
 
 					// leeadd - 1403060 - igl - DLLs supported by CORE and GLOBSTRUCT, auxiliary functions
-					if(stricmp(pDLLName,"IGL.dll")==0) { g_pGlob->g_igLoader = hDLLMod[dllindex]; }
+					if(_stricmp(pDLLName,"IGL.dll")==0) { g_pGlob->g_igLoader = hDLLMod[dllindex]; }
 
 					// If none of these, must be TPC
 					if ( bIsOfficialDLL==false )
@@ -1245,14 +1279,14 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							if (pDepName) snprintf(pDLLNameToFind, sizeof(pDLLNameToFind), "%s", pDepName); else pDLLNameToFind[0] = '\0';
 
 							// find hModuleFound of that dependence
-							HINSTANCE hModuleFound = NULL;
+							HINSTANCE hModuleFound = nullptr;
 							for ( DWORD findll=0; findll<m_dwNumberOfDLLs; findll++ )
 							{
 								LPSTR pFoundDLLName = (LPSTR)m_pDLLFilenameArray[findll];
 								const DWORD founddllindex=m_pDLLIndexArray[findll];
 								if(dbp::runtime::IsDllIndex(founddllindex))
 								{
-									if ( stricmp( pFoundDLLName, pDLLNameToFind )==NULL )
+									if ( _stricmp( pFoundDLLName, pDLLNameToFind )==0 )
 									{
 										hModuleFound = hDLLMod[founddllindex];
 										break;
@@ -1272,7 +1306,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			// U58			(sizeof(HINSTANCE)*256)+(sizeof(bool)*256)
 			// HINSTANCE	hDLLMod[256];
 			// bool			bDLLTPC[256];
-			if ( g_pGlob->pDynMemPtr==NULL )
+			if ( g_pGlob->pDynMemPtr==nullptr )
 			{
 				g_pGlob->dwDynMemSize = (sizeof(HINSTANCE)*256)+(sizeof(bool)*256);
 				g_pGlob->pDynMemPtr = new char [ g_pGlob->dwDynMemSize ];
@@ -1319,7 +1353,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				if(g_hTempWindow)
 				{
 					DestroyWindow(g_hTempWindow);
-					g_hTempWindow=NULL;
+					g_hTempWindow=nullptr;
 				}
 			}
 
@@ -1368,7 +1402,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		if(bResult==true)
 		{
 			if(m_dwVariableSpaceSize==0) m_dwVariableSpaceSize=1;
-			m_pVariableSpace = (LPSTR)g_CORE_CreateVarSpace(m_dwVariableSpaceSize);
+			m_pVariableSpace = static_cast<LPSTR>(g_CORE_CreateVarSpace(m_dwVariableSpaceSize));
 			ZeroMemory(m_pVariableSpace, m_dwVariableSpaceSize);
 			m_dwOldVariableSpaceSize=m_dwVariableSpaceSize;
 		}
@@ -1378,7 +1412,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		{
 			if(m_dwDataSpaceSize>0)
 			{
-				m_pDataSpace = (LPSTR)g_CORE_CreateDataSpace(m_dwDataSpaceSize);
+				m_pDataSpace = static_cast<LPSTR>(g_CORE_CreateDataSpace(m_dwDataSpaceSize));
 				memcpy(m_pDataSpace, m_pDataArray, m_dwDataSpaceSize);
 				m_dwOldDataSpaceSize=m_dwDataSpaceSize;
 				for(DWORD d=0; d<m_dwNumberOfDataItems; d++)
@@ -1407,7 +1441,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 				// Increase Size of VarSpace
 				g_CORE_DeleteVarSpace();
-				LPSTR pNew = (LPSTR)g_CORE_CreateVarSpace(m_dwVariableSpaceSize);
+				LPSTR pNew = static_cast<LPSTR>(g_CORE_CreateVarSpace(m_dwVariableSpaceSize));
 				memcpy(pNew, pTemp.get(), m_dwOldVariableSpaceSize);
 				m_dwOldVariableSpaceSize=m_dwVariableSpaceSize;
 				m_pVariableSpace=pNew;
@@ -1425,7 +1459,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 
 				// Increase Size of DataSpace
 				g_CORE_DeleteDataSpace();
-				LPSTR pNew = (LPSTR)g_CORE_CreateDataSpace(m_dwDataSpaceSize);
+				LPSTR pNew = static_cast<LPSTR>(g_CORE_CreateDataSpace(m_dwDataSpaceSize));
 				memcpy(pNew, pTemp.get(), m_dwOldDataSpaceSize);
 				m_dwOldDataSpaceSize=m_dwDataSpaceSize;
 				m_pDataSpace=pNew;
@@ -1448,11 +1482,11 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	}
 
 	// [EXE] Replace all XXXX Pointers with Dynamic Creations (RAII owner + raw alias)
-	std::unique_ptr<DWORD[]> pProgramRefPtrOwner;
-	DWORD* pProgramRefPtr = NULL;
+	std::unique_ptr<uintptr_t[]> pProgramRefPtrOwner;
+	uintptr_t* pProgramRefPtr = nullptr;
 	if(bResult==true)
 	{
-		pProgramRefPtrOwner = std::make_unique<DWORD[]>(m_dwNumberOfReferences);
+		pProgramRefPtrOwner = std::make_unique<uintptr_t[]>(m_dwNumberOfReferences);
 		pProgramRefPtr = pProgramRefPtrOwner.get();
 		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
 		{
@@ -1492,9 +1526,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(hDLLMod[dll]==0)
 					{
 						// Locate function ptr from EXE function ptr (passed in)
-						if(stricmp(pStr, "DHookS")==NULL) *(pProgramRefPtr+ref)=(uintptr_t)pDHookS;
-						if(stricmp(pStr, "DHookJ")==NULL) *(pProgramRefPtr+ref)=(uintptr_t)pDHookJ;
-						if(stricmp(pStr, "DHookR")==NULL) *(pProgramRefPtr+ref)=(uintptr_t)pDHookR;
+						if(_stricmp(pStr, "DHookS")==0) *(pProgramRefPtr+ref)=(uintptr_t)pDHookS;
+						if(_stricmp(pStr, "DHookJ")==0) *(pProgramRefPtr+ref)=(uintptr_t)pDHookJ;
+						if(_stricmp(pStr, "DHookR")==0) *(pProgramRefPtr+ref)=(uintptr_t)pDHookR;
 					}
 					else
 					{
@@ -1502,14 +1536,14 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						uintptr_t dwAdd = (uintptr_t)Hook_GetProcAddress(hDLLMod[dll], pStr);
 						if(dwAdd!=0)
 						{
-							*(pProgramRefPtr+ref)=(DWORD)dwAdd;
+							*(pProgramRefPtr+ref)=dwAdd;
 						}
 						else
 						{
 							// Exit loop
 							g_bSuccessfulDLLLinks=false;
 							ref=m_dwNumberOfReferences;
-							if(*pReturnError==NULL) *pReturnError = new char[1024];
+							if(*pReturnError==nullptr) *pReturnError = new char[1024];
 							int dlli = dll - 1; if(dlli<0) dlli=0;
 							sprintf_s(*pReturnError, 1024, "Could not find function '%s' in %d:%s", pStr, index, (LPSTR)m_pDLLFilenameArray[dlli]);
 							bResult=false;
@@ -1527,12 +1561,13 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						break;
 					}
 					char* pStr = (char*)m_pStringsArray[index];
-					DWORD dwAdd = (DWORD)pStr;
-					if(dwAdd!=NULL)
-						*(pProgramRefPtr+ref)=dwAdd;
-					else
+					if (pStr != nullptr && WriteTargetAddress(pProgramRefPtr + ref, pStr, pReturnError, bResult))
 					{
-						if(*pReturnError==NULL) *pReturnError = new char[1024];
+						// string address recorded in reference slot
+					}
+					else if (bResult)
+					{
+						if(*pReturnError==nullptr) *pReturnError = new char[1024];
 						snprintf(*pReturnError, 1024, "%s", "Could not find dynamic string during referencing");
 						bResult=false;
 					}
@@ -1543,7 +1578,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					if(index==4)
 					{
 						// Pointer to Runtime Error DWORD (filled by DLLs)
-						*(pProgramRefPtr+ref) = (DWORD)(&m_dwRuntimeErrorDWORD);
+						WriteTargetAddress(pProgramRefPtr + ref, &m_dwRuntimeErrorDWORD, pReturnError, bResult);
 					}
 					else
 					{
@@ -1551,7 +1586,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						if(index==8)
 						{
 							// Pointer to Runtime Escape Value DWORD (filled by DLLs)
-							*(pProgramRefPtr+ref) = (DWORD)(&g_dwEscapeValueMem);
+							WriteTargetAddress(pProgramRefPtr + ref, &g_dwEscapeValueMem, pReturnError, bResult);
 						}
 						else
 						{
@@ -1559,19 +1594,19 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 							if(index==12)
 							{
 								// Pointer to Runtime Escape Value DWORD (filled by DLLs)
-								*(pProgramRefPtr+ref) = (DWORD)(&g_dwBreakOutPosition);
+								WriteTargetAddress(pProgramRefPtr + ref, &g_dwBreakOutPosition, pReturnError, bResult);
 							}
 							else
 							{
 								if(index==16)
 								{
 									// NEW Pointer to Runtime Error Line DWORD - now protection value
-									*(pProgramRefPtr+ref) = (DWORD)(&m_dwRuntimeErrorLineDWORD);
+									WriteTargetAddress(pProgramRefPtr + ref, &m_dwRuntimeErrorLineDWORD, pReturnError, bResult);
 								}
 								else
 								{
 									// Variable + Plus Offset stored representing global var
-									*(pProgramRefPtr+ref) = (DWORD)(m_pVariableSpace+index);
+									WriteTargetAddress(pProgramRefPtr + ref, m_pVariableSpace + index, pReturnError, bResult);
 								}
 							}
 						}
@@ -1590,7 +1625,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				if(iRefType==6)
 				{
 					// Data Position is index(byte offset)
-					*(pProgramRefPtr+ref)=(DWORD)(m_pDataSpace+(index*10));
+					WriteTargetAddress(pProgramRefPtr + ref, m_pDataSpace + (index*10), pReturnError, bResult);
 				}
 			}
 		}
@@ -1604,19 +1639,24 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	{
 		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
 		{
-			DWORD dwDWORD=*(pProgramRefPtr+ref);
+			uintptr_t dwRefValue=*(pProgramRefPtr+ref);
 			DWORD dwBytePosition=m_pRefArray[ref];
 			int iRefType=(int)m_pRefTypeArray[ref];
 			if(iRefType==5)
 			{
 				// Adjust Label by making it a relative offset from 'here'
 				DWORD dwInstructionPos=dwBytePosition+4;
-				int iSigned = dwDWORD-dwInstructionPos;
+				int iSigned = static_cast<int>(dwRefValue-dwInstructionPos);
 				*(int*)((char*)m_pMachineCodeBlock+dwBytePosition)=iSigned;
+			}
+			else if(iRefType==1 || iRefType==2 || iRefType==3 || iRefType==6)
+			{
+				// 64-bit target pointer
+				*(uintptr_t*)((char*)m_pMachineCodeBlock+dwBytePosition)=dwRefValue;
 			}
 			else
 			{
-				*(DWORD*)((char*)m_pMachineCodeBlock+dwBytePosition)=dwDWORD;
+				*(DWORD*)((char*)m_pMachineCodeBlock+dwBytePosition)=static_cast<DWORD>(dwRefValue);
 			}
 		}
 	}
@@ -1631,7 +1671,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	}
 
 	// leeadd - 221008 - u71 - extra info in globstruct for external debuggers
-	if ( g_pGlob ) g_pGlob->g_pMachineCodeBlock = (DWORD)m_pMachineCodeBlock;
+	if ( g_pGlob ) g_pGlob->g_pMachineCodeBlock = (DWORD_PTR)m_pMachineCodeBlock;
 
 	// [EXE] W^X: Transition MCB from read-write to execute-read after all patching
 	if ( m_pMachineCodeBlock && m_dwSizeOfMCB > 0 )
@@ -1645,7 +1685,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 	}
 
 	// [EXE] Switch out of TEMP Folder
-	_chdir(m_OriginalFolderName.c_str());
+	std::filesystem::current_path(m_OriginalFolderName, ec);
 
 	return bResult;
 }
@@ -1776,7 +1816,7 @@ void CEXEBlock::Free(void)
 				MemoryPE::UnloadModule(hDLLMod[dll]);
 			else
 				FreeLibrary(hDLLMod[dll]);
-			hDLLMod[dll]=NULL;
+			hDLLMod[dll]=nullptr;
 		}
 	}
 }

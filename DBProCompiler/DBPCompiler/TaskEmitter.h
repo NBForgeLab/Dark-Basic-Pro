@@ -36,23 +36,23 @@ public:
     /** @brief Resolves relative assembly call code from opcode and type. */
     [[nodiscard]] DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept;
 
-    /** @brief Evaluates parameter access mode (Mem, Ebp, Imm, etc.) for a token. */
+    /** @brief Evaluates parameter access mode (Mem, Rbp, Imm, etc.) for a token. */
     [[nodiscard]] DWORD DetermineParamMode(class CStr* pP, DWORD dwPType, DWORD dwPOffset) const noexcept;
 
     /** @brief Calculates pass offset for multi-pass task emission. */
     [[nodiscard]] DWORD CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept;
 
-    /** @brief Emits assembly code to load array element into EAX. */
-    void WriteASMARRtoEAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
+    /** @brief Emits assembly code to load array element into RAX. */
+    void WriteASMARRtoRAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
 
-    /** @brief Emits assembly code to load variable/SIB element into EAX. */
-    void WriteASMXtoEAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
+    /** @brief Emits assembly code to load variable/SIB element into RAX. */
+    void WriteASMXtoRAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
 
-    /** @brief Emits assembly code to store EAX into array element. */
-    void WriteASMEAXtoARR(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
+    /** @brief Emits assembly code to store RAX into array element. */
+    void WriteASMRAXtoARR(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
 
-    /** @brief Emits assembly code to store EAX into variable/SIB element. */
-    void WriteASMEAXtoX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
+    /** @brief Emits assembly code to store RAX into variable/SIB element. */
+    void WriteASMRAXtoX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
 
 private:
     DWORD m_dwTaskCount{ 0 };

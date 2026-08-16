@@ -16,9 +16,12 @@ using CorePassStructurePatterns = void (*)(void*, unsigned long);
 using CoreVoid = void (*)();
 using CoreDword = DWORD (*)();
 using CoreDwordParameter = DWORD (*)(DWORD);
+// Space factories return a pointer-sized address (DWORD_PTR in the runtime)
+using CoreCreateSpace = void* (*)(DWORD);
 using CoreVoidDwordPointer = void (*)(DWORD*);
 using CoreInitializeDisplay = DWORD (*)(
     DWORD, DWORD, DWORD, DWORD, HINSTANCE, char*);
+using CoreGetGlob = void* (*)();
 using CoreSymbolLookup = std::function<void*(const char*)>;
 
 struct CoreRuntimeApi {
@@ -30,12 +33,12 @@ struct CoreRuntimeApi {
     CorePassStructurePatterns passStructurePatterns = nullptr;
     CoreVoid passDlls = nullptr;
     CoreVoid constructDlls = nullptr;
-    CoreDword getGlob = nullptr;
+    CoreGetGlob getGlob = nullptr;
     CoreInitializeDisplay initializeDisplay = nullptr;
     CoreDword closeDisplay = nullptr;
-    CoreDwordParameter createVariableSpace = nullptr;
+    CoreCreateSpace createVariableSpace = nullptr;
     CoreVoid deleteVariableSpace = nullptr;
-    CoreDwordParameter createDataSpace = nullptr;
+    CoreCreateSpace createDataSpace = nullptr;
     CoreVoid deleteDataSpace = nullptr;
     CoreVoidDwordPointer deleteVariableItem = nullptr;
     CoreVoidDwordPointer unDim = nullptr;

@@ -22,14 +22,14 @@ CParseLoop::CParseLoop()
 	m_dwEndLineNumber=0;
 
 	m_dwLoopType=0;
-	m_pCodeBlock=NULL;
+	m_pCodeBlock=nullptr;
 }
 
 CParseLoop::~CParseLoop()
 {
 	// Statements Deleted One by One
 	m_pCodeBlock->Free();
-	m_pCodeBlock=NULL;
+	m_pCodeBlock=nullptr;
 
 	// unique_ptr members auto-cleanup
 }
@@ -37,7 +37,7 @@ CParseLoop::~CParseLoop()
 bool CParseLoop::WriteDBM(DWORD PlacementCode)
 {
 	// Determine if parameters used
-	CParameter* pParameter = NULL;
+	CParameter* pParameter = nullptr;
 	if(PlacementCode==DBMPLACEMENT_TOP && m_dwLoopType==LOOPTYPE_WHILE) pParameter=GetConditionParameter();
 	if(PlacementCode==DBMPLACEMENT_BOTTOM && m_dwLoopType==LOOPTYPE_REPEAT) pParameter=GetConditionParameter();
 	if(PlacementCode==DBMPLACEMENT_TOP && m_dwLoopType==LOOPTYPE_FORNEXT) pParameter=GetConditionParameter();
@@ -60,7 +60,7 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 			auto pTemp = std::make_unique<CParseInstruction>();
 			pTemp->SetLineNumber(m_dwStartLineNumber);
 			pTemp->PassStartEndCharForPossibleDebugHook(m_dwS, m_dwE);
-			pTemp->WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), NULL, NULL, NULL);
+			pTemp->WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), nullptr, nullptr, nullptr);
 		}
 	}
 
@@ -132,7 +132,7 @@ bool CParseLoop::WriteDBM(DWORD PlacementCode)
 	return true;
 }
 
-bool CParseLoop::WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult)
+bool CParseLoop::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
 {
 	// Write out text
 	CStr strDBMLine(256);

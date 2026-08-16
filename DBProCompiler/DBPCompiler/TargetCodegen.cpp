@@ -1,4 +1,4 @@
-#include "TargetCodegen.h"
+﻿#include "TargetCodegen.h"
 #include "VarTable.h"
 #include "ASMWriter.h"
 #include "ParseUserFunction.h"
@@ -19,17 +19,17 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 break;
             }
             case IROpCode::LoadVar: {
-                LPSTR pScope = NULL;
+                LPSTR pScope = nullptr;
                 if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
                     pScope = g_pUserFunctionWithin->GetName()->GetStr();
                 }
-                CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(inst.operandStr.c_str()), 0);
+                CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPCSTR>(inst.operandStr.c_str()), 0);
                 if (!pVar) {
-                    pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(inst.operandStr.c_str()), 0);
-                    pScope = NULL; // It's global
+                    pVar = g_pVarTable->FindVariable(const_cast<LPCSTR>(""), const_cast<LPCSTR>(inst.operandStr.c_str()), 0);
+                    pScope = nullptr; // It's global
                 }
                 DWORD dwType = 1, dwOffset = 0;
-                CStructTable* pStruct = NULL;
+                CStructTable* pStruct = nullptr;
                 if (pVar) {
                     dwType = pVar->GetVarTypeValue();
                     dwOffset = pVar->GetOffsetValue();
@@ -37,14 +37,14 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 }
                 
                 std::string decorated;
-                if (pVar && pScope && stricmp(pScope, "") != 0) {
+                if (pVar && pScope && _stricmp(pScope, "") != 0) {
                     decorated = "FS@" + std::string(pScope) + "@" + inst.operandStr;
                 } else {
                     decorated = "@" + inst.operandStr;
                 }
 
-                CStr varName(const_cast<LPSTR>(decorated.c_str()));
-                if (pVar && pScope && stricmp(pScope, "") != 0) {
+                CStr varName(const_cast<LPCSTR>(decorated.c_str()));
+                if (pVar && pScope && _stricmp(pScope, "") != 0) {
                     CResultData rd;
                     rd.m_pStringToken.reset(&varName);
                     rd.m_pAdditionalOffset.reset();
@@ -57,35 +57,35 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 }
 
                 DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
-                m_codeGen->WriteASMXtoEAX(dwAccessMode, &varName, NULL, dwType, dwOffset);
-                m_codeGen->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, dwType, dwOffset);
+                m_codeGen->WriteASMXtoRAX(dwAccessMode, &varName, nullptr, dwType, dwOffset);
+                m_codeGen->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, dwType, dwOffset);
                 break;
             }
             case IROpCode::BinaryOp: {
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEBX), "");
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPRBX), "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPRAX), "");
                 if (inst.opType == BinaryOpType::Add) {
-                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::ADDEAXEBX4), "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAXRBX4), "");
                 } else if (inst.opType == BinaryOpType::Subtract) {
-                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::SUBEAXEBX4), "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::SUBRAXRBX4), "");
                 } else if (inst.opType == BinaryOpType::Multiply) {
-                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::MULEAXEBX4), "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::MULRAXRBX4), "");
                 } else if (inst.opType == BinaryOpType::Divide) {
-                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::DIVEAXEBX4), "");
+                    m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::DIVRAXRBX4), "");
                 }
-                m_codeGen->WriteASMEAXtoX(static_cast<DWORD>(ParamMode::Stack), NULL, NULL, 1, 0);
+                m_codeGen->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, 1, 0);
                 break;
             }
             case IROpCode::StoreVar: {
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
-                LPSTR pScope = NULL;
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPRAX), "");
+                LPCSTR pScope = nullptr;
                 if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
                     pScope = g_pUserFunctionWithin->GetName()->GetStr();
                 }
-                CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(inst.operandStr.c_str()), 0);
+                CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPCSTR>(inst.operandStr.c_str()), 0);
                 if (!pVar) {
-                    pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(inst.operandStr.c_str()), 0);
-                    pScope = NULL; // It's global
+                    pVar = g_pVarTable->FindVariable(const_cast<LPCSTR>(""), const_cast<LPCSTR>(inst.operandStr.c_str()), 0);
+                    pScope = nullptr; // It's global
                 }
                 if (!pVar) return false;
                 DWORD dwType = pVar->GetVarTypeValue();
@@ -93,14 +93,14 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 CStructTable* pStruct = pVar->GetVarStruct();
 
                 std::string decorated;
-                if (pScope && stricmp(pScope, "") != 0) {
+                if (pScope && _stricmp(pScope, "") != 0) {
                     decorated = "FS@" + std::string(pScope) + "@" + inst.operandStr;
                 } else {
                     decorated = "@" + inst.operandStr;
                 }
 
-                CStr varName(const_cast<LPSTR>(decorated.c_str()));
-                if (pScope && stricmp(pScope, "") != 0) {
+                CStr varName(const_cast<LPCSTR>(decorated.c_str()));
+                if (pScope && _stricmp(pScope, "") != 0) {
                     CResultData rd;
                     rd.m_pStringToken.reset(&varName);
                     rd.m_pAdditionalOffset.reset();
@@ -113,28 +113,28 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 }
 
                 DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
-                m_codeGen->WriteASMEAXtoX(dwAccessMode, &varName, NULL, dwType, dwOffset);
+                m_codeGen->WriteASMRAXtoX(dwAccessMode, &varName, nullptr, dwType, dwOffset);
                 break;
             }
             case IROpCode::JumpIfFalse: {
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPEAX), "");
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
-                CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPRAX), "");
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAX4), "0");
+                CStr labelName(const_cast<LPCSTR>(inst.operandStr.c_str()));
                 m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JE), labelName.GetStr());
                 break;
             }
             case IROpCode::Jump: {
-                CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
+                CStr labelName(const_cast<LPCSTR>(inst.operandStr.c_str()));
                 m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JMP), labelName.GetStr());
                 break;
             }
             case IROpCode::Label: {
-                CStr labelName(const_cast<LPSTR>(inst.operandStr.c_str()));
+                CStr labelName(const_cast<LPCSTR>(inst.operandStr.c_str()));
                 m_codeGen->WriteASMLine(0, labelName.GetStr());
                 break;
             }
             case IROpCode::Call: {
-                CStr funcLabel(const_cast<LPSTR>(inst.operandStr.c_str()));
+                CStr funcLabel(const_cast<LPCSTR>(inst.operandStr.c_str()));
                 m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CALLABS), funcLabel.GetStr());
                 break;
             }

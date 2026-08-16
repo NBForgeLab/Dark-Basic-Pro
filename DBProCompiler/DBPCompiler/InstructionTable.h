@@ -5,10 +5,11 @@
 #if !defined(AFX_INSTRUCTIONTABLE_H__2C54A6BC_B075_484B_9706_9BBCE0C8F37F__INCLUDED_)
 #define AFX_INSTRUCTIONTABLE_H__2C54A6BC_B075_484B_9706_9BBCE0C8F37F__INCLUDED_
 
-#define __AARON_INSTRPERF__ 1
+//#define __AARON_INSTRPERF__ 1
 
 // Includes
 #include <memory>
+#include <filesystem>
 #include "ParserHeader.h"
 #include "InstructionTableEntry.h"
 #include "Task.h"
@@ -299,53 +300,45 @@ class CInstructionTable
 		void		SetIIValue(DWORD dwRefIndex, DWORD dwValue) { m_InternalInstructions[dwRefIndex]=dwValue; }
 		DWORD		GetIIValue(DWORD dwRefIndex) { return m_InternalInstructions[dwRefIndex]; }
 
-		bool		AddCommand(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax);
-		bool		AddBuildCommand(LPSTR pName, LPSTR pDesc, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternal, DWORD dwBuildID);
-		bool		AddCommandCore(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID);
-		bool		AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr);
-		bool		AddUserFunction(LPSTR pName, DWORD resultp, LPSTR pParamTypesString, DWORD pmax, CDeclaration* pDecChain);
-		bool		AddUniqueCommand(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax);
+		bool		AddCommand(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax);
+		bool		AddBuildCommand(LPCSTR pName, LPCSTR pDesc, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternal, DWORD dwBuildID);
+		bool		AddCommandCore(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID);
+		bool		AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr);
+		bool		AddUserFunction(LPCSTR pName, DWORD resultp, LPCSTR pParamTypesString, DWORD pmax, CDeclaration* pDecChain);
+		bool		AddUniqueCommand(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax);
 
 		CInstructionTableEntry *GetEntry(int iType, const char *pStringData, bool *pRetFail=nullptr);
 		CInstructionTableEntry *ResolveEntry(CInstructionTableEntry *pHead, int iWithAnyReturnValue, bool bCommandWhiteSpace=false);
 		bool		FindEntryDirect(int iType, bool bCommandWhiteSpace, LPSTR pStringData, int iWithReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef);
-		bool		FindEntry(int iType, bool bCommandWhiteSpace, CInstructionTableEntry* pEntry, LPSTR pStringData, int iWithReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef);
+		bool		FindEntry(int iType, bool bCommandWhiteSpace, CInstructionTableEntry* pEntry, LPCSTR pStringData, int iWithReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef);
 
-		bool		FindInstruction(bool bCommandWhiteSpace, LPSTR pStringData, int iWithReturnValue, DWORD* Data, DWORD* pdwParamMax, DWORD* Length, CInstructionTableEntry** ppRef);
-		bool		FindUserFunction(LPSTR pStringData, int iWithReturnValue, DWORD* Data, DWORD* pdwParamMax, DWORD* Length);
+		bool		FindInstruction(bool bCommandWhiteSpace, LPCSTR pStringData, int iWithReturnValue, DWORD* Data, DWORD* pdwParamMax, DWORD* Length, CInstructionTableEntry** ppRef);
+		bool		FindUserFunction(LPCSTR pStringData, int iWithReturnValue, DWORD* Data, DWORD* pdwParamMax, DWORD* Length);
 
 		bool		FindInstructionParams(DWORD dwInstructionValue, DWORD dwParamMax, DWORD* pdwData, DWORD* pdwParamMax, CStr** pValidParamTypes, CInstructionTableEntry** pRefEntry);
 		bool		FindUserFunctionParams(DWORD dwInstructionValue, DWORD dwParamMax, DWORD* pdwData, DWORD* pdwParamMax, CStr** pValidParamTypes, CInstructionTableEntry** pRefEntry);
 		bool		CompareInstructionNames(CInstructionTableEntry* pRefEntryA, CInstructionTableEntry* pRefEntryB);
-		bool		FindInstructionWithNameAndParams(LPSTR pFriendName, LPSTR pParams);
+		bool		FindInstructionWithNameAndParams(LPCSTR pFriendName, LPCSTR pParams);
 
-		CInstructionTableEntry* FindUserFunction(LPSTR pUserFunctionName);
-		CInstructionTableEntry* FindReservedFunction(LPSTR pFunctionName);
-		CInstructionTableEntry* FindLastFriendOfName(LPSTR pFriendName);
+		CInstructionTableEntry* FindUserFunction(LPCSTR pUserFunctionName);
+		CInstructionTableEntry* FindReservedFunction(LPCSTR pFunctionName);
+		CInstructionTableEntry* FindLastFriendOfName(LPCSTR pFriendName);
 
-		void		ScanStart(void);
-		void		ScanStep(void);
-		void		ScanEnd(void);
+		void		ScanPluginDirectory(const std::filesystem::path& dirPath);
 
-		bool		VerifyCertificateForPlugin ( LPSTR pDLLName, LPSTR pProductName );
-		std::unique_ptr<char[]>	ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwDataSize  );
-		bool		LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename);
-		bool		TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, LPSTR pRawCommandString);
-		void		AddCommandToHelpTxt(LPSTR pCategory, LPSTR pDLLName, LPSTR pParamStr, DWORD dwReturnParam, DWORD dwParamCount, LPSTR pParamDesc);
-		bool		CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, LPSTR pCommandName);
+		std::unique_ptr<char[]>	ReadRawStringTable ( LPCSTR pFilenameEXE, DWORD* pdwDataSize  );
+		bool		LoadCommandsFromDLL(LPCSTR pCategory, LPCSTR pFilename);
+		bool		TurnStringIntoCommand(LPCSTR pCategory, LPCSTR pDLLName, LPCSTR pRawCommandString);
+		void		AddCommandToHelpTxt(LPCSTR pCategory, LPCSTR pDLLName, LPCSTR pParamStr, DWORD dwReturnParam, DWORD dwParamCount, LPCSTR pParamDesc);
+		bool		CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, LPCSTR pCommandName);
 	
 		DWORD		DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD dwTypeValue);
 
-		bool		EnsureWordIsNotPartOfACommand ( LPSTR pConstantName );
-
-		inline CInstructionTableEntry *GetEntryByIndex(db3::uint index) { return m_EntryArray[index]; }
+		bool		EnsureWordIsNotPartOfACommand ( LPCSTR pConstantName );
 
 	private:
-		// Types
-		typedef db3::TDictionary<CInstructionTableEntry> map_type;
 		typedef db3::CLock lock_type;
 		typedef db3::CAutolock autolock_type;
-		typedef db3::TArray<CInstructionTableEntry *> array_type;
 
 		// Track Current Internal ID (Counter)
 		DWORD						m_dwCurrentInternalID;

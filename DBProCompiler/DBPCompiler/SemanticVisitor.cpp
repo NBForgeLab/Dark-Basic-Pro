@@ -21,7 +21,7 @@ void SemanticVisitor::Visit(ASTBlockNode* node) {
 }
 
 void SemanticVisitor::Visit(ASTAssignmentNode* node) {
-    LPSTR pScope = NULL;
+    LPSTR pScope = nullptr;
     if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
         pScope = g_pUserFunctionWithin->GetName()->GetStr();
     }
@@ -34,13 +34,13 @@ void SemanticVisitor::Visit(ASTAssignmentNode* node) {
     m_declaredVars[node->m_varName] = varType;
 
     if (g_pVarTable) {
-        CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+        CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPCSTR>(node->m_varName.c_str()), 0);
         if (!pVar) {
-            pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+            pVar = g_pVarTable->FindVariable(const_cast<LPCSTR>(""), const_cast<LPCSTR>(node->m_varName.c_str()), 0);
         }
         if (!pVar) {
             DWORD dwAction = 0;
-            g_pVarTable->AddVariable(const_cast<LPSTR>(node->m_varName.c_str()), const_cast<LPSTR>("integer"), 0, 0, true, &dwAction, false);
+            g_pVarTable->AddVariable(const_cast<LPCSTR>(node->m_varName.c_str()), const_cast<LPCSTR>("integer"), 0, 0, true, &dwAction, false);
         }
     }
 }
@@ -57,14 +57,14 @@ void SemanticVisitor::Visit(ASTVariableNode* node) {
     }
 
     if (g_pVarTable) {
-        LPSTR pScope = NULL;
+        LPCSTR pScope = nullptr;
         if (g_pUserFunctionWithin && g_pUserFunctionWithin->GetName()) {
             pScope = g_pUserFunctionWithin->GetName()->GetStr();
         }
 
-        CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPSTR>(node->m_varName.c_str()), 0);
+        CVarTable* pVar = g_pVarTable->FindVariable(pScope, const_cast<LPCSTR>(node->m_varName.c_str()), 0);
         if (!pVar) {
-            pVar = g_pVarTable->FindVariable(const_cast<LPSTR>(""), const_cast<LPSTR>(node->m_varName.c_str()), 0);
+            pVar = g_pVarTable->FindVariable(const_cast<LPCSTR>(""), const_cast<LPCSTR>(node->m_varName.c_str()), 0);
         }
 
         if (pVar) {
@@ -147,9 +147,9 @@ void SemanticVisitor::Visit(ASTArrayAccessNode* node) {
     m_inferredType = 1;
 }
 
-void SemanticVisitor::Visit(ASTStructDeclNode* node) {
+void SemanticVisitor::Visit([[maybe_unused]] ASTStructDeclNode* node) {
 }
 
-void SemanticVisitor::Visit(ASTStructAccessNode* node) {
+void SemanticVisitor::Visit([[maybe_unused]] ASTStructAccessNode* node) {
     m_inferredType = 1;
 }

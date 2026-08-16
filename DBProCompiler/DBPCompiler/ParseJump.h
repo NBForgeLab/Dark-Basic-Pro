@@ -55,7 +55,7 @@ class CParseJump
 		DWORD			GetEndLineNumber(void) { return m_dwEndLineNumber; }
 
 		bool			WriteDBM(DWORD PlacementCode);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
 
 	private:
 

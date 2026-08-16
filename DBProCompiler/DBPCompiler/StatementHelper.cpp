@@ -37,7 +37,7 @@ LPSTR SeperateInitFromType(LPSTR pPossibleTypeAndInit)
     return nullptr;
 }
 
-bool SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrValue, bool bMustBeLiteralDim)
+bool SeperateValueFromArrayString(LPSTR* pArrayString, LPSTR* pArrValue, [[maybe_unused]] bool bMustBeLiteralDim)
 {
     if (!pArrayString || !*pArrayString || !pArrValue)
         return false;

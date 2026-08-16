@@ -6,7 +6,7 @@
 
 // Includes and external ptr for AssociateDLL scan
 #include "DBPCompiler.h"
-#include "direct.h"
+#include <filesystem>
 #include "TextConvert.h"
 #include "SafeDLLLoading.h"
 extern CDBPCompiler* g_pDBPCompiler;
@@ -21,7 +21,7 @@ CDataTable::CDataTable()
 {
 }
 
-CDataTable::CDataTable(LPSTR pInitString)
+CDataTable::CDataTable(LPCSTR pInitString)
 	: m_dwIndex(0), m_dwType(0), m_pNumeric(0),
 	  m_pString(std::make_unique<CStr>(pInitString)),
 	  m_pString2(std::make_unique<CStr>((LPSTR)"")),
@@ -82,7 +82,7 @@ bool CDataTable::AddString(LPSTR pString, DWORD dwIndex)
 	// Create new data item (owned until handed to the chain)
 	auto pNewData = std::make_unique<CDataTable>();
 	pNewData->SetString(std::make_unique<CStr>(pString).release());
-	pNewData->SetString2(NULL);
+	pNewData->SetString2(nullptr);
 
 	// Set index
 	pNewData->SetIndex(dwIndex);
@@ -119,7 +119,7 @@ bool CDataTable::AddTwoStrings(LPSTR pString, LPSTR pString2, DWORD* dwIndex)
 	return true;
 }
 
-bool CDataTable::AddUniqueString(LPSTR pString, DWORD* dwIndex)
+bool CDataTable::AddUniqueString(LPCSTR pString, DWORD* dwIndex)
 {
 	// If string is NOT unique, fail
 	DWORD dwResult = FindString(pString);
@@ -132,7 +132,7 @@ bool CDataTable::AddUniqueString(LPSTR pString, DWORD* dwIndex)
 	// Create new data item (owned until handed to the chain)
 	auto pNewData = std::make_unique<CDataTable>();
 	pNewData->SetString(std::make_unique<CStr>(pString).release());
-	pNewData->SetString2(NULL);
+	pNewData->SetString2(nullptr);
 
 	// Set index
 	pNewData->SetIndex(*dwIndex);
@@ -144,7 +144,7 @@ bool CDataTable::AddUniqueString(LPSTR pString, DWORD* dwIndex)
 	return true;
 }
 
-DWORD CDataTable::FindString(LPSTR pFindString)
+DWORD CDataTable::FindString(LPCSTR pFindString)
 {
 	// Find String
 	CDataTable* pCurrent = this;
@@ -152,7 +152,7 @@ DWORD CDataTable::FindString(LPSTR pFindString)
 	{
 		// Match list item with search string
 		if(pCurrent->GetString())
-			if(stricmp(pCurrent->GetString()->GetStr(), pFindString)==NULL)
+			if(_stricmp(pCurrent->GetString()->GetStr(), pFindString)==0)
 				return pCurrent->GetIndex();
 
 		pCurrent=pCurrent->GetNext();
@@ -162,7 +162,7 @@ DWORD CDataTable::FindString(LPSTR pFindString)
 	return 0;
 }
 
-bool CDataTable::FindIndexStr(LPSTR pIndexAsString)
+bool CDataTable::FindIndexStr(LPCSTR pIndexAsString)
 {
 	// Convert String to Index
 	DWORD dwFindIndex = atoi(pIndexAsString);
@@ -183,12 +183,12 @@ bool CDataTable::FindIndexStr(LPSTR pIndexAsString)
 	return false;
 }
 
-bool CDataTable::NotExcluded ( LPSTR pFilename )
+bool CDataTable::NotExcluded ( LPCSTR pFilename )
 {
 	// false if excluded from compile
 	for ( DWORD i=1; i<g_pDBPCompiler->g_dwExcludeFilesCount; i++)
 		if ( !g_pDBPCompiler->g_ExcludeFiles [ i ].empty() )
-			if ( stricmp ( g_pDBPCompiler->g_ExcludeFiles [ i ].c_str(), pFilename )==NULL )
+			if ( _stricmp ( g_pDBPCompiler->g_ExcludeFiles [ i ].c_str(), pFilename )==0 )
 				return false;
 
 	// lee - 270308 - u67 - do not include DLL at all if flagged
@@ -215,12 +215,12 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 		for ( int iPass=0; iPass<2; iPass++ )
 		{
 			// Switch to PLUGINS-XXXX Folder
-			char pOldDir [ _MAX_PATH ];
-			getcwd ( pOldDir, _MAX_PATH );
+			std::error_code ec;
+			const auto prevPath = std::filesystem::current_path(ec);
 
 			// Depends on pass value
-			if ( iPass==0 ) _chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER));
-			if ( iPass==1 ) _chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
+			if ( iPass==0 ) std::filesystem::current_path(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER), ec);
+			if ( iPass==1 ) std::filesystem::current_path(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER), ec);
 
 			// Go through DLLs from direct-command-list
 			CDataTable* pCurrent = this->GetNext();
@@ -228,7 +228,7 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 			{
 				// Check if DLL is user-dll ( leefix - 011208 - u71 - gameFX needed to link to Basic3D! )
 				LPSTR pDLLName = pCurrent->GetString()->GetStr();
-				if ( strnicmp ( pDLLName, "dbpro", 5 )!=NULL || strnicmp ( pDLLName, "dbprogamefx", 11 )==NULL )
+				if ( _strnicmp ( pDLLName, "dbpro", 5 )!=0 || _strnicmp ( pDLLName, "dbprogamefx", 11 )==0 )
 				{
 					// must be user DLL (associated with main DLL)
 					int iAssociationCode = 0;
@@ -262,12 +262,8 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 								// store dependencies in list
 								for ( int iD=0; iD<iNumDLLDependencies; iD++ )
 								{
-									char pDependencyStr[256];
-									//LPSTR pDependencyStr = new char[256];
-									strcpy ( pDependencyStr, GetDependencyID(iD) );
 									DWORD dwTry=dwIndex+1;
-									if(AddUniqueString(pDependencyStr, &dwTry)) dwIndex=dwTry;
-									//SAFE_DELETE(pDependencyStr);
+									if(AddUniqueString(GetDependencyID(iD), &dwTry)) dwIndex=dwTry;
 								}
 							}
 						}
@@ -277,7 +273,7 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 					if(hModule)
 					{
 						FreeLibrary(hModule);
-						hModule=NULL;
+						hModule=nullptr;
 					}
 
 					// Association Codes (1=3d/2=sound/4-//)
@@ -291,7 +287,8 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 			}
 
 			// Restore dir before continue
-			_chdir(pOldDir);
+			if (!prevPath.empty())
+				std::filesystem::current_path(prevPath, ec);
 		}
 
 		// DLL index before adding any associations
@@ -321,150 +318,158 @@ int CDataTable::CompleteAnyLinkAssociates(void)
 		{
 			// DLL Name contained in stringname
 			DWORD dwTry = 0;
-			LPSTR pDLL = NULL;
+			LPCSTR pDLL = nullptr;
 			LPSTR pDLLName = pCurrent->GetString()->GetStr();
-#define TRY_DLL(nm) dwTry=dwIndex+1;pDLL=nm;if(NotExcluded(pDLL))if(AddUniqueString(pDLL,&dwTry))dwIndex=dwTry
+// Register an associated DLL unless excluded (replaces the legacy TRY_DLL macro)
+const auto tryDll = [&](LPCSTR dllName)
+			{
+				dwTry = dwIndex + 1;
+				pDLL = dllName;
+				if(NotExcluded(pDLL))
+					if(AddUniqueString(pDLL, &dwTry))
+						dwIndex = dwTry;
+			};
 			// Add other DLLs Associated With These..
-			if(stricmp(pDLLName, "DBProSetupDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProSetupDebug.dll")==0)
 			{
 				// Associate DLLs
-				TRY_DLL("DBProBasic2DDebug.dll");
-				TRY_DLL("DBProTextDebug.dll");
+				tryDll("DBProBasic2DDebug.dll");
+				tryDll("DBProTextDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProTextDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProTextDebug.dll")==0)
 			{
 				// Associate DLLs
-				TRY_DLL("DBProSetupDebug.dll");
+				tryDll("DBProSetupDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProInputDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProInputDebug.dll")==0)
 			{
 				// Checklist Support
-				TRY_DLL("DBProSystemDebug.dll");
+				tryDll("DBProSystemDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProSpritesDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProSpritesDebug.dll")==0)
 			{
 				// Image Support
-				TRY_DLL("DBProImageDebug.dll");
+				tryDll("DBProImageDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProBasic3DDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProBasic3DDebug.dll")==0)
 			{
 				// Image Support
-				TRY_DLL("DBProImageDebug.dll");
+				tryDll("DBProImageDebug.dll");
 				// Transforms Support
-				TRY_DLL("DBProTransformsDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProBasic2DDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProBasic2DDebug.dll")==0)
 			{
 				// Minimal DirectX
-				TRY_DLL("DBProSetupDebug.dll");
+				tryDll("DBProSetupDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProImageDebug.dll")==NULL
-			|| stricmp(pDLLName, "DBProAnimationDebug.dll")==NULL
-			|| stricmp(pDLLName, "DBProBitmapDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProImageDebug.dll")==0
+			|| _stricmp(pDLLName, "DBProAnimationDebug.dll")==0
+			|| _stricmp(pDLLName, "DBProBitmapDebug.dll")==0)
 			{
 				// Sprite Support for pasting
-				TRY_DLL("DBProSpritesDebug.dll");
+				tryDll("DBProSpritesDebug.dll");
 
 				// Minimal DirectX
-				TRY_DLL("DBProSetupDebug.dll");
-				TRY_DLL("DBProBasic2DDebug.dll");
-				TRY_DLL("DBProTextDebug.dll");
+				tryDll("DBProSetupDebug.dll");
+				tryDll("DBProBasic2DDebug.dll");
+				tryDll("DBProTextDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProMultiplayerDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProMultiplayerDebug.dll")==0)
 			{
 				// Need access to memblock support
-				TRY_DLL("DBProMemblocksDebug.dll");
+				tryDll("DBProMemblocksDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProMemblocksDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProMemblocksDebug.dll")==0)
 			{
 				// Memblocks Access to Bitmap, Image, Sound and Mesh
-				TRY_DLL("DBProBitmapDebug.dll");
-				TRY_DLL("DBProImageDebug.dll");
-				TRY_DLL("DBProSoundDebug.dll");
-				TRY_DLL("DBProBasic3DDebug.dll");
+				tryDll("DBProBitmapDebug.dll");
+				tryDll("DBProImageDebug.dll");
+				tryDll("DBProSoundDebug.dll");
+				tryDll("DBProBasic3DDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProCameraDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProCameraDebug.dll")==0)
 			{
-				TRY_DLL("DBProSetupDebug.dll");
-				TRY_DLL("DBProImageDebug.dll");
-				TRY_DLL("DBProVectorsDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
-				TRY_DLL("DBProBasic3DDebug.dll");
+				tryDll("DBProSetupDebug.dll");
+				tryDll("DBProImageDebug.dll");
+				tryDll("DBProVectorsDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
+				tryDll("DBProBasic3DDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProLightDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProLightDebug.dll")==0)
 			{
-				TRY_DLL("DBProSetupDebug.dll");
-				TRY_DLL("DBProCameraDebug.dll");
-				TRY_DLL("DBProVectorsDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
+				tryDll("DBProSetupDebug.dll");
+				tryDll("DBProCameraDebug.dll");
+				tryDll("DBProVectorsDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProMatrixDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProMatrixDebug.dll")==0)
 			{
-				TRY_DLL("DBProSetupDebug.dll");
-				TRY_DLL("DBProImageDebug.dll");
-				TRY_DLL("DBProCameraDebug.dll");
-				TRY_DLL("DBProVectorsDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
+				tryDll("DBProSetupDebug.dll");
+				tryDll("DBProImageDebug.dll");
+				tryDll("DBProCameraDebug.dll");
+				tryDll("DBProVectorsDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProBasic3DDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProBasic3DDebug.dll")==0)
 			{
 				// Primary Support
-				TRY_DLL("DBProSetupDebug.dll");
-				TRY_DLL("DBProImageDebug.dll");
-				TRY_DLL("DBProCameraDebug.dll");
-				TRY_DLL("DBProLightDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
+				tryDll("DBProSetupDebug.dll");
+				tryDll("DBProImageDebug.dll");
+				tryDll("DBProCameraDebug.dll");
+				tryDll("DBProLightDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
 
 				// Secondary Support
-				TRY_DLL("DBProVectorsDebug.dll");
-				TRY_DLL("ConvX.dll");
-				TRY_DLL("Conv3DS.dll");
-				TRY_DLL("ConvMDL.dll");
-				TRY_DLL("ConvMD2.dll");
-				TRY_DLL("ConvMD3.dll");
+				tryDll("DBProVectorsDebug.dll");
+				tryDll("ConvX.dll");
+				tryDll("Conv3DS.dll");
+				tryDll("ConvMDL.dll");
+				tryDll("ConvMD2.dll");
+				tryDll("ConvMD3.dll");
 			}
-			if(stricmp(pDLLName, "DBProWorld3DDebug.dll")==NULL )
+			if(_stricmp(pDLLName, "DBProWorld3DDebug.dll")==0 )
 			{
 				// Primary Support
-				TRY_DLL("DBProLODTerrainDebug.dll");
-				TRY_DLL("DBProQ2BSPDebug.dll");
-				TRY_DLL("DBProBasic3DDebug.dll");
-				TRY_DLL("DBProVectorsDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
-				TRY_DLL("DBProOwnBSPDebug.dll");
+				tryDll("DBProLODTerrainDebug.dll");
+				tryDll("DBProQ2BSPDebug.dll");
+				tryDll("DBProBasic3DDebug.dll");
+				tryDll("DBProVectorsDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
+				tryDll("DBProOwnBSPDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProLODTerrainDebug.dll")==NULL )
+			if(_stricmp(pDLLName, "DBProLODTerrainDebug.dll")==0 )
 			{
 				// Primary Support
-				TRY_DLL("DBProSetupDebug.dll");
-				TRY_DLL("DBProImageDebug.dll");
-				TRY_DLL("DBProCameraDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
+				tryDll("DBProSetupDebug.dll");
+				tryDll("DBProImageDebug.dll");
+				tryDll("DBProCameraDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProCSGDebug.dll")==NULL )
+			if(_stricmp(pDLLName, "DBProCSGDebug.dll")==0 )
 			{
 				// Primary Support
-				TRY_DLL("DBProSetupDebug.dll");
+				tryDll("DBProSetupDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProParticlesDebug.dll")==NULL )
+			if(_stricmp(pDLLName, "DBProParticlesDebug.dll")==0 )
 			{
 				// Primary Support
-				TRY_DLL("DBProParticlesDebug.dll");
-				TRY_DLL("DBProVectorsDebug.dll");
-				TRY_DLL("DBProTransformsDebug.dll");
+				tryDll("DBProParticlesDebug.dll");
+				tryDll("DBProVectorsDebug.dll");
+				tryDll("DBProTransformsDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProSystemDebug.dll")==NULL )
+			if(_stricmp(pDLLName, "DBProSystemDebug.dll")==0 )
 			{
 				// for access to display mem
-				TRY_DLL("DBProSetupDebug.dll");
+				tryDll("DBProSetupDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProVectorsDebug.dll")==NULL )
+			if(_stricmp(pDLLName, "DBProVectorsDebug.dll")==0 )
 			{
-				TRY_DLL("DBProSetupDebug.dll");
+				tryDll("DBProSetupDebug.dll");
 			}
-			if(stricmp(pDLLName, "DBProTransformsDebug.dll")==NULL)
+			if(_stricmp(pDLLName, "DBProTransformsDebug.dll")==0)
 			{
-				TRY_DLL("DBProSetupDebug.dll");
+				tryDll("DBProSetupDebug.dll");
 			}
 #undef TRY_DLL
 		}

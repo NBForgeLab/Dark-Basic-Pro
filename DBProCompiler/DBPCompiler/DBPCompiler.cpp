@@ -35,22 +35,22 @@
 #include <string_view>
 
 // Internal Global Data Pointers
-CEXEBlock*			g_pEXE				= NULL;
-CDBPCompiler*		g_pDBPCompiler		= NULL;
-CError*				g_pErrorReport		= NULL;
-ICodeGenerator*		g_pASMWriter		= NULL;
-CDBMWriter*			g_pDBMWriter		= NULL;
-CStructTable*		g_pStructTable		= NULL;
-CStatementList*		g_pStatementList	= NULL;
-CInstructionTable*	g_pInstructionTable	= NULL;
-CLabelTable*		g_pLabelTable		= NULL;
-CDataTable*			g_pDataTable		= NULL;
-CDataTable*			g_pStringTable		= NULL;
-CDataTable*			g_pDLLTable			= NULL;
-CDataTable*			g_pCommandTable		= NULL;
-CVarTable*			g_pVarTable			= NULL;
-CIncludeTable*		g_pIncludeTable		= NULL;
-CDataTable*			g_pConstantsTable	= NULL;
+CEXEBlock*			g_pEXE				= nullptr;
+CDBPCompiler*		g_pDBPCompiler		= nullptr;
+CError*				g_pErrorReport		= nullptr;
+ICodeGenerator*		g_pASMWriter		= nullptr;
+CDBMWriter*			g_pDBMWriter		= nullptr;
+CStructTable*		g_pStructTable		= nullptr;
+CStatementList*		g_pStatementList	= nullptr;
+CInstructionTable*	g_pInstructionTable	= nullptr;
+CLabelTable*		g_pLabelTable		= nullptr;
+CDataTable*			g_pDataTable		= nullptr;
+CDataTable*			g_pStringTable		= nullptr;
+CDataTable*			g_pDLLTable			= nullptr;
+CDataTable*			g_pCommandTable		= nullptr;
+CVarTable*			g_pVarTable			= nullptr;
+CIncludeTable*		g_pIncludeTable		= nullptr;
+CDataTable*			g_pConstantsTable	= nullptr;
 CDebugInfo			g_DebugInfo;
 
 // lee - 050406 - u6rc6 - new directive for academic non-admin users
@@ -70,21 +70,21 @@ CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
 	m_pCompilerFilename = std::make_unique<CStr>(pCompilerFilename);
 	m_pCompilerPathOnly = std::make_unique<CStr>(pCompilerFilename);
 	m_pCompilerPathOnly->TrimToPathOnly();
-	m_pContext = NULL;
+	m_pContext = nullptr;
 
 	// Initialisation of File Data Ptrs
 	m_dwOriginalFileDataSize=0;
 	m_FileDataSize=0;
-	m_pFileData=NULL;
+	m_pFileData=nullptr;
 
 	// Initialisation of Project File Data
 	m_bProjectExists=false;
 	m_ProjectFileDataSize=0;
-	m_pProjectFileData=NULL;
+	m_pProjectFileData=nullptr;
 
 	// Initialisation of Project Setting Vars
-	m_pFinalDBASource=NULL;
-	m_pEXEFilename=NULL;
+	m_pFinalDBASource=nullptr;
+	m_pEXEFilename=nullptr;
 
 	// Project Compiler Settings
 	m_bDebugModeOn=false;
@@ -112,9 +112,9 @@ CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
 
 CDBPCompiler::~CDBPCompiler()
 {
-	// Safe Deletions (GlobalAlloc buffers)
-	SAFE_FREE(m_pFileData);
-	SAFE_FREE(m_pProjectFileData);
+	// Safe Deletions (dynamic memory buffers)
+	SAFE_DELETE_ARRAY(m_pFileData);
+	SAFE_DELETE_ARRAY(m_pProjectFileData);
 	SAFE_DELETE_ARRAY(m_pFinalDBASource);
 	SAFE_DELETE_ARRAY(m_pEXEFilename);
 
@@ -142,6 +142,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 		ReportStatus("unfold_includes", "Expanding nested #include files...");
 		if(UnfoldFileDataIncludes())
 		{
+			ReportStatus("instruction_table_init", "Loading instruction database...");
 			// leemove - 250604 - u54 - set default and load command database
 			g_pInstructionTable = new CInstructionTable;
 			g_pInstructionTable->SetInternalInstructionDatabase();
@@ -151,6 +152,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 			ReportStatus("unfold_constants", "Replacing #constant keywords...");
 			if(UnfoldFileDataConstants())
 			{
+				ReportStatus("breakpoints", "Recording breakpoints...");
 				// Remove Breakpoints and Construct BreakPoint List
 				if(RemoveAndRecordBreakpoints()==false)
 				{
@@ -195,29 +197,32 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 		if(g_pErrorReport->IsError())
 		{
 			// Create Virtual File for Error Transfer
-			HANDLE hFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,256,L"DBPROEDITORMESSAGE");
-			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_WRITE,0,0,256);
-			LPSTR lpString = g_pErrorReport->GetParserErrorString();
+			HANDLE hFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, 256, L"DBPROEDITORMESSAGE");
+			LPVOID lpVoid = (hFileMap != nullptr && hFileMap != INVALID_HANDLE_VALUE) ? MapViewOfFile(hFileMap, FILE_MAP_WRITE, 0, 0, 256) : nullptr;
+			LPCSTR lpString = g_pErrorReport->GetParserErrorString();
 			if(g_pErrorReport->IsParserError())
 				lpString = g_pErrorReport->GetParserErrorString();
 			else
 				lpString = g_pErrorReport->GetErrorString();
 
 			// Copy Error to Virtual File
-			if ( strlen ( lpString )>255 )
+			if (lpVoid && lpString)
 			{
-				char ErrorSpace[256];
-				strncpy ( ErrorSpace, lpString, 255 );
-				ErrorSpace[255]=0;
-				strcpy((LPSTR)lpVoid, ErrorSpace);
+				if ( strlen ( lpString )>255 )
+				{
+					char ErrorSpace[256];
+					strncpy_s ( ErrorSpace, sizeof(ErrorSpace), lpString, _TRUNCATE );
+					ErrorSpace[255]=0;
+					snprintf((LPSTR)lpVoid, sizeof(ErrorSpace), "%s", ErrorSpace);
+				}
+				else
+					snprintf((LPSTR)lpVoid, 256, "%s", lpString);
 			}
-			else
-				strcpy((LPSTR)lpVoid, lpString);
 
 			// Find Editor to send to
 			if (!g_bJsonDiagnostics)
 			{
-				HWND hWnd = FindWindowW(L"TDBPROEDITOR",NULL);
+				HWND hWnd = FindWindowW(L"TDBPROEDITOR",nullptr);
 				if(hWnd)
 				{
 					// Found editor, transmit
@@ -226,13 +231,18 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 				else
 				{
 					// No Editor, use Own Window (causes crashes lots)
-					MessageBoxW(NULL, TextConvert::UTF8ToUTF16(lpString).c_str(), L"COMPILER ERROR", MB_OK);
+					MessageBoxW(nullptr, TextConvert::UTF8ToUTF16(lpString).c_str(), L"COMPILER ERROR", MB_OK);
 				}
 			}
 
-			// Release virtual file
-			UnmapViewOfFile(lpVoid);
-			CloseHandle(hFileMap);
+			if (lpVoid)
+			{
+				UnmapViewOfFile(lpVoid);
+			}
+			if (hFileMap != nullptr && hFileMap != INVALID_HANDLE_VALUE)
+			{
+				CloseHandle(hFileMap);
+			}
 
 			// Deposit Verbose Error File (test mode only)
 			g_pErrorReport->OutputInternalErrorReport();
@@ -249,7 +259,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 bool CDBPCompiler::PrepareCompilationInput(const char* pInputFilename, bool emitFinalSource)
 {
 	m_compilationInput.reset();
-	if (pInputFilename == NULL || pInputFilename[0] == 0)
+	if (pInputFilename == nullptr || pInputFilename[0] == 0)
 		return false;
 
 	const std::filesystem::path inputPath(pInputFilename);
@@ -325,9 +335,8 @@ bool CDBPCompiler::LoadPreparedSource(void)
 	if (sourceBytes.size() > MAXDWORD)
 		return false;
 
-	SAFE_FREE(m_pFileData);
-	m_pFileData = (LPSTR)GlobalAlloc(
-		GMEM_FIXED | GMEM_ZEROINIT, sourceBytes.size() + 1);
+	SAFE_DELETE_ARRAY(m_pFileData);
+	m_pFileData = new char[sourceBytes.size() + 1]();
 	if (!m_pFileData)
 		return false;
 	if (!sourceBytes.empty())
@@ -356,7 +365,7 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 	}
 
 	// Release any previous usage
-	SAFE_FREE(m_pFileData);
+	SAFE_DELETE_ARRAY(m_pFileData);
 
 	// Load DBA Data (by file or MMF)
 	bool bFileLoaded = false;
@@ -380,7 +389,7 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 		CStr newStr(m_pFileData);
 		newStr.EatTrailingEdgeSpacesandTabs();
 		ZeroMemory(m_pFileData, m_FileDataSize);
-		strcpy(m_pFileData, newStr.GetStr());
+		snprintf(m_pFileData, m_FileDataSize, "%s", newStr.GetStr());
 	}
 	else
 	{
@@ -400,16 +409,16 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 bool CDBPCompiler::LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize)
 {
 	// Load DBA into memory
-	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pDBAFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pDBAFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Create memory and transfer file data to it
-		DWORD dwLoadSize = GetFileSize(hFile, NULL);
-		LPSTR pLoadData = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, dwLoadSize+1);
+		DWORD dwLoadSize = GetFileSize(hFile, nullptr);
+		LPSTR pLoadData = new char[dwLoadSize + 1]();
 	
 		// Transfer Data
 		DWORD BytesRead=0;
-		ReadFile(hFile, pLoadData, dwLoadSize, &BytesRead, NULL);
+		ReadFile(hFile, pLoadData, dwLoadSize, &BytesRead, nullptr);
 
 		// Close File
 		SAFE_CLOSE(hFile);
@@ -431,8 +440,6 @@ bool CDBPCompiler::LoadRawFromMMF(LPSTR pDBAMMFName, LPSTR* ppData, DWORD* pdwDa
 {
 	// Memory to be used to store string sent
 	bool bResult=true;
-	DWORD dwDataSize=0;
-	LPSTR pData=NULL;
 
 	// First Four Bytes are Size of Message
 	HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,TextConvert::UTF8ToUTF16(pDBAMMFName).c_str());
@@ -442,12 +449,11 @@ bool CDBPCompiler::LoadRawFromMMF(LPSTR pDBAMMFName, LPSTR* ppData, DWORD* pdwDa
 		if(lpVoid)
 		{
 			// First DWORD is data size
-			DWORD dwDataSize = 0;
-			dwDataSize = *((LPDWORD) lpVoid);
+			DWORD dwDataSize = *((LPDWORD) lpVoid);
 			if ( dwDataSize>0 )
 			{
 				// Create memory and transfer file data to it
-				LPSTR pLoadData = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, dwDataSize+1);
+				LPSTR pLoadData = new char[dwDataSize + 1]();
 			
 				// Transfer Data
 				memcpy(pLoadData, (LPSTR)lpVoid+4, dwDataSize);
@@ -491,7 +497,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	DWORD dwRootDataSize=m_FileDataSize;
 
 	// New FileData
-	LPSTR pNewData=NULL;
+	LPSTR pNewData=nullptr;
 	DWORD dwNewDataSize=0;
 
 	// Create Include Table Entry (ROOT)
@@ -504,14 +510,14 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	CopyData(&pNewData, &dwNewDataSize, pRootData, dwRootDataSize);
 
 	// Go through entire data (as it is being built)
-	DWORD dwPtrCount=0;
-	LPSTR pPtr=pNewData;
-	while(1)
+	DWORD dwPtrOffset=0;
+	while(pNewData && dwPtrOffset < dwNewDataSize)
 	{
 		// Seek #include
 		DWORD dwCount=0;
-		LPSTR pIncludeFilenameRaw = NULL;
-		LPSTR pPtrEnd=pNewData+dwNewDataSize;
+		LPSTR pIncludeFilenameRaw = nullptr;
+		LPSTR pPtr = pNewData + dwPtrOffset;
+		LPSTR pPtrEnd = pNewData + dwNewDataSize;
 		bool bSeekResult = SeekIncludeToken(&pPtr, pPtrEnd, &dwCount, &pIncludeFilenameRaw);
 		std::unique_ptr<char[]> pIncludeFilename(pIncludeFilenameRaw);
 		if(bSeekResult==false)
@@ -521,17 +527,17 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 		}
 
 		// Leave when no more
-		if(pPtr>=pPtrEnd)
+		if(pPtr >= pPtrEnd)
 		{
 			// Ready for parsing single filedata block
 			break;
 		}
 
-		// Advance counter
-		dwPtrCount=dwPtrCount+dwCount;
+		// Advance offset by distance scanned
+		dwPtrOffset += dwCount;
 
 		// Ensure include has not already been added
-		if(g_pIncludeTable->FindInclude(pIncludeFilename.get())==false)
+		if(pIncludeFilename && g_pIncludeTable->FindInclude(pIncludeFilename.get())==false)
 		{
 			// Create Include Table Entry (INCLUDE BLOCK)
 			CIncludeTable* pIncludeEntry = new CIncludeTable;
@@ -546,7 +552,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 			absoluteIncludeFile.AddText(pIncludeFilename.get());
 
 			// Produce single FileData Block from multiple DBA Files
-			LPSTR pData=NULL;
+			LPSTR pData=nullptr;
 			DWORD dwDataSize=0;
 			if(LoadRaw(absoluteIncludeFile.GetStr(), &pData, &dwDataSize))
 			{
@@ -554,7 +560,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 				CopyData(&pNewData, &dwNewDataSize, pData, dwDataSize);
 
 				// Delete raw data after use
-				SAFE_FREE(pData);
+				SAFE_DELETE_ARRAY(pData);
 			}
 			else
 			{
@@ -562,13 +568,10 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 				return false;
 			}
 		}
-
-		// Update pointer
-		pPtr=pNewData+dwPtrCount;
 	}
 
 	// Now erase old root data
-	SAFE_FREE(m_pFileData);
+	SAFE_DELETE_ARRAY(m_pFileData);
 
 	// Replace Root FileData with New Data
 	m_pFileData=pNewData;
@@ -583,17 +586,16 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	if ( 1 )
 	{
 		// Delete any old file that may exist
-		char pFullSourceDump [ _MAX_PATH ];
-		strcpy ( pFullSourceDump, g_pDBPCompiler->GetInternalFile(PATH_TEMPFOLDER) );
-		strcat ( pFullSourceDump, "\\FullSourceDump.dba" );
-		if ( FileExists ( pFullSourceDump ) ) DeleteFileW ( TextConvert::UTF8ToUTF16(pFullSourceDump).c_str() );
+		const std::string pFullSourceDump =
+			std::string(g_pDBPCompiler->GetInternalFile(PATH_TEMPFOLDER)) + "FullSourceDump.dba";
+		if ( FileExists(pFullSourceDump.c_str()) ) DeleteFileW ( TextConvert::UTF8ToUTF16(pFullSourceDump).c_str() );
 
 		// Write Full Source Dump File
-		HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFullSourceDump).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFullSourceDump).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if(hFile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD BytesWritten=0;
-			WriteFile(hFile, m_pFileData, m_FileDataSize, &BytesWritten, NULL);
+			WriteFile(hFile, m_pFileData, m_FileDataSize, &BytesWritten, nullptr);
 			SAFE_CLOSE(hFile);
 		}
 	}
@@ -607,7 +609,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 #define TOSTRING(x) __TOSTRING(x)
 #define UNFOLD_MAX_CONSTANT_NAME 2048
 
-void CDBPCompiler::EnsureDataMemBugEnough(LPSTR pPtr, DWORD dwPredictSize, LPSTR* pNewData, DWORD* dwNewDataSize, LPSTR* pWritePtr)
+void CDBPCompiler::EnsureDataMemBugEnough([[maybe_unused]] LPSTR pPtr, DWORD dwPredictSize, LPSTR* pNewData, DWORD* dwNewDataSize, LPSTR* pWritePtr)
 {
 	if((*pWritePtr-*pNewData)+dwPredictSize>*dwNewDataSize)
 	{
@@ -618,10 +620,10 @@ void CDBPCompiler::EnsureDataMemBugEnough(LPSTR pPtr, DWORD dwPredictSize, LPSTR
 # define EXPAND_MULTIPLY_AMOUNT 2
 #endif
 		DWORD dwBiggerSize = (*dwNewDataSize)*EXPAND_MULTIPLY_AMOUNT;
-		LPSTR pBiggerMem = (LPSTR)GlobalAlloc(GMEM_FIXED, dwBiggerSize+1);
+		LPSTR pBiggerMem = new char[dwBiggerSize + 1]();
 		memcpy(pBiggerMem, *pNewData, *dwNewDataSize);
-		DWORD dwWriteOffset = (*pWritePtr)-(*pNewData);
-		SAFE_FREE(*pNewData);
+		DWORD dwWriteOffset = static_cast<DWORD>((*pWritePtr)-(*pNewData));
+		SAFE_DELETE_ARRAY(*pNewData);
 		*pNewData=pBiggerMem;
 		*dwNewDataSize=dwBiggerSize;
 		*pWritePtr=*pNewData+dwWriteOffset;
@@ -647,11 +649,11 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 	while(pPtr<pPtrEnd)
 	{
 		// Record remarks
-		if(strnicmp(pPtr, "remstart", 8)==NULL) bBlockIsRem=true;
-		if(strnicmp(pPtr, "remend", 6)==NULL) bBlockIsRem=false;
-		if(strnicmp(pPtr, "//", 2)==NULL) bLineIsRem=false;
+		if(pPtr + 8 <= pPtrEnd && _strnicmp(pPtr, "remstart", 8)==0) bBlockIsRem=true;
+		if(pPtr + 6 <= pPtrEnd && _strnicmp(pPtr, "remend", 6)==0) bBlockIsRem=false;
+		if(pPtr + 2 <= pPtrEnd && _strnicmp(pPtr, "//", 2)==0) bLineIsRem=false;
 		if(bBlockIsRem==true) bLineIsRem=true;
-		if(strnicmp(pPtr, "rem ", 4)==NULL) bLineIsRem=true;
+		if(pPtr + 4 <= pPtrEnd && _strnicmp(pPtr, "rem ", 4)==0) bLineIsRem=true;
 		if(*pPtr=='`') bLineIsRem=true;
 
 		// Free line comment
@@ -661,56 +663,42 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 		if(bLineIsRem==false && bBlockIsRem==false)
 		{
 			LPSTR pStartByteOfToken=pPtr;
-			if(strnicmp(pPtr, "#constant ", 10)==NULL)
+			if(pPtr + 10 <= pPtrEnd && _strnicmp(pPtr, "#constant ", 10)==0)
 			{
-				// leefix - 230604 - u54 - get to first token
-				// leefix - 070306 - u60 - added space after constant so you cannot write constantine :)
-				// leefix - 140306 - u60b3 - oops, 109 changed to 10 :)
 				pPtr+=10;
-				while ( *(unsigned char*)pPtr<=32 && pPtr<pPtrEnd )
+				while ( pPtr<pPtrEnd && *(unsigned char*)pPtr<=32 )
 					pPtr++;
 
 				// Record root start of constant label+value string 
 				LPSTR pStringRootStart = pPtr;
 
-//				// Get rest of line
-//				LPSTR pStringStart=pPtr;
-//				while(pPtr<pPtrEnd)
-//				{
-//					if(*(pPtr-1)==13 && *(pPtr)==10) break;
-//					pPtr++;
-//				}
-				// lee - 100406 - u6rc7 - Get rest of line, stop at colon
 				int iSpeechMark = 0;
 				LPSTR pStringStart=pPtr;
 				while(pPtr<pPtrEnd)
 				{
 					if ( *(pPtr)=='"' ) iSpeechMark=1-iSpeechMark;
-					if ( iSpeechMark==0 )
-						if ( *(pPtr)==':' )
-							break;
+					if ( iSpeechMark==0 && *(pPtr)==':' )
+						break;
 
-					if(*(pPtr-1)==13 && *(pPtr)==10) break;
+					if(*pPtr==10 || *pPtr==13) break;
 					pPtr++;
 				}
 
-				// lee - 140206 - u60 - and only go as far as commentry, and skip commentry
 				LPSTR pStringEnd = pPtr;
 				LPSTR pPtrScan = pStringRootStart;
 				while(pPtrScan<pPtrEnd)
 				{
-					if(*(pPtrScan-1)==13 && *(pPtrScan)==10) break;
-					if(*(pPtrScan-1)=='`') break;
+					if(*pPtrScan==10 || *pPtrScan==13 || *pPtrScan=='`') break;
 					pPtrScan++;
 				}
 				if ( pPtrScan < pPtr ) 
 				{
 					// found comment before carriage return
-					pStringEnd = pPtrScan - 1;
+					pStringEnd = pPtrScan;
 				}
 
 				// cut out label and value of constant item
-				DWORD dwStringLength = pStringEnd-pStringStart;
+				DWORD dwStringLength = static_cast<DWORD>(pStringEnd-pStringStart);
 				if(dwStringLength>0)
 				{
 					// Prepare CStr
@@ -720,7 +708,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 					pStrValue->CopyFromPtr(pStringStart, pStringStart, dwStringLength);
 
 					// Skip white chars
-					pStrValue->EatEdgeSpacesandTabs(NULL);
+					pStrValue->EatEdgeSpacesandTabs(nullptr);
 					DWORD dwFirstSpaceOrEquate = pStrValue->FindFirstChar(' ');
 					if(dwFirstSpaceOrEquate==0) dwFirstSpaceOrEquate = pStrValue->FindFirstChar('=');
 					if(dwFirstSpaceOrEquate==0) dwFirstSpaceOrEquate = pStrValue->FindFirstChar(9);
@@ -751,71 +739,40 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 							// Yes, so rest is constant value
 							std::unique_ptr<char[]> pConstantValue(pStrValue->GetRightOfPosition(dwFirstSpaceOrEquate));
 							pStrValue->SetText(pConstantValue.get());
-							pStrValue->EatEdgeSpacesandTabs(NULL);
 
-							// remove any equate symbol as this could be added by user
-							if(pStrValue->GetChar(0)=='=') pStrValue->SetChar(0, 32);
-
-							// leefix - 250604 - u54 - ensure only comments exist after constant value
-							// leefix - 260604 - u54 - only trimmer is a colon (commend or seperator) prior to end of line
-//							DWORD dwFirstSpaceOrEquate = pStrValue->FindFirstChar(':');
-//							if(dwFirstSpaceOrEquate==0) dwFirstSpaceOrEquate = pStrValue->FindFirstChar(9);
-//							if(dwFirstSpaceOrEquate==0) dwFirstSpaceOrEquate = pStrValue->FindFirstChar(27);
-							// leefix - 270206 - u60 - colon is okay inside speech marks
-							int iSpeechMark = 0;
-							DWORD dwFirstSpaceOrEquate = 0;
-							for ( DWORD c=0; c<pStrValue->Length(); c++ )
+							// Check if constant is within another string or is a reserved command
+							bool bConstantNameWithinAnother = false;
+							CDataTable* pCheckConst = g_pConstantsTable->GetNext();
+							while(pCheckConst)
 							{
-								if ( pStrValue->GetChar(c)=='"' ) iSpeechMark=1-iSpeechMark;
-								if ( iSpeechMark==0 )
+								if(pCheckConst->GetString() && pCheckConst->GetString()->GetStr())
 								{
-									if ( pStrValue->GetChar(c)==':' )
+									if(_stricmp(pConstantName, pCheckConst->GetString()->GetStr())==0)
 									{
-										dwFirstSpaceOrEquate = c;
+										bConstantNameWithinAnother = true;
 										break;
 									}
 								}
-							}
-							if ( dwFirstSpaceOrEquate > 0 )
-							{
-								// trim constant value
-								pStrValue->SetChar(dwFirstSpaceOrEquate,0);
+								pCheckConst = pCheckConst->GetNext();
 							}
 
-							// another space eating and we have the value
-							pStrValue->EatEdgeSpacesandTabs(NULL);
-
-							// Constant value
-							if(pConstantName && pStrValue->Length()>0)
+							if(!bConstantNameWithinAnother)
 							{
-								// leefix - 250604 - u54 - make sure constant name is not a reserved word
-								if ( g_pInstructionTable->EnsureWordIsNotPartOfACommand ( pConstantName )==false )
+								// Add Unique Constant to Table (used later to replace instances of it)
+								DWORD dwTry=dwIndex+1;
+								if(!g_pConstantsTable->AddTwoStrings(pConstantName, pStrValue->GetStr(), &dwTry))
 								{
-									// Add Unique Constant to Table (used later to replace instances of it)
-									DWORD dwTry=dwIndex+1;
-									if(!g_pConstantsTable->AddTwoStrings(pConstantName, pStrValue->GetStr(), &dwTry))
-									{
-										// leeadd - 270206 - u60 - report duplicate CONSTANT as an error
-										g_pErrorReport->SetError(0, ERR_SYNTAX+67, pConstantName);
-										return false;
-									}
-									else
-									{
-										// success
-										dwIndex=dwTry;
-									}
-
-									// Mark token as a used constant
-									*(pStartByteOfToken)='`';
+									g_pErrorReport->SetError(0, ERR_SYNTAX+67, pConstantName);
+									return false;
 								}
 								else
 								{
-									// CONSTANT NAME is a RESERVED WORD (cannot share command name)
-									g_pErrorReport->SetError(0, ERR_SYNTAX+66, pConstantName);
-									return false;
+									dwIndex=dwTry;
 								}
-							}
 
+								// Mark token as a used constant
+								*(pStartByteOfToken)='`';
+							}
 						}
 						else
 						{
@@ -834,7 +791,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 				}
 			}
 		}
-		pPtr++;
+		if (pPtr < pPtrEnd) pPtr++;
 	}
 
 	// Record speech mark flag
@@ -842,7 +799,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 
 	// Create a New Space to expand into
 	DWORD dwNewDataSize = m_FileDataSize + 32768;
-	LPSTR pNewData = (LPSTR)GlobalAlloc(GMEM_FIXED, dwNewDataSize+1);
+	LPSTR pNewData = new char[dwNewDataSize + 1]();
 	LPSTR pWritePtr = pNewData;
 
 	// Search Data for instance of constant and replace it with value
@@ -852,126 +809,118 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 	while(pPtr<pPtrEnd)
 	{
 		// Search for comment lines to skip
-		// lee - 270206 - u60 - cannot respond to REM and comment symbols inside a speech mark
 		if ( iSpeechMark==0 )
 		{
-			// lee - 200306 - u6b4 - blank out remark areas with ' symbol (allows REMarks in more places)
 			DWORD dwFillWithMarks = 0;
-			LPSTR pFillStart = NULL;
+			LPSTR pFillStart = nullptr;
 
 			// skip code
-			if(strnicmp(pPtr, "`", 1)==NULL
-			|| strnicmp(pPtr, "'", 1)==NULL
-			|| strnicmp(pPtr, "//", 2)==NULL
-			|| strnicmp(pPtr, "rem ", 4)==NULL
-			|| strnicmp(pPtr, "remstart", 8)==NULL)
+			if(pPtr + 8 <= pPtrEnd && _strnicmp(pPtr, "remstart", 8)==0)
 			{
 				pFillStart = pPtr;
-				if(strnicmp(pPtr, "remstart", 8)==NULL)
+				if(pPtr + 8 == pPtrEnd || (unsigned char)*(pPtr+8)<=32)
 				{
-					// Ensure followed by sub32 character
-					if(*(pPtr+8)<=32)
+					pPtr += 8;
+					while(pPtr<pPtrEnd)
 					{
-						// Skip code block
-						while(pPtr<pPtrEnd)
+						if(pPtr + 6 <= pPtrEnd && _strnicmp(pPtr, "remend", 6)==0)
 						{
-							if(strnicmp(pPtr-5, "remend", 6)==NULL) break;
-							pPtr++;
+							pPtr += 6;
+							break;
 						}
-					}
-					// lee - 270306 - u6b5 - leave REMSTART/REMEND alone
-					//dwFillWithMarks = (pPtr-1) - pFillStart;
-				}
-				else
-				{
-					// Ensure followed by 32+ character
-					bool bValidComment=false;
-					if(strnicmp(pPtr, "`", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-					if(strnicmp(pPtr, "'", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-					if(strnicmp(pPtr, "//", 2)==NULL && *(pPtr+2)>=32) bValidComment=true;
-					if(strnicmp(pPtr, "rem ", 4)==NULL && *(pPtr+4)>=32)
-					{
-						// lee - 230306 - u6b4 - additionally, REM only valid (if previous character is a sub-32 char)
-						if ( *(unsigned char*)(pPtr-1)<=32 )
-							bValidComment=true;
-					}
-					if(bValidComment)
-					{
-						// Only skip line
-						while(pPtr<pPtrEnd)
-						{
-							if(*(pPtr-1)==13 && *(pPtr-0)==10) break;
-							pPtr++;
-						}
-						dwFillWithMarks = (pPtr-2) - pFillStart;
+						pPtr++;
 					}
 				}
 				iSpeechMark=0;
+				continue;
+			}
+			else if(*pPtr == '`' || *pPtr == '\'')
+			{
+				pFillStart = pPtr;
+				while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13) pPtr++;
+				dwFillWithMarks = static_cast<DWORD>(pPtr - pFillStart);
+				iSpeechMark=0;
+			}
+			else if(pPtr + 2 <= pPtrEnd && _strnicmp(pPtr, "//", 2)==0)
+			{
+				pFillStart = pPtr;
+				while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13) pPtr++;
+				dwFillWithMarks = static_cast<DWORD>(pPtr - pFillStart);
+				iSpeechMark=0;
+			}
+			else if(pPtr + 4 <= pPtrEnd && _strnicmp(pPtr, "rem ", 4)==0 && (pPtr == m_pFileData || (unsigned char)*(pPtr-1)<=32))
+			{
+				pFillStart = pPtr;
+				while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13) pPtr++;
+				dwFillWithMarks = static_cast<DWORD>(pPtr - pFillStart);
+				iSpeechMark=0;
 			}
 
-			// lee - 200306 - u6b4 - blank out remark areas now
+			// blank out remark areas now
 			if ( pFillStart && dwFillWithMarks>0 )
-				for ( LPSTR pN=pFillStart; pN<pFillStart+dwFillWithMarks; pN++ )
+				for ( LPSTR pN=pFillStart; pN<pFillStart+dwFillWithMarks && pN<pPtrEnd; pN++ )
 					*(pN)=(unsigned char)96; // ` symbol
 		}
 
 		// REPLACE ALL CONSTANTS : deal with speech marks, and constants outside them
-		if(*(pPtr)=='"') iSpeechMark=1-iSpeechMark;
-		if(iSpeechMark==0)
+		if(pPtr < pPtrEnd && *(pPtr)=='"') iSpeechMark=1-iSpeechMark;
+		if(iSpeechMark==0 && pPtr < pPtrEnd)
 		{
 			// Replace all constants with const-values
 			CDataTable* pCurrentConst = g_pConstantsTable->GetNext();
 			while(pCurrentConst)
 			{
-				// This Token Name
-				LPSTR pToken = pCurrentConst->GetString()->GetStr();
-				DWORD dwTokenLength = strlen(pToken);
-
-				// Try to match program text with this token
-				if(strnicmp(pPtr, pToken, dwTokenLength)==NULL)
+				if (pCurrentConst->GetString() && pCurrentConst->GetString()->GetStr())
 				{
-					// Check both
-					bool bValidConst=true;
-					for(int side=0; side<2; side++)
+					LPSTR pToken = pCurrentConst->GetString()->GetStr();
+					DWORD dwTokenLength = static_cast<DWORD>(strlen(pToken));
+
+					// Try to match program text with this token
+					if(dwTokenLength > 0 && pPtr + dwTokenLength <= pPtrEnd && _strnicmp(pPtr, pToken, dwTokenLength)==0)
 					{
-						int iOffset;
-						if(side==0) iOffset=-1;
-						if(side==1) iOffset=(int)dwTokenLength;
-						if(	(*((unsigned char*)pPtr+iOffset)=='_') || (side==1 && ( *((unsigned char*)pPtr+iOffset)=='(') )
-						||	(*((unsigned char*)pPtr+iOffset)>='a' && *((unsigned char*)pPtr+iOffset)<='z') 
-						||	(*((unsigned char*)pPtr+iOffset)>='A' && *((unsigned char*)pPtr+iOffset)<='Z')
-						||	(*((unsigned char*)pPtr+iOffset)>='0' && *((unsigned char*)pPtr+iOffset)<='9') )
+						bool bValidConst=true;
+						// Left side check
+						if (pPtr > m_pFileData)
 						{
-							// Valid const char either side, so must be something else..
-							bValidConst=false;
+							unsigned char cLeft = *(unsigned char*)(pPtr - 1);
+							if (cLeft == '_' || (cLeft >= 'a' && cLeft <= 'z') || (cLeft >= 'A' && cLeft <= 'Z') || (cLeft >= '0' && cLeft <= '9'))
+								bValidConst = false;
 						}
-					}
-		
-					// Must also match non-constant characters either side
-					if(bValidConst==true)
-					{
-						// This Token Value
-						LPSTR pTokenValue = pCurrentConst->GetString2()->GetStr();
-						DWORD dwTokenValueLength = strlen(pTokenValue);
+						// Right side check
+						if (pPtr + dwTokenLength < pPtrEnd)
+						{
+							unsigned char cRight = *(unsigned char*)(pPtr + dwTokenLength);
+							if (cRight == '_' || cRight == '(' || (cRight >= 'a' && cRight <= 'z') || (cRight >= 'A' && cRight <= 'Z') || (cRight >= '0' && cRight <= '9'))
+								bValidConst = false;
+						}
+			
+						if(bValidConst==true)
+						{
+							LPCSTR pTokenValue = pCurrentConst->GetString2() ? pCurrentConst->GetString2()->GetStr() : "";
+							DWORD dwTokenValueLength = static_cast<DWORD>(strlen(pTokenValue));
 
-						// Calculate predicted near end of data space
-						DWORD dwPredictSize = (pPtr-pLastReadPtr) + dwTokenValueLength + 32;
+							// Calculate predicted near end of data space
+							DWORD dwPredictSize = static_cast<DWORD>(pPtr-pLastReadPtr) + dwTokenValueLength + 32;
 
-						// Ensure new data size is big enough for addition
-						EnsureDataMemBugEnough(pPtr, dwPredictSize, &pNewData, &dwNewDataSize, &pWritePtr);
+							// Ensure new data size is big enough for addition
+							EnsureDataMemBugEnough(pPtr, dwPredictSize, &pNewData, &dwNewDataSize, &pWritePtr);
 
-						// Copy upto this point
-						DWORD dwWriteSize = pPtr-pLastReadPtr;
-						memcpy(pWritePtr, pLastReadPtr, dwWriteSize);
-						pWritePtr+=dwWriteSize;
+							// Copy upto this point
+							DWORD dwWriteSize = static_cast<DWORD>(pPtr-pLastReadPtr);
+							memcpy(pWritePtr, pLastReadPtr, dwWriteSize);
+							pWritePtr+=dwWriteSize;
 
-						// Copy constant value to new data
-						memcpy(pWritePtr, pTokenValue, dwTokenValueLength);
-						pWritePtr+=dwTokenValueLength;
+							// Copy constant value to new data
+							if (dwTokenValueLength > 0)
+							{
+								memcpy(pWritePtr, pTokenValue, dwTokenValueLength);
+								pWritePtr+=dwTokenValueLength;
+							}
 
-						// Advance past token
-						pPtr+=dwTokenLength;
-						pLastReadPtr=pPtr;
+							// Advance past token
+							pPtr+=dwTokenLength;
+							pLastReadPtr=pPtr;
+						}
 					}
 				}
 
@@ -981,29 +930,32 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 		}
 
 		// next byte
-		pPtr++;
+		if (pPtr < pPtrEnd) pPtr++;
 	}
 
 	// Calculate predicted near end of data space
-	DWORD dwPredictSize = (pPtr-pLastReadPtr) + 32;
+	DWORD dwPredictSize = static_cast<DWORD>(pPtr-pLastReadPtr) + 32;
 
 	// Ensure new data size is big enough for addition
 	EnsureDataMemBugEnough(pPtr, dwPredictSize, &pNewData, &dwNewDataSize, &pWritePtr);
 
 	// Copy upto this point
-	DWORD dwWriteSize = pPtr-pLastReadPtr;
+	DWORD dwWriteSize = static_cast<DWORD>(pPtr-pLastReadPtr);
 	memcpy(pWritePtr, pLastReadPtr, dwWriteSize);
 	pWritePtr+=dwWriteSize;
 
 	// Assign new data as latest file data for next pass (or final task)
-	DWORD dwDataSizeOfNewData = pWritePtr-pNewData;
-	SAFE_FREE(m_pFileData);
+	DWORD dwDataSizeOfNewData = static_cast<DWORD>(pWritePtr-pNewData);
+	SAFE_DELETE_ARRAY(m_pFileData);
 	m_pFileData=pNewData;
 	m_FileDataSize=dwDataSizeOfNewData;
 
 	// Finished with Constants Table
-	g_pConstantsTable->Free();
-	g_pConstantsTable=NULL;
+	if (g_pConstantsTable)
+	{
+		g_pConstantsTable->Free();
+		g_pConstantsTable=nullptr;
+	}
 
 	// Piggyback replacement of semicolons to colons except where speech marks preceed
 	int iSpeechMarks=0;
@@ -1020,10 +972,10 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 				bool bValid=false;
 				int iCount=1024;
 				LPSTR pAtPtr = pPtr-1;
-				while(iCount>0 && *pAtPtr!=10 && pAtPtr>=m_pFileData)
+				while(iCount>0 && pAtPtr>=m_pFileData && *pAtPtr!=10 && *pAtPtr!=13)
 				{
-					if(strnicmp(pAtPtr,"print",5)==NULL
-					|| strnicmp(pAtPtr,"input",5)==NULL)
+					if((pAtPtr + 5 <= pPtrEnd && _strnicmp(pAtPtr,"print",5)==0)
+					|| (pAtPtr + 5 <= pPtrEnd && _strnicmp(pAtPtr,"input",5)==0))
 					{
 						bValid=true;
 						break;
@@ -1038,7 +990,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 			}
 
 			// allows the c programmers to document their lines easily
-			if(*pPtr=='`' && *(unsigned char*)(pPtr+1)>=32)
+			if(*pPtr=='`' && pPtr + 1 < pPtrEnd && *(unsigned char*)(pPtr+1)>=32)
 			{
 				// Replace then skip so we dont recurse the replacement!
 				*(pPtr+0) = ':';
@@ -1056,7 +1008,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 				pPtr++;
 			}
 		}
-		pPtr++;
+		if (pPtr < pPtrEnd) pPtr++;
 	}
 
 	// Complete
@@ -1072,7 +1024,7 @@ bool CDBPCompiler::CopyData(LPSTR* ppData, DWORD* pdwDataSize, LPSTR pAdd, DWORD
 	dwNewSize = (*pdwDataSize) + dwAddSize + 2;
 
 	// Create New Data Memory
-	LPSTR pNewData = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, dwNewSize);
+	LPSTR pNewData = new char[dwNewSize]();
 	if(pNewData)
 	{
 		// Copy Current
@@ -1110,8 +1062,8 @@ bool CDBPCompiler::CopyData(LPSTR* ppData, DWORD* pdwDataSize, LPSTR pAdd, DWORD
 		// Release current data memory
 		if(*ppData)
 		{
-			GlobalFree(*ppData);
-			*ppData=NULL;
+			delete[] *ppData;
+			*ppData=nullptr;
 		}
 
 		// Reassign pointers
@@ -1120,7 +1072,7 @@ bool CDBPCompiler::CopyData(LPSTR* ppData, DWORD* pdwDataSize, LPSTR pAdd, DWORD
 	}
 	else
 	{
-		g_pErrorReport->AddErrorString("Failed to 'GlobalAlloc' in 'CopyData'");
+		g_pErrorReport->AddErrorString("Failed to allocate in 'CopyData'");
 		return false;
 	}
 
@@ -1136,7 +1088,7 @@ bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvan
 	while(pPtr<pPtrEnd)
 	{
 		// Search for #INCLUDE token
-		if(strnicmp(pPtr, "#include ", 9)==NULL)
+		if(pPtr + 9 <= pPtrEnd && _strnicmp(pPtr, "#include ", 9)==0)
 		{
 			// First char of include token
 			LPSTR pFirstChar=pPtr;
@@ -1152,7 +1104,7 @@ bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvan
 				name.AddChar(*(pPtr));
 
 				// Leave at end of line
-				if(*(pPtr-1)==13 && *(pPtr-0)==10) break;
+				if(*pPtr==10 || *pPtr==13) break;
 				if(*(pPtr)=='"') iSpeechMark=1-iSpeechMark;
 				if(iSpeechMark==0) if(*(pPtr)==':') break;
 
@@ -1161,11 +1113,11 @@ bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvan
 			}
 
 			// Blank out reference to INCLUDE token
-			if(*(pPtr)==10) pPtr--;
-			for(LPSTR pP=pFirstChar; pP<pPtr; pP++) *(pP)=32;
+			if(pPtr < pPtrEnd && *(pPtr)==10 && pPtr > pFirstChar) pPtr--;
+			for(LPSTR pP=pFirstChar; pP<pPtr && pP<pPtrEnd; pP++) *(pP)=32;
 
 			// Strip spaces and stuff from name
-			name.EatEdgeSpacesandTabs(NULL);
+			name.EatEdgeSpacesandTabs(nullptr);
 
 			// Strip speech marks from name
 			name.EatSpeechMarks();
@@ -1177,55 +1129,53 @@ bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvan
 
 			// Copy name and return 
 			*ppIncludeFilename = new char[name.Length()+1];
-			strcpy(*ppIncludeFilename, name.GetStr());
+			snprintf(*ppIncludeFilename, name.Length()+1, "%s", name.GetStr());
 			break;
 		}
 
 		// Search for comment lines to skip
-		if(strnicmp(pPtr, "`", 1)==NULL
-		|| strnicmp(pPtr, "'", 1)==NULL
-		|| strnicmp(pPtr, "rem", 3)==NULL
-		|| strnicmp(pPtr, "remstart", 8)==NULL)
+		if(pPtr + 8 <= pPtrEnd && _strnicmp(pPtr, "remstart", 8)==0)
 		{
-			if(strnicmp(pPtr, "remstart", 8)==NULL)
+			if(pPtr + 8 == pPtrEnd || (unsigned char)*(pPtr+8)<=32)
 			{
-				// Ensure followed by sub32 character
-				if(*(pPtr+8)<=32)
+				pPtr += 8;
+				// Skip code block until remend
+				while(pPtr<pPtrEnd)
 				{
-					// Skip code block
-					while(pPtr<pPtrEnd)
+					if(pPtr + 6 <= pPtrEnd && _strnicmp(pPtr, "remend", 6)==0)
 					{
-						if(strnicmp(pPtr-5, "remend", 6)==NULL) break;
-						pPtr++;
+						pPtr += 6;
+						break;
 					}
+					pPtr++;
 				}
-			}
-			else
-			{
-				// Ensure followed by 32+ character
-				bool bValidComment=false;
-				if(strnicmp(pPtr, "`", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-				if(strnicmp(pPtr, "'", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-				if(strnicmp(pPtr, "rem", 3)==NULL && *(pPtr+3)>=32) bValidComment=true;
-				if(bValidComment)
-				{
-					// Only skip line
-					while(pPtr<pPtrEnd)
-					{
-						if(*(pPtr-1)==13 && *(pPtr-0)==10) break;
-						pPtr++;
-					}
-				}
+				continue;
 			}
 		}
+		else if(*pPtr == '`' || *pPtr == '\'')
+		{
+			while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13)
+			{
+				pPtr++;
+			}
+			continue;
+		}
+		else if(pPtr + 3 <= pPtrEnd && _strnicmp(pPtr, "rem", 3)==0 && (pPtr + 3 == pPtrEnd || (unsigned char)*(pPtr+3)<=32 || *(pPtr+3)==':'))
+		{
+			while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13)
+			{
+				pPtr++;
+			}
+			continue;
+		}
 
-		// Advance pointer and counter
+		// Advance pointer
 		if(pPtr<pPtrEnd) pPtr++;
 	}
 
 	// Calculate advance count
 	(*ppPtr)=pPtr;
-	(*pdwAdvance)=pPtr-pStartPtr;
+	(*pdwAdvance)=static_cast<DWORD>(pPtr-pStartPtr);
 
 	// Complete
 	return true;
@@ -1266,18 +1216,18 @@ bool CDBPCompiler::MakeProgram(void)
 
 	// Create Appname String
 	g_pEXE->m_pInitialAppName=g_pDBPCompiler->GetProjectField("app title");
-	if ( g_pEXE->m_pInitialAppName==NULL )
+	if ( g_pEXE->m_pInitialAppName==nullptr )
 	{
 		// 280203 - default app name required or exe will not have a classname
-		DWORD dwLength = strlen ( m_pFinalDBASource );
+		DWORD dwLength = static_cast<DWORD>(strlen ( m_pFinalDBASource ));
 		std::unique_ptr<char[]> pAppName(new char[dwLength+1]);
-		strcpy ( pAppName.get(), m_pFinalDBASource );
+		snprintf(pAppName.get(), dwLength+1, "%s", m_pFinalDBASource);
 		if ( dwLength>4 ) pAppName [ dwLength-4 ] = 0;
 		if ( strlen ( pAppName.get() )==0 )
 		{
 			// leefix - 230105 - proj with no appname would corrupt
 			pAppName.reset(new char[strlen("DB3 Application")+1]);
-			strcpy ( pAppName.get(), "DB3 Application" );
+			snprintf(pAppName.get(), strlen("DB3 Application")+1, "%s", "DB3 Application");
 		}
 		g_pEXE->m_pInitialAppName = pAppName.release();
 	}
@@ -1305,11 +1255,11 @@ bool CDBPCompiler::MakeProgram(void)
 			LPSTR pStringData=g_pErrorReport->GetRuntimeErrorString(err);
 			
 			// Create Dynamic String
-			LPSTR pDynamicString=NULL;
+			LPSTR pDynamicString=nullptr;
 			if(pStringData)
 			{
 				pDynamicString = new char[strlen(pStringData)+1];
-				strcpy(pDynamicString, pStringData);
+				snprintf(pDynamicString, strlen(pStringData)+1, "%s", pStringData);
 			}
 
 			// Copy to EXEData
@@ -1320,7 +1270,7 @@ bool CDBPCompiler::MakeProgram(void)
 	{
 		// No Runtime Database Used
 		g_pEXE->m_dwNumberOfRuntimeErrorStrings=0;
-		g_pEXE->m_pRuntimeErrorStringsArray=NULL;
+		g_pEXE->m_pRuntimeErrorStringsArray=nullptr;
 	}
 
 	// Start With Main Program
@@ -1370,7 +1320,7 @@ bool CDBPCompiler::MakeProgram(void)
 
 			// Load MiniCLI Text from debugger
 			pMiniData.reset();
-			LPSTR pMiniDataRaw = NULL;
+			LPSTR pMiniDataRaw = nullptr;
 			CDebuggerInterface::GetDataFromDebugger(51, &pMiniDataRaw, &dwMiniSize);
 			pMiniData.reset(pMiniDataRaw);
 
@@ -1378,9 +1328,9 @@ bool CDBPCompiler::MakeProgram(void)
 			if(!g_pStatementList->AddMiniStatements(pMiniData.get(), dwMiniSize))
 			{
 				// Report Error to Debugger
-				LPSTR pData = g_pErrorReport->GetParserErrorString();
+			LPCSTR pData = g_pErrorReport->GetParserErrorString();
 				DWORD dwSize = 0;
-				if(pData) dwSize = strlen(pData);
+				if(pData) dwSize = static_cast<DWORD>(strlen(pData));
 				CDebuggerInterface::SendDataToDebugger(31, pData, dwSize);
 
 				// Clear miniprogram for empty parse
@@ -1466,7 +1416,7 @@ bool CDBPCompiler::MakeProgram(void)
 	{
 		m_pContext->Cleanup();
 		delete m_pContext;
-		m_pContext = NULL;
+		m_pContext = nullptr;
 	}
 
 	// Complete
@@ -1476,12 +1426,11 @@ bool CDBPCompiler::MakeProgram(void)
 bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 {
 	// Release any previous usage
-	SAFE_FREE(m_pProjectFileData);
+	SAFE_DELETE_ARRAY(m_pProjectFileData);
 
 	// Get last six chars of filename
-	DWORD length=strlen(pFilename);
+	DWORD length = static_cast<DWORD>(strlen(pFilename));
 	//LPSTR pStrExt = new char[7]; //<-- LOL no
-	//strcpy(pStrExt,"");
 	char pStrExt[7] = { '\0', };
 	if(length>6)
 	{
@@ -1496,7 +1445,7 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 
 	// Check for .DBPRO Extension
 	bool bFilenameIsProjectFile=false;
-	if(stricmp(pStrExt, ".dbpro")==NULL) bFilenameIsProjectFile=true;
+	if(_stricmp(pStrExt, ".dbpro")==0) bFilenameIsProjectFile=true;
 	//SAFE_DELETE(pStrExt);
 
 	// Resolve the project directory once; downstream outputs and media must not
@@ -1525,9 +1474,9 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 		{
 			// Eat EdgeSpaces
 			CStr newStr(m_pProjectFileData);
-			newStr.EatEdgeSpacesandTabs(NULL);
+			newStr.EatEdgeSpacesandTabs(nullptr);
 			ZeroMemory(m_pProjectFileData, m_ProjectFileDataSize);
-			strcpy(m_pProjectFileData, newStr.GetStr());
+			snprintf(m_pProjectFileData, m_ProjectFileDataSize, "%s", newStr.GetStr());
 
 			// Project File loaded ok
 			m_bProjectExists=true;
@@ -1541,7 +1490,7 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 	else
 	{
 		// Returns with no project loaded - still valid
-		m_pProjectFileData=NULL;
+		m_pProjectFileData=nullptr;
 		m_bProjectExists=false;
 		return true;
 	}
@@ -1563,7 +1512,7 @@ bool CDBPCompiler::FreeProjectFile(void)
 	SAFE_DELETE_ARRAY(m_pEXEFilename);
 
 	// Free Project Settings File Data
-	SAFE_FREE(m_pProjectFileData);
+	SAFE_DELETE_ARRAY(m_pProjectFileData);
 
 	return true;
 }
@@ -1571,10 +1520,10 @@ bool CDBPCompiler::FreeProjectFile(void)
 LPSTR CDBPCompiler::ReplaceTokens(LPSTR pFilename)
 {
 	CStr newStr("");
-	DWORD dwLen=strlen(pFilename);
+	DWORD dwLen = static_cast<DWORD>(strlen(pFilename));
 	for(DWORD n=0; n<dwLen; n++)
 	{
-		if(strnicmp(pFilename+n, "%temp", 5)==NULL)
+		if(_strnicmp(pFilename+n, "%temp", 5)==0)
 		{
 			newStr.AddText(GetInternalFile(PATH_TEMPFOLDER));
 			n+=5;
@@ -1585,7 +1534,7 @@ LPSTR CDBPCompiler::ReplaceTokens(LPSTR pFilename)
 	{
 		delete[] pFilename;
 		pFilename = new char[newStr.Length()+1];
-		strcpy(pFilename, newStr.GetStr());
+		snprintf(pFilename, newStr.Length()+1, "%s", newStr.GetStr());
 		pFilename[newStr.Length()]=0;
 	}
 	return pFilename;
@@ -1619,7 +1568,7 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 			exeOnly.Reverse();
 			SAFE_DELETE_ARRAY(m_pEXEFilename);
 			m_pEXEFilename = new char[exeOnly.Length()+1];
-			strcpy(m_pEXEFilename, exeOnly.GetStr());
+			snprintf(m_pEXEFilename, exeOnly.Length()+1, "%s", exeOnly.GetStr());
 		}
 
 		// Compiler Display Settings
@@ -1669,11 +1618,11 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 	{
 		// Use filename as DBA Source
 		m_bSourceIsMMF=false;
-		DWORD length=strlen(pFilename);
+		DWORD length = static_cast<DWORD>(strlen(pFilename));
 		m_pFinalDBASource = new char[length+1];
-		strcpy(m_pFinalDBASource, pFilename);
+		snprintf(m_pFinalDBASource, length+1, "%s", pFilename);
 		m_pEXEFilename = new char[_MAX_PATH];
-		strcpy(m_pEXEFilename, "default.exe");
+		snprintf(m_pEXEFilename, _MAX_PATH, "%s", "default.exe");
 		m_bDebugModeOn=false;
 		m_bRuntimeErrorsOn=true;
 		m_bProduceDBMFileOn=true;
@@ -1699,13 +1648,13 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 	return true;
 }
 
-bool CDBPCompiler::GetProjectState(LPSTR pFieldName, bool bDefault)
+bool CDBPCompiler::GetProjectState(LPCSTR pFieldName, bool bDefault)
 {
 	bool bState=bDefault;
 	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
 	if(pState)
 	{
-		if(stricmp(pState.get(),"yes")==NULL)
+		if(_stricmp(pState.get(),"yes")==0)
 			bState=true;
 		else
 			bState=false;
@@ -1713,18 +1662,18 @@ bool CDBPCompiler::GetProjectState(LPSTR pFieldName, bool bDefault)
 	return bState;
 }
 
-bool CDBPCompiler::GetProjectState(LPSTR pFieldName)
+bool CDBPCompiler::GetProjectState(LPCSTR pFieldName)
 {
 	return GetProjectState(pFieldName, false);
 }
 
-bool CDBPCompiler::GetProjectStateMatch(LPSTR pFieldName, LPSTR pCompareStr)
+bool CDBPCompiler::GetProjectStateMatch(LPCSTR pFieldName, LPCSTR pCompareStr)
 {
 	bool bState=false;
 	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
 	if(pState)
 	{
-		if(stricmp(pState.get(),pCompareStr)==NULL)
+		if(_stricmp(pState.get(),pCompareStr)==0)
 			bState=true;
 		else
 			bState=false;
@@ -1732,7 +1681,7 @@ bool CDBPCompiler::GetProjectStateMatch(LPSTR pFieldName, LPSTR pCompareStr)
 	return bState;
 }
 
-DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
+DWORD CDBPCompiler::GetProjectDisplayInfo(LPCSTR pFieldName, DWORD dwDisplayItem)
 {
 	DWORD dwDisplayData=0;
 	std::unique_ptr<char[]> pStateOwner(GetProjectField(pFieldName));
@@ -1749,11 +1698,11 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
 		if(dwDisplayItem==1 || dwDisplayItem==2)
 		{
 			// U75 - 260210 - old editor or new editor
-			DWORD w, h;
+			DWORD w = 0, h = 0;
 			if ( bOldStyleResolution==true )
-				sscanf(pState, "%d,%d", &w, &h);
+				sscanf_s(pState, "%lu,%lu", &w, &h);
 			else
-				sscanf(pState, "%dx%d", &w, &h);
+				sscanf_s(pState, "%lux%lu", &w, &h);
 			if(dwDisplayItem==1) dwDisplayData=w;
 			if(dwDisplayItem==2) dwDisplayData=h;
 		}
@@ -1763,11 +1712,11 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
 			DWORD w, h;
 			char depth[32];
 			if ( bOldStyleResolution==true )
-				sscanf(pState, "%d,%d,%s", &w, &h, depth);
+				sscanf_s(pState, "%lu,%lu,%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
 			else
-				sscanf(pState, "%dx%dx%s", &w, &h, depth);
-			if(stricmp(depth, "16")==NULL) dwDisplayData=16;
-			if(stricmp(depth, "16M")==NULL) dwDisplayData=32;
+				sscanf_s(pState, "%lux%lux%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
+			if(_stricmp(depth, "16")==0) dwDisplayData=16;
+			if(_stricmp(depth, "16M")==0) dwDisplayData=32;
 		}
 	}
 	if(dwDisplayData==0)
@@ -1779,7 +1728,7 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem)
 	return dwDisplayData;
 }
 
-LPSTR CDBPCompiler::GetProjectFile(LPSTR pFieldName)
+LPSTR CDBPCompiler::GetProjectFile(LPCSTR pFieldName)
 {
 	// Find filename
 	std::unique_ptr<char[]> pFileOnly(GetProjectField(pFieldName));
@@ -1791,7 +1740,7 @@ LPSTR CDBPCompiler::GetProjectFile(LPSTR pFieldName)
 
 	// Create new string
 	LPSTR pFullFile = new char[TempStr.Length()+1];
-	strcpy(pFullFile, TempStr.GetStr());
+	snprintf(pFullFile, TempStr.Length()+1, "%s", TempStr.GetStr());
 
 	// Return new string
 	return pFullFile;
@@ -1817,11 +1766,11 @@ LPSTR CDBPCompiler::GetProjectMediaRoot(void)
 	if(!text.empty() && text.back() != '\\' && text.back() != '/')
 		text.push_back(std::filesystem::path::preferred_separator);
 	LPSTR pResult = new char[text.size() + 1];
-	strcpy(pResult, text.c_str());
+	snprintf(pResult, text.size()+1, "%s", text.c_str());
 	return pResult;
 }
 
-LPSTR CDBPCompiler::GetProjectField(LPSTR pFieldName)
+LPSTR CDBPCompiler::GetProjectField(LPCSTR pFieldName)
 {
 	if (m_pProjectFileData == nullptr || m_ProjectFileDataSize == 0 ||
 		pFieldName == nullptr || pFieldName[0] == '\0')
@@ -1888,7 +1837,7 @@ LPSTR CDBPCompiler::GetProjectField(LPSTR pFieldName)
 	return nullptr;
 }
 
-void CDBPCompiler::SetInternalFile(DWORD dwFileID, LPSTR pFilename)
+void CDBPCompiler::SetInternalFile(DWORD dwFileID, const char* pFilename)
 {
 	if(!m_pInternalFile[dwFileID]) m_pInternalFile[dwFileID] = std::unique_ptr<CStr>(new CStr(""));
 	m_pInternalFile[dwFileID]->SetText(pFilename);
@@ -1899,12 +1848,12 @@ LPSTR CDBPCompiler::GetInternalFile(DWORD dwFileID)
 	if(m_pInternalFile[dwFileID])
 		return m_pInternalFile[dwFileID]->GetStr();
 	else
-		return NULL;
+		return nullptr;
 }
 
-bool CDBPCompiler::FileExists(LPSTR pFilename)
+bool CDBPCompiler::FileExists(const char* pFilename)
 {
-	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Close File
@@ -1915,22 +1864,13 @@ bool CDBPCompiler::FileExists(LPSTR pFilename)
 	return false;
 }
 
-bool CDBPCompiler::PathExists(LPSTR pPath)
+bool CDBPCompiler::PathExists(LPCSTR pPath)
 {
-	// State var
-	bool bExists=false;
+	if (!pPath || pPath[0] == '\0')
+		return false;
 
-	// Get current folder
-	char old[_MAX_PATH];
-	_getcwd(old, _MAX_PATH);
-
-	// Try to switch to pPath
-	if(_chdir(pPath)==0) bExists=true;
-
-	// Restore dir
-	_chdir(old);
-
-	return bExists;
+	std::error_code ec;
+	return std::filesystem::exists(pPath, ec) && std::filesystem::is_directory(pPath, ec);
 }
 
 void CDBPCompiler::GatherAllExternalWords(LPSTR pWordsFile)
@@ -1941,7 +1881,7 @@ void CDBPCompiler::GatherAllExternalWords(LPSTR pWordsFile)
 	{
 		// create id
 		char idstr[8];
-		itoa(id, idstr, 10);
+		snprintf(idstr, sizeof(idstr), "%d", id);
 
 		// get word from id
 		GetPrivateProfileString("WORDS", idstr, "", m_pWord[id], _MAX_PATH, pWordsFile);
@@ -1986,47 +1926,41 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	// Root Folder to Compiler (not necessarily current dir)
 	SetInternalFile(PATH_ROOTPATH, m_pCompilerPathOnly->GetStr());
 
-	// Path to Test Files
-	strcpy_s(path, sizeof(path), GetInternalFile(PATH_ROOTPATH));
-	strcat_s(path, sizeof(path), "SETUP.INI");
-	SetInternalFile(PATH_SETUPFILE, path);
+	// All SETUP.INI reads share one computed settings path
+	const std::string setupIniPath = std::string(GetInternalFile(PATH_ROOTPATH)) + "SETUP.INI";
+	SetInternalFile(PATH_SETUPFILE, setupIniPath.c_str());
+	strcpy_s(path, sizeof(path), setupIniPath.c_str());
 	CHECK_MISSING_FILE();
 
 	// Get Path to Language Folder
-	GetPrivateProfileString("SETTINGS", "TEXTLANGUAGE", "ENGLISH", textfiles, 256, path);
-	strcpy_s(path, sizeof(path), GetInternalFile(PATH_ROOTPATH));
-	strcat_s(path, sizeof(path), "LANG\\");
-	strupr(textfiles);
-	strcat(path, textfiles);
-	strcat(path, "\\ERRORS.TXT");
-	SetInternalFile(PATH_ERRORSFILE, path);
+	GetPrivateProfileString("SETTINGS", "TEXTLANGUAGE", "ENGLISH", textfiles, 256, setupIniPath.c_str());
+	_strupr_s(textfiles, sizeof(textfiles));
+	SetInternalFile(
+		PATH_ERRORSFILE,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "LANG\\" + textfiles + "\\ERRORS.TXT").c_str());
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_ERRORSFILE));
 	CHECK_MISSING_FILE();
 
 	// Get Path to WORDS File
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "SETUP.INI");
-	GetPrivateProfileString("SETTINGS", "TEXTLANGUAGE", "ENGLISH", textfiles, 256, path);
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "LANG");
-	strcat(path, "\\");
-	strupr(textfiles);
-	strcat(path, textfiles);
-	strcat(path, "\\WORDS.TXT");
+	GetPrivateProfileString("SETTINGS", "TEXTLANGUAGE", "ENGLISH", textfiles, 256, setupIniPath.c_str());
+	_strupr_s(textfiles, sizeof(textfiles));
+	SetInternalFile(
+		PATH_WORDSFILE,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "LANG\\" + textfiles + "\\WORDS.TXT").c_str());
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_WORDSFILE));
 
 	// GATHER ALL EXTERNAL WORDS
 	GatherAllExternalWords(path);
 
 	// Get All Exclusion Names (DLLs we shall not include)
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "SETUP.INI");
 	g_dwExcludeFilesCount=0;
 	for ( int i=0; i<MAX_EXCLUSIONS; i++) g_ExcludeFiles[i].clear();
 	for ( int i=1; i<MAX_EXCLUSIONS; i++)
 	{
 		char pExDLL[256];
-		wsprintf ( pExDLL, "exdll%d", i );
-		GetPrivateProfileString("EXCLUSIONS", pExDLL, "", textfiles, 256, path);
-		if ( strcmp ( textfiles, "" )!=NULL )
+		snprintf(pExDLL, sizeof(pExDLL), "exdll%d", i);
+		GetPrivateProfileString("EXCLUSIONS", pExDLL, "", textfiles, 256, setupIniPath.c_str());
+		if ( strcmp ( textfiles, "" )!=0 )
 		{
 			g_ExcludeFiles [ i ] = textfiles;
 			g_dwExcludeFilesCount = 1+i;
@@ -2040,9 +1974,7 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	//
 
 	// Get multi-threading options
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "SETUP.INI");
-	GetPrivateProfileString("MULTITHREADING", "ThreadCount", "0", textfiles, sizeof(textfiles), path);
+	GetPrivateProfileString("MULTITHREADING", "ThreadCount", "0", textfiles, sizeof(textfiles), setupIniPath.c_str());
 	const db3::uint threadCount =
 		static_cast<db3::uint>(atoi(textfiles));
 
@@ -2070,61 +2002,63 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	m_bSafeArrays = false;
 	g_bLocalTempFolder = false;
 	g_bExternaliseDLLS = false;
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "SETUP.INI");
-	GetPrivateProfileString("DIRECTIVES", "RemoveSafetyCode", "no", textfiles, 256, path);
-	if ( stricmp ( textfiles, "yes" )==NULL ) m_bRemoveSafetyCode = true;
-	GetPrivateProfileString("DIRECTIVES", "SafeArrays", "yes", textfiles, 256, path);
-	if ( stricmp ( textfiles, "yes" )==NULL ) m_bSafeArrays = true;
+	GetPrivateProfileString("DIRECTIVES", "RemoveSafetyCode", "no", textfiles, 256, setupIniPath.c_str());
+	if ( _stricmp ( textfiles, "yes" )==0 ) m_bRemoveSafetyCode = true;
+	GetPrivateProfileString("DIRECTIVES", "SafeArrays", "yes", textfiles, 256, setupIniPath.c_str());
+	if ( _stricmp ( textfiles, "yes" )==0 ) m_bSafeArrays = true;
 
 	// lee - 050406 - u6rc6 - new diretive
-	GetPrivateProfileString("DIRECTIVES", "LocalTempFolder", "no", textfiles, 256, path);
-	if ( stricmp ( textfiles, "yes" )==NULL ) g_bLocalTempFolder = true;
+	GetPrivateProfileString("DIRECTIVES", "LocalTempFolder", "no", textfiles, 256, setupIniPath.c_str());
+	if ( _stricmp ( textfiles, "yes" )==0 ) g_bLocalTempFolder = true;
 	
 	// lee - 270308 - u67 - can externalise all DLLs to make exe smaller and rely on outside DLLs being dropped in
-	GetPrivateProfileString("DIRECTIVES", "ExternaliseDLLS", "no", textfiles, 256, path);
-	if ( stricmp ( textfiles, "yes" )==NULL ) g_bExternaliseDLLS = true;
+	GetPrivateProfileString("DIRECTIVES", "ExternaliseDLLS", "no", textfiles, 256, setupIniPath.c_str());
+	if ( _stricmp ( textfiles, "yes" )==0 ) g_bExternaliseDLLS = true;
 
 	// Get Path to Debugger Program
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "\\DBPDebugger.exe");
-	SetInternalFile(PATH_DEBUGGERFILE, path);
+	SetInternalFile(
+		PATH_DEBUGGERFILE,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "\\DBPDebugger.exe").c_str());
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_DEBUGGERFILE));
 	CHECK_MISSING_FILE();
 	
 	// The host installation defines the product command surface. The selected
 	// runtime overlays the ABI-sensitive core component only.
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "plugins\\");
-	SetInternalFile(PATH_PLUGINSFOLDER, path);
+	SetInternalFile(
+		PATH_PLUGINSFOLDER,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "plugins\\").c_str());
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_PLUGINSFOLDER));
 	CHECK_MISSING_PATH();
 
 	// Get Path to PLUGINS-USER Folder
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "plugins-user\\");
-	SetInternalFile(PATH_PLUGINSUSERFOLDER, path);
+	SetInternalFile(
+		PATH_PLUGINSUSERFOLDER,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "plugins-user\\").c_str());
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_PLUGINSUSERFOLDER));
 	CHECK_MISSING_PATH();
 
 	// Get Path to PLUGINS-LICENSED Folder
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "plugins-licensed\\");
-	SetInternalFile(PATH_PLUGINSLICENSEDFOLDER, path);
+	SetInternalFile(
+		PATH_PLUGINSLICENSEDFOLDER,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "plugins-licensed\\").c_str());
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
 	CHECK_MISSING_PATH();
 
 	// Get Path to TEMP Folder
-	strcpy(path, GetInternalFile(PATH_ROOTPATH));
-	strcat(path, "..\\temp\\");
-	SetInternalFile(PATH_TEMPFOLDER, path);
+	SetInternalFile(
+		PATH_TEMPFOLDER,
+		(std::string(GetInternalFile(PATH_ROOTPATH)) + "..\\temp\\").c_str());
 
-	// U69 - 290508 - if TEMP folder removed, try the USER temp location
-	char storethisone [ 260 ];
-	_getcwd ( storethisone, 260 );
 	bool bUseUserFolderForTemp = false;
-	if(PathExists(GetInternalFile(PATH_TEMPFOLDER))==false) bUseUserFolderForTemp = true;
-	if(PathExists(GetInternalFile(PATH_TEMPFOLDER))==true)
+	if(!PathExists(GetInternalFile(PATH_TEMPFOLDER)))
+	{
+		bUseUserFolderForTemp = true;
+	}
+	else
 	{
 		// if DBPRO\TEMP exists, make sure we can WRITE to it, otherwise use USER temp
-		_chdir ( GetInternalFile(PATH_TEMPFOLDER) );
-		HANDLE hFile = CreateFileW( L"_temp.temp", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+		std::filesystem::path testFile = std::filesystem::path(GetInternalFile(PATH_TEMPFOLDER)) / "_temp.temp";
+		HANDLE hFile = CreateFileW( testFile.wstring().c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr );
 		if ( hFile==INVALID_HANDLE_VALUE )
 		{
 			// no create access to temp - do not use
@@ -2134,42 +2068,37 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 		{
 			// remove - successful - temp file valid to use
 			CloseHandle( hFile );
-			DeleteFileW ( L"_temp.temp" );
+			DeleteFileW ( testFile.wstring().c_str() );
 		}
 	}
-	if ( bUseUserFolderForTemp==true )
+	if ( bUseUserFolderForTemp )
 	{
-		// U69 - create new USER TEMP folder
-		_chdir ( storethisone );
-		SHGetFolderPathA( NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path );
-		LPSTR pDBProTEMP = "Dark Basic Professional TEMP";
-		if ( _chdir ( pDBProTEMP )==-1 )
-		{
-			// make it if not present
-			_mkdir ( pDBProTEMP );
-			_chdir ( pDBProTEMP );
-		}
-		_getcwd ( path, 260 );
-		strcat ( path, "\\" );
-		SetInternalFile(PATH_TEMPFOLDER, path);
+		// create new USER TEMP folder
+		char appDataPath[MAX_PATH];
+		SHGetFolderPathA( nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, appDataPath );
+		std::filesystem::path userTemp = std::filesystem::path(appDataPath) / "Dark Basic Professional TEMP";
+		std::error_code ec;
+		std::filesystem::create_directories(userTemp, ec);
+		std::string userTempStr = userTemp.string() + "\\";
+		SetInternalFile(PATH_TEMPFOLDER, userTempStr.c_str());
 	}
-	_chdir ( storethisone );
+	strcpy_s(path, sizeof(path), GetInternalFile(PATH_TEMPFOLDER));
 	CHECK_MISSING_PATH();
 
 	// Get Path to DBM File
-	strcpy(path, GetInternalFile(PATH_TEMPFOLDER));
-	strcat(path, "_Temp.dbm");
-	SetInternalFile(PATH_TEMPDBMFILE, path);
+	SetInternalFile(
+		PATH_TEMPDBMFILE,
+		(std::string(GetInternalFile(PATH_TEMPFOLDER)) + "_Temp.dbm").c_str());
 
 	// Get Path to DBM File
-	strcpy(path, GetInternalFile(PATH_TEMPFOLDER));
-	strcat(path, "_Temp.exb");
-	SetInternalFile(PATH_TEMPEXBFILE, path);
+	SetInternalFile(
+		PATH_TEMPEXBFILE,
+		(std::string(GetInternalFile(PATH_TEMPFOLDER)) + "_Temp.exb").c_str());
 
 	// Get Path to DBM File
-	strcpy(path, GetInternalFile(PATH_TEMPFOLDER));
-	strcat(path, "ErrorReport.txt");
-	SetInternalFile(PATH_TEMPERRORFILE, path);
+	SetInternalFile(
+		PATH_TEMPERRORFILE,
+		(std::string(GetInternalFile(PATH_TEMPFOLDER)) + "ErrorReport.txt").c_str());
 
 	// Verify Importanr Files Exist
 #if 0
@@ -2191,23 +2120,11 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 		//
 
 		// Not all files could be found
-#if 0
-		char missing[32];
-		wsprintf ( missing, "%s\nStatus:%d%d%d%d%d%d%d",	GetInternalFile(PATH_TEMPFOLDER),//g_pDBPCompiler->GetWordString(8),
-															(int)FileExists(GetInternalFile(PATH_SETUPFILE)),
-															(int)FileExists(GetInternalFile(PATH_ERRORSFILE)),
-															(int)FileExists(GetInternalFile(PATH_DEBUGGERFILE)),
-															(int)PathExists(GetInternalFile(PATH_PLUGINSFOLDER)),
-															(int)PathExists(GetInternalFile(PATH_PLUGINSUSERFOLDER)),
-															(int)PathExists(GetInternalFile(PATH_PLUGINSLICENSEDFOLDER)),
-															(int)PathExists(GetInternalFile(PATH_TEMPFOLDER))
-															);
-#endif
 		// Not all internal files exist for compiler
 		if(!db3::g_bHeadlessMode)
 		{
 			MessageBoxW(
-				NULL,
+				nullptr,
 				TextConvert::UTF8ToUTF16(missing).c_str(),
 				TextConvert::UTF8ToUTF16(
 					g_pDBPCompiler->GetWordString(9)).c_str(),

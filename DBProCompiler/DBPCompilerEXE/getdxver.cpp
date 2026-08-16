@@ -31,7 +31,7 @@ int CompareLargeInts( ULARGE_INTEGER ullParam1, ULARGE_INTEGER ullParam2 );
 // Name: GetDXVersion()
 // Desc: This function returns the DirectX version.
 // Arguments:
-//      pdwDirectXVersion - This can be NULL.  If non-NULL, the return value is:
+//      pdwDirectXVersion - This can be nullptr.  If non-nullptr, the return value is:
 //              0x00000000 = No DirectX installed
 //              0x00010000 = DirectX 1.0 installed
 //              0x00020000 = DirectX 2.0 installed
@@ -49,7 +49,7 @@ int CompareLargeInts( ULARGE_INTEGER ullParam1, ULARGE_INTEGER ullParam2 );
 //              0x00080102 = DirectX 8.1b installed
 //              0x00080200 = DirectX 8.2 installed
 //              0x00090000 = DirectX 9.0 installed
-//      strDirectXVersion - Destination string to receive a string name of the DirectX Version.  Can be NULL.
+//      strDirectXVersion - Destination string to receive a string name of the DirectX Version.  Can be nullptr.
 //      cchDirectXVersion - Size of destination buffer in characters.  Length should be at least 10 chars.
 // Returns: S_OK if the function succeeds.
 //          E_FAIL if the DirectX version info couldn't be determined.
@@ -115,7 +115,7 @@ HRESULT GetDXVersion( DWORD* pdwDirectXVersion, TCHAR* strDirectXVersion, int cc
 
     if( pdwDirectXVersion )
     {
-        // If pdwDirectXVersion is non-NULL, then set it to something
+        // If pdwDirectXVersion is non-nullptr, then set it to something
         // like 0x00080102 which would represent DirectX8.1b
         DWORD dwDirectXVersion = dwDirectXVersionMajor;
         dwDirectXVersion <<= 8;
@@ -129,7 +129,7 @@ HRESULT GetDXVersion( DWORD* pdwDirectXVersion, TCHAR* strDirectXVersion, int cc
 
     if( strDirectXVersion && cchDirectXVersion > 0 )
     {
-        // If strDirectXVersion is non-NULL, then set it to something
+        // If strDirectXVersion is non-nullptr, then set it to something
         // like "8.1b" which would represent DirectX8.1b
         if( cDirectXVersionLetter == ' ' )
             StringCchPrintf( strDirectXVersion, cchDirectXVersion, TEXT("%d.%d"), dwDirectXVersionMajor, dwDirectXVersionMinor );
@@ -160,14 +160,14 @@ HRESULT GetDirectXVersionViaDxDiag( DWORD* pdwDirectXVersionMajor,
 
     // Init COM.  COM may fail if its already been inited with a different
     // concurrency model.  And if it fails you shouldn't release it.
-    hr = CoInitialize(NULL);
+    hr = CoInitialize(nullptr);
     bCleanupCOM = SUCCEEDED(hr);
 
     // Get an IDxDiagProvider
     bool bGotDirectXVersion = false;
-    IDxDiagProvider* pDxDiagProvider = NULL;
+    IDxDiagProvider* pDxDiagProvider = nullptr;
     hr = CoCreateInstance( CLSID_DxDiagProvider,
-                           NULL,
+                           nullptr,
                            CLSCTX_INPROC_SERVER,
                            IID_IDxDiagProvider,
                            (LPVOID*) &pDxDiagProvider );
@@ -179,14 +179,14 @@ HRESULT GetDirectXVersionViaDxDiag( DWORD* pdwDirectXVersionMajor,
         dxDiagInitParam.dwSize                  = sizeof(DXDIAG_INIT_PARAMS);
         dxDiagInitParam.dwDxDiagHeaderVersion   = DXDIAG_DX9_SDK_VERSION;
         dxDiagInitParam.bAllowWHQLChecks        = false;
-        dxDiagInitParam.pReserved               = NULL;
+        dxDiagInitParam.pReserved               = nullptr;
 
         // Init the m_pDxDiagProvider
         hr = pDxDiagProvider->Initialize( &dxDiagInitParam );
         if( SUCCEEDED(hr) )
         {
-            IDxDiagContainer* pDxDiagRoot = NULL;
-            IDxDiagContainer* pDxDiagSystemInfo = NULL;
+            IDxDiagContainer* pDxDiagRoot = nullptr;
+            IDxDiagContainer* pDxDiagSystemInfo = nullptr;
 
             // Get the DxDiag root container
             hr = pDxDiagProvider->GetRootContainer( &pDxDiagRoot );
@@ -227,7 +227,7 @@ HRESULT GetDirectXVersionViaDxDiag( DWORD* pdwDirectXVersionMajor,
                         *pcDirectXVersionLetter = var.bstrVal[0];
 #else
                         char strDestination[10];
-                        WideCharToMultiByte( CP_ACP, 0, var.bstrVal, -1, strDestination, 10*sizeof(CHAR), NULL, NULL );
+                        WideCharToMultiByte( CP_ACP, 0, var.bstrVal, -1, strDestination, 10*sizeof(CHAR), nullptr, nullptr );
                         if( pcDirectXVersionLetter )
                             *pcDirectXVersionLetter = strDestination[0];
 #endif
@@ -508,7 +508,7 @@ HRESULT GetDirectXVersionViaFileVersions( DWORD* pdwDirectXVersionMajor,
 //-----------------------------------------------------------------------------
 HRESULT GetFileVersion( TCHAR* szPath, ULARGE_INTEGER* pllFileVersion )
 {
-    if( szPath == NULL || pllFileVersion == NULL )
+    if( szPath == nullptr || pllFileVersion == nullptr )
         return E_INVALIDARG;
 
     DWORD dwHandle;
@@ -517,14 +517,14 @@ HRESULT GetFileVersion( TCHAR* szPath, ULARGE_INTEGER* pllFileVersion )
     if (cb > 0)
     {
         BYTE* pFileVersionBuffer = new BYTE[cb];
-        if( pFileVersionBuffer == NULL )
+        if( pFileVersionBuffer == nullptr )
             return E_OUTOFMEMORY;
 
         if (GetFileVersionInfo( szPath, 0, cb, pFileVersionBuffer))
         {
-            VS_FIXEDFILEINFO* pVersion = NULL;
+            VS_FIXEDFILEINFO* pVersion = nullptr;
             if (VerQueryValue(pFileVersionBuffer, TEXT("\\"), (VOID**)&pVersion, &cb) &&
-                pVersion != NULL)
+                pVersion != nullptr)
             {
                 pllFileVersion->HighPart = pVersion->dwFileVersionMS;
                 pllFileVersion->LowPart  = pVersion->dwFileVersionLS;

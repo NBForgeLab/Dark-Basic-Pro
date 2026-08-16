@@ -12,7 +12,7 @@ class CDataTable
 {
 	public:
 		CDataTable();
-		CDataTable(LPSTR pInitString);
+		CDataTable(LPCSTR pInitString);
 		~CDataTable();
 		void Free(void);
 		void Add(CDataTable* pNew);
@@ -21,9 +21,9 @@ class CDataTable
 		bool			AddNumeric(double dNum, DWORD dwIndex);
 		bool			AddString(LPSTR pString, DWORD dwIndex);
 		bool			AddTwoStrings(LPSTR pString, LPSTR pString2, DWORD* dwIndex);
-		bool			AddUniqueString(LPSTR pString, DWORD* dwIndex);
-		DWORD			FindString(LPSTR pFindString);
-		bool			FindIndexStr(LPSTR pIndexAsString);
+		bool			AddUniqueString(LPCSTR pString, DWORD* dwIndex);
+		DWORD			FindString(LPCSTR pFindString);
+		bool			FindIndexStr(LPCSTR pIndexAsString);
 
 		void			SetNumeric(double dNum) { m_dwType=1; m_pNumeric=dNum; }
 		void			SetString(CStr* pString) { m_dwType=2; m_pString.reset(pString); }
@@ -39,7 +39,7 @@ class CDataTable
 		CStr*			GetString2(void) { return m_pString2.get(); }
 		bool			GetAddedToEXEData(void) { return m_bAddedToEXEData; }
 
-		bool			NotExcluded ( LPSTR pFilename );
+		bool			NotExcluded ( LPCSTR pFilename );
 		int				CompleteAnyLinkAssociates(void);
 
 		bool			WriteDBMHeader(DWORD dwKindOfTable);

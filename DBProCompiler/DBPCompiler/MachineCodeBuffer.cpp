@@ -101,6 +101,15 @@ void CMachineCodeBuffer::WriteDWORD(DWORD value, DWORD dwSize)
 	m_pMachineBlock += dwSize;
 }
 
+void CMachineCodeBuffer::WriteQWORD(uint64_t value, DWORD dwSize)
+{
+	if (dwSize == 0 || dwSize > sizeof(value) || !CanWrite(dwSize))
+		return;
+
+	std::memcpy(m_pMachineBlock, &value, dwSize);
+	m_pMachineBlock += dwSize;
+}
+
 bool CMachineCodeBuffer::CanWrite(size_t byteCount) const noexcept
 {
 	if (!m_pProgramStart || !m_pMachineBlock)

@@ -50,7 +50,7 @@ class CParseLoop
 		void			PassStartEndCharForPossibleDebugHook(DWORD dwS, DWORD dwE) { m_dwS=dwS, m_dwE=dwE; }
 
 		bool			WriteDBM(DWORD PlacementCode);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
 
 	private:
 

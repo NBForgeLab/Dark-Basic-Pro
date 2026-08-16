@@ -80,6 +80,50 @@ void CStr::UpdateLen(void)
 	m_dwLen = static_cast<DWORD>(strlen(m_buffer.data()));
 }
 
+CStr::CStr(LPCSTR pText)
+{
+	SetText(pText);
+}
+
+void CStr::SetText(LPCSTR pText)
+{
+	if(pText)
+	{
+		const DWORD length = static_cast<DWORD>(strlen(pText));
+		if(length + 1 > m_buffer.size()) Enlarge(length);
+		memmove(m_buffer.data(), pText, length + 1);
+		UpdateLen();
+	}
+}
+
+void CStr::AddText(LPCSTR pText)
+{
+	if(pText)
+	{
+		const DWORD srcLen = static_cast<DWORD>(strlen(pText));
+		const DWORD length = srcLen + m_dwLen;
+		if(length + 1 > m_buffer.size()) Enlarge(length);
+		memcpy(m_buffer.data() + m_dwLen, pText, srcLen + 1);
+		UpdateLen();
+	}
+}
+
+void CStr::InsertText(LPCSTR pStr)
+{
+	if(pStr)
+	{
+		const DWORD insertLen = static_cast<DWORD>(strlen(pStr));
+		const DWORD totalLen = insertLen + m_dwLen;
+		if(totalLen + 1 > m_buffer.size()) Enlarge(totalLen);
+
+		// Use a temporary buffer to avoid overlap issues
+		std::vector<char> temp(m_buffer.data(), m_buffer.data() + m_dwLen + 1);
+		memcpy(m_buffer.data(), pStr, insertLen + 1);
+		memcpy(m_buffer.data() + insertLen, temp.data(), m_dwLen + 1);
+		UpdateLen();
+	}
+}
+
 void CStr::SetText(LPSTR pText)
 {
 	if(pText)
@@ -97,7 +141,7 @@ void CStr::SetText(CStr* pStrText)
 	{
 		DWORD length = pStrText->Length();
 		if(length + 1 > m_buffer.size()) Enlarge(length);
-		strcpy(m_buffer.data(), pStrText->GetStr());
+		memcpy(m_buffer.data(), pStrText->GetStr(), length + 1);
 		UpdateLen();
 	}
 }
@@ -106,10 +150,10 @@ void CStr::AddText(LPSTR pText)
 {
 	if(pText)
 	{
-		DWORD length = static_cast<DWORD>(strlen(pText));
-		length += m_dwLen;
+		const DWORD srcLen = static_cast<DWORD>(strlen(pText));
+		const DWORD length = srcLen + m_dwLen;
 		if(length + 1 > m_buffer.size()) Enlarge(length);
-		strcat(m_buffer.data(), pText);
+		memcpy(m_buffer.data() + m_dwLen, pText, srcLen + 1);
 		UpdateLen();
 	}
 }
@@ -118,10 +162,10 @@ void CStr::AddText(CStr* pStrText)
 {
 	if(pStrText)
 	{
-		DWORD length = pStrText->Length();
-		length += m_dwLen;
+		const DWORD srcLen = pStrText->Length();
+		const DWORD length = srcLen + m_dwLen;
 		if(length + 1 > m_buffer.size()) Enlarge(length);
-		strcat(m_buffer.data(), pStrText->GetStr());
+		memcpy(m_buffer.data() + m_dwLen, pStrText->GetStr(), srcLen + 1);
 		UpdateLen();
 	}
 }
@@ -136,8 +180,8 @@ void CStr::InsertText(LPSTR pStr)
 
 		// Use a temporary buffer to avoid overlap issues
 		std::vector<char> temp(m_buffer.data(), m_buffer.data() + m_dwLen + 1);
-		strcpy(m_buffer.data(), pStr);
-		strcat(m_buffer.data(), temp.data());
+		memcpy(m_buffer.data(), pStr, insertLen + 1);
+		memcpy(m_buffer.data() + insertLen, temp.data(), m_dwLen + 1);
 		UpdateLen();
 	}
 }
@@ -281,24 +325,24 @@ bool CStr::CheckChar(DWORD dwPos, unsigned char cChar) const
 {
 	if(m_dwLen > 0)
 	{
-		int diff = 'a' - 'A';
+		const int diff = 'a' - 'A';
 		unsigned char schar = static_cast<unsigned char>(m_buffer[dwPos]);
-		if(schar >= 'a' && schar <= 'z') schar -= diff;
+		if(schar >= 'a' && schar <= 'z') schar = static_cast<unsigned char>(schar - diff);
 		if(schar == cChar)
 			return true;
 	}
 	return false;
 }
 
-bool CStr::CheckChars(DWORD dwPos, DWORD num, LPSTR pText) const
+bool CStr::CheckChars(DWORD dwPos, DWORD num, LPCSTR pText) const
 {
 	if(m_dwLen > 0 && pText)
 	{
-		int diff = 'a' - 'A';
+		const int diff = 'a' - 'A';
 		for(DWORD n = 0; n < num; n++)
 		{
 			unsigned char schar = static_cast<unsigned char>(m_buffer[dwPos + n]);
-			if(schar >= 'a' && schar <= 'z') schar -= diff;
+			if(schar >= 'a' && schar <= 'z') schar = static_cast<unsigned char>(schar - diff);
 			if(schar != static_cast<unsigned char>(pText[n]))
 			{
 				return false;
@@ -460,7 +504,7 @@ bool CStr::ContainsASOperator(void) const
 			if(m_buffer[n] == '"') dwInSpeechMarks = 1 - dwInSpeechMarks;
 			if(dwInSpeechMarks == 0)
 			{
-				if(strnicmp((m_buffer.data() + n), " as ", 4) == NULL)
+				if(_strnicmp((m_buffer.data() + n), " as ", 4) == 0)
 					return true;
 			}
 		}
@@ -597,7 +641,7 @@ void CStr::EatEdgeSpacesandTabs(DWORD* pdwHowMany)
 			}
 			p[w++] = 0;
 
-			strrev(p);
+			_strrev(p);
 		}
 		UpdateLen();
 	}
@@ -609,7 +653,7 @@ void CStr::EatTrailingEdgeSpacesandTabs(void)
 	{
 		char* p = m_buffer.data();
 		// Reverse string
-		strrev(p);
+		_strrev(p);
 
 		// Eat spaces at start
 		bool bOnlyStart = true;
@@ -630,7 +674,7 @@ void CStr::EatTrailingEdgeSpacesandTabs(void)
 		p[w++] = 0;
 
 		// Reverse string
-		strrev(p);
+		_strrev(p);
 		UpdateLen();
 	}
 }
@@ -693,7 +737,7 @@ bool CStr::EatLeadingChars(void)
 			}
 			p[w++] = 0;
 
-			strrev(p);
+			_strrev(p);
 		}
 		UpdateLen();
 	}
@@ -763,7 +807,7 @@ bool CStr::CropEqualEdgeBrackets(DWORD* pdwHowMany)
 			}
 		}
 		DWORD oldLen = Length();
-		EatEdgeSpacesandTabs(NULL);
+		EatEdgeSpacesandTabs(nullptr);
 		DWORD iNestCount = oldLen - Length();
 		if(pdwHowMany) *pdwHowMany = iNestCount;
 		if(iNestCount > 0) return true;
@@ -798,19 +842,17 @@ void CStr::Shorten(DWORD dwNewLength)
 
 void CStr::Reverse(void)
 {
-	if(m_dwLen > 0) strrev(m_buffer.data());
+	if(m_dwLen > 0) _strrev(m_buffer.data());
 }
 
 bool CStr::ConvertDataListToMathList(CStr* pDimensionString)
 {
-	DWORD dwPos = 0;
 	CStr pNewStr(pDimensionString ? "(" : "");
 
 	CStr pDimStr(pDimensionString ? pDimensionString->GetStr() : nullptr);
 	CStr pDimItem("");
 
 	int iBracketCount = 0;
-	DWORD dwInSpeechMarks = 0;
 	if(m_dwLen > 0)
 	{
 		DWORD length = Length();
@@ -820,7 +862,7 @@ bool CStr::ConvertDataListToMathList(CStr* pDimensionString)
 			if(m_buffer[n] == ')') iBracketCount--;
 			if(iBracketCount == 0 && m_buffer[n] == ',')
 			{
-				if(pDimensionString == NULL)
+				if(pDimensionString == nullptr)
 				{
 					pNewStr.AddText("*");
 				}
@@ -1153,7 +1195,7 @@ bool CStr::IsTextRValue(void) const
 
 DWORD CStr::GetDWORDRepresentation(DWORD dwTypeValue, DWORD* dwExtraDWORD) const
 {
-	LPSTR EndString = NULL;
+	LPSTR EndString = nullptr;
 	DWORD dwResult = 0;
 	if(m_dwLen > 0)
 	{
@@ -1180,29 +1222,38 @@ DWORD CStr::GetDWORDRepresentation(DWORD dwTypeValue, DWORD* dwExtraDWORD) const
 			pIntStr.SetUnsignedNumericText(num);
 			pNumericStr = pIntStr.GetStr();
 		}
-		int integervalue; float floatvalue;
-		unsigned char booleanvalue, bytevalue;
-		WORD wordvalue; DWORD dwordvalue;
-		double doublevalue; LONGLONG longlongvalue;
-		sscanf(pNumericStr, "%i", &integervalue);
-		sscanf(pNumericStr, "%f", &floatvalue);
+		int integervalue = 0;
+		float floatvalue = 0.0f;
+		unsigned char booleanvalue = 0, bytevalue = 0;
+		WORD wordvalue = 0;
+		DWORD dwordvalue = 0;
+		double doublevalue = 0.0;
+		LONGLONG longlongvalue = 0;
+		sscanf_s(pNumericStr, "%i", &integervalue);
+		sscanf_s(pNumericStr, "%f", &floatvalue);
 		DWORD dwGetU = 0;
-		sscanf(pNumericStr, "%u", &dwGetU); booleanvalue = static_cast<unsigned char>(dwGetU);
-		sscanf(pNumericStr, "%u", &dwGetU); bytevalue = static_cast<unsigned char>(dwGetU);
-		sscanf(pNumericStr, "%u", &dwGetU); wordvalue = static_cast<WORD>(dwGetU);
-		sscanf(pNumericStr, "%u", &dwordvalue);
-		sscanf(pNumericStr, "%lf", &doublevalue);
-		sscanf(pNumericStr, "%I64d", &longlongvalue);
+		sscanf_s(pNumericStr, "%u", &dwGetU); booleanvalue = static_cast<unsigned char>(dwGetU);
+		sscanf_s(pNumericStr, "%u", &dwGetU); bytevalue = static_cast<unsigned char>(dwGetU);
+		sscanf_s(pNumericStr, "%u", &dwGetU); wordvalue = static_cast<WORD>(dwGetU);
+		sscanf_s(pNumericStr, "%u", &dwordvalue);
+		sscanf_s(pNumericStr, "%lf", &doublevalue);
+		sscanf_s(pNumericStr, "%I64d", &longlongvalue);
 		switch(dwTypeValue)
 		{
-			case 1 : dwResult = *(DWORD*)&integervalue;    break;
-			case 2 : dwResult = *(DWORD*)&floatvalue;      break;
-			case 4 : dwResult = *(DWORD*)&booleanvalue;    break;
-			case 5 : dwResult = *(DWORD*)&bytevalue;       break;
-			case 6 : dwResult = *(DWORD*)&wordvalue;       break;
-			case 7 : dwResult = *(DWORD*)&dwordvalue;      break;
-			case 8 : dwResult = *(DWORD*)&doublevalue;  *dwExtraDWORD = *((DWORD*)(&doublevalue)+1); break;
-			case 9 : dwResult = *(DWORD*)&longlongvalue; *dwExtraDWORD = *((DWORD*)(&longlongvalue)+1); break;
+			case 1 : std::memcpy(&dwResult, &integervalue, sizeof(dwResult)); break;
+			case 2 : std::memcpy(&dwResult, &floatvalue, sizeof(dwResult));   break;
+			case 4 : dwResult = booleanvalue; break;
+			case 5 : dwResult = bytevalue;    break;
+			case 6 : dwResult = wordvalue;    break;
+			case 7 : dwResult = dwordvalue;   break;
+			case 8 :
+				std::memcpy(&dwResult, &doublevalue, sizeof(DWORD));
+				std::memcpy(dwExtraDWORD, reinterpret_cast<const char*>(&doublevalue) + sizeof(DWORD), sizeof(DWORD));
+				break;
+			case 9 :
+				std::memcpy(&dwResult, &longlongvalue, sizeof(DWORD));
+				std::memcpy(dwExtraDWORD, reinterpret_cast<const char*>(&longlongvalue) + sizeof(DWORD), sizeof(DWORD));
+				break;
 		}
 	}
 	return dwResult;
@@ -1264,7 +1315,7 @@ bool CStr::TranslateForDBM(CResultData* pResultPtr)
 	{
 		LPSTR pRest = pString.GetRightOfPosition(3);
 		pString.SetText(pRest);
-		pString.EatEdgeSpacesandTabs(NULL);
+		pString.EatEdgeSpacesandTabs(nullptr);
 		delete[] pRest;
 		bIsStructFunction = true;
 	}

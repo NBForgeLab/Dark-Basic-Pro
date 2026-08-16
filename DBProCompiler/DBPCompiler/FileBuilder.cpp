@@ -34,7 +34,7 @@ extern bool g_bLocalTempFolder;
 
 // Implementations
 CFileBuilder::CFileBuilder()
-	: m_hfile(NULL), m_SizeOfEXECode(0), m_bEncryptionState(false)
+	: m_hfile(nullptr), m_SizeOfEXECode(0), m_bEncryptionState(false)
 {
 }
 
@@ -151,12 +151,6 @@ bool CFileBuilder::AddFile(LPSTR pFilename, LPSTR pPlacementFolder)
 
 bool CFileBuilder::AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile)
 {
-	// Filename contains a wildcard, so add multiple files
-
-	// Store current dir
-	char pStoreBeforeWildScan[_MAX_PATH];
-	getcwd(pStoreBeforeWildScan, _MAX_PATH);
-
 	// Source media folder (std::string for safe concatenation)
 	std::string srcFolderStr = std::string(pMediaRoot) + pMediaWidlcardFile;
 	// Trim to directory (strip trailing filename after last separator)
@@ -179,49 +173,47 @@ bool CFileBuilder::AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile)
 	// Wildcard filename only (portion after dest folder prefix)
 	std::string wildcardOnlyStr = std::string(pMediaWidlcardFile).substr(destFolderStr.size());
 
-	// Jump to source of media files
-	chdir(srcFolderStr.c_str());
+	std::error_code ec;
+	if (!std::filesystem::exists(srcFolderStr, ec) || !std::filesystem::is_directory(srcFolderStr, ec))
+		return true;
 
-	// Find specific file(s)
-	_finddata_t filedata;
-	long hFile = _findfirst(wildcardOnlyStr.c_str(), &filedata);
-	if(hFile!=-1L)
+	for (const auto& entry : std::filesystem::directory_iterator(srcFolderStr, ec))
 	{
-		long endyet=0;
-		while(endyet==0)
+		if (ec) break;
+		if (entry.is_directory(ec))
 		{
-			if( filedata.attrib & _A_SUBDIR )
+			std::string nestMediaDir = destFolderStr + entry.path().filename().string() + "\\";
+			std::string nestWildcard = nestMediaDir + wildcardOnlyStr;
+			AddWildcardFiles(pMediaRoot, const_cast<LPSTR>(nestWildcard.c_str()));
+		}
+		else if (entry.is_regular_file(ec))
+		{
+			std::string filename = entry.path().filename().string();
+			bool bMatch = false;
+			if (wildcardOnlyStr == "*.*" || wildcardOnlyStr == "*")
 			{
-				// Nest Dir
-				if(strcmp(filedata.name,".")!=NULL && strcmp(filedata.name, "..")!=NULL)
-				{
-					std::string nestMediaDir = destFolderStr + filedata.name + "\\";
-					std::string nestWildcard = nestMediaDir + wildcardOnlyStr;
-					AddWildcardFiles(const_cast<LPSTR>(pMediaRoot), const_cast<LPSTR>(nestWildcard.c_str()));
-				}
+				bMatch = true;
 			}
-			else
+			else if (wildcardOnlyStr.rfind("*.", 0) == 0)
 			{
-				// Do File
-				std::string mediaPath = std::string("media\\") + destFolderStr + filedata.name;
-				std::string absPathToMedia = srcFolderStr + filedata.name;
+				std::string ext = wildcardOnlyStr.substr(1);
+				if (_stricmp(entry.path().extension().string().c_str(), ext.c_str()) == 0)
+					bMatch = true;
+			}
+			else if (_stricmp(filename.c_str(), wildcardOnlyStr.c_str()) == 0)
+			{
+				bMatch = true;
+			}
+
+			if (bMatch)
+			{
+				std::string mediaPath = std::string("media\\") + destFolderStr + filename;
+				std::string absPathToMedia = (std::filesystem::path(srcFolderStr) / filename).string();
 				AddFile(const_cast<LPSTR>(absPathToMedia.c_str()), const_cast<LPSTR>(mediaPath.c_str()));
 			}
-			endyet = _findnext(hFile, &filedata);
 		}
 	}
 
-	// Close file search
-	if(hFile)
-	{
-		_findclose(hFile);
-		hFile=NULL;
-	}
-
-	// Restore old directory
-	chdir(pStoreBeforeWildScan);
-
-	// Complete
 	return true;
 }
 
@@ -544,7 +536,7 @@ bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 {
 	// Create File and place EXE Runner Code
 	DeleteFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str());
-	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	m_hfile = CreateFileW(TextConvert::UTF8ToUTF16(EXEfilename).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(m_hfile==INVALID_HANDLE_VALUE)
 	{
 		char err[256];
@@ -560,8 +552,8 @@ bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 	if ( g_bLocalTempFolder ) wCoreCode = IDR_X1;
 
 	// Get EXE Runner Code
-	m_SizeOfEXECode = SizeofResource(NULL, FindResourceW(NULL, MAKEINTRESOURCE(wCoreCode), L"X"));
-	HGLOBAL hGlobal = LoadResource(NULL, FindResourceW(NULL, MAKEINTRESOURCE(wCoreCode), L"X"));
+	m_SizeOfEXECode = SizeofResource(nullptr, FindResourceW(nullptr, MAKEINTRESOURCE(wCoreCode), L"X"));
+	HGLOBAL hGlobal = LoadResource(nullptr, FindResourceW(nullptr, MAKEINTRESOURCE(wCoreCode), L"X"));
 	LPVOID lpResDataBuffer = LockResource(hGlobal);
 	if(m_SizeOfEXECode<=0)
 	{
@@ -571,7 +563,7 @@ bool CFileBuilder::ConstructEXE(LPSTR EXEfilename)
 
 	// Write EXE Code first to launch core executable
 	DWORD byteswritten;
-	WriteFile(m_hfile, lpResDataBuffer, m_SizeOfEXECode, &byteswritten, NULL); 
+	WriteFile(m_hfile, lpResDataBuffer, m_SizeOfEXECode, &byteswritten, nullptr); 
 
 	// EXE is complete
 	CloseHandle(m_hfile);
@@ -588,14 +580,14 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 {
 	// Simply scans the EXE and locates the Version Block, and directly replaces it
 	DWORD dwSizeOfEXECode = 0;	
-	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
 		// Read EXE into memory
 		DWORD bytesread=0;
-		dwSizeOfEXECode = GetFileSize(hreadfile, NULL);	
+		dwSizeOfEXECode = GetFileSize(hreadfile, nullptr);	
 		std::vector<char> exeData(dwSizeOfEXECode);
-		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, NULL); 
+		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, nullptr); 
 		CloseHandle(hreadfile);
 
 		// Modify this data
@@ -634,11 +626,11 @@ bool CFileBuilder::ReplaceVersionInfoBlockInEXE(LPSTR pFilenameEXE, LPSTR pVersi
 		}
 
 		// Write EXE back out
-		HANDLE hwritefile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hwritefile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD byteswritten=0;
-			WriteFile(hwritefile, exeData.data(), dwSizeOfEXECode, &byteswritten, NULL); 
+			WriteFile(hwritefile, exeData.data(), dwSizeOfEXECode, &byteswritten, nullptr); 
 			CloseHandle(hwritefile);
 		}
 	}
@@ -684,25 +676,22 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	LPSTR pLarge256Icon = m_pFileTable[12];
 
 	// Absolute Path for Modulename
-	char ModuleName[256];
+	// Absolute path for the module (resolve relative input against the CWD)
+	std::string ModuleNameStr;
 	if(pFilenameEXE[1]==':')
-	{
-		// Filename is absolute
-		strcpy(ModuleName, pFilenameEXE);
-	}
+		ModuleNameStr = pFilenameEXE;
 	else
 	{
-		// File is relative
-		getcwd(ModuleName, 256);
-		strcat(ModuleName, "\\");
-		strcat(ModuleName, pFilenameEXE);
+		ModuleNameStr = (std::filesystem::current_path() / pFilenameEXE).string();
 	}
+	char ModuleName[256];
+	strcpy_s(ModuleName, sizeof(ModuleName), ModuleNameStr.c_str());
 
 	// Change VERSION INFORMATION
 	if(pVerComments)
 	{
 		// Access Resource from EXE
-		HMODULE hEXE = LoadLibraryEx(ModuleName, NULL, LOAD_LIBRARY_AS_DATAFILE);
+		HMODULE hEXE = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_AS_DATAFILE);
 		HRSRC hRes=FindResource(hEXE, (LPCTSTR)1, RT_VERSION);
 		DWORD dwDataSize = SizeofResource(hEXE, hRes);
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
@@ -722,7 +711,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		{
 			// Get Src
 			DWORD dwLength = 0;
-			LPSTR pCharStr = NULL;
+			LPSTR pCharStr = nullptr;
 			if(iIndex==0) { dwLength=32; pCharStr=pVerComments; }
 			if(iIndex==1) { dwLength=32; pCharStr=pVerCompany; }
 			if(iIndex==2) { dwLength=32; pCharStr=pVerFileDesc; }
@@ -809,31 +798,31 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 
 		// Get Filename
 		ICONINFO IconInfo;
-		HBITMAP hCol = NULL;
-		HBITMAP hMask = NULL;
-		HANDLE hImage = NULL;
-		LPSTR pFilename = NULL;
+		HBITMAP hCol = nullptr;
+		HBITMAP hMask = nullptr;
+		HANDLE hImage = nullptr;
+		LPSTR pFilename = nullptr;
 		if(icon==1) pFilename = pLargeIcon;
 		if(icon==2) pFilename = pSmallIcon;
 		if(icon==3) pFilename = pLarge256Icon;
 		DWORD dwLength = strlen(pFilename);
-		if(strnicmp(pFilename+dwLength-4, ".bmp", 4)==NULL)
+		if(dwLength >= 4 && _strnicmp(pFilename+dwLength-4, ".bmp", 4)==0)
 		{
-			// Make an ICO file from BMP
+			// Make an ICO file from BMP (destination folder first, then full icon path)
 			char pWorkIcon[_MAX_PATH];
-			strcpy(pWorkIcon, pPathToPluginFolderForBuilder);
+			strcpy_s(pWorkIcon, sizeof(pWorkIcon), pPathToPluginFolderForBuilder);
 			MakeICOFromBMP(pFilename, pWorkIcon);
-			strcat(pWorkIcon, "workicon.ico");
-			if(icon==1) hImage = LoadImage( NULL, pWorkIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImage( NULL, pWorkIcon, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-			if(icon==3) hImage = LoadImage( NULL, pWorkIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			strcat_s(pWorkIcon, sizeof(pWorkIcon), "workicon.ico");
+			if(icon==1) hImage = LoadImage( nullptr, pWorkIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImage( nullptr, pWorkIcon, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			if(icon==3) hImage = LoadImage( nullptr, pWorkIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
 		}
 		else
 		{
 			// Load Icon Image File
-			if(icon==1) hImage = LoadImage( NULL, pLargeIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImage( NULL, pSmallIcon, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
-			if(icon==3) hImage = LoadImage( NULL, pLarge256Icon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==1) hImage = LoadImage( nullptr, pLargeIcon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImage( nullptr, pSmallIcon, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			if(icon==3) hImage = LoadImage( nullptr, pLarge256Icon, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
 		}
 		GetIconInfo((HICON)hImage, &IconInfo);
 		hCol = IconInfo.hbmColor;
@@ -862,7 +851,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		float fPerByte=(BitmapInfo.bmiHeader.biBitCount/8.0f);
 		DWORD dwBitsSize=(DWORD)((BitmapInfo.bmiHeader.biWidth*BitmapInfo.bmiHeader.biHeight)*fPerByte);
 
-		HDC hdc = CreateCompatibleDC(NULL);
+		HDC hdc = CreateCompatibleDC(nullptr);
 		std::vector<char> colArray(dwBitsSize);
 		std::vector<char> maskArray(dwBitsSize);
 		LPSTR pColArray = colArray.data();
@@ -966,16 +955,14 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 	else
 	{
 		// File is relative
-		char cwdBuf[_MAX_PATH];
-		getcwd(cwdBuf, _MAX_PATH);
-		moduleNameStr = std::string(cwdBuf) + "\\" + pFilenameEXE;
+		moduleNameStr = (std::filesystem::current_path() / pFilenameEXE).string();
 	}
 
 	// Change VERSION INFORMATION
 	if(pVerComments)
 	{
 		// Access Resource from EXE
-		HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(moduleNameStr.c_str()).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
+		HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(moduleNameStr.c_str()).c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
 		HRSRC hRes=FindResource(hEXE, (LPCTSTR)1, RT_VERSION);
 		DWORD dwDataSize = SizeofResource(hEXE, hRes);
 		HGLOBAL hGlobal = LoadResource(hEXE, hRes);
@@ -995,7 +982,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		{
 			// Get Src
 			DWORD dwLength = 0;
-			LPSTR pCharStr = NULL;
+			LPSTR pCharStr = nullptr;
 			if(iIndex==0) { dwLength=32; pCharStr=pVerComments; }
 			if(iIndex==1) { dwLength=32; pCharStr=pVerCompany; }
 			if(iIndex==2) { dwLength=32; pCharStr=pVerFileDesc; }
@@ -1014,7 +1001,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 			{
 				int d=iIndex+1;
 				if(iIndex==9) d=0;
-				pMatchStr[c++]=48+d;
+				pMatchStr[c++]=static_cast<char>(48+d);
 				pMatchStr[c++]=0;
 			}
 			pMatchStr[c++]=0;
@@ -1035,7 +1022,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 			// Write direct to version data
 			if(bMatch==true)
 			{
-				if(iIndex==0) dwOffsetToFirstEntry=pPtr-pVersonData;
+				if(iIndex==0) dwOffsetToFirstEntry=static_cast<DWORD>(pPtr-pVersonData);
 				MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pCharStr, -1, (LPWSTR)pPtr, dwLength*2);
 				iIndex++;
 			}
@@ -1092,27 +1079,27 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 
 		// Get Filename
 		ICONINFO IconInfo;
-		HBITMAP hCol = NULL;
-		HBITMAP hMask = NULL;
-		HANDLE hImage = NULL;
-		LPSTR pFilename = NULL;
+		HBITMAP hCol = nullptr;
+		HBITMAP hMask = nullptr;
+		HANDLE hImage = nullptr;
+		LPSTR pFilename = nullptr;
 		if(icon==1) pFilename = pLargeIcon;
 		if(icon==2) pFilename = pSmallIcon;
-		DWORD dwLength = strlen(pFilename);
-		if(strnicmp(pFilename+dwLength-4, ".bmp", 4)==NULL)
+		DWORD dwLength = static_cast<DWORD>(strlen(pFilename));
+		if(_strnicmp(pFilename+dwLength-4, ".bmp", 4)==0)
 		{
 			// Make an ICO file from BMP (std::string for safe concatenation)
 			std::string workIconStr = std::string(pPathToPluginFolderForBuilder);
 			MakeICOFromBMP(pFilename, const_cast<LPSTR>(workIconStr.c_str()));
 			workIconStr += "workicon.ico";
-			if(icon==1) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(workIconStr.c_str()).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(workIconStr.c_str()).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			if(icon==1) hImage = LoadImageW( nullptr, TextConvert::UTF8ToUTF16(workIconStr.c_str()).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImageW( nullptr, TextConvert::UTF8ToUTF16(workIconStr.c_str()).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 		}
 		else
 		{
 			// Load Icon Image File
-			if(icon==1) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pLargeIcon).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
-			if(icon==2) hImage = LoadImageW( NULL, TextConvert::UTF8ToUTF16(pSmallIcon).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+			if(icon==1) hImage = LoadImageW( nullptr, TextConvert::UTF8ToUTF16(pLargeIcon).c_str(), IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
+			if(icon==2) hImage = LoadImageW( nullptr, TextConvert::UTF8ToUTF16(pSmallIcon).c_str(), IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
 		}
 		GetIconInfo((HICON)hImage, &IconInfo);
 		hCol = IconInfo.hbmColor;
@@ -1137,7 +1124,7 @@ bool CFileBuilder::ChangeEXE(LPSTR pFilenameEXE, LPSTR pPathToPluginFolderForBui
 		float fPerByte=(BitmapInfo.bmiHeader.biBitCount/8.0f);
 		DWORD dwBitsSize=(DWORD)((BitmapInfo.bmiHeader.biWidth*BitmapInfo.bmiHeader.biHeight)*fPerByte);
 
-		HDC hdc = CreateCompatibleDC(NULL);
+		HDC hdc = CreateCompatibleDC(nullptr);
 		std::vector<char> colArray(dwBitsSize);
 		std::vector<char> maskArray(dwBitsSize);
 		LPSTR pColArray = colArray.data();
@@ -1236,14 +1223,14 @@ bool CFileBuilder::MakeICOFromBMP(LPSTR pBMPFilename, LPSTR pDestICOPath)
 }
 
 bool CFileBuilder::SaveIconCursorFileFromInfo(	LPSTR pszFullFileName,
-									int iWidth, int iHeight, int iColors,
+									int iWidth, int iHeight, [[maybe_unused]] int iColors,
 									int iHotspotX, int iHotspotY,
 									LPSTR pImg, DWORD dwImgSize)
 {
 	// Open the file for writing.
 	DWORD byteswritten;
 	DeleteFileW(TextConvert::UTF8ToUTF16(pszFullFileName).c_str());
-	HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(pszFullFileName).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hfile = CreateFileW(TextConvert::UTF8ToUTF16(pszFullFileName).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hfile==INVALID_HANDLE_VALUE)
 		return false;
 
@@ -1254,7 +1241,7 @@ bool CFileBuilder::SaveIconCursorFileFromInfo(	LPSTR pszFullFileName,
 	CurHeader.iResourceCount=(WORD)1;
 
 	// Write the header to disk.
-	WriteFile(hfile, (LPSTR)&CurHeader, sizeof(ICOCURSORHDR), &byteswritten, NULL); 
+	WriteFile(hfile, (LPSTR)&CurHeader, sizeof(ICOCURSORHDR), &byteswritten, nullptr); 
 
 	// Write all the descriptors.
 	DWORD iBitsOffset;
@@ -1268,7 +1255,7 @@ bool CFileBuilder::SaveIconCursorFileFromInfo(	LPSTR pszFullFileName,
 	IcoCurDesc.iHotspotY = (WORD)iHotspotY;
 	IcoCurDesc.DIBSize = sizeof(BITMAPINFOHEADER) + (2*sizeof(DWORD)) + (dwImgSize*2);
 	IcoCurDesc.DIBOffset = iBitsOffset;
-	WriteFile(hfile, (LPSTR)&IcoCurDesc, sizeof(ICOCURSORDESC), &byteswritten, NULL); 
+	WriteFile(hfile, (LPSTR)&IcoCurDesc, sizeof(ICOCURSORDESC), &byteswritten, nullptr); 
 
 	// Write Bitmap Info Header
 	BITMAPINFOHEADER pBMHeader;
@@ -1278,16 +1265,16 @@ bool CFileBuilder::SaveIconCursorFileFromInfo(	LPSTR pszFullFileName,
     pBMHeader.biHeight=iHeight * 2; 
     pBMHeader.biPlanes=1; 
     pBMHeader.biBitCount=1;
-	WriteFile(hfile, (LPSTR)&pBMHeader, sizeof(BITMAPINFOHEADER), &byteswritten, NULL); 
+	WriteFile(hfile, (LPSTR)&pBMHeader, sizeof(BITMAPINFOHEADER), &byteswritten, nullptr); 
  
 	// RGB Colours
 	DWORD dwRGB[2];
 	dwRGB[0]=0;
 	dwRGB[1]=0x00FFFFFF;
-	WriteFile(hfile, (LPSTR)&dwRGB, sizeof(dwRGB), &byteswritten, NULL); 
+	WriteFile(hfile, (LPSTR)&dwRGB, sizeof(dwRGB), &byteswritten, nullptr); 
 
 	// Write XOR Data (and AND data)
-	WriteFile(hfile, pImg, dwImgSize*2, &byteswritten, NULL); 
+	WriteFile(hfile, pImg, dwImgSize*2, &byteswritten, nullptr); 
 
 	// Close file
 	CloseHandle(hfile);
@@ -1303,7 +1290,7 @@ bool CFileBuilder::MakeCURFromBMP(LPSTR pBMPFilename, LPSTR pDestCURFilename)
 
 	// Load Bitmap
 	LPBITMAPINFO pDIB = (LPBITMAPINFO)ReadBMPFile ( pBMPFilename );
-	if ( pDIB==NULL)
+	if ( pDIB==nullptr)
 		return false;
 
 	int iWidth = pDIB->bmiHeader.biWidth;
@@ -1362,14 +1349,14 @@ bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, L
 {
 	// Simply scans the EXE and locates the pattern in the data, and replaces it
 	DWORD dwSizeOfEXECode = 0;	
-	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hreadfile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hreadfile!=INVALID_HANDLE_VALUE)
 	{
 		// Read EXE into memory (vector owns the buffer on all paths)
 		DWORD bytesread=0;
-		dwSizeOfEXECode = GetFileSize(hreadfile, NULL);	
+		dwSizeOfEXECode = GetFileSize(hreadfile, nullptr);	
 		std::vector<char> exeData(dwSizeOfEXECode);
-		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, NULL); 
+		ReadFile(hreadfile, exeData.data(), dwSizeOfEXECode, &bytesread, nullptr); 
 		CloseHandle(hreadfile);
 
 		// Modify this data
@@ -1408,11 +1395,11 @@ bool CFileBuilder::ReplaceDataBlockInEXE ( LPSTR pFilenameEXE, LPSTR pPattern, L
 		}
 
 		// Write EXE back out
-		HANDLE hwritefile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hwritefile = CreateFileW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
 			DWORD byteswritten=0;
-			WriteFile(hwritefile, exeData.data(), dwSizeOfEXECode, &byteswritten, NULL); 
+			WriteFile(hwritefile, exeData.data(), dwSizeOfEXECode, &byteswritten, nullptr); 
 			CloseHandle(hwritefile);
 		}
 	}

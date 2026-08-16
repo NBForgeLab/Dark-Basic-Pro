@@ -120,7 +120,7 @@ void ASTOptimizer::Visit(ASTArrayAccessNode* node) {
     m_resultNode = nullptr;
 }
 
-void ASTOptimizer::Visit(ASTStructDeclNode* node) {
+void ASTOptimizer::Visit([[maybe_unused]] ASTStructDeclNode* node) {
     m_resultNode = nullptr;
 }
 

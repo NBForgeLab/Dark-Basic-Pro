@@ -8,55 +8,57 @@
 
 namespace {
 
-constexpr const char* kPassCommandLine =
-    "?PassCmdLineHandlerPtr@@YAXPAX@Z";
-constexpr const char* kPassError =
-    "?PassErrorHandlerPtr@@YAXPAX@Z";
-constexpr const char* kPassEscape =
-    "?PassEscapePtr@@YAXPAX@Z";
-constexpr const char* kPassBreakout =
-    "?PassBreakOutPtr@@YAXPAX@Z";
-constexpr const char* kPassData =
-    "?PassDataStatementPtr@@YAXPAD0@Z";
-constexpr const char* kPassStructurePatterns =
-    "?PassStructurePatterns@@YAXPAXK@Z";
-
-bool HasExport(const PeImageInfo& image, const char* name) {
-    return image.exports.count(name) != 0;
+bool HasExport(const PeImageInfo& image, const char* name1, const char* name2 = nullptr) {
+    if (image.exports.count(name1) != 0) return true;
+    if (name2 && image.exports.count(name2) != 0) return true;
+    return false;
 }
 
 RuntimeCapabilities DeriveCapabilities(const PeImageInfo& image) {
     RuntimeCapabilities capabilities;
-    const std::array<const char*, 12> lifecycleExports{
+
+    const bool hasPassCommandLine = HasExport(image, "?PassCmdLineHandlerPtr@@YAXPEAX@Z", "?PassCmdLineHandlerPtr@@YAXPAX@Z");
+    const bool hasPassError = HasExport(image, "?PassErrorHandlerPtr@@YAXPEAX@Z", "?PassErrorHandlerPtr@@YAXPAX@Z");
+    const bool hasPassEscape = HasExport(image, "?PassEscapePtr@@YAXPEAX@Z", "?PassEscapePtr@@YAXPAX@Z");
+    const bool hasPassBreakout = HasExport(image, "?PassBreakOutPtr@@YAXPEAX@Z", "?PassBreakOutPtr@@YAXPAX@Z");
+    const bool hasPassData = HasExport(image, "?PassDataStatementPtr@@YAXPEAD0@Z", "?PassDataStatementPtr@@YAXPAD0@Z");
+    const bool hasPassStructurePatterns = HasExport(image, "?PassStructurePatterns@@YAXPEAXK@Z", "?PassStructurePatterns@@YAXPAXK@Z");
+
+    const bool hasInitDisplay = HasExport(image, "?InitDisplay@@YAKKKKKPEAUHINSTANCE__@@PEAD@Z", "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z");
+    const bool hasDeleteVarItem = HasExport(image, "?DeleteSingleVariableAllocation@@YAXPEAK@Z", "?DeleteSingleVariableAllocation@@YAXPAK@Z");
+
+    const std::array<const char*, 10> basicLifecycleExports{
         "?PassDLLs@@YAXXZ",
         "?ConstructDLLs@@YAXXZ",
         "?GetGlobPtr@@YAKXZ",
-        "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z",
         "?CloseDisplay@@YAKXZ",
         "?CreateVariableSpace@@YAKK@Z",
         "?DeleteVariableSpace@@YAXXZ",
         "?CreateDataSpace@@YAKK@Z",
         "?DeleteDataSpace@@YAXXZ",
-        "?DeleteSingleVariableAllocation@@YAXPAK@Z",
         "?UnDimDD@@YAKK@Z",
         "?Sync@@YAXXZ"};
-    const bool hasLifecycle = std::all_of(
-        lifecycleExports.begin(), lifecycleExports.end(),
+
+    const bool hasBasicLifecycle = std::all_of(
+        basicLifecycleExports.begin(), basicLifecycleExports.end(),
         [&image](const char* name) { return HasExport(image, name); });
-    if (HasExport(image, kPassCommandLine) &&
-        HasExport(image, kPassError) &&
-        HasExport(image, kPassEscape) &&
-        HasExport(image, kPassBreakout) &&
+
+    const bool hasLifecycle = hasBasicLifecycle && hasInitDisplay && hasDeleteVarItem;
+
+    if (hasPassCommandLine &&
+        hasPassError &&
+        hasPassEscape &&
+        hasPassBreakout &&
         hasLifecycle) {
         capabilities.insert(RuntimeCapability::CoreBootstrapV1);
     }
-    if (HasExport(image, kPassData)) {
+    if (hasPassData) {
         capabilities.insert(RuntimeCapability::CoreDataStatementsV1);
     }
-    if (HasExport(image, kPassStructurePatterns)) {
+    if (hasPassStructurePatterns) {
         capabilities.insert(RuntimeCapability::CoreStructurePatternsV1);
     }
-    if (HasExport(image, kPassError)) {
+    if (hasPassError) {
         capabilities.insert(RuntimeCapability::CoreRuntimeErrorsV1);
     }
     return capabilities;
@@ -129,6 +131,16 @@ RuntimeResult<ResolvedRuntimeBundle> RuntimeBundleResolver::Resolve(
             root,
             bundle.corePath);
     }
+
+#if defined(_WIN64)
+    if (inspection.value().machine != PeMachine::X64 && inspection.value().machine != PeMachine::X86) {
+        return Failure(
+            RuntimeErrorCode::IncompatibleArchitecture,
+            "DBProCore.dll must be a valid PE image.",
+            root,
+            bundle.corePath);
+    }
+#else
     if (inspection.value().machine != PeMachine::X86) {
         return Failure(
             RuntimeErrorCode::IncompatibleArchitecture,
@@ -136,16 +148,19 @@ RuntimeResult<ResolvedRuntimeBundle> RuntimeBundleResolver::Resolve(
             root,
             bundle.corePath);
     }
+#endif
 
     bundle.capabilities = DeriveCapabilities(inspection.value());
-    const auto missing = MissingCapabilities(bundle.capabilities, requirements);
-    if (!missing.empty()) {
-        return Failure(
-            RuntimeErrorCode::MissingCapability,
-            "The selected DBPro runtime is missing a required capability.",
-            root,
-            bundle.corePath,
-            *missing.begin());
+    for (const auto required : requirements) {
+        if (bundle.capabilities.count(required) == 0) {
+            return Failure(
+                RuntimeErrorCode::MissingCapability,
+                "The selected runtime lacks required capability " +
+                    std::to_string(static_cast<int>(required)) + ".",
+                root,
+                bundle.corePath,
+                required);
+        }
     }
 
     return RuntimeResult<ResolvedRuntimeBundle>::Success(std::move(bundle));

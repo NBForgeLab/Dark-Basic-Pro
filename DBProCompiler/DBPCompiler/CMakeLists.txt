@@ -67,7 +67,6 @@ set(LIB_SOURCES
     StructTable.cpp
     Task.cpp
     VarTable.cpp
-    ASMWriterx64.cpp
     icons/DIB.C
     icons/ICONS.C
 )
@@ -155,10 +154,9 @@ target_compile_definitions(DBPCompiler PRIVATE WIN32 _WINDOWS NOGETDXVERSIONCODE
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
 
 # A compiler build is only usable when its host command database, localized
-# diagnostics, debugger, and legacy product plug-ins are deployed beside it.
-# Keep the newly built compiler and runner, but publish the immutable support
-# surface from the tracked installation instead of silently accepting a
-# partially populated output directory.
+# diagnostics, and legacy product plug-ins are deployed beside it. The
+# debugger is built from source (DBPDebugger target) into the same output
+# directory, so it must not be overwritten by a prebuilt copy here.
 set(DBP_COMPILER_HOST_ROOT "${CMAKE_SOURCE_DIR}/Install/Compiler")
 add_custom_command(
     TARGET DBPCompiler
@@ -168,21 +166,6 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${DBP_COMPILER_HOST_ROOT}/setup.ini"
         "$<TARGET_FILE_DIR:DBPCompiler>/setup.ini"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DBP_COMPILER_HOST_ROOT}/DBPDebugger.exe"
-        "$<TARGET_FILE_DIR:DBPCompiler>/DBPDebugger.exe"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DBP_COMPILER_HOST_ROOT}/BCGCB59.dll"
-        "$<TARGET_FILE_DIR:DBPCompiler>/BCGCB59.dll"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DBP_COMPILER_HOST_ROOT}/MD5.dll"
-        "$<TARGET_FILE_DIR:DBPCompiler>/MD5.dll"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DBP_COMPILER_HOST_ROOT}/mfc71.dll"
-        "$<TARGET_FILE_DIR:DBPCompiler>/mfc71.dll"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DBP_COMPILER_HOST_ROOT}/msvcr71.dll"
-        "$<TARGET_FILE_DIR:DBPCompiler>/msvcr71.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${DBP_COMPILER_HOST_ROOT}/lang"
         "$<TARGET_FILE_DIR:DBPCompiler>/lang"

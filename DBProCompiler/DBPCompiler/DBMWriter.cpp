@@ -266,12 +266,12 @@ bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMain
 		if(g_pDBPCompiler->GetProduceDBMFile())
 		{
 			db3::CProfile<> prof("CDBMWriter::WriteProgramAsEXEOrDEBUG() -> Deposit in DBM File");
-			HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetInternalFile(PATH_TEMPDBMFILE)).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(g_pDBPCompiler->GetInternalFile(PATH_TEMPDBMFILE)).c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if(hFile!=INVALID_HANDLE_VALUE)
 			{
 				DWORD BytesWritten=0;
 				DWORD ActualBytesToWrite=m_dwDBMOffset;
-				WriteFile(hFile, m_dbmData.data(), ActualBytesToWrite, &BytesWritten, NULL);
+				WriteFile(hFile, m_dbmData.data(), ActualBytesToWrite, &BytesWritten, nullptr);
 				CloseHandle(hFile);
 			}
 		}

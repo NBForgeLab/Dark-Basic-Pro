@@ -13,33 +13,36 @@
 extern CStructTable* g_pStructTable;
 extern CStatementList* g_pStatementList;
 
-#ifdef __AARON_VARTABLEPERF__
 #include <algorithm>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 std::unordered_map<std::string, CVarTable*> CVarTable::g_Table;
 
 namespace {
-static std::string var_to_lower(const std::string& s)
+static std::string var_to_lower(std::string_view s)
 {
-	std::string res = s;
-	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+	std::string res(s);
+	std::transform(res.begin(), res.end(), res.begin(), [](unsigned char c) {
+		return static_cast<char>(std::tolower(c));
+	});
 	return res;
 }
-}
 
-inline const char *MakeIntVarName(const char *scope, const char *name)
+inline std::string MakeIntVarName(std::string_view scope, std::string_view name)
 {
-	static char buf[2048];
+	if (scope.empty())
+		return std::string(name);
 
-	if (!scope || !scope[0])
-		return name;
-
-	sprintf_s(buf, "%s:%s", scope, name);
+	std::string buf;
+	buf.reserve(scope.size() + 1 + name.size());
+	buf.append(scope);
+	buf.push_back(':');
+	buf.append(name);
 	return buf;
 }
-#endif
+}
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -59,11 +62,11 @@ CVarTable::CVarTable()
 	m_bOffsetAssigned=false;
 	m_pAdditionalDataString=nullptr;
 
-	m_pNext=NULL;
-	m_pPrev=NULL;
+	m_pNext=nullptr;
+	m_pPrev=nullptr;
 }
 
-CVarTable::CVarTable(LPSTR pStr)
+CVarTable::CVarTable(LPCSTR pStr)
 {
 	m_dwLineNumber=0;
 
@@ -77,8 +80,8 @@ CVarTable::CVarTable(LPSTR pStr)
 	m_bOffsetAssigned=false;
 	m_pAdditionalDataString=nullptr;
 
-	m_pNext=NULL;
-	m_pPrev=NULL;
+	m_pNext=nullptr;
+	m_pPrev=nullptr;
 
 #ifdef __AARON_VARTABLEPERF__
 	std::string lowerStr = var_to_lower(pStr);
@@ -144,7 +147,7 @@ void CVarTable::Insert(CVarTable* pNew)
 
 void CVarTable::SetVarDefaults(void)
 {
-	// One _ESP_ var in table
+	// One _RSP_ var in table
 	DWORD dwAddDefaultVars=1;
 
 	// Used To Hold Pointer to Runtime Error DWORD (filled by DLLs during RT-error)
@@ -161,13 +164,13 @@ void CVarTable::SetVarDefaults(void)
 	g_pStatementList->IncVarQtyCounter(dwAddDefaultVars);
 }
 
-void CVarTable::AddInOrder(LPSTR pName, CVarTable* pNew)
+void CVarTable::AddInOrder(LPCSTR pName, CVarTable* pNew)
 {
 	// Find place to insert new variable
 	CVarTable* pLocation = this->GetNext();
 	while(pLocation)
 	{
-		if(stricmp(pName,pLocation->GetVarName()->GetStr())<0) break;
+		if(_stricmp(pName,pLocation->GetVarName()->GetStr())<0) break;
 		pLocation=pLocation->GetNext();
 	}
 	if(pLocation)
@@ -190,7 +193,7 @@ CVarTable* CVarTable::Advance(DWORD dwCountdown)
 		if(m_pNext)
 			return m_pNext->Advance(dwCountdown-1);
 
-	return NULL;
+	return nullptr;
 }
 
 CVarTable* CVarTable::Subtract(DWORD dwCountdown)
@@ -201,10 +204,10 @@ CVarTable* CVarTable::Subtract(DWORD dwCountdown)
 		if(m_pPrev)
 			return m_pPrev->Subtract(dwCountdown-1);
 
-	return NULL;
+	return nullptr;
 }
 
-bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal)
+bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal)
 {
 	DBP_TRACE("Registering variable: name={}, type={}, isGlobal={}", pName ? pName : "null", pType ? pType : "null", bIsGlobal);
 
@@ -221,9 +224,9 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 	if(pName[0]=='$') bVarIsTemporaryVariable=true;
 
 	// If defining var in userfunction, must be added to local dec chain
-	LPSTR pScope=NULL;
+	LPSTR pScope=nullptr;
 	LPSTR pUserFunc = g_pStatementList->GetUserFunctionName();
-	if(stricmp(pUserFunc,"")!=NULL)
+	if(_stricmp(pUserFunc,"")!=0)
 		pScope = g_pStatementList->GetUserFunctionName();
 
 	// leefix - 210703 - added for global var specified in ENDFUNCTION param
@@ -254,7 +257,7 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 			else
 			{
 				// Cannot duplicate a variable declaration by assignment a different type
-				if(stricmp(pFoundVar->GetVarType()->GetStr(),pType)==NULL)
+				if(_stricmp(pFoundVar->GetVarType()->GetStr(),pType)==0)
 				{
 					// Same type, so treat as a re-init of variable
 					if(pdwAction) *pdwAction=3;
@@ -274,7 +277,7 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 		bCheckGloballyFirst=true;
 
 	// Skip global var check if userfunction is declaring its local variables...
-	if(stricmp(pUserFunc,"")!=NULL
+	if(_stricmp(pUserFunc,"")!=0
 	&& ( g_pStatementList->GetImplementationParse()==true || bCheckGloballyFirst==true ) )
 	{
 		/* leefix - 230603
@@ -282,7 +285,7 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 		   that use names also used by global variables. HOWEVER local names must take precidence!!
 		   BUT if no local scope var was found, can look for global..
 		*/
-		if ( pFoundVar==NULL )
+		if ( pFoundVar==nullptr )
 		{
 			// Ensure it does not match a global variable
 			if(pdwAction) *pdwAction=0;
@@ -317,7 +320,7 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 			pNewDec->SetDecData(dwArrFlag, "", pName, pType, "", dwLineNumber);
 
 			// Add to chain USERFUNCTION LOCAL (if unique)
-			if(pGlobalDecChain->Find(pName,dwArrFlag)==NULL)
+			if(pGlobalDecChain->Find(pName,dwArrFlag)==nullptr)
 				pGlobalDecChain->Add(pNewDec);
 			else
 				delete pNewDec;
@@ -331,17 +334,17 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 		return true;
 	}
 
-	// If scope is NULL, create a global string for it
+	// If scope is nullptr, create a global string for it
 	CStr* pVarScopeStr = new CStr(pScope);
 //  LEEFIX - 230604 - u54 - GLOBAL DIM arr(x) in scope must have no scope name!
-//	if((dwArrFlag==0 && pScope==NULL && bIsGlobal==true) 
+//	if((dwArrFlag==0 && pScope==nullptr && bIsGlobal==true) 
 	if((dwArrFlag==0 && bIsGlobal==true)
-	|| (dwArrFlag==1 && (pScope==NULL || bIsGlobal==true)) )
+	|| (dwArrFlag==1 && (pScope==nullptr || bIsGlobal==true)) )
 	{
 		// Global or Non-nested local arrays are also global
 		pVarScopeStr->SetText("");
 	}
-	if(pType==NULL)
+	if(pType==nullptr)
 	{
 		// Cannot duplicate a variable declaration
 		g_pErrorReport->AddErrorString("Failed to 'AddVariable::pType==NULL'");
@@ -407,10 +410,10 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 	if ( dwArrFlag==1 )
 	{
 		if ( pVarScopeStr )
-			if ( strcmp ( pVarScopeStr->GetStr(), "" )==NULL )
+			if ( strcmp ( pVarScopeStr->GetStr(), "" )==0 )
 				pNewVar->SetSpecifiedAsGlobalFlag(true);
 
-		if ( pVarScopeStr==NULL )
+		if ( pVarScopeStr==nullptr )
 			pNewVar->SetSpecifiedAsGlobalFlag(true);
 	}
 
@@ -424,7 +427,7 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 	AddInOrder(pName, pNewVar);
 
 #ifdef __AARON_VARTABLEPERF__
-	const char *pIntVarName = MakeIntVarName(pVarScopeStr->GetStr(), pName);
+	std::string pIntVarName = MakeIntVarName(pVarScopeStr->GetStr(), pName);
 	std::string lowerIntVarName = var_to_lower(pIntVarName);
 	assert_msg(g_Table.find(lowerIntVarName) == g_Table.end() || g_Table[lowerIntVarName] == nullptr, "Variable already exists");
 	g_Table[lowerIntVarName] = pNewVar;
@@ -440,142 +443,34 @@ bool CVarTable::AddVariable(LPSTR pName, LPSTR pType, DWORD dwArrFlag, DWORD dwL
 	return true;
 }
 
-CVarTable* CVarTable::FindVariable(LPSTR pScope, LPSTR pName, DWORD dwArrFlag)
+CVarTable* CVarTable::FindVariable(LPCSTR pScope, LPCSTR pName, DWORD dwArrFlag)
 {
-#ifdef __AARON_VARTABLEPERF__
-	const char *pIntName = MakeIntVarName(pScope, pName);
+	if (!pName)
+		return nullptr;
+
+	std::string pIntName = MakeIntVarName(pScope ? pScope : "", pName);
 	std::string lowerIntName = var_to_lower(pIntName);
 	auto it = g_Table.find(lowerIntName);
 	if (it == g_Table.end() || !it->second)
 		return nullptr;
 
-	if (it->second->GetArrFlag()!=dwArrFlag)
+	if (it->second->GetArrFlag() != dwArrFlag)
 		return nullptr;
 
 	return it->second;
-#else
-	// Start search in middle of list
-	CVarTable* pCurrent = this;
-	DWORD dFirst = 0;
-	DWORD dLast = g_pStatementList->GetVarQtyCounter();
-	DWORD dMiddlePos = 0;
-	DWORD dwStep = ((dLast-dFirst)/2);
-	if(dwStep<1) dwStep=1;
-	dMiddlePos = dFirst + dwStep;
-	pCurrent = pCurrent->Advance(dwStep);
-
-	// First find name in list (irrespective of scope)
-	DWORD dwDirectionSwitchAtOneStep=0;
-	while(pCurrent)
-	{
-		// Close in on item
-		DWORD dwDirection=0;
-		if(stricmp(pName, pCurrent->GetVarName()->GetStr())<0)
-		{
-			dLast = dMiddlePos;
-			dwStep = ((dLast-dFirst)/2);
-			if(dwStep<1) dwStep=1;
-			dMiddlePos = dMiddlePos - dwStep;
-			pCurrent = pCurrent->Subtract(dwStep);
-			dwDirection=1;
-		}
-		else
-		{
-			if(stricmp(pName, pCurrent->GetVarName()->GetStr())>0)
-			{
-				dFirst = dMiddlePos;
-				dwStep = ((dLast-dFirst)/2);
-				if(dwStep<1) dwStep=1;
-				dMiddlePos = dMiddlePos + dwStep;
-				pCurrent = pCurrent->Advance(dwStep);
-				dwDirection=2;
-			}
-		}
-
-		// If one step and direction switch, not here in list!
-		if(abs(static_cast<int>(dLast - dFirst)) < 2)
-		{
-			if(dwDirectionSwitchAtOneStep==0)
-				dwDirectionSwitchAtOneStep=dwDirection;
-			else
-				if(dwDirectionSwitchAtOneStep!=dwDirection)
-					break;
-		}
-
-		// No more items
-		if(pCurrent==NULL)
-			break;
-
-		if(dFirst==dLast)
-			break;
-
-		// Check if this is the one
-		if(stricmp(pCurrent->GetVarName()->GetStr(),pName)==NULL)
-			break;
-	}
-
-	// Make sure its the first name in the list (may be several) (trackback)
-	while(pCurrent)
-	{
-		if(pCurrent->GetPrev())
-		{
-			if(stricmp(pCurrent->GetPrev()->GetVarName()->GetStr(),pName)!=NULL) break;
-			pCurrent=pCurrent->GetPrev();
-		}
-		else
-			break;
-	}
-
-	// Check name(s) against scope
-	while(pCurrent)
-	{
-		if(stricmp(pCurrent->GetVarName()->GetStr(),pName)==NULL)
-		{
-			if(pCurrent->GetArrFlag()==dwArrFlag)
-			{
-				if(pScope)
-				{
-					if(pCurrent->GetVarScope())
-					{
-						if(pCurrent->GetVarScope()->GetStr()!=NULL)
-						{
-							if(stricmp(pCurrent->GetVarScope()->GetStr(),pScope)==NULL)
-								return pCurrent;
-						}
-					}
-				}
-				else
-				{
-					if(pCurrent->GetVarScope())
-					{
-						if(stricmp(pCurrent->GetVarScope()->GetStr(),"")==NULL) // 25-01-02:does this matter?
-							return pCurrent;
-					}
-				}
-			}
-		}
-		else
-			break;
-
-		pCurrent = pCurrent->GetNext();
-	}
-
-	// Could not find var name
-	return NULL;
-#endif
 }
 
-bool CVarTable::FindVariableExist(LPSTR pFindVar, DWORD dwArrFlag)
+bool CVarTable::FindVariableExist(LPCSTR pFindVar, DWORD dwArrFlag)
 {
 	// Ensure pScope is observed
-	LPSTR pScope=NULL;
+	LPCSTR pScope=nullptr;
 	if(g_pStatementList->GetUserFunctionDecChain())
 		if(g_pStatementList->GetUserFunctionName())
 			pScope = g_pStatementList->GetUserFunctionName();
 
 	// Scan list and match variable name
 	CVarTable* pFoundVar = FindVariable(pScope, pFindVar, dwArrFlag);
-	if(pFoundVar==NULL)
+	if(pFoundVar==nullptr)
 	{
 		// Try as global
 		pFoundVar = FindVariable("", pFindVar, dwArrFlag);
@@ -591,11 +486,11 @@ bool CVarTable::FindVariableExist(LPSTR pFindVar, DWORD dwArrFlag)
 	}
 }
 
-bool CVarTable::FindTypeOfVariable(LPSTR pFindVar, DWORD dwArrType, LPSTR* pReturnType)
+bool CVarTable::FindTypeOfVariable(LPCSTR pFindVar, DWORD dwArrType, LPSTR* pReturnType)
 {
 	/*
 	// Skip var token
-	CStr* pFindVarName = NULL;
+	CStr* pFindVarName = nullptr;
 	if(*pVarString=='@') pVarString++;
 	if(pMathString->CheckChars(0,3,"FS@"))
 	{
@@ -606,27 +501,27 @@ bool CVarTable::FindTypeOfVariable(LPSTR pFindVar, DWORD dwArrType, LPSTR* pRetu
 	*/
 
 	// Ensure pScope is observed
-	LPSTR pScope=NULL;
+	LPCSTR pScope=nullptr;
 	if(g_pStatementList->GetUserFunctionDecChain())
 		if(g_pStatementList->GetUserFunctionName())
 			pScope = g_pStatementList->GetUserFunctionName();
 
 	// Scan list and match variable name
 	CVarTable* pFoundVar = FindVariable(pScope, pFindVar, dwArrType);
-	if(pFoundVar==NULL)
+	if(pFoundVar==nullptr)
 	{
 		// Try as global
 		pFoundVar = FindVariable("", pFindVar, dwArrType);
-		if(pFoundVar==NULL) pFoundVar = FindVariable("", pFindVar, dwArrType);
+		if(pFoundVar==nullptr) pFoundVar = FindVariable("", pFindVar, dwArrType);
 	}
 
 	// Get Type Data
 	if(pFoundVar)
 	{
 		// Get type string
-		DWORD length = strlen(pFoundVar->GetVarType()->GetStr());
+		size_t length = strlen(pFoundVar->GetVarType()->GetStr());
 		*pReturnType = new char[length+2];
-		strcpy(*pReturnType, pFoundVar->GetVarType()->GetStr());
+		snprintf(*pReturnType, length+2, "%s", pFoundVar->GetVarType()->GetStr());
 		return true;
 	}
 
@@ -634,13 +529,13 @@ bool CVarTable::FindTypeOfVariable(LPSTR pFindVar, DWORD dwArrType, LPSTR* pRetu
 	return false;
 }
 
-std::string CVarTable::MakeDefaultVarType(LPSTR pDecName)
+std::string CVarTable::MakeDefaultVarType(LPCSTR pDecName)
 {
-	if(pDecName==NULL)
+	if(pDecName==nullptr)
 		return std::string();
 
 	// Suffix rule can pre-define variable types
-	DWORD length=strlen(pDecName);
+	size_t length=strlen(pDecName);
 	if(length>0 && pDecName[length-1]=='#')
 		return "float";
 	if(length>0 && pDecName[length-1]=='$')
@@ -649,18 +544,18 @@ std::string CVarTable::MakeDefaultVarType(LPSTR pDecName)
 	return "integer";
 }
 
-DWORD CVarTable::MakeDefaultVarTypeValue(LPSTR pDecName)
+DWORD CVarTable::MakeDefaultVarTypeValue(LPCSTR pDecName)
 {
 	DWORD dwTypeValue=1;
 	if(pDecName)
 	{
 		// Suffix rule can pre-define variable types
-		DWORD length=strlen(pDecName);
-		if(pDecName[length-1]=='#')
+		size_t length=strlen(pDecName);
+		if(length>0 && pDecName[length-1]=='#')
 		{
 			dwTypeValue=2;
 		}
-		if(pDecName[length-1]=='$')
+		if(length>0 && pDecName[length-1]=='$')
 		{
 			dwTypeValue=3;
 		}
@@ -676,21 +571,21 @@ LPSTR CVarTable::MakeTypeNameOfTypeValue(DWORD dwTypeValue)
 		if(pCurrent->GetTypeValue()==dwTypeValue)
 		{
 			LPSTR pStr = new char[pCurrent->GetTypeName()->Length()+1];
-			strcpy(pStr, pCurrent->GetTypeName()->GetStr());
+			snprintf(pStr, pCurrent->GetTypeName()->Length()+1, "%s", pCurrent->GetTypeName()->GetStr());
 			return pStr;
 		}
 		pCurrent = pCurrent->GetNext();
 	}
-	return NULL;
+	return nullptr;
 }
 
-DWORD CVarTable::GetBasicTypeValue(LPSTR pTypeString)
+DWORD CVarTable::GetBasicTypeValue(LPCSTR pTypeString)
 {
 	CStructTable* pCurrent = g_pStructTable;
 	while(pCurrent)
 	{
-		LPSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
-		if(stricmp(pCurrentStr, pTypeString)==NULL)
+		LPCSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
+		if(_stricmp(pCurrentStr, pTypeString)==0)
 		{
 			return pCurrent->GetTypeValue();
 		}
@@ -699,13 +594,13 @@ DWORD CVarTable::GetBasicTypeValue(LPSTR pTypeString)
 	return 0;
 }
 
-CStructTable* CVarTable::GetStruct(LPSTR pTypeString)
+CStructTable* CVarTable::GetStruct(LPCSTR pTypeString)
 {
 	CStructTable* pCurrent = g_pStructTable;
 	while(pCurrent)
 	{
-		LPSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
-		if(stricmp(pCurrentStr, pTypeString)==NULL)
+		LPCSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
+		if(_stricmp(pCurrentStr, pTypeString)==0)
 		{
 			return pCurrent;
 		}
@@ -747,7 +642,7 @@ bool CVarTable::VerifyVariableStructures(void)
 	// Scan list and match variable name
 	if(GetVarType())
 	{
-		if(g_pStructTable->DoesTypeEvenExist(GetVarType()->GetStr())==NULL)
+		if(g_pStructTable->DoesTypeEvenExist(GetVarType()->GetStr())==nullptr)
 		{
 			DWORD LineNumber = GetLineNumber();
 			g_pErrorReport->SetError(LineNumber, ERR_SYNTAX+37, GetVarType()->GetStr());

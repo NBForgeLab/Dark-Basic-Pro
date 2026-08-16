@@ -12,86 +12,11 @@
 #include "io.h"
 #include "TextConvert.h"
 #include <string>
+#include <filesystem>
 
 // External Class Pointers
 extern CVarTable* g_pVarTable;
 extern CDBPCompiler* g_pDBPCompiler;
-
-//
-// Internal Support Functions
-//
-
-bool					m_bScanActive=false;
-int						m_findex;
-struct _finddata_t		m_filedata[200];
-long					m_hInternalFile[200];
-int						m_FileReturnValue[200];
-
-void Init(void)
-{
-	m_findex=0;
-	for(int n=0; n<199; n++)
-	{
-		m_hInternalFile[n]=NULL;
-		m_FileReturnValue[n]=-1;
-	}
-}
-
-void Free(void)
-{
-	for(int n=0; n<199; n++)
-	{
-		if(m_hInternalFile[n]) _findclose(m_hInternalFile[n]);
-		m_FileReturnValue[n]=-1;
-	}
-}
-
-void FFindCloseFile(void)
-{
-	_findclose(m_hInternalFile[m_findex]);
-	m_hInternalFile[m_findex]=NULL;
-}
-
-void FFindFirstFile(LPSTR pExt)
-{
-	if(m_hInternalFile[m_findex]) FFindCloseFile();
-	m_hInternalFile[m_findex] = _findfirst(pExt, &m_filedata[m_findex]);
-	if(m_hInternalFile[m_findex]!=-1L)
-	{
-		// Success!
-		m_FileReturnValue[m_findex]=0;
-	}
-}
-
-int FGetFileReturnValue(void)
-{
-	return m_FileReturnValue[m_findex];
-}
-
-void FFindNextFile(void)
-{
-	m_FileReturnValue[m_findex] = _findnext(m_hInternalFile[m_findex], &m_filedata[m_findex]);
-}
-
-int FGetActualTypeValue(int flagvalue)
-{
-	if(flagvalue & _A_SUBDIR)
-		return 1;
-	else
-		return 0;
-}
-
-bool FileExist(LPSTR pFilename)
-{
-	HANDLE hReadFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hReadFile!=INVALID_HANDLE_VALUE)
-	{
-		CloseHandle(hReadFile);
-		return true;
-	}
-	else
-		return false;
-}
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -116,8 +41,8 @@ CInstructionTable::CInstructionTable()
 	m_dwCurrentInternalID=1000;
 
 #ifndef __AARON_INSTRPERF__
-	m_pFirstInstructionEntry=NULL;
-	m_pFirstUserFunctionEntry=NULL;
+	m_pFirstInstructionEntry=nullptr;
+	m_pFirstUserFunctionEntry=nullptr;
 #endif
 
 	// Clear instruction table array
@@ -426,142 +351,54 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 	return true;
 }
 
-void CInstructionTable::ScanStart(void)
+void CInstructionTable::ScanPluginDirectory(const std::filesystem::path& dirPath)
 {
-	// Initialise
-	Init();
+	std::error_code ec;
+	if (!std::filesystem::exists(dirPath, ec) || !std::filesystem::is_directory(dirPath, ec))
+		return;
 
-	// Start Scan
-	FFindFirstFile("*.dll");
-
-	// begin scan
-	m_bScanActive=true;
-}
-
-void CInstructionTable::ScanStep(void)
-{
-	if(FGetFileReturnValue()!=-1)
+	for (const auto& entry : std::filesystem::directory_iterator(dirPath, ec))
 	{
-		// Item Details
-		LPSTR pDLLFile = m_filedata[m_findex].name;
-		DWORD dwType = m_filedata[m_findex].attrib;
-		if(stricmp(pDLLFile,".")!=NULL && stricmp(pDLLFile, "..")!=NULL)
+		if (ec) break;
+		if (entry.is_regular_file(ec))
 		{
-			if(FGetActualTypeValue(dwType)==1)
+			auto ext = entry.path().extension().string();
+			if (_stricmp(ext.c_str(), ".dll") == 0)
 			{
-				// No folders
-			}
-			else
-			{
-				// Do File Thing
-				std::string name(pDLLFile);
-				name.resize(name.size()-4);
-				LoadCommandsFromDLL(const_cast<LPSTR>(name.c_str()), pDLLFile);
+				std::string name = entry.path().stem().string();
+				std::string filename = entry.path().filename().string();
+				LoadCommandsFromDLL(name.c_str(), filename.c_str());
 			}
 		}
-
-		// Go to next one
-		FFindNextFile();
 	}
-	else
-	{
-		// Determine quit state
-		if(m_findex==0)
-		{
-			// Scan Over
-			m_bScanActive=false;
-		}
-	}
-}
-
-void CInstructionTable::ScanEnd(void)
-{
-	// Free usages
-	Free();
 }
 
 bool CInstructionTable::ScanPluginsForCommands(void)
 {
 	// Store current folder
-	char path[_MAX_PATH];
-	_getcwd(path, _MAX_PATH);
-	g_pDBPCompiler->SetInternalFile(PATH_CURRENTFOLDER, path);
-
+	std::error_code ec;
+	const auto originalPath = std::filesystem::current_path(ec);
+	g_pDBPCompiler->SetInternalFile(PATH_CURRENTFOLDER, const_cast<LPSTR>(originalPath.string().c_str()));
 
 	// Switch to PLUGINS Folder
-	_chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
-
-	/* When I compiled VS2012 (with VS 10.0 platform), got this error:
-	   No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-
-	//
-	//	TODO: Make each DLL load in parallel
-	//	NOTE: This will probably be a good test for the work queue
-	//
-
-	// For each DLL found, attempt to add it as a commandDLL
-	struct SEnv
-	{
-		const char *ca;
-		const char *nm;
-		CInstructionTable *it;
-	};
-	const SEnv parms[] =
-	{
-		"core","dbprocore.dll",this,
-		"display","DBProSetupDebug.dll",this,
-		"text","DBProTextDebug.dll",this,
-		"image","DBProImageDebug.dll",this,
-		"basic2d","DBProBasic2DDebug.dll",this,
-		"sprite","DBProSpritesDebug.dll",this,
-		"input","DBProInputDebug.dll",this,
-		"system","DBProSystemDebug.dll",this,
-		"file","DBProFileDebug.dll",this,
-		"ftp","DBProFtpDebug.dll",this,
-		"memblocks","DBProMemblocksDebug.dll",this,
-		"animation","DBProAnimationDebug.dll",this,
-		"bitmap","DBProBitmapDebug.dll",this,
-		"multiplayer","DBProMultiplayerDebug.dll",this,
-		"camera","DBProCameraDebug.dll",this,
-		"light","DBProLightDebug.dll",this,
-		"matrix","DBProMatrixDebug.dll",this,
-		"basic3d","DBProBasic3DDebug.dll",this,
-		"world","DBProWorld3DDebug.dll",this,
-		"world","DBProLODTerrainDebug.dll",this,
-		"3dmaths","DBProVectorsDebug.dll",this,
-		"particles","DBProParticlesDebug.dll",this,
-		"music","DBProMusicDebug.dll",this,
-		"sound","DBProSoundDebug.dll",this,
-		"basic3d","DBProCSGDebug.dll",this,
-		"transforms","DBProTransformsDebug.dll",this
-	};
-	void(*load)(const SEnv *env) = [](const SEnv *env)->void
-	{
-		env->it->LoadCommandsFromDLL(const_cast<LPSTR>(env->ca), const_cast<LPSTR>(env->nm));
-	};
-
-	db3::CSignal sig;
-	db3::uint p;
-	for(p=0; p<sizeof(parms)/sizeof(parms[0]); p++)
-	{
-		//g_WorkQueue.Enqueue(load, &parms[p], &sig);
-		load(&parms[p]);
-	}
-
-	//sig.Sync();
-	*/
+	std::filesystem::current_path(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER), ec);
 
 	// Read core commands from the selected core runtime. This is the same image
 	// that packaging embeds, so decorated command names cannot drift.
 	const auto* runtimeBundle = g_pDBPCompiler->GetResolvedRuntimeBundle();
-	if(runtimeBundle == nullptr ||
-		_chdir(runtimeBundle->pluginsDirectory.string().c_str()) != 0 ||
-		!LoadCommandsFromDLL("core","dbprocore.dll"))
+	if(runtimeBundle == nullptr)
 	{
-		_chdir(g_pDBPCompiler->GetInternalFile(PATH_CURRENTFOLDER));
+		std::filesystem::current_path(originalPath, ec);
 		return false;
 	}
-	_chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER));
+
+	std::filesystem::current_path(runtimeBundle->pluginsDirectory, ec);
+	if(!LoadCommandsFromDLL("core","dbprocore.dll"))
+	{
+		std::filesystem::current_path(originalPath, ec);
+		return false;
+	}
+	std::filesystem::current_path(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSFOLDER), ec);
 
 	// The remaining DLLs belong to the host product's command surface.
 	LoadCommandsFromDLL("display","DBProSetupDebug.dll");
@@ -589,21 +426,24 @@ bool CInstructionTable::ScanPluginsForCommands(void)
 	LoadCommandsFromDLL("sound","DBProSoundDebug.dll");
 	LoadCommandsFromDLL("basic3d","DBProCSGDebug.dll");
 	LoadCommandsFromDLL("transforms","DBProTransformsDebug.dll");
+	LoadCommandsFromDLL("gamefx","DBProGameFX.dll");
+	LoadCommandsFromDLL("gamefx","DBProGameFXDebug.dll");
+	LoadCommandsFromDLL("advancedmatrix","DBProAdvancedMatrixDebug.dll");
+	LoadCommandsFromDLL("q2bsp","DBProQ2BSPDebug.dll");
+	LoadCommandsFromDLL("q3bsp","DBProQ3BSPDebug.dll");
+	LoadCommandsFromDLL("custombsp","DBProCustomBSPDebug.dll");
+	LoadCommandsFromDLL("ode","DBProODEDebug.dll");
 
 	// Switch to PLUGINS-USER Folder
-	_chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER));
-	ScanStart();
-	while(m_bScanActive) ScanStep();
-	ScanEnd();
+	std::filesystem::current_path(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER), ec);
+	ScanPluginDirectory(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSUSERFOLDER));
 
 	// Switch to PLUGINS-LICENSED Folder
-	_chdir(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
-	ScanStart();
-	while(m_bScanActive) ScanStep();
-	ScanEnd();
+	std::filesystem::current_path(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER), ec);
+	ScanPluginDirectory(g_pDBPCompiler->GetInternalFile(PATH_PLUGINSLICENSEDFOLDER));
 
 	// Switch back to current folder
-	_chdir(g_pDBPCompiler->GetInternalFile(PATH_CURRENTFOLDER));
+	std::filesystem::current_path(originalPath, ec);
 	return true;
 }
 
@@ -613,31 +453,31 @@ bool CInstructionTable::LoadInstructionDatabase(void)
 	return ScanPluginsForCommands();
 }
 
-bool CInstructionTable::AddCommand(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax)
+bool CInstructionTable::AddCommand(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax)
 {
-	return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, 0, 0, 0, false, NULL, NULL);
+	return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, 0, 0, 0, false, nullptr, nullptr);
 }
 
-bool CInstructionTable::AddUniqueCommand(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax)
+bool CInstructionTable::AddUniqueCommand(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax)
 {
 	// Only add if completely unique
 	if(FindInstructionWithNameAndParams(pName, pParamTypesString)==false)
-		return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, 0, 0, 0, false, NULL, NULL);
+		return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, 0, 0, 0, false, nullptr, nullptr);
 	else
 		return true;
 }
 
-bool CInstructionTable::AddBuildCommand(LPSTR pName, LPSTR pDesc, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
+bool CInstructionTable::AddBuildCommand(LPCSTR pName, LPCSTR pDesc, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
 {
-	return AddCommandCore2(pName, "", pDesc, pParamTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, NULL, NULL);
+	return AddCommandCore2(pName, "", pDesc, pParamTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, nullptr, nullptr);
 }
 
-bool CInstructionTable::AddCommandCore(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
+bool CInstructionTable::AddCommandCore(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
 {
-	return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, NULL, NULL);
+	return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, nullptr, nullptr);
 }
 
-bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecoratedName, LPSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr )
+bool CInstructionTable::AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr )
 {
 	// Make Entry (RAII-owned until inserted into the table)
 	auto pEntryOwner = std::make_unique<CInstructionTableEntry>();
@@ -681,23 +521,23 @@ bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecorate
 		{
 			if(pEntry->GetReturnParam()==pLastFriendEntry->GetReturnParam())
 			{
-				if(pEntry->GetDLL()->Length()>0 && pLastFriendEntry->GetDLL()->Length()>0)
+				if(pEntry->GetDLL() && pLastFriendEntry->GetDLL() && pEntry->GetDLL()->Length()>0 && pLastFriendEntry->GetDLL()->Length()>0)
 				{
-					if(pEntry->GetDecoratedName()->Length()>0 && pLastFriendEntry->GetDecoratedName()->Length()>0)
+					if(pEntry->GetDecoratedName() && pLastFriendEntry->GetDecoratedName() && pEntry->GetDecoratedName()->Length()>0 && pLastFriendEntry->GetDecoratedName()->Length()>0)
 					{
-						if(stricmp(pLastFriendEntry->GetName()->GetStr(), pEntry->GetName()->GetStr())==NULL)
+						if(pLastFriendEntry->GetName() && pEntry->GetName() && _stricmp(pLastFriendEntry->GetName()->GetStr(), pEntry->GetName()->GetStr())==0)
 						{
-							if(stricmp(pLastFriendEntry->GetParamTypes()->GetStr(), pEntry->GetParamTypes()->GetStr())==NULL)
+							if(pLastFriendEntry->GetParamTypes() && pEntry->GetParamTypes() && _stricmp(pLastFriendEntry->GetParamTypes()->GetStr(), pEntry->GetParamTypes()->GetStr())==0)
 							{
 								// if return string valid, fill with conflicting DLL/name
 								if ( plpretStr )
 								{
 									// create and return in ptr
 									*plpretStr = new char[512];
-									wsprintf ( *plpretStr, "%s", pLastFriendEntry->GetDLL()->GetStr() );
+									snprintf ( *plpretStr, 512, "%s", pLastFriendEntry->GetDLL()->GetStr() );
 								}
 								// identical command, cannot have two the same
-								SAFE_DELETE(pEntry);
+								pEntryOwner.reset();
 								return false;
 							}
 						}
@@ -712,9 +552,9 @@ bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecorate
 			// Add unique command to instructions
 			CInstructionTableEntry* pNextAfterLast = pLastFriendEntry->GetNext();
 			if(pNextAfterLast)
-				pNextAfterLast->Insert(pEntry);
+				pNextAfterLast->Insert(pEntryOwner.release());
 			else
-				pLastFriendEntry->Add(pEntry);
+				pLastFriendEntry->Add(pEntryOwner.release());
 		}
 	}
 	else
@@ -722,10 +562,10 @@ bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecorate
 		db3::CAutolock autolock(m_Lock);
 
 		// Newy - Add to Database
-		if(m_pFirstInstructionEntry==NULL)
-			m_pFirstInstructionEntry=pEntry;
+		if(m_pFirstInstructionEntry==nullptr)
+			m_pFirstInstructionEntry=pEntryOwner.release();
 		else
-			m_pFirstInstructionEntry->Add(pEntry);
+			m_pFirstInstructionEntry->Add(pEntryOwner.release());
 	}
 #else
 	{
@@ -749,12 +589,14 @@ bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecorate
 	}
 #endif
 
+#ifdef __AARON_INSTRPERF__
 	// NOTE: Storing this doesn't look like it's necessary, but it might as well be done anyway
 	// NOTE[20121123]: Storing this is somewhat necessary.
 	if (!m_EntryArray.CheckSlot(static_cast<db3::uint>(dwCurrentID)))
 		return false;
 
 	m_EntryArray[dwCurrentID] = pEntry;
+#endif
 
 	// Store reference if internal
 	if(dwInternalValueIndex>0)
@@ -769,7 +611,7 @@ bool CInstructionTable::AddCommandCore2(LPSTR pName, LPSTR pDLL, LPSTR pDecorate
 	return true;
 }
 
-bool CInstructionTable::AddUserFunction(LPSTR pName, DWORD resultp, LPSTR pParamTypesString, DWORD pmax, CDeclaration* pDecChain)
+bool CInstructionTable::AddUserFunction(LPCSTR pName, DWORD resultp, LPCSTR pParamTypesString, DWORD pmax, CDeclaration* pDecChain)
 {
 	// leefix-040803-Before confirm, check if name is a reserved word or function name
 	if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( pName ) ) return false;
@@ -787,7 +629,7 @@ bool CInstructionTable::AddUserFunction(LPSTR pName, DWORD resultp, LPSTR pParam
 
 	pStrID->SetNumericText(dwCurrentID);
 	// Ownership of the three CStr buffers transfers into the entry.
-	pEntry->SetData(dwCurrentID, pStr.release(), NULL, pStrID.release(), pStrParamTypes.release(), resultp, pmax, 0, 0);
+	pEntry->SetData(dwCurrentID, pStr.release(), nullptr, pStrID.release(), pStrParamTypes.release(), resultp, pmax, 0, 0);
 
 	// Ensure all user functions know about their userfunction structure
 	if ( pDecChain ) pEntry->SetDecChain(pDecChain);
@@ -812,10 +654,10 @@ bool CInstructionTable::AddUserFunction(LPSTR pName, DWORD resultp, LPSTR pParam
 	m_EntryArray[dwCurrentID] = pEntry;
 #else
 	// Add to Database
-	if(m_pFirstUserFunctionEntry==NULL)
-		m_pFirstUserFunctionEntry=pEntry;
+	if(m_pFirstUserFunctionEntry==nullptr)
+		m_pFirstUserFunctionEntry=pEntryOwner.release();
 	else
-		m_pFirstUserFunctionEntry->Add(pEntry);
+		m_pFirstUserFunctionEntry->Add(pEntryOwner.release());
 #endif
 
 	// success
@@ -834,6 +676,8 @@ inline bool IdentifierBreak(char c, bool bAcceptWhitespace)
 	return false;
 }
 #endif
+
+#ifdef __AARON_INSTRPERF__
 inline const char *AdvanceIdentifier(const char *pStringData, bool bAcceptWhitespace)
 {
 #if 0
@@ -878,7 +722,7 @@ inline const char *AdvanceIdentifier(const char *pStringData, bool bAcceptWhites
 		for(p="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_#$%"; *p!='\0'; p++)
 			accept_n[*p]=accept_w[*p] = true;
 
-		for(p=" "; *p!='\0'; p++)
+		for(p="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_#$% \t"; *p!='\0'; p++)
 			accept_w[*p] = true;
 # else
 		for(p="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_#$%"; *p!='\0'; p++)
@@ -904,7 +748,9 @@ inline const char *AdvanceIdentifier(const char *pStringData, bool bAcceptWhites
 	return p;
 #endif
 }
+#endif
 
+#ifdef __AARON_INSTRPERF__
 CInstructionTableEntry *CInstructionTable::GetEntry(int iType, const char *pStringData, bool *pRetFail)
 {
 	map_type &mt = iType == 0 ? m_InstructionMap : m_UserFunctionMap;
@@ -949,7 +795,7 @@ CInstructionTableEntry *CInstructionTable::ResolveEntry(CInstructionTableEntry *
 
 	return nullptr;
 }
-bool CInstructionTable::FindEntryDirect(int iType, bool bCommandWhiteSpace, LPSTR pStringData, int iWithReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef)
+bool CInstructionTable::FindEntryDirect(int iType, bool bCommandWhiteSpace, LPCSTR pStringData, int iWithReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef)
 {
 	CInstructionTableEntry *pItem, *pRslv;
 
@@ -969,8 +815,9 @@ bool CInstructionTable::FindEntryDirect(int iType, bool bCommandWhiteSpace, LPST
 
 	return true;
 }
+#endif
 
-bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructionTableEntry* pBaseEntry, LPSTR pStringData, int iWithAnyReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef)
+bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructionTableEntry* pBaseEntry, LPCSTR pStringData, int iWithAnyReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef)
 {
 #ifdef __AARON_INSTRPERF__
 # if 0
@@ -1100,9 +947,9 @@ bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructi
 			snprintf(pTry, sizeof(pTry), "%s", pEntry->GetName()->GetStr());
 
 			// Check with current parse item
-			DWORD length=strlen(pTry);
+			DWORD length = static_cast<DWORD>(strlen(pTry));
 			bool bFoundAPossible=false;
-			if(_strnicmp(pStringData, pTry, length)==NULL)
+			if(_strnicmp(pStringData, pTry, length)==0)
 			{
 				if(bCommandWhiteSpace==false)
 				{
@@ -1117,7 +964,7 @@ bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructi
 						{
 							// Scan on - look for more
 							bool bNothingElse=true;
-							LPSTR pPtr = pStringData+length;
+							LPCSTR pPtr = pStringData+length;
 							while(*(pPtr)!=0 && *(pPtr)!=10 && *(pPtr)!=':' && bNothingElse==true)
 							{
 								if(*pPtr>32) bNothingElse=false;
@@ -1168,23 +1015,23 @@ bool CInstructionTable::FindEntry(int iType, bool bCommandWhiteSpace, CInstructi
 #endif
 }
 
-bool CInstructionTable::FindInstruction(bool bCommandWhiteSpace, LPSTR pStringData, int iWithAnyReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef)
+bool CInstructionTable::FindInstruction(bool bCommandWhiteSpace, LPCSTR pStringData, int iWithAnyReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength, CInstructionTableEntry** ppRef)
 {
 #ifdef __AARON_INSTRPERF__
 	CInstructionTableEntry *m_pFirstInstructionEntry = nullptr;
-#endif
 	if (!bCommandWhiteSpace)
 		return FindEntryDirect(0, bCommandWhiteSpace, pStringData, iWithAnyReturnValue, pdwData, pdwParamMax, pdwLength, ppRef);
+#endif
 
 	return FindEntry(0, bCommandWhiteSpace, m_pFirstInstructionEntry, pStringData, iWithAnyReturnValue, pdwData, pdwParamMax, pdwLength, ppRef);
 }
 
-bool CInstructionTable::FindUserFunction(LPSTR pStringData, int iWithAnyReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength)
+bool CInstructionTable::FindUserFunction(LPCSTR pStringData, int iWithAnyReturnValue, DWORD* pdwData, DWORD* pdwParamMax, DWORD* pdwLength)
 {
 #ifdef __AARON_INSTRPERF__
 	CInstructionTableEntry *m_pFirstUserFunctionEntry = nullptr;
 #endif
-	return FindEntry(1, false, m_pFirstUserFunctionEntry, pStringData, iWithAnyReturnValue, pdwData, pdwParamMax, pdwLength, NULL);
+	return FindEntry(1, false, m_pFirstUserFunctionEntry, pStringData, iWithAnyReturnValue, pdwData, pdwParamMax, pdwLength, nullptr);
 }
 
 bool CInstructionTable::FindInstructionParams(DWORD dwInstructionValue, DWORD dwParamMax, DWORD* pdwData, DWORD* pdwParamMax, CStr** pValidParamTypes, CInstructionTableEntry** pRefEntry)
@@ -1215,10 +1062,10 @@ bool CInstructionTable::FindInstructionParams(DWORD dwInstructionValue, DWORD dw
 				CInstructionTableEntry* pPrimary = pEntry;
 
 				// Found Instruction - now find params that match
-				while(stricmp(pPrimary->GetName()->GetStr(),pEntry->GetName()->GetStr())==NULL)
+				while(pEntry && pPrimary->GetName() && pEntry->GetName() && _stricmp(pPrimary->GetName()->GetStr(), pEntry->GetName()->GetStr())==0)
 				{
-					// Match Param to exit with valid instruction
-					if(pPrimary->GetParamMax()==pEntry->GetParamMax())
+					// Match Param to exit with valid instruction (or Type A repeated instruction like PRINT/INPUT/READ)
+					if(pEntry->GetParamMax()==dwParamMax || (pEntry->GetParamTypes() && pEntry->GetParamTypes()->CheckChars(0, 1, "A")))
 					{
 						*pdwData=pEntry->GetInternalID();
 						*pdwParamMax=pEntry->GetParamMax();
@@ -1228,6 +1075,7 @@ bool CInstructionTable::FindInstructionParams(DWORD dwInstructionValue, DWORD dw
 					}
 					pEntry=pEntry->GetNext();
 				}
+				break;
 			}
 			pEntry=pEntry->GetNext();
 		}
@@ -1266,10 +1114,10 @@ bool CInstructionTable::FindUserFunctionParams(DWORD dwInstructionValue, DWORD d
 				CInstructionTableEntry* pPrimary = pEntry;
 
 				// Found Instruction - now find params that match
-				while(stricmp(pPrimary->GetName()->GetStr(),pEntry->GetName()->GetStr())==NULL)
+				while(pEntry && pPrimary->GetName() && pEntry->GetName() && _stricmp(pPrimary->GetName()->GetStr(), pEntry->GetName()->GetStr())==0)
 				{
 					// Match Param to exit with valid instruction
-					if(pPrimary->GetParamMax()==pEntry->GetParamMax())
+					if(pEntry->GetParamMax()==dwParamMax)
 					{
 						*pdwData=pEntry->GetInternalID();
 						*pdwParamMax=pEntry->GetParamMax();
@@ -1279,6 +1127,7 @@ bool CInstructionTable::FindUserFunctionParams(DWORD dwInstructionValue, DWORD d
 					}
 					pEntry=pEntry->GetNext();
 				}
+				break;
 			}
 			pEntry=pEntry->GetNext();
 		}
@@ -1292,14 +1141,18 @@ bool CInstructionTable::FindUserFunctionParams(DWORD dwInstructionValue, DWORD d
 bool CInstructionTable::CompareInstructionNames(CInstructionTableEntry* pRefEntryA, CInstructionTableEntry* pRefEntryB)
 {
 	// Compare Entry names, success if match
-	if(stricmp(pRefEntryA->GetName()->GetStr(), pRefEntryB->GetName()->GetStr())==NULL)
-		return true;
+	if(pRefEntryA && pRefEntryB && pRefEntryA->GetName() && pRefEntryB->GetName()
+	&& pRefEntryA->GetName()->GetStr() && pRefEntryB->GetName()->GetStr())
+	{
+		if(_stricmp(pRefEntryA->GetName()->GetStr(), pRefEntryB->GetName()->GetStr())==0)
+			return true;
+	}
 
 	// Could not match names soft fail
 	return false;
 }
 
-CInstructionTableEntry* CInstructionTable::FindUserFunction(LPSTR pUserFunctionName)
+CInstructionTableEntry* CInstructionTable::FindUserFunction(LPCSTR pUserFunctionName)
 {
 #ifdef __AARON_INSTRPERF__
 	auto entry = m_UserFunctionMap.Find(pUserFunctionName);
@@ -1312,18 +1165,18 @@ CInstructionTableEntry* CInstructionTable::FindUserFunction(LPSTR pUserFunctionN
 	CInstructionTableEntry* pEntry = m_pFirstUserFunctionEntry;
 	while(pEntry)
 	{
-		if(stricmp(pEntry->GetName()->GetStr(), pUserFunctionName)==NULL)
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pUserFunctionName && _stricmp(pEntry->GetName()->GetStr(), pUserFunctionName)==0)
 			return pEntry;
 
 		pEntry=pEntry->GetNext();
 	}
 
 	// Could not find
-	return NULL;
+	return nullptr;
 #endif
 }
 
-CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPSTR pFunctionName)
+CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPCSTR pFunctionName)
 {
 #ifdef __AARON_INSTRPERF__
 	auto entry = m_InstructionMap.Find(pFunctionName);
@@ -1336,18 +1189,18 @@ CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPSTR pFunctionN
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(stricmp(pEntry->GetName()->GetStr(), pFunctionName)==NULL)
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFunctionName && _stricmp(pEntry->GetName()->GetStr(), pFunctionName)==0)
 			return pEntry;
 
 		pEntry=pEntry->GetNext();
 	}
 
 	// Could not find
-	return NULL;
+	return nullptr;
 #endif
 }
 
-bool CInstructionTable::FindInstructionWithNameAndParams(LPSTR pName, LPSTR pParams)
+bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pParams)
 {
 #ifdef __AARON_INSTRPERF__
 	auto entry = m_InstructionMap.Find(pName);
@@ -1358,7 +1211,7 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPSTR pName, LPSTR pPar
 
 	while(item)
 	{
-		if (stricmp(item->GetParamTypes()->GetStr(), pParams)==NULL)
+		if (item->GetParamTypes() && item->GetParamTypes()->GetStr() && pParams && _stricmp(item->GetParamTypes()->GetStr(), pParams)==0)
 			return true;
 
 		item = item->GetNext();
@@ -1370,8 +1223,10 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPSTR pName, LPSTR pPar
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(stricmp(pEntry->GetName()->GetStr(), pName)==NULL
-		&& stricmp(pEntry->GetParamTypes()->GetStr(), pParams)==NULL)
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pName
+		&& pEntry->GetParamTypes() && pEntry->GetParamTypes()->GetStr() && pParams
+		&& _stricmp(pEntry->GetName()->GetStr(), pName)==0
+		&& _stricmp(pEntry->GetParamTypes()->GetStr(), pParams)==0)
 		{
 			// Found same instruction
 			return true;
@@ -1385,7 +1240,7 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPSTR pName, LPSTR pPar
 #endif
 }
 
-CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPSTR pFriendName)
+CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPCSTR pFriendName)
 {
 #ifdef __AARON_INSTRPERF__
 	auto entry = m_InstructionMap.Find(pFriendName);
@@ -1402,13 +1257,15 @@ CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPSTR pFriendNam
 	return item;
 #else
 	// Latest match
-	CInstructionTableEntry* pMatch = NULL;
+	CInstructionTableEntry* pMatch = nullptr;
 
 	// Search for last entry with the friend name
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(stricmp(pEntry->GetName()->GetStr(), pFriendName)==NULL) pMatch=pEntry;
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFriendName && _stricmp(pEntry->GetName()->GetStr(), pFriendName)==0)
+			pMatch=pEntry;
+
 		pEntry=pEntry->GetNext();
 	}
 
@@ -1419,65 +1276,69 @@ CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPSTR pFriendNam
 
 // DLL Scanning and Database Building
 
-std::unique_ptr<char[]> CInstructionTable::ReadRawStringTable ( LPSTR pFilenameEXE, DWORD* pdwDataSize )
+std::unique_ptr<char[]> CInstructionTable::ReadRawStringTable ( LPCSTR pFilenameEXE, DWORD* pdwDataSize )
 {
-	// raw string table data retutned
+	if ( pdwDataSize ) *pdwDataSize = 0;
 	std::unique_ptr<char[]> pReturnData;
-
-	// Simply scans the EXE and locates the pattern in the data, and replaces it
-	DWORD dwSizeOfEXECode = 0;	
 	DWORD dwOverallDataSize = 0;
-	HMODULE hEXE = LoadLibraryExW(TextConvert::UTF8ToUTF16(pFilenameEXE).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE);
+
+	if (!pFilenameEXE || pFilenameEXE[0] == '\0')
+		return pReturnData;
+
+	std::filesystem::path dllPath(pFilenameEXE);
+	if (dllPath.is_relative())
+	{
+		std::error_code ec;
+		dllPath = std::filesystem::absolute(dllPath, ec);
+	}
+
+	HMODULE hEXE = LoadLibraryExW(dllPath.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
 	if ( hEXE )
 	{
-		// look for string table data in packed data format
-		HRSRC hRes = NULL;
-		int iFirstStringIndexFound = -1;
-		for ( int iIndex=0; iIndex<255; iIndex++ )
+		// Check first string segment to see if this is a protected resource table
+		HRSRC hFirst = FindResource(hEXE, MAKEINTRESOURCE(1), RT_STRING);
+		if ( hFirst )
 		{
-			/* old system did not account for gaps in the string table sequence (styx)
-			hRes = FindResource(hEXE, (LPCTSTR)iIndex, RT_STRING);
-			if ( hRes )
+			DWORD dwFirstSize = SizeofResource(hEXE, hFirst);
+			HGLOBAL hGlobFirst = LoadResource(hEXE, hFirst);
+			if ( hGlobFirst )
 			{
-				dwOverallDataSize += SizeofResource(hEXE, hRes);
-				if ( iFirstStringIndexFound==-1 )
-					iFirstStringIndexFound = iIndex;
-			}
-			if ( iFirstStringIndexFound!=-1 && hRes==NULL )
-				break;
-			*/
-			hRes = FindResource(hEXE, (LPCTSTR)iIndex, RT_STRING);
-			if ( hRes )
-			{
-				DWORD dwSizeOStringData = SizeofResource(hEXE, hRes);
-				if ( dwSizeOStringData>0 )
+				LPVOID lpFirst = LockResource(hGlobFirst);
+				if ( lpFirst && dwFirstSize > 0 && ((const char*)lpFirst)[0] == 32 )
 				{
-					dwOverallDataSize += dwSizeOStringData;
-					if ( iFirstStringIndexFound==-1 )
-						iFirstStringIndexFound = iIndex;
+					// Protected plugin detected (first char is 32/space). Accumulate segments safely.
+					std::vector<char> buffer;
+					for ( int iIndex = 1; iIndex <= 255; iIndex++ )
+					{
+						HRSRC hRes = FindResource(hEXE, MAKEINTRESOURCE(iIndex), RT_STRING);
+						if ( hRes )
+						{
+							DWORD dwSize = SizeofResource(hEXE, hRes);
+							HGLOBAL hGlobal = LoadResource(hEXE, hRes);
+							if ( hGlobal )
+							{
+								LPVOID lpRes = LockResource(hGlobal);
+								if ( lpRes && dwSize > 0 )
+								{
+									const char* src = (const char*)lpRes;
+									buffer.insert(buffer.end(), src, src + dwSize);
+								}
+							}
+						}
+					}
+					if ( !buffer.empty() )
+					{
+						dwOverallDataSize = static_cast<DWORD>(buffer.size());
+						pReturnData = std::make_unique<char[]>(dwOverallDataSize);
+						memcpy(pReturnData.get(), buffer.data(), dwOverallDataSize);
+					}
 				}
 			}
 		}
-		if ( iFirstStringIndexFound!=-1 )
-		{
-			// get first data ptr again
-			hRes = FindResource(hEXE, (LPCTSTR)iFirstStringIndexFound, RT_STRING);
-			HGLOBAL hGlobal = LoadResource(hEXE, hRes);
-			LPVOID lpResReal = LockResource(hGlobal);
 
-			// get string table data
-			pReturnData = std::make_unique<char[]>(dwOverallDataSize);
-			memcpy(pReturnData.get(), (LPSTR)lpResReal, dwOverallDataSize);
-		}
-
-		// free usages
-		if ( hEXE ) FreeLibrary ( hEXE );
+		// Free library
+		FreeLibrary(hEXE);
 	}
-
-	// erase again if first character is NOT a space(32)
-	if ( pReturnData )
-		if ( pReturnData [ 0 ]!=32 )
-			pReturnData.reset();
 
 	// return data size
 	if ( pdwDataSize ) *pdwDataSize = dwOverallDataSize;
@@ -1486,11 +1347,6 @@ std::unique_ptr<char[]> CInstructionTable::ReadRawStringTable ( LPSTR pFilenameE
 	return pReturnData;
 }
 
-bool CInstructionTable::VerifyCertificateForPlugin ( LPSTR pDLLName, LPSTR pProductCode )
-{
-	// Certificate system removed - open-source project, all plugins allowed
-	return true;
-}
 //#define __AARON_DEBUG__ 1
 #define __AARON_COMMANDS__ 1
 
@@ -1513,16 +1369,16 @@ static void PrintToFile(const char *text, ...)
 #else
 # define PrintToFile(text,...)
 #endif
-bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
+bool CInstructionTable::LoadCommandsFromDLL(LPCSTR pCategory, LPCSTR pFilename)
 {
 #ifdef __AARON_COMMANDS__
 	// Added for simplicity
 	static char libname[512];
-	FILE *f;
+	FILE *f = nullptr;
 
 	sprintf_s(libname, "%s.commands", pFilename);
 
-	f = fopen(libname, "r");
+	fopen_s(&f, libname, "r");
 	if (f != nullptr)
 	{
 		static char tempstr[4096];
@@ -1558,47 +1414,32 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 	}
 #endif
 
-	// First check if DLL is PROTECTED or not
+	// Plugins may declare their command list through the PE string table.
+	// The first entry is a legacy product-code header and is skipped; every
+	// following NUL-separated string is one command signature.
 	DWORD dwDataSize = 0;
-	HMODULE hModule = NULL;
+	HMODULE hModule = nullptr;
 	DWORD dwCountProtectedCommands=0;
 	std::unique_ptr<char[]> pProtectedData = ReadRawStringTable ( pFilename, &dwDataSize );
 	if ( pProtectedData )
 	{
-		// if a protected plugin, obtain string data in sequential stream
-		LPSTR pPtr=pProtectedData.get();
-		LPSTR pPtrLineStart=pProtectedData.get();
-		LPSTR pPtrEnd=pProtectedData.get()+dwDataSize;
+		// walk the string data as a sequential stream of NUL-separated strings
+		LPCSTR pPtr=pProtectedData.get();
+		LPCSTR pPtrLineStart=pProtectedData.get();
+		LPCSTR pPtrEnd=pProtectedData.get()+dwDataSize;
 		while ( pPtr<pPtrEnd )
 		{
 			// find end of line
 			if ( (unsigned char)*(pPtr)==0 )
 			{
-				// get line
-				char pTempStr [ 300 ];
-				strcpy ( pTempStr, pPtrLineStart );
+				// each string is NUL-terminated inside the walked buffer
+				LPCSTR pTempStr = pPtrLineStart;
 				pPtrLineStart=pPtr+1;
 
-				// first entry is protected plugin header
+				// first entry is the legacy product-code header
 				if ( dwCountProtectedCommands == 0 )
 				{
-					// protected plugin must be verified before we include commands
-					LPSTR pProductCode = pTempStr;
-					if ( VerifyCertificateForPlugin ( pFilename, pProductCode )==false )
-					{
-						// failed to verify - simply ignore plugin silently
-						char pDirINI [ _MAX_PATH ];
-						getcwd ( pDirINI, _MAX_PATH);
-						strcat ( pDirINI, "\\report.ini");
-						
-						// make silent INI report
-						WritePrivateProfileString("VERIFICATION REPORT", pFilename, "NOT VALID", pDirINI);
-
-						// free usages (pProtectedData released automatically)
-						return true;
-					}
-
-					// and advance to first character of data (string table starts)
+					// advance to the first character of the command data
 					while ( (unsigned char)*(pPtr+0)==0 && pPtr+2<pPtrEnd )
 						pPtr++;
 
@@ -1609,7 +1450,7 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 				else
 				{
 					// add each as found
-					PrintToFile( "[protected]%s:\"%s\"", pFilename, pTempStr );
+					PrintToFile( "[stringtable]%s:\"%s\"", pFilename, pTempStr );
 					if(TurnStringIntoCommand(pCategory, pFilename, pTempStr)==false)
 					{
 						char err[512];
@@ -1645,8 +1486,14 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 	}
 	else
 	{
-		// if not a protected plugin, open for direct string reading
-		hModule = LoadLibraryExW ( TextConvert::UTF8ToUTF16(pFilename).c_str(), NULL, LOAD_LIBRARY_AS_DATAFILE );
+		// without a string-table command list, open for direct string reading
+		std::filesystem::path dllPath(pFilename);
+		if (dllPath.is_relative())
+		{
+			std::error_code ec;
+			dllPath = std::filesystem::absolute(dllPath, ec);
+		}
+		hModule = LoadLibraryExW ( dllPath.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE );
 		if ( hModule  )
 		{
 			// Load DLL Decorated Names via unprotected resource
@@ -1691,32 +1538,24 @@ bool CInstructionTable::LoadCommandsFromDLL(LPSTR pCategory, LPSTR pFilename)
 	return true;
 }
 
-bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, LPSTR pRawCommandString)
+bool CInstructionTable::TurnStringIntoCommand(LPCSTR pCategory, LPCSTR pDLLName, LPCSTR pRawCommandString)
 {
+	if (!pRawCommandString || pRawCommandString[0] == '\0')
+		return false;
+
 	// Parse Sections of string
 	CStr strStorage(pRawCommandString);
 	CStr* pStr = &strStorage;
 	DWORD dwParamPos = pStr->FindFirstChar('%');
-	DWORD dwDecPos;
-	{
-		CStr strPart2(pRawCommandString+dwParamPos+1);
-		dwDecPos = strPart2.FindFirstChar('%') + dwParamPos + 2;
-	}
-
-	// Ensure we have TWO of them
-	if(dwParamPos>0)
-	{
-		CStr checkForTwo(pStr->GetStr()+dwParamPos+1);
-		DWORD dwSecondPos = checkForTwo.FindFirstChar('%');
-		if(dwSecondPos==0)
-		{
-			return false;
-		}
-	}
-	else
-	{
+	if (dwParamPos == 0)
 		return false;
-	}
+
+	CStr checkForTwo(pStr->GetStr() + dwParamPos + 1);
+	DWORD dwSecondPos = checkForTwo.FindFirstChar('%');
+	if (dwSecondPos == 0)
+		return false;
+
+	DWORD dwDecPos = dwSecondPos + dwParamPos + 2;
 
 	// Validate String Parts
 	if(dwParamPos>0 && dwDecPos>0 && dwDecPos>dwParamPos)
@@ -1726,17 +1565,23 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 		CStr* pName = &nameStorage;
 		pName->SetChar(dwParamPos, 0);
 
+		if (pName->Length() == 0)
+			return false;
+
 		// Command Params Part
 		CStr paramStorage(pRawCommandString+dwParamPos+1);
 		CStr* pParam = &paramStorage;
 		pParam->SetChar(dwDecPos-dwParamPos-2, 0);
 		unsigned char cFirstParamChar=0;
-		if(pName->GetChar(pName->Length()-1)=='[')
+		if(pName->Length() > 0 && pName->GetChar(pName->Length()-1)=='[')
 		{
 			// Command Is Expression
 			pName->SetChar(pName->Length()-1,0);
-			cFirstParamChar = pParam->GetChar(0);
-			pParam->SetText(pParam->GetStr()+1);
+			if (pParam->Length() > 0)
+			{
+				cFirstParamChar = pParam->GetChar(0);
+				pParam->SetText(pParam->GetStr()+1);
+			}
 		}
 
 		// If * character inside param description
@@ -1816,18 +1661,13 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 		pParamDescForHelp->SetText(pParamDesc->GetStr());
 
 		// Add Command To Database
-		if(strcmp(pDecorated->GetStr(), "??")!=NULL)
+		if(strcmp(pDecorated->GetStr(), "??")!=0)
 		{
-			LPSTR lpConflictingDLLName = NULL;
+			LPSTR lpConflictingDLLName = nullptr;
 			if(AddCommandCore2(pName->GetStr(), pDLLName, pDecorated->GetStr(), pParam->GetStr(), dwReturnParam, pParam->Length(), 0, 0, dwStarPos, bPassArrayPtrAsInput, pParamDesc.release(), &lpConflictingDLLName)==false)
 			{
-				// Could not add command as it was identically duplicated!
-				char err[512];
-//				snprintf(err, sizeof(err), "Command in DLL command-table duplicated (%s:%s)", pDLLName, pName->GetStr());
-				snprintf(err, sizeof(err), "Duplicate %s in %s and %s!", pName->GetStr(), pDLLName, lpConflictingDLLName);
-				g_pErrorReport->AddErrorString(err);
+				// Command already exists (either in same DLL or another DLL); ignore and continue loading remaining commands
 				SAFE_DELETE(lpConflictingDLLName);
-				return false;
 			}
 		}
 
@@ -1847,39 +1687,26 @@ bool CInstructionTable::TurnStringIntoCommand(LPSTR pCategory, LPSTR pDLLName, L
 	return true;
 }
 
-void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName, LPSTR pParamStr, DWORD dwReturnParam, DWORD dwParamCount, LPSTR pParamDesc)
+void CInstructionTable::AddCommandToHelpTxt(LPCSTR pCategory, LPCSTR pCommandName, LPCSTR pParamStr, DWORD dwReturnParam, DWORD dwParamCount, LPCSTR pParamDesc)
 {
-	// Usage strings
-	char lpFilename[_MAX_PATH];
-	char lpSubMenuFilename[_MAX_PATH];
-	char lpMenuFilename[_MAX_PATH];
-	char lpTXTTitle[_MAX_PATH];
-	char lpTXTSyntax[_MAX_PATH];
-	std::string sTXTThisSyntax;
-	char lpTXTCommand[_MAX_PATH];
-	char lpTXTThisCommand[_MAX_PATH];
+	// Paths with std::filesystem
+	const std::filesystem::path helpDir = std::filesystem::current_path() / "helptxt";
+	const std::filesystem::path commandsDir = helpDir / "commands";
+	const std::filesystem::path categoryDir = commandsDir / pCategory;
 
-	// Make folder and enter it
-	mkdir("helptxt");
-	chdir("helptxt");
-	char lpIndexFilename[_MAX_PATH];
-	_getcwd(lpIndexFilename, _MAX_PATH);
-	snprintf(lpIndexFilename, sizeof(lpIndexFilename), "%s\\index.txt", lpIndexFilename);
-	mkdir("commands");
-	chdir("commands");
-	mkdir(pCategory);
-	chdir(pCategory);
+	std::error_code ec;
+	std::filesystem::create_directories(categoryDir, ec);
 
-	// PREPARE HELP PAGE CONTENTS TXT
-
-	// Filename
-	snprintf(lpFilename, sizeof(lpFilename), "..\\%s\\%s.txt", pCategory, pCommandName);
+	const std::string indexFilenameStr = (helpDir / "index.txt").string();
+	const std::string commandFilenameStr = (categoryDir / (std::string(pCommandName) + ".txt")).string();
+	const std::string subMenuFilenameStr = (commandsDir / (std::string(pCategory) + ".txt")).string();
+	const std::string menuFilenameStr = (helpDir / "commands.txt").string();
 
 	// Title of Command Page
-	snprintf(lpTXTTitle, sizeof(lpTXTTitle), "%s", pCommandName);
+	const std::string sTXTTitle = pCommandName;
 
 	// Check if a trouble command
-	sTXTThisSyntax.clear();
+	std::string sTXTThisSyntax;
 	if(CheckTroubleCommandSyntax(sTXTThisSyntax, pCommandName))
 	{
 		// Syntax Of Standard Command
@@ -1917,7 +1744,7 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 
 		if(dwParamCount>0)
 		{
-			if(strcmp(pParamDesc, "")==NULL)
+			if(strcmp(pParamDesc, "")==0)
 			{
 				for(DWORD p=0; p<=dwParamCount; p++)
 				{
@@ -1950,24 +1777,23 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	}
 
 	// WRITE HELP TXT FILE
-
-	// Create help txt file for command
-	WritePrivateProfileString("COMMAND", "TITLE", lpTXTTitle, lpFilename);
+	WritePrivateProfileString("COMMAND", "TITLE", sTXTTitle.c_str(), commandFilenameStr.c_str());
 
 	// Add Unique Command To Unique Syntax Line
 	DWORD dwField=1;
 	char lpField[256];
+	char lpTXTSyntax[256];
 	while(dwField<998)
 	{
 		snprintf(lpField, sizeof(lpField), "SYNTAX%d", dwField);
-		GetPrivateProfileString("COMMAND", lpField, "", lpTXTSyntax, 256, lpFilename);
-		if(strcmp(lpTXTSyntax,"")==NULL)
+		GetPrivateProfileString("COMMAND", lpField, "", lpTXTSyntax, 256, commandFilenameStr.c_str());
+		if(strcmp(lpTXTSyntax,"")==0)
 		{
 			// Not there, so add it
-			WritePrivateProfileString("COMMAND", lpField, sTXTThisSyntax.c_str(), lpFilename);
+			WritePrivateProfileString("COMMAND", lpField, sTXTThisSyntax.c_str(), commandFilenameStr.c_str());
 			break;
 		}
-		if(strcmp(lpTXTSyntax,sTXTThisSyntax.c_str())==NULL)
+		if(strcmp(lpTXTSyntax,sTXTThisSyntax.c_str())==0)
 		{
 			// Already got it
 			break;
@@ -1978,7 +1804,7 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	// Add parameter types to command-data
 	snprintf(lpField, sizeof(lpField), "%s", "PARAM");
 	char lpThisParamStr [ 256 ];
-	GetPrivateProfileString("COMMAND", lpField, "", lpThisParamStr, 256, lpFilename);
+	GetPrivateProfileString("COMMAND", lpField, "", lpThisParamStr, 256, commandFilenameStr.c_str());
 	std::string sNewParamStr;
 	if ( dwReturnParam > 0 ) sNewParamStr += "(";
 	switch(dwReturnParam)
@@ -1995,7 +1821,7 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	}
 	if ( pParamStr ) sNewParamStr += pParamStr;
 	if ( sNewParamStr.length() > strlen(lpThisParamStr) )
-		WritePrivateProfileString("COMMAND", lpField, sNewParamStr.c_str(), lpFilename);
+		WritePrivateProfileString("COMMAND", lpField, sNewParamStr.c_str(), commandFilenameStr.c_str());
 
 	// Add Unique Command To The IndexTXT (for the index.htm)
 	DWORD dwIndexField=1;
@@ -2006,15 +1832,15 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 	while(1)
 	{
 		snprintf(lpIndexField, sizeof(lpIndexField), "ENTRY%d", dwIndexField);
-		GetPrivateProfileString("INDEX", lpIndexField, "", lpIndexFieldData, _MAX_PATH, lpIndexFilename);
-		if(strcmp(lpIndexFieldData,"")==NULL)
+		GetPrivateProfileString("INDEX", lpIndexField, "", lpIndexFieldData, _MAX_PATH, indexFilenameStr.c_str());
+		if(strcmp(lpIndexFieldData,"")==0)
 		{
-			WritePrivateProfileString("INDEX", lpIndexField, pCommandName, lpIndexFilename);
+			WritePrivateProfileString("INDEX", lpIndexField, pCommandName, indexFilenameStr.c_str());
 			snprintf(lpIndexField, sizeof(lpIndexField), "FILE%d", dwIndexField);
-			WritePrivateProfileString("INDEX", lpIndexField, lpFilenameToCommand, lpIndexFilename);
+			WritePrivateProfileString("INDEX", lpIndexField, lpFilenameToCommand, indexFilenameStr.c_str());
 			break;
 		}
-		if(strcmp(lpIndexFieldData, pCommandName)==NULL)
+		if(strcmp(lpIndexFieldData, pCommandName)==0)
 		{
 			// Already got it
 			break;
@@ -2022,19 +1848,15 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 		dwIndexField++;
 	}
 
-	// Leave category folder
-	chdir("..");
-
 	// Update category sub-menu file
 	dwField=1;
 	bool bAlreadyExists=false;
-	snprintf(lpTXTThisCommand, sizeof(lpTXTThisCommand), "%s", pCommandName);
-	snprintf(lpSubMenuFilename, sizeof(lpSubMenuFilename), "..\\commands\\%s.txt", pCategory);
+	char lpTXTCommand[256];
 	while(dwField<2000)
 	{
 		snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
-		GetPrivateProfileString("SUBMENU", lpField, "", lpTXTCommand, 256, lpSubMenuFilename);
-		if(strcmp(lpTXTCommand,lpTXTThisCommand)==NULL)
+		GetPrivateProfileString("SUBMENU", lpField, "", lpTXTCommand, 256, subMenuFilenameStr.c_str());
+		if(strcmp(lpTXTCommand,pCommandName)==0)
 		{
 			// Already got it
 			bAlreadyExists=true;
@@ -2055,56 +1877,48 @@ void CInstructionTable::AddCommandToHelpTxt(LPSTR pCategory, LPSTR pCommandName,
 		{
 			char pAnything[256];
 			snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
-			GetPrivateProfileString("SUBMENU", lpField, "", pAnything, 256, lpSubMenuFilename);
-			if(strcmp(pAnything,"")==NULL)
+			GetPrivateProfileString("SUBMENU", lpField, "", pAnything, 256, subMenuFilenameStr.c_str());
+			if(strcmp(pAnything,"")==0)
 			{
 				// Empty - Can put it here
 				snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
-				WritePrivateProfileString("SUBMENU", lpField, lpTXTThisCommand, lpSubMenuFilename);
+				WritePrivateProfileString("SUBMENU", lpField, pCommandName, subMenuFilenameStr.c_str());
 				break;
 			}
 			dwField++;
 		}
 	}
 
-	// Leave commands folder
-	chdir("..");
-
 	// Update Commands Menu
 	dwField=1;
-	snprintf(lpTXTThisCommand, sizeof(lpTXTThisCommand), "%s", pCategory);
-	snprintf(lpMenuFilename, sizeof(lpMenuFilename), "..\\helptxt\\commands.txt");
 	while(1)
 	{
 		snprintf(lpField, sizeof(lpField), "MENU%d", dwField);
-		GetPrivateProfileString("COMMANDSMENU", lpField, "", lpTXTCommand, 256, lpMenuFilename);
-		if(strcmp(lpTXTCommand,"")==NULL)
+		GetPrivateProfileString("COMMANDSMENU", lpField, "", lpTXTCommand, 256, menuFilenameStr.c_str());
+		if(strcmp(lpTXTCommand,"")==0)
 		{
-			WritePrivateProfileString("COMMANDSMENU", lpField, lpTXTThisCommand, lpMenuFilename);
+			WritePrivateProfileString("COMMANDSMENU", lpField, pCategory, menuFilenameStr.c_str());
 			break;
 		}
-		if(strcmp(lpTXTCommand,lpTXTThisCommand)==NULL)
+		if(strcmp(lpTXTCommand,pCategory)==0)
 		{
 			// Already got it
 			break;
 		}
 		dwField++;
 	}
-
-	// Leave helptxt folder
-	chdir("..");
 }
 
-bool CInstructionTable::CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, LPSTR pCommandName)
+bool CInstructionTable::CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, LPCSTR pCommandName)
 {
 	bool bNotAnyTrouble=true;
 
-	if(stricmp(pCommandName,"print")==NULL)
+	if(_stricmp(pCommandName,"print")==0)
 	{
 		sTXTThisSyntax = "PRINT Print Statements";
 		bNotAnyTrouble=false;
 	}
-	if(stricmp(pCommandName,"input")==NULL)
+	if(_stricmp(pCommandName,"input")==0)
 	{
 		sTXTThisSyntax = "INPUT Print Statements, Input Variable";
 		bNotAnyTrouble=false;
@@ -2385,7 +2199,7 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 	return 0;
 }
 
-bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPSTR pConstantName )
+bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPCSTR pConstantName )
 {
 #ifdef __AARON_INSTRPERF__
 	//
@@ -2396,14 +2210,14 @@ bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPSTR pConstantName )
 	// go through entire command database and make sure the submitted word does NOT occur
 	if ( m_pFirstInstructionEntry && pConstantName )
 	{
-		LPSTR pLastCommand = NULL;
-		LPSTR pPtr, pPtrBegin, pPtrEnd;
-		DWORD dwCompareSize = strlen( pConstantName );
+		LPCSTR pLastCommand = nullptr;
+		LPCSTR pPtr, pPtrBegin, pPtrEnd;
+		DWORD dwCompareSize = static_cast<DWORD>(strlen( pConstantName ));
 		CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 		while(pEntry)
 		{
 			// get command name
-			LPSTR pCommandName = pEntry->GetName()->GetStr();
+			LPCSTR pCommandName = pEntry->GetName()->GetStr();
 
 			// quick rejects
 			if ( pCommandName )
@@ -2416,7 +2230,7 @@ bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPSTR pConstantName )
 
 			// skip if this same as last
 			if ( pLastCommand )
-				if ( strcmp ( pLastCommand, pCommandName )==NULL )
+				if ( strcmp ( pLastCommand, pCommandName )==0 )
 					goto _next;
 
 			// compare command string with passed in constant-name
@@ -2429,13 +2243,13 @@ bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPSTR pConstantName )
 				if ( *pPtr==32 || *pPtr==0 )
 				{
 					// this one word (leefix - 260604 - u54-must be greater than one letter - deal with JOYSTICK FIRE A( by detecting bracket)
-					DWORD dwOneWordLength = pPtr - pPtrBegin;
+					DWORD dwOneWordLength = static_cast<DWORD>(pPtr - pPtrBegin);
 					if ( dwOneWordLength > 1 )
 					{
 						// leefix - 260604 - u54 - largest word rules
 						DWORD dwThisCompareSize = dwCompareSize;
 						if ( dwThisCompareSize<dwOneWordLength ) dwThisCompareSize=dwOneWordLength;
-						if ( _strnicmp ( pPtrBegin, pConstantName, dwThisCompareSize )==NULL )
+						if ( _strnicmp ( pPtrBegin, pConstantName, dwThisCompareSize )==0 )
 						{
 							// this word matches the one word from the command, leave!
 							return true;

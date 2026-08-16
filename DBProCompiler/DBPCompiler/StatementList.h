@@ -86,7 +86,7 @@ class CStatementList
 		[[nodiscard]] DWORD			GetLabelQtyCounter(void) const noexcept { return m_dwLabelQtyCounter; }
 		void			IncLabelQtyCounter(DWORD size) noexcept { m_dwLabelQtyCounter+=size; }
 
-		void			SetUserFunctionName(LPSTR pUFName) { m_pCurrentUserFunctionName.SetText(pUFName); }
+		void			SetUserFunctionName(LPCSTR pUFName) { m_pCurrentUserFunctionName.SetText(pUFName); }
 		[[nodiscard]] LPSTR			GetUserFunctionName(void) noexcept { return m_pCurrentUserFunctionName.GetStr(); }
 		[[nodiscard]] LPCSTR			GetUserFunctionName(void) const noexcept { return m_pCurrentUserFunctionName.GetStr(); }
 

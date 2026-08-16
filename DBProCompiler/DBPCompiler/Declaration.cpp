@@ -39,34 +39,28 @@ void CDeclaration::Add(CDeclaration* pNew)
 		m_pNext->Add(pNew);
 }
 
-CDeclaration* CDeclaration::Find(LPSTR pName, DWORD dwArrFlag)
+CDeclaration* CDeclaration::Find(LPCSTR pName, DWORD dwArrFlag)
 {
 	CDeclaration* pCurrent = this;
 	while(pCurrent)
 	{
-		if(stricmp(pName, pCurrent->GetName()->GetStr())==NULL
+		if(pCurrent->GetName() && _stricmp(pName, pCurrent->GetName()->GetStr())==0
 		&& pCurrent->GetArrFlag()==dwArrFlag)
-			return this;
+			return pCurrent;
 
 		pCurrent=pCurrent->GetNext();
 	}
-	return NULL;
+	return nullptr;
 }
 
-void CDeclaration::SetDecData(DWORD dwDecArr, LPSTR pDecArrValue, LPSTR pDecName, LPSTR pDecType, LPSTR pDecInit, DWORD LineNumberRef)
+void CDeclaration::SetDecData(DWORD dwDecArr, LPCSTR pDecArrValue, LPCSTR pDecName, LPCSTR pDecType, LPCSTR pDecInit, DWORD LineNumberRef)
 {
-	// Data values
-	CStr* pArrValueStr = new CStr(pDecArrValue);
-	CStr* pNameStr = new CStr(pDecName);
-	CStr* pTypeStr = new CStr(pDecType);
-	CStr* pInitStr = new CStr(pDecInit);
-
 	// Set data
 	SetArr(dwDecArr);
-	SetArrValue(pArrValueStr);
-	SetName(pNameStr);
-	SetType(pTypeStr);
-	SetInit(pInitStr);
+	SetArrValue(new CStr(pDecArrValue));
+	SetName(new CStr(pDecName));
+	SetType(new CStr(pDecType));
+	SetInit(new CStr(pDecInit));
 	SetLineNumber(LineNumberRef);
 	SetOffset(0);
 	SetDataSize(0);

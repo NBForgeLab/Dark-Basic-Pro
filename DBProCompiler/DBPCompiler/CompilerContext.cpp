@@ -4,7 +4,6 @@
 #include "DBPCompiler.h"
 #include "Error.h"
 #include "ASMWriter.h"
-#include "ASMWriterx64.h"
 #include "DBMWriter.h"
 #include "StructTable.h"
 #include "StatementList.h"
@@ -68,7 +67,7 @@ void CompilerContext::Initialize() {
     pStringTable = new CDataTable("*");
     pDLLTable = new CDataTable("*");
     pCommandTable = new CDataTable("*");
-    pVarTable = new CVarTable("$_ESP_");
+    pVarTable = new CVarTable("$_RSP_");
     pStatementList = new CStatementList();
     
     if (g_pInstructionTable) {

@@ -554,7 +554,7 @@ RuntimePackageBootstrap::MaterializeInstaller(
                     "An installer media entry has an empty destination.");
             }
             mediaEntries.push_back({
-                std::filesystem::u8path(relative),
+                std::filesystem::path(std::u8string_view(reinterpret_cast<const char8_t*>(relative.data()), relative.size())),
                 plaintext.value(),
             });
         }

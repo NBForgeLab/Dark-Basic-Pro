@@ -25,7 +25,7 @@ bool CParseInit::WriteDBM(void)
 	return true;
 }
 
-bool CParseInit::WriteDBMBit(DWORD dwLineNumber, LPSTR pText)
+bool CParseInit::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText)
 {
 	// Write out function param list
 	CStr strDBMParamList(1);
@@ -59,8 +59,8 @@ bool CParseInit::WriteDBMBit(DWORD dwLineNumber, LPSTR pText)
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Push), pVarItem);
 			g_pASMWriter->WriteASMCall(dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
 			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), pVarItem);
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
-			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopEbx), NULL);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopRbx), nullptr);
+			g_pASMWriter->WriteASMTaskP1(dwLineNumber, static_cast<DWORD>(ASMTask::PopRbx), nullptr);
 		}
 		else
 		{

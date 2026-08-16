@@ -1,8 +1,6 @@
 // Statement.cpp: implementation of the CStatement class.
 //
 //////////////////////////////////////////////////////////////////////
-#define _CRT_SECURE_NO_DEPRECATE
-#pragma warning(disable : 4996)
 #include "ParserHeader.h"
 #include <type_traits>
 #include <memory>
@@ -67,7 +65,7 @@ CStatement::CStatement()
 	m_dwEndChar=0;
 	m_bPerformJumpChecks=true; 
 
-	m_pNext=NULL;
+	m_pNext=nullptr;
 }
 
 CStatement::~CStatement()
@@ -161,9 +159,7 @@ bool CStatement::DoPreScanBlock(DWORD RequiredTerminator)
 		}
 		else
 		{
-			// Advance pointer to next line (add3d==13 at 240604 as a leefix)
-			if ( *g_pStatementList->GetFileDataPointer()==13 ) g_pStatementList->IncLineNumber();
-			g_pStatementList->IncFileDataPointer();
+			// Advance pointer to end of line
 			SkipToCR();
 		}
 
@@ -226,9 +222,7 @@ bool CStatement::DoLocalScanBlock(DWORD RequiredTerminator)
 		}
 		else
 		{
-			// Advance pointer to next line (add3d==13 at 240604 as a leefix)
-			if ( *g_pStatementList->GetFileDataPointer()==13 ) g_pStatementList->IncLineNumber();
-			g_pStatementList->IncFileDataPointer();
+			// Advance pointer to end of line
 			SkipToCR();
 		}
 
@@ -286,11 +280,11 @@ CStatement* CStatement::AddInternalStatement(DWORD dwCodeIndex, DWORD dwInternal
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(dwInternalCode));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(dwInternalCode));
 	pInstruction->SetParamMax(0);
-	pInstruction->SetReturnParameter(NULL);
-	pInstruction->SetParameter(NULL);
+	pInstruction->SetReturnParameter(nullptr);
+	pInstruction->SetParameter(nullptr);
 	pInstruction->SetLineNumber(dwCodeIndex);
 	pStatement->SetObject(pInstruction);
-	pStatement->m_pParameters = NULL;
+	pStatement->m_pParameters = nullptr;
 	pStatement->SetLineAndCharPos(dwCodeIndex);
 	Add(pStatement);
 
@@ -321,10 +315,10 @@ void CStatement::SetLineAndCharPos(DWORD dwLine)
 		else
 			break;
 	}
-	m_dwEndChar = (pPtr-g_pStatementList->GetFileDataStart());
+	m_dwEndChar = static_cast<DWORD>(pPtr-g_pStatementList->GetFileDataStart());
 }
 
-void CStatement::SetLineAndCharPos(DWORD dwLine, int iFlag)
+void CStatement::SetLineAndCharPos(DWORD dwLine, [[maybe_unused]] int iFlag)
 {
 	SetLineAndCharPos(dwLine);
 	m_dwStartChar = g_pStatementList->GetLastStampedCharInDataPosition();
@@ -366,6 +360,20 @@ bool CStatement::DoBlock(DWORD RequiredTerminator, DWORD* dwLastToken)
 		{
 			bCloseNestValid=true;
 			break;
+		}
+
+		// One line statements terminate when line advances
+		if(iMustStayOnThisLineOrTerminate!=-1)
+		{
+			if(g_pStatementList->GetLineNumber()!=(DWORD)iMustStayOnThisLineOrTerminate)
+			{
+				// Backtrack file pointer to the start of the token on the next line
+				// so that the enclosing block's GetMainToken() will read it
+				g_pStatementList->SetFileDataPointer(g_pStatementList->GetFileDataStart() + g_pStatementList->GetLastCharInDataPosition());
+				g_pStatementList->SetLineNumber(g_pStatementList->GetTokenLineNumber());
+				bCloseNestValid=true;
+				break;
+			}
 		}
 
 		// Perform parsing of statement
@@ -554,7 +562,7 @@ bool CStatement::DoStatement(DWORD TokenID)
 						// Process declaration of variable/array name
 						bool bDoneDim=false;
 						if(dwStatementType==4) bDoneDim=true;
-						CDeclaration* pRawDecChain = NULL;
+						CDeclaration* pRawDecChain = nullptr;
 						bool bIsGlobal=false;
 						if(dwStatementTypeData==1) bIsGlobal=true;
 						if(dwStatementTypeData==0 && dwStatementType==4)
@@ -604,9 +612,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	g_pStatementList->m_iNestCount++;
 	DB_SCOPE_GUARD({ g_pStatementList->m_iNestCount--; });
 
-	// This is LOOP Type 1
-	DWORD dwStatementType=1;
-
 	// Terminator leaves current loop
 	if(TokenID==static_cast<DWORD>(Token::Exit)) 
 	{
@@ -621,15 +626,15 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 
 			// Complete Object Data
 			pJump->SetType(JUMPTYPE_GOTO);
-			pJump->SetBlockA(NULL);
+			pJump->SetBlockA(nullptr);
 			pJump->SetBlockALabel(std::string());
-			pJump->SetBlockB(NULL);
+			pJump->SetBlockB(nullptr);
 			pJump->SetBlockBLabel(std::string());
-			pJump->SetBlockChain(NULL);
+			pJump->SetBlockChain(nullptr);
 			pJump->SetExitLabelRefParameterRef(pExitLabelRef);
-			pJump->SetConditionParameter(NULL);
-			pJump->SetConditionCaseParameter(NULL);
-			pJump->SetConditionLabelParameter(NULL);
+			pJump->SetConditionParameter(nullptr);
+			pJump->SetConditionCaseParameter(nullptr);
+			pJump->SetConditionLabelParameter(nullptr);
 			pJump->SetStartLineNumber(StatementLineNumber);
 			pJump->SetMiddleLineNumber(StatementLineNumber);
 			pJump->SetEndLineNumber(StatementLineNumber);
@@ -737,7 +742,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		// Find/Make Variable from pVar (required for type)
 //		CVarTable* pVarTest = g_pVarTable->FindVariable(g_pStatementList->GetUserFunctionName(), pActualVar->GetStr(), 0);-leefix-040803-use the actual varname nt the @ symbol
 		CVarTable* pVarTest = g_pVarTable->FindVariable(g_pStatementList->GetUserFunctionName(), actualVar.GetStr()+1, 0);
-		if(pVarTest==NULL)
+		if(pVarTest==nullptr)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'FindVariable::DoLoop'");
 			return false;
@@ -874,7 +879,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// Create Parameter Object (adopt allocation immediately so it is never leaked)
 			bool bMoreParams=false;
-			CParameter* pRawCondition = NULL;
+			CParameter* pRawCondition = nullptr;
 			bool bListOK = DoExpressionList(&pRawCondition,&bMoreParams);
 			pConditionParameter.reset(pRawCondition);
 			if(bListOK==false)
@@ -883,10 +888,10 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 				return false;
 			}
 			// Not one param, fail
-			if(bMoreParams==true || pConditionParameter==NULL)
+			if(bMoreParams==true || pConditionParameter==nullptr)
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+14);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+14);
 				return false;
 			}
 		}
@@ -904,7 +909,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	pLoopBlock->SetLineAndCharPos(dwTopOfLoopLine);
 
 	// Now Parse Block from File Data
-	DWORD dwReturnToken=NULL;
+	DWORD dwReturnToken=0;
 	if(pLoopBlock->DoBlock(dwEndToken,&dwReturnToken)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'pLoopBlock->DoBlock()'");
@@ -919,7 +924,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		// Create Parameter Object (adopt allocation immediately so it is never leaked)
 		bool bMoreParams=false;
-		CParameter* pRawCondition = NULL;
+		CParameter* pRawCondition = nullptr;
 		bool bListOK = DoExpressionList(&pRawCondition,&bMoreParams);
 		pConditionParameter.reset(pRawCondition);
 		if(bListOK==false)
@@ -928,7 +933,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			return false;
 		}
 		// If Not one param, fail
-		if(bMoreParams==true || pConditionParameter==NULL)
+		if(bMoreParams==true || pConditionParameter==nullptr)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+15);
 			return false;
@@ -938,7 +943,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	{
 		// Parse off variable (owned locally, always discarded)
 		bool bMoreParams=false;
-		CParameter* pRawNextVar = NULL;
+		CParameter* pRawNextVar = nullptr;
 		bool bListOK = DoExpressionList(&pRawNextVar,&bMoreParams);
 		std::unique_ptr<CParameter> pNextVarParameter(pRawNextVar);
 		if(bListOK==false)
@@ -947,7 +952,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 			return false;
 		}
 		// If Not one param, fail
-//		if(bMoreParams==true || pNextVarParameter==NULL) -lefix-2606040u54-will allow no vars at end of NEXT
+//		if(bMoreParams==true || pNextVarParameter==nullptr) -lefix-2606040u54-will allow no vars at end of NEXT
 		if(bMoreParams==true)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+16);
@@ -966,7 +971,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 
 	// This is an internal label between fornext init code and inc code
 	// (non-owning alias: points into pLoopBlock/TheLoopObject or the 'this' chain)
-	CStatement* pTopLabelStatement = NULL;
+	CStatement* pTopLabelStatement = nullptr;
 	if(dwLoopType==LOOPTYPE_DO) pTopLabelStatement = pLoopBlock.get();
 	if(dwLoopType==LOOPTYPE_WHILE) pTopLabelStatement = TheLoopObject.get();
 	if(dwLoopType==LOOPTYPE_REPEAT) pTopLabelStatement = pLoopBlock.get();
@@ -996,8 +1001,8 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	pLoop->SetBlock(pLoopBlock.release());
 	pLoop->SetSLabelParameter(pStartLabel.release());
 	pLoop->SetConditionParameter(pConditionParameter.release());
-	pLoop->SetForNextInitParameter(NULL);
-	pLoop->SetForNextIncParameter(NULL);
+	pLoop->SetForNextInitParameter(nullptr);
+	pLoop->SetForNextIncParameter(nullptr);
 	pLoop->SetForNextCheckParameter(pForNextCheckParameter.release());
 	pLoop->SetStartLineNumber(dwTopOfLoopLine);
 	pLoop->SetEndLineNumber(g_pStatementList->GetTokenLineNumber());
@@ -1021,7 +1026,7 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 	this->Add(TheLoopObject.release());
 
 	// Add Empty Statement To Mark LoopEnd Label
-	pBlankStatement->m_pParameters = NULL;
+	pBlankStatement->m_pParameters = nullptr;
 	pBlankStatement->SetLineAndCharPos(dwBottomOfLoopLine);
 	this->Add(pBlankStatement.release());
 
@@ -1031,9 +1036,6 @@ bool CStatement::DoLoop(DWORD StatementLineNumber, DWORD TokenID)
 
 bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 {
-	// This is JUMP Type
-	DWORD dwStatementType=8;
-
 	// Create main statement now at start of jump declaration
 	auto TheObject = std::make_unique<CStatement>();
 	g_pStatementList->SetLastStampedCharInDataPosition();
@@ -1064,7 +1066,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	bool bMoreParams=false;
 	std::unique_ptr<CParameter> pConditionCaseParameter;
 	std::unique_ptr<CParameter> pConditionLabelParameter;
-	CParameter* pRawCondition = NULL;
+	CParameter* pRawCondition = nullptr;
 	bool bListOK = DoExpressionList(&pRawCondition,&bMoreParams);
 	std::unique_ptr<CParameter> pConditionParameter(pRawCondition);
 
@@ -1079,10 +1081,10 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	}
 
 	// If Not one param, fail
-	if(bMoreParams==true || pConditionParameter==NULL)
+	if(bMoreParams==true || pConditionParameter==nullptr)
 	{
-		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+17);
+		const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+17);
 		return false;
 	}
 
@@ -1150,7 +1152,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			internalLabelStringB = std::move(*internalLabelB);
 
 			// Process code block for else
-			if(pJumpBlockB->DoBlock(dwEndToken,NULL)==false)
+			if(pJumpBlockB->DoBlock(dwEndToken,nullptr)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'pJumpBlockB->DoBlock()'");
 				return false;
@@ -1163,7 +1165,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 		CStr* pParamStr = pConditionParameter->GetMathItem()->GetResultStringToken();
 		std::unique_ptr<CParameter> pJumpToLabel;
 		std::string fullLabel;
-		LPSTR pLabel = NULL;
+		LPSTR pLabel = nullptr;
 		if ( pParamStr )
 		{
 			// Get label data and skip marker
@@ -1175,16 +1177,16 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			fullLabel += pLabel;
 			pJumpToLabel = std::make_unique<CParameter>();
 			pJumpToLabel->SetParamAsLabel(fullLabel);
-			if(g_pLabelTable->FindLabel(fullLabel.data())==NULL)
+			if(g_pLabelTable->FindLabel(fullLabel.data())==nullptr)
 			{
 				fullLabel.clear();
 				pJumpToLabel.reset();
-				pLabel=NULL;
+				pLabel=nullptr;
 			}
 		}
 
 		// Ensure label exists
-		if(pLabel==NULL)
+		if(pLabel==nullptr)
 		{
 			if ( !fullLabel.empty() )
 				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+18, fullLabel.data());
@@ -1232,7 +1234,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			{
 				// Get Pointer
 				bTokenUsed=true;
-				LPSTR pPointer = g_pStatementList->GetFileDataPointer();
+				pPointer = g_pStatementList->GetFileDataPointer();
 
 				// leefix - 250604 - u54 - advance beyond any spaces
 				while ( *pPointer==32 && pPointer<g_pStatementList->GetFileDataEnd()-2 )
@@ -1241,7 +1243,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 				g_pStatementList->SetFileDataPointer(pPointer);
 
 				// default or literal
-				if(_strnicmp(pPointer, "default", 7)==NULL)
+				if(_strnicmp(pPointer, "default", 7)==0)
 				{
 					// CASE DEFAULT
 					g_pStatementList->SetFileDataPointer(pPointer+7);
@@ -1255,12 +1257,12 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 
 					// Run through all items in CASE statement
 					bool bAtLeastOne=false;
-					bool bMoreParams=true;
-					while(bMoreParams)
+					bool bMoreCaseParams=true;
+					while(bMoreCaseParams)
 					{
-						bMoreParams=false;
-						CParameter* pRawCaseParam=NULL;
-						bool bCaseListOK = DoExpressionList(&pRawCaseParam,&bMoreParams);
+						bMoreCaseParams=false;
+						CParameter* pRawCaseParam=nullptr;
+						bool bCaseListOK = DoExpressionList(&pRawCaseParam,&bMoreCaseParams);
 						std::unique_ptr<CParameter> pOneCaseParam(pRawCaseParam);
 						if(bCaseListOK==false)
 						{
@@ -1283,14 +1285,14 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 							{
 								// Add condition to chain (chain owns appended nodes)
 								bAtLeastOne=true;
-								if(pCaseCondition==NULL)
+								if(pCaseCondition==nullptr)
 									pCaseCondition = std::move(pOneCaseParam);
 								else
 									pCaseCondition->Add(pOneCaseParam.release());
 
 								// Add Label for conditional jump
 								auto pAnotherLabel = std::make_unique<CParameter>();
-								if(pOneCaseLabelParam==NULL)
+								if(pOneCaseLabelParam==nullptr)
 									pOneCaseLabelParam = std::move(pAnotherLabel);
 								else
 									pOneCaseLabelParam->Add(pAnotherLabel.release());
@@ -1301,8 +1303,8 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					// If no param, fail
 					if(bAtLeastOne==false)
 					{
-						DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-						g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+19);
+						const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+						g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+19);
 						return false;
 					}
 				
@@ -1331,7 +1333,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					{
 						CStatementChain* pNewStatements = new CStatementChain;
 						pNewStatements->SetStatementBlock(pJumpBlockA.release());
-						if(pJumpBlockChain==NULL)
+						if(pJumpBlockChain==nullptr)
 							pJumpBlockChain.reset(pNewStatements);
 						else
 							pJumpBlockChain->Add(pNewStatements);
@@ -1346,7 +1348,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 					}
 
 					// Add chain of labels onto main label chain
-					if(pCaseLabel==NULL)
+					if(pCaseLabel==nullptr)
 						pCaseLabel = std::move(pOneCaseLabelParam);
 					else
 						pCaseLabel->Add(pOneCaseLabelParam.release());
@@ -1371,7 +1373,6 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 
 				// leefix - 310305 - replace with better comment skipper
 				LPSTR pPtrEnd = g_pStatementList->GetFileDataEnd();
-				LPSTR pStorePtr = pPointer;
 				pPointer = SkipAllComments ( pPointer, pPtrEnd );
 
 				// U76 - 300710 - above function would count line inc for CR, but new 'advanced' pointer needs
@@ -1391,8 +1392,8 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			// Not found token error (lee - 240306 - u6b4 - added dwToken==static_cast<DWORD>(Token::End))
 			if ( dwToken==0 || dwToken==static_cast<DWORD>(Token::End) )
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+20);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+20);
 				return false;
 			}
 		}
@@ -1441,13 +1442,13 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 			// If another case after case default alert of ordering error
 			if(dwToken==static_cast<DWORD>(Token::Case) && bCaseDefaultProcessed==true)
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+21);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+21);
 			}
 			else
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+22);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+22);
 			}
 			return false;
 		}
@@ -1505,7 +1506,7 @@ bool CStatement::DoJump(DWORD StatementLineNumber, DWORD TokenID)
 	return true;
 }
 
-bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
+bool CStatement::DoType(DWORD StatementLineNumber, [[maybe_unused]] DWORD TokenID)
 {
 	// Create BLOCK Object for nested code (RAII: owned until handed to the struct table)
 	std::unique_ptr<CStatement> pTypeBlock(new CStatement());
@@ -1516,10 +1517,10 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 	g_pStatementList->SetFileDataPointer(pPointer);
 
 	// leefix - 040803 - type name can be missing, cause error
-	if(pTypeName==NULL)
+	if(pTypeName==nullptr)
 	{
-		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+25, "type");
+		const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+25, "type");
 		return false;
 	}
 
@@ -1527,7 +1528,7 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 	g_pStatementList->SetVariableAddParse(false);
 
 	// Now Parse Declaration from File Data
-	CDeclaration* pDecChainRaw = NULL;
+	CDeclaration* pDecChainRaw = nullptr;
 	if(pTypeBlock->DoDeclaration(false, static_cast<DWORD>(Token::EndType), &pDecChainRaw, false, true, true, true)==false)
 	{
 		g_pErrorReport->AddErrorString("Failed to 'pTypeBlock->Do Declaration(static_cast<DWORD>(Token::EndType))'");
@@ -1537,7 +1538,7 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 	std::unique_ptr<CDeclaration> pDecChain(pDecChainRaw);
 
 	// if no declaration chain declared, this type has no details
-	if ( pDecChain==NULL )
+	if ( pDecChain==nullptr )
 	{
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+54);
 		return false;
@@ -1567,7 +1568,7 @@ bool CStatement::DoType(DWORD StatementLineNumber, DWORD TokenID)
 	return true;
 }
 
-bool CStatement::DoLabel(DWORD StatementLineNumber, DWORD TokenID)
+bool CStatement::DoLabel([[maybe_unused]] DWORD StatementLineNumber, [[maybe_unused]] DWORD TokenID)
 {
 	// Set line number
 	DWORD dwCodeIndex = g_pStatementList->GetLineNumber();
@@ -1614,14 +1615,14 @@ bool CStatement::DoLabel(DWORD StatementLineNumber, DWORD TokenID)
 	return true;
 }
 
-bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
+bool CStatement::DoDataStatement([[maybe_unused]] DWORD StatementLineNumber, [[maybe_unused]] DWORD TokenID)
 {
 	// Get filedata pointer
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
 
 	// Determine size of line
 	LPSTR pEndPointer = SeekToSeperator(pPointer, false, true);
-	DWORD length = pEndPointer-pPointer;
+	DWORD length = static_cast<DWORD>(pEndPointer-pPointer);
 
 	// Make string from line (stack CStr, released by RAII)
 	CStr strData(length+1);
@@ -1630,12 +1631,12 @@ bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
 	strData.SetChar(length,0);
 
 	// Clean up string
-	strData.EatEdgeSpacesandTabs(NULL);
+	strData.EatEdgeSpacesandTabs(nullptr);
 
 	// Can be initialised by a string of parameters. The parameter chain is
 	// adopted by a unique_ptr so it is released on every exit path (the
 	// CParameter destructor chains through its unique_ptr m_pNext).
-	CParameter* pRawFirstParameter = NULL;
+	CParameter* pRawFirstParameter = nullptr;
 	bool bParsed = DoParameterListString(&strData, &pRawFirstParameter);
 	std::unique_ptr<CParameter> pFirstParameter(pRawFirstParameter);
 	if(bParsed==false)
@@ -1694,8 +1695,8 @@ bool CStatement::DoDataStatement(DWORD StatementLineNumber, DWORD TokenID)
 		}
 		if(bUnderstood==false)
 		{
-			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+23, pItemStr->GetStr());
+			const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+			g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+23, pItemStr->GetStr());
 			return false;
 		}
 		pCurrent=pCurrent->GetNext();
@@ -1765,7 +1766,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	}
 
 	// If no result from token, declaration is empty
-	if(pString==NULL && dwToken==0)
+	if(pString==nullptr && dwToken==0)
 	{
 		// Empty Declataion (user function(void))
 		return true;
@@ -1792,7 +1793,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 
 			// Extract array value from string (helper may reallocate the name buffer)
 			LPSTR pRawArrayName = pArrayName.release();
-			LPSTR pRawArrValue = NULL;
+			LPSTR pRawArrValue = nullptr;
 			bool bSeperateOK = StatementHelper::SeperateValueFromArrayString(&pRawArrayName, &pRawArrValue, bMustBeLiteralDim);
 			pArrayName.reset(pRawArrayName);
 			pDecArrValue.reset(pRawArrValue);
@@ -1810,7 +1811,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		else
 		{
 			// Ensure more to process, else leave
-			if(stricmp(pString.get(),"")!=NULL)
+			if(_stricmp(pString.get(),"")!=0)
 			{
 				// Variable Name (ie MYVAR [=x])
 				pDecInit.reset(StatementHelper::SeperateInitFromType(pString.get()));
@@ -1829,7 +1830,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		{
 			// Ensure dec name is valid (stack CStr: RAII on every exit path)
 			CStr tempNameStr(pDecName.get());
-			tempNameStr.EatEdgeSpacesandTabs(NULL);
+			tempNameStr.EatEdgeSpacesandTabs(nullptr);
 			{
 				const size_t nameLen = strlen(tempNameStr.GetStr());
 				memcpy(pDecName.get(), tempNameStr.GetStr(), nameLen + 1);
@@ -1997,14 +1998,14 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		}
 
 		// Default declaration settings
-		if(pDecType==NULL)
+		if(pDecType==nullptr)
 		{
 			// Use default type (owned copy: this function's pDecType is always a new[] buffer)
 			std::string defaultType = g_pVarTable->MakeDefaultVarType(pDecName.get());
 			pDecType.reset(new char[defaultType.size()+1]);
 			memcpy(pDecType.get(), defaultType.c_str(), defaultType.size() + 1);
 		}
-		if(pDecInit==NULL && bAutoInitialiseData==true)
+		if(pDecInit==nullptr && bAutoInitialiseData==true)
 		{
 			// Use default init
 			pDecInit.reset(new char[8]);
@@ -2014,7 +2015,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// leefix - 230604 - u54 - If using DIM and no init value, means DIM arr(), so use -1 to make an EMPTY array!
 		if ( pDecArrValue )
 		{
-			if ( strcmp( pDecArrValue.get(), "")==NULL )
+			if ( strcmp( pDecArrValue.get(), "")==0 )
 			{
 				pDecArrValue.reset(new char[8]);
 				memcpy(pDecArrValue.get(), "-1", 3);
@@ -2023,7 +2024,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 
 		// Add declaration only for global types (user function uses add variable..)
 		CDeclaration* pGlobalDecChain = g_pStatementList->GetUserFunctionDecChain();
-		if(pGlobalDecChain==NULL)
+		if(pGlobalDecChain==nullptr)
 		{
 			// For Array Variables Only
 			if(dwDecArr==1 && bDefineOnly==true)
@@ -2042,7 +2043,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			pNewDec->SetDecData(dwDecArr, pDecArrValue.get(), arrFullname.GetStr(), pDecType.get(), pDecInit.get(), LineNumberRef);
 
 			// Add to chain GLOBAL
-			if((*ppDecChain)==NULL)
+			if((*ppDecChain)==nullptr)
 				*ppDecChain=pNewDec;
 			else
 				(*ppDecChain)->Add(pNewDec);
@@ -2054,7 +2055,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		{
 			// LEEFIX - 290703 - There should be no implementation in a pre-scan
 			// as DIM LEE(x,y,z) would mean X,Y,Z would be declared as local (even if they are global!)
-			// if(pGlobalDecChain==NULL)
+			// if(pGlobalDecChain==nullptr)
 			bGenerateImpCode=false;
 		}
 
@@ -2070,7 +2071,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			if ( g_pStatementList->GetImplementationParse()==false )
 			{
 				bool bDuplicatedVarName = false;
-				if ( g_pVarTable->FindVariable ( g_pStatementList->GetUserFunctionName(), pArrFullname->GetStr(), dwDecArr )!=NULL ) bDuplicatedVarName = true;
+				if ( g_pVarTable->FindVariable ( g_pStatementList->GetUserFunctionName(), pArrFullname->GetStr(), dwDecArr )!=nullptr ) bDuplicatedVarName = true;
 				if ( bDuplicatedVarName==true )
 				{
 					DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
@@ -2131,7 +2132,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 			
 			// Can be initialised by a string of parameters
 			std::unique_ptr<CStatement> pStatement(new CStatement);
-			CParameter* pRawFirstParameter = NULL;
+			CParameter* pRawFirstParameter = nullptr;
 			CStr varInitData(pDecInit.get());
 			bool bParamListOK = true;
 			if(varInitData.Length()>0)
@@ -2164,10 +2165,9 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 //				LPSTR pItemString = pCurrent->GetMathItem()->GetResultStringToken()->GetStr();
 				DWORD dwItemType = pCurrent->GetMathItem()->FindResultTypeValueForDBM();
 				LPSTR pItemString = pCurrent->GetMathItem()->FindResultStringTokenForDBM()->GetStr();
-				if ( strcmp(pItemString,"0")==NULL || strcmp(pItemString,"")==NULL )
+				if ( strcmp(pItemString,"0")==0 || strcmp(pItemString,"")==0 )
 				{
 					// Zero inits all numbers
-//					if(dwVarType==3) strcpy(pItemString," ");//hack!! - improved the hack on 250604 -54
 					if(dwVarType==3)
 					{
 						pCurrent->GetMathItem()->FindResultStringTokenForDBM()->SetText("0");
@@ -2202,8 +2202,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 				}
 				else
 				{
-					DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+27, pItemString);
+					const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+					g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+27, pItemString);
 					return false;
 				}
 				pCurrent=pCurrent->GetNext();
@@ -2225,8 +2225,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		// and not end of program
 		if(pPointer<g_pStatementList->GetFileDataEnd()-2)
 		{
-			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+61);
+			const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+			g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+61);
 			return false;
 		}
 	}
@@ -2243,11 +2243,8 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 	return true;
 }
 
-bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
+bool CStatement::DoInstruction(DWORD StatementLineNumber, [[maybe_unused]] DWORD TokenID)
 {
-	// This is INSTRUCTION Type 11
-	DWORD dwStatementType=11;
-
 	// Parameter Chain (RAII: owned until handed to the instruction)
 	std::unique_ptr<CParameter> pFirstParameter;
 	std::unique_ptr<CStr> pFullLabelName;
@@ -2267,7 +2264,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 	bool bMoreParams=true;
 	while(bMoreParams==true)
 	{
-		CParameter* pReturnParameter = NULL;
+		CParameter* pReturnParameter = nullptr;
 		if(DoExpressionList(&pReturnParameter,&bMoreParams)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoInstruction::Do ExpressionList'");
@@ -2282,7 +2279,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 			dwParamCount++;
 
 			// Add Param to Parameter Chain
-			if(pFirstParameter==NULL)
+			if(pFirstParameter==nullptr)
 				pFirstParameter.reset(pReturnParameter);
 			else
 				pFirstParameter->Add(pReturnParameter);
@@ -2308,7 +2305,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		// First parameter must be L-value
 		CStr* pLValue = pFirstParameter->GetMathItem()->FindResultStringTokenForDBM();
 		DWORD dwLValueTypeValue=pFirstParameter->GetMathItem()->FindResultTypeValueForDBM();
-		if(pLValue==NULL)
+		if(pLValue==nullptr)
 		{
 			g_pErrorReport->AddErrorString("Failed to DoInstruction::'pLValue==NULL'");
 			return false;
@@ -2373,7 +2370,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 		dwInstructionValue=g_pInstructionTable->GetIIValue(dwUseNewInstruction);
 		pRef=g_pInstructionTable->GetRef(dwUseNewInstruction);
-		if(pRef==NULL)
+		if(pRef==nullptr)
 		{
 			// Not implemented yet!
 			g_pErrorReport->AddErrorString("Failed to DoInstruction::'pRef==NULL'");
@@ -2382,8 +2379,9 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		dwValidInstructionToUse=dwInstructionValue;
 
 		// Ensure assign has an R-value to provide secondary value
-		if(pFirstParameter->GetNext()==NULL)
+		if(pFirstParameter->GetNext()==nullptr)
 		{
+			DBP_INFO("DoInstruction line {}: assign has no R-value (pFirstParameter->GetNext() is null)", StatementLineNumber);
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+42);
 			return false;
 		}
@@ -2393,8 +2391,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			// same-flag - leefix - 170403 - new way to check for type names ( lee, lee.fred lee(5), lee(5).fred, etc)
 			bool bTypesSame=false;
-			CStr* pLeftTypeName = NULL;
-			CStr* pRightTypeName = NULL;
+			CStr* pLeftTypeName = nullptr;
+			CStr* pRightTypeName = nullptr;
 
 			// left value
 			DWORD dwLArrayType=0;
@@ -2412,7 +2410,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 			// Check two type descriptions
 			if(pLeftTypeName && pRightTypeName)
-				if(stricmp(pLeftTypeName->GetStr(), pRightTypeName->GetStr())==NULL)
+				if(_stricmp(pLeftTypeName->GetStr(), pRightTypeName->GetStr())==0)
 					bTypesSame=true;
 
 			// LEEFIX - 171002 - If dealing with UDT only - allow others to carry on
@@ -2455,12 +2453,11 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		if(FindCorrectInstruction(&pRef, pFirstParameter.get(), dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwValidInstructionToUse, &bOneParamPerRepeatedInstruction)==false)
 		{
 			dwValidInstructionToUse=0;
-			DB3_CRASH();
 		}
 		if(pRef)
 		{
 			// Some instructions only parse in single param items
-			if(stricmp(pRef->GetName()->GetStr(),"INPUT")==NULL)
+			if(_stricmp(pRef->GetName()->GetStr(),"INPUT")==0)
 			{
 				dwValidInstructionToUse=pRef->GetInternalID();
 				bOneParamPerRepeatedInstruction=true;
@@ -2494,6 +2491,8 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		}
 		else
 		{
+			DBP_INFO("DoInstruction line {}: pRef is null, dwValidInstructionToUse is 0, dwInstructionType={}, dwInstructionValue={}", 
+				StatementLineNumber, dwInstructionType, dwInstructionValue);
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+42);
 		}
 
@@ -2516,7 +2515,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 				{
 					// Strip out FS premarker
 					LPSTR lpStr = labelName.GetStr();
-					for(DWORD i=strlen(lpStr); i>0; i--)
+					for(DWORD i=static_cast<DWORD>(strlen(lpStr)); i>0; i--)
 					{
 						if(lpStr[i]=='@')
 						{
@@ -2575,9 +2574,9 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Determine which commands are concats
 		DWORD dwConcatMode=0;
-		if(stricmp(pRef->GetName()->GetStr(),"PRINT")==NULL) dwConcatMode=1;
-		if(stricmp(pRef->GetName()->GetStr(),"INPUT")==NULL) dwConcatMode=2;
-		if(stricmp(pRef->GetName()->GetStr(),"READ")==NULL) dwConcatMode=3;
+		if(_stricmp(pRef->GetName()->GetStr(),"PRINT")==0) dwConcatMode=1;
+		if(_stricmp(pRef->GetName()->GetStr(),"INPUT")==0) dwConcatMode=2;
+		if(_stricmp(pRef->GetName()->GetStr(),"READ")==0) dwConcatMode=3;
 
 		// Some multi-commands require CONCAT instruction (ie printc)
 		if(dwConcatMode>0)
@@ -2638,8 +2637,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 			}
 
 			// Determine the correct instruction for the param string submitted
-			DWORD dwValidParamMaxToUse=0;
-			if(FindCorrectInstruction(&pRef, pNewTempParam.get(), dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwCorrectInstructionValue, NULL)==false)
+			if(FindCorrectInstruction(&pRef, pNewTempParam.get(), dwInstructionValue, dwInstructionType, dwInstructionParamMax, &dwCorrectInstructionValue, nullptr)==false)
 			{
 				g_pErrorReport->AddErrorString("Failed to 'DoInstruction::FindCorrectInstruction'");
 				return false;
@@ -2754,16 +2752,16 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, DWORD TokenID)
 		pInstruction->SetLineNumber(StatementLineNumber);
 		pInstruction->SetInstructionRef(pRef);
 		// SetReturnParameter owns; release nulls the owner so repeated loop
-		// iterations hand over NULL instead of double-owning the same CStr
+		// iterations hand over nullptr instead of double-owning the same CStr
 		pInstruction->SetReturnParameter(pReturnParameterToken.release());
 		// SetLabelParam owns the CStr (unique_ptr member); release exactly once -
-		// repeated loop iterations hand over NULL instead of double-owning
+		// repeated loop iterations hand over nullptr instead of double-owning
 		pInstruction->SetLabelParam(pFullLabelName.release());
 
 		// Add The Object To This Statement
 		CStatement *TheObject = new CStatement();
 		TheObject->SetObject(pInstruction.release());
-		TheObject->m_pParameters = NULL;
+		TheObject->m_pParameters = nullptr;
 		TheObject->SetLineAndCharPos(StatementLineNumber);
 		this->Add(TheObject);
 
@@ -2791,22 +2789,6 @@ static bool IsSimpleIdentifier(const std::string& name)
 			continue;
 		}
 		if (!isalnum(c) && c != '_') return false;
-	}
-	return true;
-}
-
-static bool IsSimpleNumeric(const std::string& val)
-{
-	if (val.empty()) return false;
-	size_t start = 0;
-	if (val[0] == '-' || val[0] == '+')
-	{
-		start = 1;
-	}
-	if (start >= val.size()) return false;
-	for (size_t i = start; i < val.size(); ++i)
-	{
-		if (!isdigit(val[i])) return false;
 	}
 	return true;
 }
@@ -2862,9 +2844,6 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 		if (parsedExpr != nullptr && !isSupportedAST(parsedExpr.get())) {
 			parsedExpr = nullptr;
 		}
-
-		DBP_INFO("DoAssignment line {}: varName='{}' (simple={}), valStr='{}' (parsable={})", 
-			StatementLineNumber, varName, isSimpleId, valStr, (parsedExpr != nullptr));
 
 		// Parsing is intentionally side-effect free with respect to the target
 		// backend. CASTAssignment::WriteDBM performs code generation and may only
@@ -2941,7 +2920,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 				// Get dimension size entry (unique_ptr owns the new[] buffer)
 				LPSTR pPtr = pValueStr + d;
-				DWORD dwLength = pPtr - pLastNum;
+				DWORD dwLength = static_cast<DWORD>(pPtr - pLastNum);
 				std::unique_ptr<char[]> pNum(new char[dwLength+1]);
 				memcpy(pNum.get(), pLastNum, dwLength);
 				pNum[dwLength]=0;
@@ -2977,14 +2956,14 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Find out type of array element (FindTypeOfVariable returns a new[] buffer)
 	DWORD dwArrType=1;
-	LPSTR pVarTypeRaw=NULL;
+	LPSTR pVarTypeRaw=nullptr;
 	g_pVarTable->FindTypeOfVariable(arrName.GetStr(),dwArrType,&pVarTypeRaw);
 	std::unique_ptr<char[]> pVarType(pVarTypeRaw);
 	DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pVarType.get());
 
 	// LEEFIX - 151101 - Can produce an error if type does not exist
 	CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pVarType.get());
-	if(pStruct==NULL)
+	if(pStruct==nullptr)
 	{
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+35, pVarType.get());
 		return false;
@@ -3077,7 +3056,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 	// Add The Object To This Statement (ownership of pInstruction transfers)
 	CStatement *TheObject = new CStatement();
 	TheObject->SetObject(pInstruction.release());
-	TheObject->m_pParameters = NULL;
+	TheObject->m_pParameters = nullptr;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
 	return true;
@@ -3094,13 +3073,13 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 
 	// Ensure leading/trailing spaces removed (value semantics - freed automatically)
 	CStr str2(pArrayName.get());
-	str2.EatEdgeSpacesandTabs(NULL);
+	str2.EatEdgeSpacesandTabs(nullptr);
 
 	// compare with void
 	if(str2.Length()==0)
 	{
-		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+43);
+		const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+43);
 		return false;
 	}
 	g_pStatementList->SetFileDataPointer(pPointer);
@@ -3134,13 +3113,13 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
 	TheObject->SetObject(pInstruction.release());
-	TheObject->m_pParameters = NULL;
+	TheObject->m_pParameters = nullptr;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
 	return true;
 }
 
-bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
+bool CStatement::DoUserFunction(DWORD StatementLineNumber, [[maybe_unused]] DWORD TokenID)
 {
 	// Modify UserFunction line in filedata for parsing
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
@@ -3162,8 +3141,8 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 			// Function declaration error if space INSIDE name
 			if ( bAllowInitialSpaces==false )
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+45);
 				return false;
 			}
 		}
@@ -3184,16 +3163,16 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 	if ( !nameCheck.IsAlphaNumericLabel(dwPos) )
 	{
 		// Function declaration error
-		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
+		const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+45);
 		return false;
 	}
 	// is first character numeric, if so, canot be function name
 	if ( nameCheck.GetChar(0)>='0' && nameCheck.GetChar(0)<='9' )
 	{
 		// Function declaration error
-		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
+		const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+45);
 		return false;
 	}
 
@@ -3216,8 +3195,8 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		if(SPos==0)
 		{
 			// Function declaration error
-			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+45);
+			const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+			g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+45);
 			return false;
 		}
 	}
@@ -3232,7 +3211,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 	// Ensure user function name is unique at PRESCAN
 	if(g_pStatementList->GetImplementationParse()==false)
 	{
-		if(g_pLabelTable->FindLabel(fullLabelName.GetStr())!=NULL)
+		if(g_pLabelTable->FindLabel(fullLabelName.GetStr())!=nullptr)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+53, pUserFunctionName);
 			return false;
@@ -3243,8 +3222,8 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 	if(g_pStatementList->GetUserFunctionDecChain())
 	{
 		// Already defining a function
-		DWORD StatementLineNumber = g_pStatementList->GetLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+65);
+		const DWORD errLineNumber = g_pStatementList->GetLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+65);
 		return false;
 	}
 
@@ -3297,7 +3276,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Create Parameter Object (adopt ownership immediately, even when the parse fails)
 		bool bMoreParams=false;
-		CParameter* pReturnParameterRaw = NULL;
+		CParameter* pReturnParameterRaw = nullptr;
 		bool bExpressionListOk = DoExpressionList(&pReturnParameterRaw,&bMoreParams);
 		std::unique_ptr<CParameter> pReturnParameter(pReturnParameterRaw);
 		if(bExpressionListOk==false)
@@ -3312,13 +3291,13 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		// If more than one param, fail
 		if(bMoreParams==true && pReturnParameter)
 		{
-			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+30);
+			const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+			g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+30);
 			return false;
 		}
 
 		// Finished adding local vars within scope of user function
-		g_pStatementList->SetUserFunctionDecChain(NULL);
+		g_pStatementList->SetUserFunctionDecChain(nullptr);
 		g_pStatementList->SetUserFunctionName("");
 
 		// Determine Return Type of function
@@ -3326,31 +3305,31 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		if(pReturnParameter)
 		{
 			// leefix - 240604 - u54 - do not allow temp vars
-			LPSTR pReturnVarStr = NULL;
+			LPSTR pReturnVarStr = nullptr;
 			if ( pReturnParameter->GetMathItem()->GetResultStringToken() )
 				pReturnVarStr = pReturnParameter->GetMathItem()->GetResultStringToken()->GetStr();
-			if ( pReturnVarStr!=NULL )
-				if ( pReturnParameter->GetMathItem()->GetNext() && strnicmp ( pReturnVarStr, "FS@", 3 )!=NULL )
-					pReturnVarStr=NULL;
+			if ( pReturnVarStr!=nullptr )
+				if ( pReturnParameter->GetMathItem()->GetNext() && _strnicmp ( pReturnVarStr, "FS@", 3 )!=0 )
+					pReturnVarStr=nullptr;
 
 			// leefix - 280305 - sometimes no result string, fixed null ptr crash
-			if ( pReturnVarStr==NULL )
+			if ( pReturnVarStr==nullptr )
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+58);
 				return false;
 			}
 			else
 			{
-				for ( DWORD c=strlen(pReturnVarStr); c>0; c-- )
+				for ( DWORD c=static_cast<DWORD>(strlen(pReturnVarStr)); c>0; c-- )
 				{
 					if ( (unsigned char)pReturnVarStr[c]=='@' )					
 					{
 						// now check character to right, if it is $ then it is a temp var and not allowed
 						if ( (unsigned char)pReturnVarStr[c+1]=='$' )					
 						{
-							DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-							g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
+							const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+							g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+58);
 							return false;
 						}
 						break;
@@ -3373,7 +3352,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		}
 
 		// Add label to go with user function (for jump call)
-		if(g_pLabelTable->AddLabel(fullLabelName.GetStr(), 0, 0, NULL)==false)
+		if(g_pLabelTable->AddLabel(fullLabelName.GetStr(), 0, 0, nullptr)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::AddLabel'");
 			return false;
@@ -3431,7 +3410,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Now Parse Block from File Data
 		DWORD dwEndToken = static_cast<DWORD>(Token::EndUserFunction);
-		if(pCodeBlockOwner->DoBlock(dwEndToken,NULL)==false)
+		if(pCodeBlockOwner->DoBlock(dwEndToken,nullptr)==false)
 		{
 			g_pErrorReport->AddErrorString("Failed to 'DoUserFunction::DoBlock'");
 			return false;
@@ -3439,7 +3418,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Create Parameter Object (adopt ownership immediately, even when the parse fails)
 		bool bMoreParams=false;
-		CParameter* pReturnParameterRaw = NULL;
+		CParameter* pReturnParameterRaw = nullptr;
 		bool bExpressionListOk = DoExpressionList(&pReturnParameterRaw,&bMoreParams);
 		std::unique_ptr<CParameter> pReturnParameter(pReturnParameterRaw);
 		if(bExpressionListOk==false)
@@ -3451,8 +3430,8 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		// If more than one param, fail
 		if(bMoreParams==true && pReturnParameter)
 		{
-			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+30);
+			const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+			g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+30);
 			return false;
 		}
 
@@ -3461,14 +3440,14 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 		{
 			if ( pReturnParameter->GetMathItem()->GetMathSymbol()!=0 )
 			{
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+58);
 				return false;
 			}
 		}
 
 		// Finished adding local vars within scope of user function
-		g_pStatementList->SetUserFunctionDecChain(NULL);
+		g_pStatementList->SetUserFunctionDecChain(nullptr);
 		g_pStatementList->SetUserFunctionName("");
 
 		// Create Object
@@ -3476,7 +3455,7 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Add New "UserFunctionDataType" To Table (the struct table owns the dec chain from here on)
 		bool bReportError = false;
-		g_pStructTable->AddStructUserType(0, pUserFunctionName, 'U', pDecChainOwner.release(), NULL, 2, &bReportError, dwNumberOfUFParams);
+		g_pStructTable->AddStructUserType(0, pUserFunctionName, 'U', pDecChainOwner.release(), nullptr, 2, &bReportError, dwNumberOfUFParams);
 
 		// Complete Object Data
 		CStr* pStrName = new CStr(pUserFunctionName);
@@ -3496,13 +3475,13 @@ bool CStatement::DoUserFunction(DWORD StatementLineNumber, DWORD TokenID)
 
 		// Add The Object To This Statement
 		TheUserFunctionObject->SetObject(pUserFunction);
-		TheUserFunctionObject->m_pParameters = NULL;
+		TheUserFunctionObject->m_pParameters = nullptr;
 		TheUserFunctionObject->SetLineAndCharPos(StatementLineNumber);
 		this->Add(TheUserFunctionObjectOwner.release());
 
 		// Add User Function to database
 		if(dwNumberOfUFParams>0) dwNumberOfUFParams-=1;
-		if(g_pInstructionTable->AddUserFunction(pUserFunctionName, 1, paramTypeString.data(), dwNumberOfUFParams, NULL)==false)
+		if(g_pInstructionTable->AddUserFunction(pUserFunctionName, 1, (bDecsInFunctionDef ? paramTypeString.data()+1 : paramTypeString.data()), dwNumberOfUFParams, nullptr)==false)
 		{
 			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+24, pUserFunctionName);
 			return false;
@@ -3526,7 +3505,7 @@ bool CStatement::DoUserFunctionCall(DWORD StatementLineNumber, DWORD TokenID)
 	LPSTR pPointer = g_pStatementList->GetFileDataPointer();
 
 	// MYFUNC(dec) -> MYFUNC dec (remove brackets)
-	RemoveEdgeBracketFromSegment(pPointer, NULL, NULL);
+	RemoveEdgeBracketFromSegment(pPointer, nullptr, nullptr);
 
 	// Process exactly like instruction
 	if(DoInstruction(StatementLineNumber, TokenID)==false)
@@ -3539,7 +3518,7 @@ bool CStatement::DoUserFunctionCall(DWORD StatementLineNumber, DWORD TokenID)
 	return true;
 }
 
-bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
+bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, [[maybe_unused]] DWORD TokenID)
 {
 	// Create Object (owned locally; released to the emitted statement only on
 	// the success path, so every early error return frees it via RAII - the
@@ -3549,7 +3528,7 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 	// Create Parameter Object (RAII owner: freed on every error path, released
 	// to the emitted instruction only on the success path)
 	bool bMoreParams=false;
-	CParameter* pRawParameter = NULL;
+	CParameter* pRawParameter = nullptr;
 	bool bListOK = DoExpressionList(&pRawParameter,&bMoreParams);
 	std::unique_ptr<CParameter> pParameter(pRawParameter);
 	if(bListOK==false)
@@ -3561,8 +3540,8 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 	// If more than one param, fail
 	if(bMoreParams==true && pParameter)
 	{
-		DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+31);
+		const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+		g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+31);
 		return false;
 	}
 
@@ -3582,16 +3561,16 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 			if ( dwParamResultType!=dwReturnType )
 			{
 				// Types not the same
-				DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-				g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+57);
+				const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+				g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+57);
 				return false;
 			}
 		}
 		if ( pParameter->GetMathItem()->GetNext() )
 		{
 			// Cannot have expressions as a return value - single var or value
-			DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
-			g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+58);
+			const DWORD errLineNumber = g_pStatementList->GetTokenLineNumber();
+			g_pErrorReport->SetError(errLineNumber, ERR_SYNTAX+58);
 			return false;
 		}
 	}
@@ -3607,7 +3586,7 @@ bool CStatement::DoUserFunctionExit(DWORD StatementLineNumber, DWORD TokenID)
 	// Add The Object To This Statement
 	CStatement *TheObject = new CStatement();
 	TheObject->SetObject(pInstruction.release());
-	TheObject->m_pParameters = NULL;
+	TheObject->m_pParameters = nullptr;
 	TheObject->SetLineAndCharPos(StatementLineNumber);
 	this->Add(TheObject);
 
@@ -3621,8 +3600,8 @@ bool CStatement::DoParameterListString(CStr* pOrigParamString, CParameter** ppFi
 	std::unique_ptr<CStr> pParamString = std::make_unique<CStr>(pOrigParamString->GetStr());
 
 	// Before processing function params, crop spaces, tabs and equal brackets
-	do { pParamString->EatEdgeSpacesandTabs(NULL);
-	} while(pParamString->CropEqualEdgeBrackets(NULL)==true);
+	do { pParamString->EatEdgeSpacesandTabs(nullptr);
+	} while(pParamString->CropEqualEdgeBrackets(nullptr)==true);
 
 	// Proceed to chop off all items from exp list string
 	bool bEndOfExpressionsReached=false;
@@ -3632,7 +3611,7 @@ bool CStatement::DoParameterListString(CStr* pOrigParamString, CParameter** ppFi
 		CStr uptoSeperator(pParamString->GetStr());
 
 		// Chop one item off string
-		CParameter* pRawReturnParameter = NULL;
+		CParameter* pRawReturnParameter = nullptr;
 		DWORD ReturnDistance=0;
 		if(DoExpressionListString(&pRawReturnParameter, &uptoSeperator, &ReturnDistance, &bEndOfExpressionsReached)==false)
 		{
@@ -3651,7 +3630,7 @@ bool CStatement::DoParameterListString(CStr* pOrigParamString, CParameter** ppFi
 		if(pReturnParameter)
 		{
 			// Add Param to Parameter Chain (ownership passes to the chain)
-			if((*ppFirstParameter)==NULL)
+			if((*ppFirstParameter)==nullptr)
 				(*ppFirstParameter)=pReturnParameter.release();
 			else
 				(*ppFirstParameter)->Add(pReturnParameter.release());
@@ -3671,7 +3650,6 @@ bool CStatement::DoExpressionList(CParameter** ppParameter, bool* bNoMoreParams)
 	LPSTR pStringPointer = g_pStatementList->GetFileDataPointer();
 	LPSTR pStringPointerEnd = g_pStatementList->GetFileDataEnd();
 	DWORD length=0;
-	bool bAlphaNotSeenYet=true;
 	if(pStringPointer<pStringPointerEnd)
 	{
 		while(*(unsigned char*)(pStringPointer+length)!=0)
@@ -3906,12 +3884,12 @@ bool CStatement::DoExpressionListString(CParameter** ppParameter, CStr* pExpress
 	}
 	if(pReturnDistance)
 	{
-		*pReturnDistance = (pStringPointer-pStartStringPointer)+HowManyCroppedTotal;
+		*pReturnDistance = static_cast<DWORD>((pStringPointer-pStartStringPointer)+HowManyCroppedTotal);
 	}
 
 	// pStartStringPointer to g_pStatementList is ONE EXPRESSION 
 	CStr StrOneExpressionString(1);
-	DWORD length=pStringPointer-pStartStringPointer;
+	DWORD length = static_cast<DWORD>(pStringPointer-pStartStringPointer);
 	LPSTR pPointerEnd=pStringPointerEnd;
 	StrOneExpressionString.CopyFromPtr(pStartStringPointer, pPointerEnd, length);
 	if(DoExpression(&StrOneExpressionString, (*ppParameter))==false)
@@ -4007,7 +3985,7 @@ LPSTR CStatement::GetStringToEndOfLine(void)
 	}
 
 	// Remove redundant spaces
-	stringStr.EatEdgeSpacesandTabs(NULL);
+	stringStr.EatEdgeSpacesandTabs(nullptr);
 
 	// Create string (hand a heap char[] back to the caller-owned raw contract;
 	// the caller frees it with delete[] via std::unique_ptr<char[]>)
@@ -4028,7 +4006,7 @@ bool CStatement::RemoveEdgeBracketFromSegment(LPSTR pPointer, DWORD *pdwSPos, DW
 
 	// Create String upto seperator (stack CStr: RAII on every exit path,
 	// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
-	DWORD length = pEndPointer-pPointer;
+	DWORD length = static_cast<DWORD>(pEndPointer-pPointer);
 	CStr str(length+1);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
 	str.CopyFromPtr(pPointer, pPointerEnd, length);
@@ -4065,7 +4043,7 @@ bool CStatement::ExtractDetailsFromForNext(CStr* pVar, CStr* pInit, CStr* pEnd, 
 
 	// Make extraction string (stack CStr: RAII on every exit path below,
 	// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
-	DWORD length = pEndPointer-pPointer;
+	DWORD length = static_cast<DWORD>(pEndPointer-pPointer);
 	CStr str(length);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
 	str.CopyFromPtr(pPointer, pPointerEnd, length);
@@ -4119,12 +4097,12 @@ bool CStatement::ExtractDetailsFromForNext(CStr* pVar, CStr* pInit, CStr* pEnd, 
 	else
 	{
 		// Trim spaces from variable name
-		pVar->EatEdgeSpacesandTabs(NULL);
+		pVar->EatEdgeSpacesandTabs(nullptr);
 
 		// Trim values
-		pInit->EatEdgeSpacesandTabs(NULL);
-		pEnd->EatEdgeSpacesandTabs(NULL);
-		pStep->EatEdgeSpacesandTabs(NULL);
+		pInit->EatEdgeSpacesandTabs(nullptr);
+		pEnd->EatEdgeSpacesandTabs(nullptr);
+		pStep->EatEdgeSpacesandTabs(nullptr);
 
 		// If no init or end value, error
 		if ( pInit->Length()==0 || pEnd->Length()==0 || (dwStage==3 && pStep->Length()==0) )
@@ -4151,7 +4129,7 @@ bool CStatement::ReplaceTHENandELSEwithSep(void)
 
 	// Make extraction string (stack CStr: RAII on every exit path below,
 	// replacing the heap new/SAFE_DELETE pair - this is a pure local temporary)
-	DWORD length = pEndPointer-pPointer;
+	DWORD length = static_cast<DWORD>(pEndPointer-pPointer);
 	CStr str(length);
 	LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
 	str.CopyFromPtr(pPointer, pPointerEnd, length);
@@ -4238,8 +4216,10 @@ DWORD CStatement::GetMainToken(void)
 		AdvancePastCRandSPACES(&pPointer);
 
 		// Remember start of this token (leefix - 250604 - u54 - beyond CR skips!)
-		DWORD dwStorePointerOfToken=pPointer-g_pStatementList->GetFileDataStart();
+		DWORD dwStorePointerOfToken = static_cast<DWORD>(pPointer-g_pStatementList->GetFileDataStart());
 		DWORD dwStoreLineOfToken=g_pStatementList->GetLineNumber();
+		g_pStatementList->SetTokenLineNumber(dwStoreLineOfToken);
+		g_pStatementList->SetLastCharInDataPosition(dwStorePointerOfToken);
 
 		if(pPointer>=g_pStatementList->GetFileDataEnd()-2)
 		{
@@ -4256,7 +4236,7 @@ DWORD CStatement::GetMainToken(void)
 		}
 
 		// Check if a recognised instruction
-		CInstructionTableEntry* pRef=NULL;
+		CInstructionTableEntry* pRef=nullptr;
 		DWORD dwTokenData=0, dwParamMax=0, dwLength=0;
 		if(g_pInstructionTable->FindInstruction(true, pPointer, 0, &dwTokenData, &dwParamMax, &dwLength, &pRef))
 		{
@@ -4303,7 +4283,7 @@ DWORD CStatement::GetMainToken(void)
 
 					// Produce string for rest of this line (stack CStr: RAII on
 					// every exit path, replacing the heap new/SAFE_DELETE pair)
-					DWORD dwLengthOfRestOfLine = pEndOfLinePtr-pPointer;
+					DWORD dwLengthOfRestOfLine = static_cast<DWORD>(pEndOfLinePtr-pPointer);
 					CStr lineStr(dwLengthOfRestOfLine+1);
 					LPSTR pPointerEnd=g_pStatementList->GetFileDataEnd();
 					lineStr.CopyFromPtr(pPointer, pPointerEnd, dwLengthOfRestOfLine);
@@ -4325,25 +4305,28 @@ DWORD CStatement::GetMainToken(void)
 				{
 					// If in prescan, do not process userfunction calls
 					if(g_pStatementList->GetImplementationParse()==false)
-						return static_cast<DWORD>(Token::Crt);
-
-					// Check if a user defined function
-					dwTokenData=0;
-					dwParamMax=0;
-					dwLength=0;
-					if(g_pInstructionTable->FindUserFunction(pPointer, 0, &dwTokenData, &dwParamMax, &dwLength))
 					{
-						// Yes, token is userfunction
-						dwToken=static_cast<DWORD>(Token::UserFunctionCall);
+						dwToken = static_cast<DWORD>(Token::Crt);
+					}
+					else
+					{
+						dwTokenData=0;
+						dwParamMax=0;
+						dwLength=0;
+						if(g_pInstructionTable->FindUserFunction(pPointer, 0, &dwTokenData, &dwParamMax, &dwLength))
+						{
+							// Yes, token is userfunction
+							dwToken=static_cast<DWORD>(Token::UserFunctionCall);
 
-						// Record instruction data
-						g_pStatementList->SetInstructionRef(NULL);
-						g_pStatementList->SetInstructionType(3);
-						g_pStatementList->SetInstructionValue(dwTokenData);
-						g_pStatementList->SetInstructionParamMax(dwParamMax);
+							// Record instruction data
+							g_pStatementList->SetInstructionRef(nullptr);
+							g_pStatementList->SetInstructionType(3);
+							g_pStatementList->SetInstructionValue(dwTokenData);
+							g_pStatementList->SetInstructionParamMax(dwParamMax);
 
-						// Advance pPointer
-						pPointer+=dwLength;
+							// Advance pPointer
+							pPointer+=dwLength;
+						}
 					}
 				}
 			}
@@ -4395,12 +4378,12 @@ DWORD CStatement::GetToken(void)
 LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 {
 	// Search for comment lines to skip
-	if(_strnicmp(pPtr, "`", 1)==NULL
-	|| _strnicmp(pPtr, "'", 1)==NULL
-	|| _strnicmp(pPtr, "rem", 3)==NULL
-	|| _strnicmp(pPtr, "remstart", 8)==NULL)
+	if(_strnicmp(pPtr, "`", 1)==0
+	|| _strnicmp(pPtr, "'", 1)==0
+	|| _strnicmp(pPtr, "rem", 3)==0
+	|| _strnicmp(pPtr, "remstart", 8)==0)
 	{
-		if(_strnicmp(pPtr, "remstart", 8)==NULL)
+		if(_strnicmp(pPtr, "remstart", 8)==0)
 		{
 			// Ensure followed by sub32 character
 			if(*(pPtr+8)<=32)
@@ -4408,7 +4391,7 @@ LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 				// Skip code block
 				while(pPtr<pPtrEnd)
 				{
-					if(_strnicmp(pPtr-5, "remend", 6)==NULL) break;
+					if(_strnicmp(pPtr-5, "remend", 6)==0) break;
 
 					// leefix - 110405 - must account for line number inc - tweaked 150405
 					if ( *(unsigned char*)(pPtr+0)==10
@@ -4423,9 +4406,9 @@ LPSTR CStatement::SkipAllComments ( LPSTR pPtr, LPSTR pPtrEnd )
 		{
 			// Ensure followed by 32+ character
 			bool bValidComment=false;
-			if(_strnicmp(pPtr, "`", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-			if(_strnicmp(pPtr, "'", 1)==NULL && *(pPtr+1)>=32) bValidComment=true;
-			if(_strnicmp(pPtr, "rem", 3)==NULL && *(pPtr+3)>=32) bValidComment=true;
+			if(_strnicmp(pPtr, "`", 1)==0 && *(pPtr+1)>=32) bValidComment=true;
+			if(_strnicmp(pPtr, "'", 1)==0 && *(pPtr+1)>=32) bValidComment=true;
+			if(_strnicmp(pPtr, "rem", 3)==0 && *(pPtr+3)>=32) bValidComment=true;
 			if(bValidComment)
 			{
 				// Only skip line
@@ -4456,11 +4439,6 @@ void CStatement::SkipToCR(void)
 		m_tokenizer.SetSourceBuffer(pPointer);
 		m_tokenizer.SkipToCR();
 		LPSTR pNewPointer = pPointer + m_tokenizer.GetCurrentPosition();
-		if (pNewPointer > pPointer)
-		{
-			g_pStatementList->IncLineNumber();
-			g_pStatementList->SetTokenLineNumber(g_pStatementList->GetLineNumber());
-		}
 		g_pStatementList->SetFileDataPointer(pNewPointer);
 	}
 }
@@ -4489,11 +4467,11 @@ LPSTR CStatement::SeekToSeperator(LPSTR pPointer, bool bAdvanceLine, bool bStopA
 			// LEEFIX - 171102 - detect break by comment
 			if(bStopAtComment==true)
 			{
-				if(_strnicmp(pPointer, "'", 1)==NULL)			break;
-				if(_strnicmp(pPointer, "`", 1)==NULL)			break;
-				if(_strnicmp(pPointer, "//", 2)==NULL)			break;
-				if(_strnicmp(pPointer, "rem ", 4)==NULL)			break;
-				if(_strnicmp(pPointer, "remstart ", 9)==NULL)	break;
+				if(_strnicmp(pPointer, "'", 1)==0)			break;
+				if(_strnicmp(pPointer, "`", 1)==0)			break;
+				if(_strnicmp(pPointer, "//", 2)==0)			break;
+				if(_strnicmp(pPointer, "rem ", 4)==0)			break;
+				if(_strnicmp(pPointer, "remstart ", 9)==0)	break;
 			}
 		}
 
@@ -4513,7 +4491,6 @@ LPSTR CStatement::SeekToSeperator(LPSTR pPointer, bool bAdvanceLine, bool bStopA
 LPSTR CStatement::SeekToCRReadOnly(LPSTR pPointer)
 {
 	// Keep going until hit seperator
-	DWORD dwSpeechMark=0;
 	while(pPointer<g_pStatementList->GetFileDataEnd())
 	{
 		if((*(unsigned char*)(pPointer+0)==0))
@@ -4548,7 +4525,7 @@ PSTR CStatement::SeekToRemEnd(LPSTR pPointer)
 		}
 		if(iSpeechMarks==0)
 		{
-			if(_strnicmp((char*)(pPointer), "remend", 6)==NULL)
+			if(_strnicmp((char*)(pPointer), "remend", 6)==0)
 			{
 				if(pPointer+5<pPointerEnd) pPointer+=6;
 				break;
@@ -4653,7 +4630,7 @@ DWORD CStatement::PeekLabel(LPSTR pPointer)
 
 	// Make string from line
 	LPSTR pEndPointer = SeekToSeperator(pPointer, false, false);
-	DWORD length = pEndPointer-pPointer;
+	DWORD length = static_cast<DWORD>(pEndPointer-pPointer);
 
 	// Stack CStr keeps the legacy copy/trim semantics; the heap new/SAFE_DELETE
 	// pair is replaced by RAII (mirrors the adjacent GetLabel refactor).
@@ -4663,7 +4640,7 @@ DWORD CStatement::PeekLabel(LPSTR pPointer)
 	str.SetChar(length,0);
 
 	// Clean up string
-	str.EatEdgeSpacesandTabs(NULL);
+	str.EatEdgeSpacesandTabs(nullptr);
 	
 	// Determine if label
 	if(str.IsTextALabel())
@@ -4686,7 +4663,7 @@ std::string CStatement::GetLabel(LPSTR* pPointer)
 {
 	// Make string from line
 	LPSTR pEndPointer = SeekToSeperator(*pPointer, false, false);
-	DWORD length = pEndPointer-(*pPointer);
+	DWORD length = static_cast<DWORD>(pEndPointer-(*pPointer));
 
 	// Stack CStr keeps the legacy copy/trim semantics; result returned by value
 	CStr str(length+1);
@@ -4696,7 +4673,7 @@ std::string CStatement::GetLabel(LPSTR* pPointer)
 	(*pPointer)+=length;
 
 	// Clean up string
-	str.EatEdgeSpacesandTabs(NULL);
+	str.EatEdgeSpacesandTabs(nullptr);
 
 	return std::string(str.GetStr());
 }
@@ -4758,13 +4735,19 @@ std::optional<std::string> CStatement::AddInternalLabel(void)
 	return labelName;
 }
 
-bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParameter* pFirstParameter, DWORD dwOrigValue, DWORD dwOrigType, DWORD dwOrigParamMax, DWORD* pdwValidInstructionToUse, bool* pbIfFindTypeA)
+bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParameter* pFirstParameter, DWORD dwOrigValue, DWORD dwOrigType, [[maybe_unused]] DWORD dwOrigParamMax, DWORD* pdwValidInstructionToUse, bool* pbIfFindTypeA)
 {
-	// aaron - 201112 - for debugging purposes, declarations have been moved
-	CInstructionTableEntry *entry;
 	bool bInValidParams=false;
-	CInstructionTableEntry* pValidEntryRef=NULL; 
+	CInstructionTableEntry* pValidEntryRef=nullptr; 
 	DWORD dwParamCount=0;
+	{
+		CParameter* pCountParam = pFirstParameter;
+		while(pCountParam)
+		{
+			dwParamCount++;
+			pCountParam = pCountParam->GetNext();
+		}
+	}
 	DWORD dwTryInstruction = 0;
 
 	// First Instruction Data
@@ -4774,7 +4757,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 	DWORD dwInstructionType=dwOrigType;
 
 	// Initially not found
-	CStr* pValidParamTypes = NULL;
+	CStr* pValidParamTypes = nullptr;
 	*(pdwValidInstructionToUse)=0;
 	if(dwInstructionType==1)
 	{
@@ -4787,36 +4770,32 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 	bool bBestIsTypeA=false;
 	DWORD dwScoreBestMatch=0;
 	DWORD dwBestScoreSoFar=0;
-	CInstructionTableEntry* pFirstEntryRef=NULL; 
-	CInstructionTableEntry* pNextEntryRef=NULL; 
+	CInstructionTableEntry* pFirstEntryRef=nullptr; 
+	CInstructionTableEntry* pNextEntryRef=nullptr; 
 	DWORD dwValidInstructionValue=0, dwValidParamMax=0;
 
 	// pTrack kicks in on 'second' interation (search list bby entry, not by index)
-	CInstructionTableEntry* pTrack = NULL;
+	CInstructionTableEntry* pTrack = nullptr;
 
 	// Try 16 commands before give up looking for param permutations
 	DWORD dwTryingIndex=0;
 
 	// LEEFIX - 201102 - some situations 16 instances not enough, so 32
-	// aaronfix - 201112 - new system does not really use indexes so a limit is pointless
-	entry = g_pInstructionTable->GetEntryByIndex(dwOrigValue);
-	while(entry)
+	for(dwTryingIndex=0; dwTryingIndex<32; dwTryingIndex++)
 	{
 		// Try This Instruction
-		//dwTryInstruction = dwInstructionValue + dwTryingIndex;
-		dwTryInstruction = entry->GetInternalID();
+		dwTryInstruction = dwInstructionValue + dwTryingIndex;
 		if(pTrack) dwTryInstruction = pTrack->GetInternalID();
 
 		// Check for parameter-mismatch
 		bInValidParams = false;
 		pValidEntryRef = nullptr;
-		dwParamCount = 0;
+		pValidParamTypes = nullptr;
 		if(dwInstructionType==2)
 		{
 			if(g_pInstructionTable->FindInstructionParams(dwTryInstruction, dwParamCount, &dwValidInstructionValue, &dwValidParamMax, &pValidParamTypes, &pValidEntryRef)==false)
 			{
 				bInValidParams=true;
-				DB3_CRASH();
 			}
 		}
 		if(dwInstructionType==3)
@@ -4824,16 +4803,16 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 			if(g_pInstructionTable->FindUserFunctionParams(dwTryInstruction, dwParamCount, &dwValidInstructionValue, &dwValidParamMax, &pValidParamTypes, &pValidEntryRef)==true)
 			{
 				// leefix - 250604 - u54 - ONLY if original NAME matches current instruction considered
-				if ( pValidEntryRef && *pRef )
+				if ( pValidEntryRef && *pRef && (*pRef)->GetName() && pValidEntryRef->GetName() )
 				{
-					if ( stricmp ( (*pRef)->GetName()->GetStr(), pValidEntryRef->GetName()->GetStr() )!=NULL ) 
+					if ( _stricmp ( (*pRef)->GetName()->GetStr(), pValidEntryRef->GetName()->GetStr() )!=0 ) 
 					{
 						bInValidParams=true;
 					}
 				}
 
 				// leefix - 170403 - user functions can also have UDTs - so check these match too
-				if ( bInValidParams==false )
+				if ( bInValidParams==false && pValidEntryRef )
 				{
 					CDeclaration* pDecChain = pValidEntryRef->GetDecChain();
 					if ( pDecChain )
@@ -4850,10 +4829,10 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 								{
 									CStr* pFunctionTypeName = pDec->GetType();
 									CResultData* pParamData = pCurrent->GetMathItem()->FindResultData();
-									if ( pParamData )
+									if ( pParamData && pParamData->m_pStruct )
 									{
 										CStr* pParamTypeName = pParamData->m_pStruct->GetTypeName();
-										if ( stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=NULL )
+										if ( pFunctionTypeName && pParamTypeName && _stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=0 )
 										{
 											g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+8, pValidEntryRef->GetName()->GetStr(), pFunctionTypeName->GetStr());
 											bInValidParams=true;
@@ -4883,7 +4862,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 		}
 
 		// Ensure first instruction entry ref is recorded
-		if(pFirstEntryRef==NULL)
+		if(pFirstEntryRef==nullptr)
 			pFirstEntryRef=pValidEntryRef;
 		else
 			pNextEntryRef=pValidEntryRef;
@@ -4896,7 +4875,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 		// Validate type of parameters to call
 		bTypeAFlag=false;
 		dwScoreBestMatch=0;
-		if(pValidParamTypes)
+		if(bInValidParams==false && pValidParamTypes && pValidEntryRef)
 		{
 			if(pFirstParameter)
 			{
@@ -4911,13 +4890,12 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 					if(pFirstParameter->ValidateWithCorrectCall(pValidParamTypes, &dwScoreBestMatch, pValidEntryRef->GetHardcoreInternalValue())==false)
 					{
 						bInValidParams=true;
-						//DB3_CRASH();
 					}
 				}
 			}
 			else
 			{
-				if(strcmp(pValidParamTypes->GetStr(),"")==NULL)
+				if(pValidParamTypes->GetStr() && strcmp(pValidParamTypes->GetStr(),"")==0)
 				{
 					dwScoreBestMatch=9;
 				}
@@ -4930,7 +4908,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 		}
 
 		// Store instruction that passes all checks
-		if(bInValidParams==false)
+		if(bInValidParams==false && pValidEntryRef)
 		{
 			// lee - 140206 - u60 - ensure commands with matching return param to initial command wins
 			if ( pValidEntryRef->GetReturnParam()==dwOriginalReturnParam )
@@ -4948,16 +4926,13 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 		}
 
 		// Try again with next matching instruction
-		if(pTrack==NULL) pTrack = pValidEntryRef;
+		if(pTrack==nullptr) pTrack = pValidEntryRef;
 		if(pTrack)
 		{
 			pTrack = pTrack->GetNext();
-			if(pTrack==NULL) break;
+			if(pTrack==nullptr) break;
 		}
 
-		// Next try..
-		dwTryingIndex++;
-		entry = entry->GetNext();
 	}
 
 	// Use Best bOneParamPerRepeatedInstruction
@@ -4966,8 +4941,6 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 	// Does instruction exist with desired params..
 	if(*(pdwValidInstructionToUse)==0)
 	{
-		// Could not find match soft fail
-		DB3_CRASH();
 		return false;
 	}
 
@@ -4975,7 +4948,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 	return true;
 }
 
-DWORD CStatement::DetermineNameToken(LPSTR pToken)
+DWORD CStatement::DetermineNameToken(LPCSTR pToken)
 {
 	return m_tokenizer.DetermineKeywordToken(pToken);
 }
@@ -4984,7 +4957,7 @@ DWORD CStatement::DetermineToken(LPSTR pToken)
 {
 	// Determine ID from token string
 	DWORD dwToken=0;
-	if(pToken!=NULL)
+	if(pToken!=nullptr)
 	{
 		// Determine if static_cast<DWORD>(Token::Crt)
 		if(dwToken==0 && pToken[0]==13 && pToken[1]==10) dwToken=static_cast<DWORD>(Token::Crt);
@@ -5003,29 +4976,29 @@ DWORD CStatement::DetermineToken(LPSTR pToken)
 	return dwToken;
 }
 
-bool CStatement::DetermineIfReservedWord(LPSTR pWord)
+bool CStatement::DetermineIfReservedWord(LPCSTR pWord)
 {
 	// Eliminate tokens
-	if ( DetermineNameToken ( pWord )!=NULL )
+	if ( DetermineNameToken ( pWord )!=0 )
 		return true;
 
 	// Other internal reserved words (please rewrite me!)
-	if ( stricmp(pWord, "NEXT")==NULL ) return true;
-	if ( stricmp(pWord, "STEP")==NULL ) return true;
-	if ( stricmp(pWord, "TO")==NULL ) return true;
-	if ( stricmp(pWord, "THEN")==NULL ) return true;
-	if ( stricmp(pWord, "SYNC")==NULL ) return true;
-	if ( stricmp(pWord, "RETURN")==NULL ) return true;
-	if ( stricmp(pWord, "END")==NULL ) return true;
+	if ( _stricmp(pWord, "NEXT")==0 ) return true;
+	if ( _stricmp(pWord, "STEP")==0 ) return true;
+	if ( _stricmp(pWord, "TO")==0 ) return true;
+	if ( _stricmp(pWord, "THEN")==0 ) return true;
+	if ( _stricmp(pWord, "SYNC")==0 ) return true;
+	if ( _stricmp(pWord, "RETURN")==0 ) return true;
+	if ( _stricmp(pWord, "END")==0 ) return true;
 
 	// not a reserved word
 	return false;
 }
 
-bool CStatement::DetermineIfFunctionName(LPSTR pWord, bool bIncludeUserFunctions)
+bool CStatement::DetermineIfFunctionName(LPCSTR pWord, bool bIncludeUserFunctions)
 {
 	// Check if a recognised instruction
-	CInstructionTableEntry* pRef=NULL;
+	CInstructionTableEntry* pRef=nullptr;
 	DWORD dwTokenData=0, dwParamMax=0, dwLength=0;
 	if(g_pInstructionTable->FindInstruction(false, pWord, 0, &dwTokenData, &dwParamMax, &dwLength, &pRef))
 		return true;
@@ -5075,7 +5048,7 @@ bool CStatement::WriteDBMNode(void)
 			WriteDBMBit(g_dwLastDBMLineNumber, "LINE : ", s_Buf);
 			WriteDBMBit(0, "", "");
 #else
-			LPSTR pProgramLineText=NULL;
+			LPCSTR pProgramLineText=nullptr;
 			g_pStatementList->FindStartOfFileDataProgramLine(g_dwLastDBMLineNumber, &pProgramLineText);
 			WriteDBMBit(g_dwLastDBMLineNumber, "LINE : ", pProgramLineText);
 			SAFE_DELETE(pProgramLineText);
@@ -5120,7 +5093,7 @@ bool CStatement::WriteDBMNode(void)
 				CParseInstruction* pTempInstr = new CParseInstruction();
 				pTempInstr->SetLineNumber(m_dwLineNumber);
 				pTempInstr->PassStartEndCharForPossibleDebugHook(m_dwStartChar, m_dwEndChar);
-				pTempInstr->WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), NULL, NULL, NULL);
+				pTempInstr->WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), nullptr, nullptr, nullptr);
 				delete pTempInstr;
 
 				// statement should contain actual char data!!!
@@ -5129,9 +5102,9 @@ bool CStatement::WriteDBMNode(void)
 				int iEndChar=m_dwEndChar;
 
 				// Write Debug Hook
-				g_pASMWriter->WriteASMTaskCoreP2(iLineNumber, static_cast<DWORD>(ASMTask::DebugStatementHook), NULL, iStartChar, NULL, iEndChar);
+				g_pASMWriter->WriteASMTaskCoreP2(iLineNumber, static_cast<DWORD>(ASMTask::DebugStatementHook), nullptr, iStartChar, nullptr, iEndChar);
 
-				// If EAX is zero, leap back
+				// If RAX is zero, leap back
 				g_pASMWriter->WriteASMLeapMarkerJumpToTop();
 
 				// Complete LEAP-FORWARD Marker
@@ -5210,7 +5183,7 @@ bool CStatement::WriteDBMNode(void)
 			if(m_bPerformJumpChecks && g_pDBPCompiler->GetRuntimeErrorMode())
 			{
 				// Write Runtime Error Jump Hook
-				g_pASMWriter->WriteASMTaskCoreP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::RuntimeErrorHook), NULL, 0, NULL, 0);
+				g_pASMWriter->WriteASMTaskCoreP2(m_dwLineNumber, static_cast<DWORD>(ASMTask::RuntimeErrorHook), nullptr, 0, nullptr, 0);
 			}
 		}
 	}
@@ -5222,7 +5195,7 @@ bool CStatement::WriteDBMNode(void)
 #define __AARON_DBMPERF__ 1
 #define DBM_MAX_SCRATCH_BUF 65536
 
-bool CStatement::WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult)
+bool CStatement::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
 {
 #ifdef __AARON_DBMPERF__
 	static char buf[DBM_MAX_SCRATCH_BUF];

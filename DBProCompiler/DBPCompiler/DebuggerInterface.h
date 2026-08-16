@@ -36,7 +36,7 @@ public:
 	 * @param[in] dwDataSize  Size of the data payload in bytes.
 	 * @return The LRESULT from SendMessage, or 0 if no debugger window was found.
 	 */
-	static LRESULT SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize);
+	static LRESULT SendDataToDebugger(int iType, LPCSTR pData, DWORD dwDataSize);
 
 	/**
 	 * @brief Receives data from the debugger process (blocks up to 3 seconds).

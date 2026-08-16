@@ -12,7 +12,7 @@
 //#define __AARON_DISABLE_ALL_PERFS__
 
 #define X__AARON_PERFIMPROVE__		1
-#define X__AARON_INSTRPERF__		1
+#define X__AARON_INSTRPERF__		0
 #define X__AARON_LBLTBLPERF__		1
 #define X__AARON_STRUCPERF__		1
 #define X__AARON_STRPERF__			1

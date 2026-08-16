@@ -10,8 +10,8 @@
 
 CStatementChain::CStatementChain()
 {
-	m_FirstStatmentBlock=NULL;
-	m_pNext=NULL;
+	m_FirstStatmentBlock=nullptr;
+	m_pNext=nullptr;
 }
 
 CStatementChain::~CStatementChain()
@@ -22,7 +22,7 @@ CStatementChain::~CStatementChain()
 
 void CStatementChain::Add(CStatementChain *pNext)
 {
-	if(m_pNext==NULL)
+	if(m_pNext==nullptr)
 	{
 		m_pNext=pNext;
 	}

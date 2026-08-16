@@ -28,16 +28,20 @@ class CStr: public db3::TObject<CStr>
 		CStr& operator=(CStr&& other) noexcept;
 	public:
 		CStr(LPSTR pText);
+		CStr(LPCSTR pText);
 		CStr(DWORD dwTextSize);
 		void		Enlarge(DWORD length);
 		LPSTR		GetStr(void) const { return const_cast<char*>(m_buffer.data()); }
 		double		GetValue(void) const;
 		void		SetText(LPSTR pStr);
+		void		SetText(LPCSTR pStr);
 		void		SetText(CStr* pStrText);
 		void		AddText(LPSTR pStr);
+		void		AddText(LPCSTR pStr);
 		void		AddText(CStr* pStrText);
 		void		AddChar(char cChar);
 		void		InsertText(LPSTR pStr);
+		void		InsertText(LPCSTR pStr);
 		void		SetNumericText(DWORD dwNumText);
 		void		SetUnsignedNumericText(DWORD dwNumText);
 		void		SetDWORDNumericText(DWORD dwNumText);
@@ -52,7 +56,7 @@ class CStr: public db3::TObject<CStr>
 		bool		MakeUpper(void);
 		bool		ReplaceSemicolons(void);
 		bool		CheckChar(DWORD dwPos, unsigned char cChar) const;
-		bool		CheckChars(DWORD dwPos, DWORD num, LPSTR pText) const;
+		bool		CheckChars(DWORD dwPos, DWORD num, LPCSTR pText) const;
 		bool		SetChar(DWORD dwPos, DWORD value);
 		DWORD		FindFirstChar(char cChar) const;
 		DWORD		FindFirstCharAtBracketLevel(char cChar) const;

@@ -24,7 +24,7 @@ class CParseType
 		DWORD			GetEndLineNumber(void) { return m_dwEndLineNumber; }
 
 		bool			WriteDBM(void);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText);
+		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText);
 
 	private:
 

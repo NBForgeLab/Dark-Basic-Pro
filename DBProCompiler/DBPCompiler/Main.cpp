@@ -27,8 +27,8 @@
 #include <cctype>
 
 // Internal data
-HWND g_hTempWindow = NULL;
-HWND g_igLoader_HWND = NULL;
+HWND g_hTempWindow = nullptr;
+HWND g_igLoader_HWND = nullptr;
 char g_ActualCompilerFilename[256];
 
 // External Class Pointers
@@ -36,7 +36,7 @@ extern CDBPCompiler*		g_pDBPCompiler;
 extern CError*				g_pErrorReport;
 extern CDebugInfo			g_DebugInfo;
 
-HRESULT GetDXVersion( DWORD* pdwDirectXVersion, TCHAR* strDirectXVersion, int cchDirectXVersion )
+HRESULT GetDXVersion([[maybe_unused]] DWORD* pdwDirectXVersion, [[maybe_unused]] TCHAR* strDirectXVersion, [[maybe_unused]] int cchDirectXVersion)
 {
 	return S_OK;
 }
@@ -49,7 +49,7 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 			{
 				// Memory to be used to store string sent
 				DWORD dwDataSize=0;
-				LPSTR pData=NULL;
+				LPSTR pData=nullptr;
 
 				// First Four Bytes are Size of Message
 				HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,L"DBPROCLITEXT");
@@ -100,401 +100,6 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-/* ABANDONNED PROTECTION VIA REGISTRY %AND ASSIST - BEEN CRACKED IN 2002
-
-// Define for TICK-COUNT-PROTECTION
-#ifdef DEMOPROTECTEDMODE
- #define TICKLIMIT 2
-#else
- #define TICKLIMIT 10000
-#endif
-
-// Internal Support for AssistNet Mode
-bool bCheckAssistNetOnce	= false;
-bool bAssistNetMode			= false;
-DWORD dwTickLimit			= TICKLIMIT;
-
-bool WriteStringToRegistryEx(char* PerfmonNamesKey, char* valuekey, char* string)
-{
-	HKEY hKeyNames = 0;
-	DWORD Status;
-	DWORD dwDisposition;
-	char ObjectType[256];
-	strcpy(ObjectType,"Num");
-	Status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, ObjectType, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
-	if(dwDisposition==REG_OPENED_EXISTING_KEY)
-	{
-		RegCloseKey(hKeyNames);
-		Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_WRITE, &hKeyNames);
-	}
-    if(Status==ERROR_SUCCESS)
-	{
-        Status = RegSetValueEx(hKeyNames, valuekey, 0, REG_SZ, (LPBYTE)string, (strlen(string)+1)*sizeof(char));
-	}
-	RegCloseKey(hKeyNames);
-	hKeyNames=0;
-	return true;
-}
-
-void ReadStringFromRegistryEx(char* PerfmonNamesKey, char* valuekey, char* string)
-{
-	HKEY hKeyNames = 0;
-	DWORD Status;
-	char ObjectType[256];
-	DWORD Datavalue = 0;
-
-	strcpy(string,"");
-	strcpy(ObjectType,"Num");
-	Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
-    if(Status==ERROR_SUCCESS)
-	{
-		DWORD Type=REG_SZ;
-		DWORD Size=256;
-		Status = RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, NULL, &Size);
-		if(Size<255)
-			RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, (LPBYTE)string, &Size);
-
-		RegCloseKey(hKeyNames);
-	}
-}
-
-bool IsTickRequiredYet(int iMode)
-{
-	// In Demo Mode, no tick required
-	#ifdef DEMOPROTECTEDMODE
-	return false;
-	#endif
-
-	// Location of tickcount
-	char String[256];
-	char keyname[256];
-	strcpy(keyname, "Software\\");
-	strcat(keyname, "Microsoft\\");
-	strcat(keyname, "Windows Info");
-	ReadStringFromRegistryEx(keyname, "fileinfo", String);
-	int iCount = atoi(String);
-	bool bRes=false;
-
-	// Modes..
-	if(iMode==0)
-	{
-		// Check number
-		if(iCount==0) iCount=dwTickLimit+1;
-
-		// If less than zero, being hacked
-		if(iCount<0)
-		{
-			// Check if CD present
-			bRes=true;
-		}
-
-		// If greater than MAX, check validation
-		if(iCount>=(int)dwTickLimit)
-		{
-			// Check if CD present
-			bRes=true;
-		}
-		else
-		{
-			// Can continue without a check
-			iCount++;
-			bRes=false;
-		}
-	}
-	else
-	{
-		// reset tick
-		iCount=1;
-	}
-
-	// Write back
-	itoa(iCount, String, 10);
-	WriteStringToRegistryEx(keyname, "fileinfo", String);
-
-	// Return result
-	return bRes;
-}
-
-#ifdef DEMOPROTECTEDMODE
-
-bool	g_bTrialPeriodActive			= false;
-int		g_iTrialDialogID				= 0;
-char	g_KeyForDemo[32]				= { "NewIcon" };
-
-	#ifdef EXTENDED90DAYMODE
-	 int		g_DurationOfDemo		= 90;
-	#else
-	 int		g_DurationOfDemo		= 30;
-	#endif
-
-bool WriteToRegistry(char* PerfmonNamesKey, char* key, DWORD Datavalue)
-{
-	HKEY hKeyNames = 0;
-	DWORD Status;
-	DWORD dwDisposition;
-	char ObjectType[256];
-
-	// Name of key and optiontype
-	strcpy(ObjectType,"Num");
-
-	// Try to create it first
-	Status = RegCreateKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, ObjectType, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | KEY_WRITE, NULL, &hKeyNames, &dwDisposition);
-	
-	// If it has been created before, then open it
-	if(dwDisposition==REG_OPENED_EXISTING_KEY)
-	{
-		RegCloseKey(hKeyNames);
-		Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_WRITE, &hKeyNames);
-	}
-	
-	// We got the handle, now store the window placement data
-    if(Status==ERROR_SUCCESS)
-	{
-        Status = RegSetValueEx(hKeyNames, key, 0, REG_DWORD, (LPBYTE)&Datavalue, sizeof(DWORD));
-	}
-
-	// V108 Close key
-	RegCloseKey(hKeyNames);
-	hKeyNames=0;
-
-	return true;
-}
-bool ReadFromRegistry(char* PerfmonNamesKey, char* key, int* value)
-{
-	HKEY hKeyNames = 0;
-	DWORD Status;
-	char ObjectType[256];
-	DWORD Datavalue = 0;
-
-	// Name of key and optiontype
-	strcpy(ObjectType,"Num");
-
-	// Try to create it first
-	Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
-		
-	// We got the handle, now use it
-    if(Status==ERROR_SUCCESS)
-	{
-		DWORD Type=REG_DWORD;
-		DWORD Size=sizeof(DWORD);
-		Status = RegQueryValueEx(hKeyNames, key, NULL, &Type, (LPBYTE)&Datavalue, &Size);
-		RegCloseKey(hKeyNames);
-	}
-
-	// Return value
-	*value = Datavalue;
-
-	return true;
-}
-int GetCurrentDay(void)
-{
-	// Read system date and encrypt to a single number
-	long ltime;
-	time( &ltime );
-	return (((ltime/60)/60)/24);
-}
-bool CheckIfTrialStillValid(LPSTR pReportString)
-{
-	// Create microsft different to avoid hackers
-	char thekey[7];
-	thekey[0]='M';
-	thekey[1]='S';
-	thekey[2]='P';
-	thekey[3]='B';
-	thekey[4]='D';
-	thekey[5]=' ';
-	thekey[6]=0;
-
-	char micro[11];
-	micro[2]='c';
-	micro[3]='r';
-	micro[6]='o';
-	micro[7]='f';
-	micro[0]='m';
-	micro[4]='o';
-	micro[1]='i';
-	micro[5]='s';
-	micro[8]='t';
-	micro[9]='\\';
-	micro[10]=0;
-
-	// Build Registry Entry
-	char name[256];
-	strcpy(name, "SOFTWARE\\");
-	strcat(name, micro);
-	strcat(name, thekey);
-
-	// Get last date stamp from registry
-	int dateblock=0;
-	int dayregistered=0;
-	int currentday=GetCurrentDay();
-	ReadFromRegistry(name, g_KeyForDemo, &dateblock);
-	if(dateblock==0)
-	{
-		dayregistered=currentday;
-		WriteToRegistry(name, g_KeyForDemo, (dayregistered*10000)+0);
-		ReadFromRegistry(name, g_KeyForDemo, &dateblock);
-	}
-
-	// Check if date stamp older than current date
-	dayregistered=(dateblock/10000);
-	int daybit=dateblock-(dayregistered*10000);
-	if(currentday-daybit<dayregistered)
-	{
-		// Er, the day is older than the day of registering!
-		time_t ltime;
-		char date[256];
-		char message[256];
-		ltime = (dayregistered+daybit)*60*60*24;
-		if(pReportString)
-		{
-			strcpy(message, g_pDBPCompiler->GetWordString(1));
-			strcat(message, " ");
-			strcpy(date, ctime(&ltime));
-			strncat(message, date, 10);
-			strcpy(pReportString, message);
-		}
-		return false;
-	}
-	else
-	{
-		int daybit=currentday-dayregistered;
-		WriteToRegistry(name, g_KeyForDemo, (dayregistered*10000)+daybit);
-	}
-
-	// Ensure we have days left
-	int daysleft = (dayregistered+g_DurationOfDemo)-currentday;
-	if(daysleft<=0)
-	{
-		// Cannot run demo no more
-		wsprintf(pReportString, "%s %d %s", g_pDBPCompiler->GetWordString(2), abs(daysleft), g_pDBPCompiler->GetWordString(3));
-		return false;
-	}
-
-	// Okay to proceed with trial..
-	wsprintf(pReportString, "%s (%d %s)", g_pDBPCompiler->GetWordString(4), abs(daysleft), g_pDBPCompiler->GetWordString(5));
-	return true;
-}
-#endif
-
-bool IsTickValidated(DWORD dwRandomValue)
-{
-	// Check if should use AssistNet
-	if(bCheckAssistNetOnce==false)
-	{
-		// Switch to Compiler Folder First
-		char pStoreDir[_MAX_PATH];
-		getcwd(pStoreDir, _MAX_PATH);
-
-		// Change Directory now
-		chdir(g_pDBPCompiler->GetInternalFile(PATH_ROOTPATH));
-
-		HANDLE hFile = CreateFileW(L"DBProAssistNet.exe", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if(hFile!=INVALID_HANDLE_VALUE)
-		{
-			// Close File
-			SAFE_CLOSE(hFile);
-
-			// Found, use regular assist
-			bAssistNetMode=true;
-			dwTickLimit=1;
-		}
-		bCheckAssistNetOnce=true;
-
-		// Switch back
-		chdir(pStoreDir);
-	}
-
-	// Can skip check until a count of TICK reached
-	if(IsTickRequiredYet(0)==false)
-		return true;
-
-	// Switch to Compiler Folder First
-	char pStoreDir[_MAX_PATH];
-	getcwd(pStoreDir, _MAX_PATH);
-
-	// Change Directory now
-	chdir(g_pDBPCompiler->GetInternalFile(PATH_ROOTPATH));
-
-	// In as string
-	char lpCmdLine[32];
-	itoa(dwRandomValue, lpCmdLine, 10);
-
-	// In Value
-	DWORD dwIn = atoi(lpCmdLine);
-	if(strcmp(lpCmdLine,"")==NULL) dwIn=42;
-
-	// Determine This Folder
-	char pThisDir[_MAX_PATH];
-	getcwd(pThisDir, _MAX_PATH);
-	dwIn-=strlen(pThisDir);
-
-	// Determine TickFile
-	char TickFile[_MAX_PATH];
-	strcpy(TickFile, pThisDir);
-	strcat(TickFile, "\\tickfile.ini");
-	dwIn+=strlen(TickFile);
-
-	// Delete old tickfile
-	DeleteFile(TickFile);
-
-	// Type of TickProt Protection
-	char pAssistFilename[256];
-	strcpy(pAssistFilename, "DBProAssist.exe");
-	if(bAssistNetMode==true) strcpy(pAssistFilename, "DBProAssistNet.exe");
-
-	// Run TickProt
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-	ZeroMemory(&si, sizeof(STARTUPINFO));
-	si.cb=sizeof(STARTUPINFO);
-	ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-	char pFullLine[_MAX_PATH];
-	strcpy(pFullLine, pAssistFilename);
-	strcat(pFullLine, " ");
-	strcat(pFullLine, lpCmdLine);
-	std::wstring wFullLine = TextConvert::UTF8ToUTF16(pFullLine);
-	if(CreateProcessW(	NULL, &wFullLine[0],
-						NULL, NULL, false,
-						NORMAL_PRIORITY_CLASS,
-						NULL, NULL,	&si, &pi))
-	{
-		// Wait until fully loaded
-		WaitForInputIdle(pi.hProcess, 5000);
-
-		// And wait for it to finish
-		DWORD uExitCode=0;
-		GetExitCodeProcess(pi.hProcess, &uExitCode);
-		while(uExitCode==STILL_ACTIVE) GetExitCodeProcess(pi.hProcess, &uExitCode);
-	}
-
-	// Mangle Calc
-	srand(dwIn+2);
-	DWORD dwTickValue = dwIn * rand()%1000;
-
-	// Tick Value
-	char pGenerated[32];
-	itoa(dwTickValue, pGenerated, 10);
-
-	// Produce tick value
-	char pReadIn[32];
-	GetPrivateProfileString("TICKVALUE", "TickValue", "0", pReadIn, 32, TickFile);
-	DeleteFile(TickFile);
-
-	// Restore previous directory
-	chdir(pStoreDir);
-
-	// Compare strings
-	if(strcmp(pGenerated, pReadIn)==NULL)
-	{
-		// reset tick, else recheck next time..
-		IsTickRequiredYet(1);
-		return true;
-	}
-	else
-		return false;
-}
-*/
 
 void PrintHelp() {
     AttachConsole(ATTACH_PARENT_PROCESS);
@@ -513,7 +118,7 @@ void PrintHelp() {
 }
 
 // Program Code
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance, [[maybe_unused]] LPSTR lpCmdLine, [[maybe_unused]] int nCmdShow)
 {
 	db3::SetupDiagnosticHandlers();
 
@@ -521,7 +126,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	bool bJsonMode = false;
 	int nEarlyArgs = 0;
 	LPWSTR* szEarlyArglist = CommandLineToArgvW(GetCommandLineW(), &nEarlyArgs);
-	if (szEarlyArglist != NULL) {
+	if (szEarlyArglist != nullptr) {
 		for (int i = 1; i < nEarlyArgs; i++) {
 			std::wstring argW(szEarlyArglist[i]);
 			if (argW == L"--json") {
@@ -539,9 +144,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DBP_INFO("DarkBasic Pro Compiler initialized.");
 
 #if _DEBUG
-	db3::CProfile<> prof("WinMain:Debug");
+	db3::CProfile<> mainProf("WinMain:Debug");
 #else
-	db3::CProfile<> prof("WinMain:Release");
+	db3::CProfile<> mainProf("WinMain:Release");
 #endif
 
 	// Vars
@@ -553,10 +158,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = hInstance;
-    wc.hIcon = NULL;
-    wc.hCursor = NULL;
-    wc.hbrBackground = NULL;
-    wc.lpszMenuName = NULL;
+    wc.hIcon = nullptr;
+    wc.hCursor = nullptr;
+    wc.hbrBackground = nullptr;
+    wc.lpszMenuName = nullptr;
     wc.lpszClassName = "DBProCompiler";
     RegisterClassA( &wc );
 
@@ -568,10 +173,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 										0,
 										0,
 										0,
-										NULL,
-										NULL,
+										nullptr,
+										nullptr,
 										hInstance,
-										NULL);
+										nullptr);
 
 	// Error Handler
 	g_pErrorReport = new CError;
@@ -581,36 +186,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		wchar_t wPath[MAX_PATH];
 		GetModuleFileNameW(hInstance, wPath, MAX_PATH);
 		std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
-		strncpy(g_ActualCompilerFilename, utf8Path.c_str(), 255);
-		g_ActualCompilerFilename[255] = '\0';
+		strncpy_s(g_ActualCompilerFilename, sizeof(g_ActualCompilerFilename), utf8Path.c_str(), _TRUNCATE);
 	}
-
-	// lee - 130406 - u6rc8 - an extra check to prevent DEMO users using the UPGRADE to improve their demo-version
-	#ifndef TRIALPERIOD 
-	 LPSTR pValidCompilerLocation = "Dark Basic Professional Demo\\Compiler\\DBPCompiler.exe";
-	 #ifdef DEMOPROTECTEDMODE
-	 if ( NULL!=strnicmp ( g_ActualCompilerFilename + strlen(g_ActualCompilerFilename) - strlen(pValidCompilerLocation), pValidCompilerLocation, strlen(pValidCompilerLocation) ) )
-	 #else
-	 if ( NULL==strnicmp ( g_ActualCompilerFilename + strlen(g_ActualCompilerFilename) - strlen(pValidCompilerLocation), pValidCompilerLocation, strlen(pValidCompilerLocation) ) )
-	 #endif
-	 {
-		// does not match the folder it should be located inside
-		// lee - 060207 - added extra data as some users get this and insist they only have the demo installed
-		char line[512];
-		#ifdef DEMOPROTECTEDMODE
-		 sprintf_s( line, "Demo installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
-		#else
-		 sprintf_s( line, "Full installation folder and compiler versions are incompatible at '%s'", g_ActualCompilerFilename );
-		#endif
-		if (g_bJsonDiagnostics || db3::g_bHeadlessMode) {
-			std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(line) << "\"}\n" << std::flush;
-		} else {
-			MessageBoxW(NULL, TextConvert::UTF8ToUTF16(line).c_str(), L"Compiler Error", MB_OK);
-		}
-		SAFE_DELETE(g_pErrorReport);
-		return 1;
-	 }
-	#endif
 
 	bool bOverallSuccess = false;
 
@@ -620,7 +197,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		int nArgs = 0;
 		LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 		std::vector<std::wstring> arguments;
-		if (szArglist != NULL) {
+		if (szArglist != nullptr) {
 			for (int i = 0; i < nArgs; i++) {
 				arguments.emplace_back(szArglist[i]);
 			}
@@ -635,7 +212,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				std::cout << "{\"type\":\"error\",\"stage\":\"arguments\",\"message\":\""
 					<< EscapeJSON(argumentError) << "\"}\n" << std::flush;
 			else
-				MessageBoxW(NULL, TextConvert::UTF8ToUTF16(argumentError).c_str(), L"Compiler Error", MB_OK);
+				MessageBoxW(nullptr, TextConvert::UTF8ToUTF16(argumentError).c_str(), L"Compiler Error", MB_OK);
 			SAFE_DELETE(g_pDBPCompiler);
 			SAFE_DELETE(g_pErrorReport);
 			return 1;
@@ -659,7 +236,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			if (g_bJsonDiagnostics) {
 				std::cout << "{\"type\":\"error\",\"message\":\"No project file specified.\"}\n" << std::flush;
 			} else {
-				MessageBoxW(NULL, L"No project file specified.\nUsage: DBPCompiler.exe [options] <project_file.dbpro>", L"Compiler Error", MB_OK);
+				MessageBoxW(nullptr, L"No project file specified.\nUsage: DBPCompiler.exe [options] <project_file.dbpro>", L"Compiler Error", MB_OK);
 			}
 			SAFE_DELETE(g_pDBPCompiler);
 			SAFE_DELETE(g_pErrorReport);
@@ -736,7 +313,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 					bOverallSuccess = true;
 				} else {
 					if (g_bJsonDiagnostics && g_pErrorReport) {
-						std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(g_pErrorReport->GetParserErrorString()) << "\"}\n" << std::flush;
+						const char* errMsg = g_pErrorReport->IsParserError() ? g_pErrorReport->GetParserErrorString() : g_pErrorReport->GetErrorString();
+						if (!errMsg) errMsg = "Unknown compilation error";
+						std::cout << "{\"type\":\"error\",\"message\":\"" << EscapeJSON(errMsg) << "\"}\n" << std::flush;
 					}
 					ReportStatus("failed", "Compilation failed.");
 				}
@@ -746,7 +325,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				if (g_bJsonDiagnostics) {
 					std::cout << "{\"type\":\"error\",\"message\":\"Failed to establish required base files.\"}\n" << std::flush;
 				} else {
-					MessageBoxW(NULL, L"Failed to establish required base files.", L"Compiler Error", MB_OK);
+					MessageBoxW(nullptr, L"Failed to establish required base files.", L"Compiler Error", MB_OK);
 				}
 			}
 		}
@@ -765,7 +344,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if(hCompilerWnd)
 	{
 		DestroyWindow(hCompilerWnd);
-		hCompilerWnd=NULL;
+		hCompilerWnd=nullptr;
 	}
 
 	// Exit

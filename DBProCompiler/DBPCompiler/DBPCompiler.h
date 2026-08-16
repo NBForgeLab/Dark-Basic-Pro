@@ -8,24 +8,43 @@
 // Common Includes
 #include "windows.h"
 #include "RuntimeBundleResolver.h"
+#include "Str.h"
 #include <memory>
 #include <vector>
 #include <string>
 
-// PATH Defines
+// Internal file-table identifiers (constexpr, type-safe)
+namespace dbp_paths {
+constexpr DWORD MAX = 20;
+constexpr DWORD ROOTPATH = 1;
+constexpr DWORD SETUPFILE = 2;
+constexpr DWORD ERRORSFILE = 3;
+constexpr DWORD PLUGINSFOLDER = 4;
+constexpr DWORD TEMPFOLDER = 5;
+constexpr DWORD TEMPDBMFILE = 6;
+constexpr DWORD TEMPEXBFILE = 7;
+constexpr DWORD TEMPERRORFILE = 8;
+constexpr DWORD DEBUGGERFILE = 9;
+constexpr DWORD WORDSFILE = 10;
+constexpr DWORD PLUGINSUSERFOLDER = 11;
+constexpr DWORD PLUGINSLICENSEDFOLDER = 12;
+constexpr DWORD CURRENTFOLDER = 13;
+}
+
 #define PATH_MAX 20
-#define PATH_ROOTPATH 1
-#define PATH_SETUPFILE 2
-#define PATH_ERRORSFILE 3
-#define PATH_PLUGINSFOLDER 4
-#define PATH_TEMPFOLDER 5
-#define PATH_TEMPDBMFILE 6 
-#define PATH_TEMPEXBFILE 7
-#define PATH_TEMPERRORFILE 8
-#define PATH_DEBUGGERFILE 9
-#define PATH_PLUGINSUSERFOLDER 11
-#define PATH_PLUGINSLICENSEDFOLDER 12
-#define PATH_CURRENTFOLDER 13
+#define PATH_ROOTPATH dbp_paths::ROOTPATH
+#define PATH_SETUPFILE dbp_paths::SETUPFILE
+#define PATH_ERRORSFILE dbp_paths::ERRORSFILE
+#define PATH_PLUGINSFOLDER dbp_paths::PLUGINSFOLDER
+#define PATH_TEMPFOLDER dbp_paths::TEMPFOLDER
+#define PATH_TEMPDBMFILE dbp_paths::TEMPDBMFILE
+#define PATH_TEMPEXBFILE dbp_paths::TEMPEXBFILE
+#define PATH_TEMPERRORFILE dbp_paths::TEMPERRORFILE
+#define PATH_DEBUGGERFILE dbp_paths::DEBUGGERFILE
+#define PATH_WORDSFILE dbp_paths::WORDSFILE
+#define PATH_PLUGINSUSERFOLDER dbp_paths::PLUGINSUSERFOLDER
+#define PATH_PLUGINSLICENSEDFOLDER dbp_paths::PLUGINSLICENSEDFOLDER
+#define PATH_CURRENTFOLDER dbp_paths::CURRENTFOLDER
 
 // External Words Array
 #define EXTWORDSMAX			32
@@ -60,13 +79,13 @@ class CDBPCompiler
 		bool			ProjectExists(void) { return m_bProjectExists; }
 		bool			LoadProjectFile(LPSTR pFilename);
 		bool			GetAllProjectFields(LPSTR pFilename);
-		LPSTR			GetProjectFile(LPSTR pFieldName);
+		LPSTR			GetProjectFile(LPCSTR pFieldName);
 		LPSTR			GetProjectMediaRoot(void);
-		LPSTR			GetProjectField(LPSTR pFieldName);
-		bool			GetProjectState(LPSTR pFieldName, bool bDefault);
-		bool			GetProjectState(LPSTR pFieldName);
-		bool			GetProjectStateMatch(LPSTR pFieldName, LPSTR pCompareStr);
-		DWORD			GetProjectDisplayInfo(LPSTR pFieldName, DWORD dwDisplayItem);
+		LPSTR			GetProjectField(LPCSTR pFieldName);
+		bool			GetProjectState(LPCSTR pFieldName, bool bDefault);
+		bool			GetProjectState(LPCSTR pFieldName);
+		bool			GetProjectStateMatch(LPCSTR pFieldName, LPCSTR pCompareStr);
+		DWORD			GetProjectDisplayInfo(LPCSTR pFieldName, DWORD dwDisplayItem);
 		bool			FreeProjectFile(void);
 
 		LPSTR			GetProgramName(void);
@@ -76,10 +95,10 @@ class CDBPCompiler
 		LPSTR			GetFilePtr(void) { return m_pFileData; }
 
 	public:
-		bool			PathExists(LPSTR pPath);
-		void			SetInternalFile(DWORD dwFileID, LPSTR pFilename);
+		bool			PathExists(LPCSTR pPath);
+		void			SetInternalFile(DWORD dwFileID, const char* pFilename);
 		LPSTR			GetInternalFile(DWORD dwFileID);
-		bool			FileExists(LPSTR);
+		bool			FileExists(LPCSTR pFilename);
 		void			GatherAllExternalWords(LPSTR pWordsFile);
 		LPSTR			GetWord ( int iID );
 		bool			EstablishRequiredBaseFiles(void);

@@ -24,7 +24,7 @@ bool CParseType::WriteDBM(void)
 	return true;
 }
 
-bool CParseType::WriteDBMBit(DWORD dwLineNumber, LPSTR pText)
+bool CParseType::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText)
 {
 	// Write out text
 	CStr strDBMLine(256);

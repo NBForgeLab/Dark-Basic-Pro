@@ -33,22 +33,22 @@ class CError
 		bool IsError(void) { return m_bErrorExist; }
 		bool IsParserError(void) { return m_bParserErrorExist; }
 #ifdef DARKEXE
-		LPSTR GetErrorString() { return __UNKNOWN_ERR_STR__; }
-		LPSTR GetParserErrorString() { return __UNKNOWN_ERR_STR__; }
+		const char* GetErrorString() const { return __UNKNOWN_ERR_STR__; }
+		const char* GetParserErrorString() const { return __UNKNOWN_ERR_STR__; }
 #else
-		LPSTR GetErrorString(void) { if(m_pErrorString) return m_pErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
-		LPSTR GetParserErrorString(void) { if(m_pParserErrorString) return m_pParserErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
+		const char* GetErrorString(void) { if(m_pErrorString) return m_pErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
+		const char* GetParserErrorString(void) { if(m_pParserErrorString) return m_pParserErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
 #endif
-		void PrepareVerboseErrorHeader(DWORD LineNumber, LPSTR ErrorString);
+		void PrepareVerboseErrorHeader(DWORD LineNumber, LPCSTR ErrorString);
 		void AddErrorString(const char* ErrorString);
-		void SetParserError(DWORD LineNumber, LPSTR ErrorString);
+		void SetParserError(DWORD LineNumber, LPCSTR ErrorString);
 		void OutputInternalErrorReport(void);
 
 	public:
-		DWORD CountDatabaseSubset(LPSTR pSection, LPSTR pErrorFilename);
-		void LoadDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename, std::vector<std::string>& outDB);
-		void LoadRuntimeDatabaseSubset(LPSTR pSection, DWORD dwMax, LPSTR pErrorFilename, std::vector<std::string>& outDB);
-		void LoadErrorDatabase(LPSTR pErrorFilename);
+		DWORD CountDatabaseSubset(LPCSTR pSection, LPCSTR pErrorFilename);
+		void LoadDatabaseSubset(LPCSTR pSection, DWORD dwMax, LPCSTR pErrorFilename, std::vector<std::string>& outDB);
+		void LoadRuntimeDatabaseSubset(LPCSTR pSection, DWORD dwMax, LPCSTR pErrorFilename, std::vector<std::string>& outDB);
+		void LoadErrorDatabase(LPCSTR pErrorFilename);
 
 		DWORD GetRuntimeErrorStringMax(void) { return static_cast<DWORD>(m_RuntimeErrors.size()); }
 		LPSTR GetRuntimeErrorString(int iIndex) {
@@ -60,15 +60,15 @@ class CError
 	public:
 		void GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, CStr** pRawErrorString);
 		DWORD GetTokenIndex(CStr* pTokenFieldString);
-		std::string CreateAndReword(LPSTR pI);
-		void ConstructError(DWORD dwLine, DWORD dwErrCode, LPSTR pA, LPSTR pB, LPSTR pC);
+		std::string CreateAndReword(LPCSTR pI);
+		void ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pA, LPCSTR pB, LPCSTR pC);
 		void SetError(DWORD dwLine, DWORD dwErrCode);
 		void SetError(DWORD dwLine, DWORD dwErrCode, DWORD dw1);
-		void SetError(DWORD dwLine, DWORD dwErrCode, LPSTR lp1);
-		void SetError(DWORD dwLine, DWORD dwErrCode, LPSTR lp1, LPSTR lp2);
+		void SetError(DWORD dwLine, DWORD dwErrCode, const char* lp1);
+		void SetError(DWORD dwLine, DWORD dwErrCode, const char* lp1, const char* lp2);
 
 	public:
-		void ProgressReport(LPSTR lpString, DWORD dwValue);
+		void ProgressReport(LPCSTR lpString, DWORD dwValue);
 		DWORD GetPerc(DWORD pPerc) { return (DWORD)((m_dwMaxLines/100.0f)*pPerc); }
 		void SetMaxLines(DWORD dwMaxLines) { m_dwMaxLines=dwMaxLines;; }
 

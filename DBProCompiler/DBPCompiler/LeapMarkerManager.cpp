@@ -93,7 +93,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerJumpToTop(CASMWriter* pWriter)
 {
 	if (!pWriter) return false;
 
-	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAX4), "0");
 	WriteASMLineLeapToTop(static_cast<DWORD>(ASMOp::JNE), pWriter);
 	return true;
 }
@@ -143,8 +143,8 @@ bool CLeapMarkerManager::WriteASMLeapForwardMarker(CASMWriter* pWriter)
 	if (!pWriter) return false;
 
 	// Check if escape value is zero
-	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVEAXMEM4), "@$_ESC_");
-	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::CMPEAX4), "0");
+	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXMEM4), "@$_ESC_");
+	pWriter->WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAX4), "0");
 
 	// LEAP-FORWARDS Marker OpCode (different from leap-back)
 	WriteASMLeapMarkerJump(static_cast<DWORD>(ASMOp::JE), 0, pWriter);

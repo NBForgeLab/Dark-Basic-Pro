@@ -3,8 +3,6 @@
 //
 
 // Internal Includes
-#define _CRT_SECURE_NO_DEPRECATE
-#pragma warning(disable : 4996)
 #include "RuntimePackageBootstrap.h"
 #include "windows.h"
 #include "direct.h"
@@ -34,15 +32,8 @@ char g_MM_FunctionName [ 256 ]= { "<none>" };
 // Custom Includes
 #include "..\DBPCompiler\macros.h"
 
-// Internal File Handling
-#include "io.h"
-struct _finddata_t		filedata;
-long					hInternalFile					= NULL;
-int						FileReturnValue					= -1;
-time_t					TodaysDay						= 0;
-
 // Interal DarkEXE Data Variables
-LPSTR								gRefCommandLineString=NULL;
+LPSTR								gRefCommandLineString=nullptr;
 char								gUnpackDirectory[_MAX_PATH];
 char								gpDBPDataName[_MAX_PATH];
 
@@ -53,150 +44,10 @@ CEXEBlock							CEXE;
 extern GlobStruct*					g_pGlob;
 
 // Temporary Window while loading DLLs
-HWND								g_hTempWindow = NULL;
+HWND								g_hTempWindow = nullptr;
 
 // IGLOADER can send WM_SETTEXT to the temp window, DBP executables attempt to 'EMBED'
-HWND								g_igLoader_HWND = NULL;
-
-// DEMO SPLASH POPUP - ONLY ADDED FOR DEMO-BUILD
-
-#ifdef DEMOSPLASH
-
-int g_iTrialDialogID=0;
-bool g_bTrialPeriodActive=false;
-#define SPLASHPOPW 379
-#define SPLASHPOPH 495
-
-BOOL CALLBACK DialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch(uMsg)
-	{
-		case WM_INITDIALOG:
-			{
-				int cx = (GetSystemMetrics(SM_CXFULLSCREEN)-SPLASHPOPW)/2;
-				int cy = (GetSystemMetrics(SM_CYFULLSCREEN)-SPLASHPOPH)/2;
-				SetWindowPos(hwndDlg, HWND_TOPMOST, cx, cy, 0, 0, SWP_NOSIZE);
-				SetTimer(hwndDlg, 0, 2000, NULL);
-
-				// Modify Text if Trial Period Expired
-				char pReport[256]; 
-				strcpy(pReport, "TRIAL VERSION EXECUTABLE - FREEWARE");
-				SetDlgItemText( hwndDlg, IDC_TRIALTEXT, pReport);
-			}
-			return 0;
-
-		case WM_TIMER:
-			DestroyWindow(hwndDlg);
-			return 1;
-	}
-	return DefWindowProc(hwndDlg, uMsg, wParam, lParam);
-}
-void PopupDemoSplashWindow(HINSTANCE hInstance)
-{
-	g_iTrialDialogID = DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, &DialogProc);
-}
-
-BOOL CALLBACK DialogEndLinkProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch(uMsg)
-	{
-		case WM_INITDIALOG:
-			{
-				int cx = (GetSystemMetrics(SM_CXFULLSCREEN)-SPLASHPOPW)/2;
-				int cy = (GetSystemMetrics(SM_CYFULLSCREEN)-SPLASHPOPH)/2;
-				SetWindowPos(hwndDlg, HWND_TOPMOST, cx, cy, 0, 0, SWP_NOSIZE);
-			}
-			return 0;
-
-		case WM_COMMAND:
-			switch (LOWORD(wParam)) 
-			{ 
-				case IDC_LINK:	// Link to DBP Website
-								DestroyWindow(hwndDlg);
-								ShellExecute(	NULL,
-												"open",
-												"http://www.darkbasicpro.com",
-												"",
-												"",
-												SW_SHOWDEFAULT);
-								PostQuitMessage(0);
-								break;
-
-				default:
-					DestroyWindow(hwndDlg);
-					break;
-			} 
-			return 1;
-
-		case WM_CLOSE:
-			DestroyWindow(hwndDlg);
-			return 1;
-	}
-	return DefWindowProc(hwndDlg, uMsg, wParam, lParam);
-}
-
-void ReadStringFromRegistryEXE(char* PerfmonNamesKey, char* valuekey, char* string)
-{
-	HKEY hKeyNames = 0;
-	DWORD Status;
-	char ObjectType[256];
-	DWORD Datavalue = 0;
-
-	strcpy(string,"");
-	strcpy(ObjectType,"Num");
-	Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
-    if(Status==ERROR_SUCCESS)
-	{
-		DWORD Type=REG_SZ;
-		DWORD Size=256;
-		Status = RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, NULL, &Size);
-		if(Size<255)
-			RegQueryValueEx(hKeyNames, valuekey, NULL, &Type, (LPBYTE)string, &Size);
-
-		RegCloseKey(hKeyNames);
-	}
-}
-
-/*
-bool FileExists(LPSTR pFilename)
-{
-	HANDLE hFile = CreateFile(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hFile!=INVALID_HANDLE_VALUE)
-	{
-		// Close File
-		SAFE_CLOSE(hFile);
-		return true;
-	}
-	// soft fail
-	return false;
-}
-*/
-
-void PopupDemoEndLink(HINSTANCE hInstance)
-{
-	// Only popup if not got it installed..
-	char InstallPath[256];
-	char keyname[256];
-	strcpy(keyname, "Software\\Dark Basic\\Dark Basic Pro");
-	ReadStringFromRegistryEXE(keyname,"INSTALL-PATH", InstallPath);
-// leefix-220703-simpler so it does not popup on new/old/diff version
-//	char TestDLL[256];
-//	strcat(InstallPath, "\\Compiler\\plugins\\");
-//	strcpy(TestDLL,InstallPath);
-//	strcat(TestDLL,"DBProCore.dll");
-//	if(FileExists(TestDLL))
-	if(strcmp(InstallPath,"")!=NULL)
-	{
-		// Carry on - compiler installed already
-	}
-	else
-	{
-		// Compiler not installed - advertise it
-		g_iTrialDialogID = DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG2), NULL, &DialogEndLinkProc);
-	}
-}
-
-#endif
+HWND								g_igLoader_HWND = nullptr;
 
 // LOAD EXE DATA AND RUN
 
@@ -204,7 +55,6 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 {
 	// Result Var
 	bool bResult=true;
-	bool bSuccessfulDLLLinks=false;
 
 	// Make program
 	bResult=CEXE.Init(hInstance, bResult, pReturnError, gRefCommandLineString);
@@ -213,18 +63,14 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 	//#define SIMULATEEXTERNALDEBUGGER
 	#ifdef SIMULATEEXTERNALDEBUGGER
 		// 1. external debugger creates mutex
-		char pUniqueMutexNameForExternalDebugger [ 512 ];
-		strcpy ( pUniqueMutexNameForExternalDebugger, CEXE.m_pAbsoluteAppFile );
-		strcat ( pUniqueMutexNameForExternalDebugger, "(Mutex)" );
-		HANDLE pExternalDebuggerCreatesMutex = CreateMutex ( NULL, FALSE, pUniqueMutexNameForExternalDebugger );
+		const std::string pUniqueMutexNameForExternalDebugger = std::string(CEXE.m_pAbsoluteAppFile) + "(Mutex)";
+		HANDLE pExternalDebuggerCreatesMutex = CreateMutexA( nullptr, FALSE, pUniqueMutexNameForExternalDebugger.c_str() );
 		// 2. external debugger writes DEBUGME to the shared string file map
 		LPSTR pDebugMeString = "debugme";
-		char pUniqueFileMapName [ 512 ];
-		strcpy ( pUniqueFileMapName, CEXE.m_AbsoluteAppFile.c_str() );
-		strcat ( pUniqueFileMapName, "(FileMap)" );
+		const std::string pUniqueFileMapName = CEXE.m_AbsoluteAppFile + "(FileMap)";
 		DWORD dwWriteDataSize = strlen(pDebugMeString)+1;
-		HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize+4,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
-		if(hWriteFileMap)
+		HANDLE hWriteFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,dwWriteDataSize+4,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
+		if(hWriteFileMap != nullptr && hWriteFileMap != INVALID_HANDLE_VALUE)
 		{
 			LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize+4);
 			if(lpWriteVoid)
@@ -235,6 +81,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 				memcpy((LPSTR)lpWriteVoid+4, pWriteData, dwWriteDataSize);
 				UnmapViewOfFile(lpWriteVoid);
 			}
+			CloseHandle(hWriteFileMap);
 		}
 		// 3. external debugger executes DBP application
 		//    shellex DBP APP
@@ -249,15 +96,10 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 	#endif
 
 	// LEEADD - 221008 - U71 - EXTERNAL DEBUGGER SUPPORT
-	char pUniqueMutexName [ 512 ];
-	strcpy ( pUniqueMutexName, CEXE.m_AbsoluteAppFile.c_str() );
-	strcat ( pUniqueMutexName, "(Mutex)" );
-	for ( DWORD n=0; n<strlen(pUniqueMutexName); n++ )
-	{
-		if ( pUniqueMutexName[n]==':' ) pUniqueMutexName[n] = '_';
-		if ( pUniqueMutexName[n]=='\\' ) pUniqueMutexName[n] = '_';
-		if ( pUniqueMutexName[n]=='/' ) pUniqueMutexName[n] = '_';
-	}
+	// kernel object names cannot contain path separators
+	std::string pUniqueMutexName = CEXE.m_AbsoluteAppFile + "(Mutex)";
+	for ( char& c : pUniqueMutexName )
+		if ( c == ':' || c == '@' || c == '/' ) c = '_';
 	HANDLE pAppMutex = OpenMutexW ( MUTEX_ALL_ACCESS, FALSE, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str() );
 	if ( pAppMutex )
 	{
@@ -265,17 +107,11 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 		// (which can happen if multiple programs with the same name are running)
 		// so we then check a shared storage location to see whether debugging
 		// has been requested by the 'external process' that may have created a mutex
-		char pSharedStringStorage [ 512 ];
-		strcpy ( pSharedStringStorage, "" );
-		char pUniqueFileMapName [ 512 ];
-		strcpy ( pUniqueFileMapName, CEXE.m_AbsoluteAppFile.c_str() );
-		strcat ( pUniqueFileMapName, "(FileMap)" );
-		for ( DWORD n=0; n<strlen(pUniqueFileMapName); n++ )
-		{
-			if ( pUniqueFileMapName[n]==':' ) pUniqueFileMapName[n] = '_';
-			if ( pUniqueFileMapName[n]=='\\' ) pUniqueFileMapName[n] = '_';
-			if ( pUniqueFileMapName[n]=='/' ) pUniqueFileMapName[n] = '_';
-		}
+		std::string pSharedStringStorage;
+		// kernel object names cannot contain path separators
+		std::string pUniqueFileMapName = CEXE.m_AbsoluteAppFile + "(FileMap)";
+		for ( char& c : pUniqueFileMapName )
+			if ( c == ':' || c == '@' || c == '/' ) c = '_';
 
 		HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
 		if(hFileMap)
@@ -287,16 +123,14 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 				dwDataSize = *((LPDWORD) lpVoid);
 				if ( dwDataSize>0 )
 				{
-					LPSTR pLoadData = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, dwDataSize+1);
-					memcpy(pLoadData, (LPSTR)lpVoid+4, dwDataSize);
-					strcpy ( pSharedStringStorage, pLoadData ); // takes the shared string ehre!
-					GlobalFree ( pLoadData );
+					const char* pPayload = reinterpret_cast<const char*>(lpVoid) + 4;
+					pSharedStringStorage.assign(pPayload, strnlen(pPayload, dwDataSize));
 				}
 				UnmapViewOfFile(lpVoid);
 			}
 			CloseHandle(hFileMap);
 		}
-		if ( stricmp ( pSharedStringStorage, "debugme" )==NULL )
+		if ( _stricmp(pSharedStringStorage.c_str(), "debugme") == 0 )
 		{
 			// a mutex for this app exists and the shared storage says it wants to
 			// DEBUG this application, so we pause here until we can own the mutex
@@ -307,22 +141,22 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 			// for ownership of the mutex so we can start running the program. In 
 			// order to keep this section simple, we simply pass in the memory address
 			// of the GLOBSTRUCT data, which includes all the information needed
-			DWORD dwWriteDataSize = 4;
-			HANDLE hWriteFileMap = CreateFileMappingW((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
-			if(hWriteFileMap)
+			DWORD dwWriteDataSize = sizeof(uintptr_t);
+			HANDLE hWriteFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
+			if(hWriteFileMap != nullptr && hWriteFileMap != INVALID_HANDLE_VALUE)
 			{
 				LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize);
 				if(lpWriteVoid)
 				{
 					// Copy to Virtual File
-					*(DWORD*)lpWriteVoid = (DWORD)g_pGlob;
+					*(uintptr_t*)lpWriteVoid = (uintptr_t)g_pGlob;
 					UnmapViewOfFile(lpWriteVoid);
 				}
 				CloseHandle(hWriteFileMap);
 			}
 
 			// friendly message
-			MessageBoxW ( NULL, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str(), L"DBP App has deposited the glob struct in the filemap as a DWORD, and now wants to OWN this mutex...give it to me!", MB_OK );
+			MessageBoxW ( nullptr, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str(), L"DBP App has deposited the glob struct in the filemap as a DWORD, and now wants to OWN this mutex...give it to me!", MB_OK );
 
 			// now wait for the external debugger to release the mutex
 			DWORD dwWaitResult = WaitForSingleObject ( pAppMutex, 5000L );
@@ -361,7 +195,7 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 	{
 		// create report string and store
 		*pReturnError = new char[1024];
-		LPSTR pRuntimeErrorString = NULL;
+		LPSTR pRuntimeErrorString = nullptr;
 		if(CEXE.m_pRuntimeErrorStringsArray) pRuntimeErrorString = (LPSTR)CEXE.m_pRuntimeErrorStringsArray[dwRTError];
 		sprintf_s(*pReturnError, 1024, "Runtime Error %d - %s at line %d", dwRTError, pRuntimeErrorString, dwRTErrorLine);
 		bResult=false;
@@ -378,23 +212,20 @@ LRESULT CALLBACK TempWindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		case WM_SETTEXT:
 		{
 			// handle HWND message
-			if ( g_igLoader_HWND==NULL )
+			if ( g_igLoader_HWND==nullptr )
 			{
 				LPSTR pIncomingStr = (LPSTR)lParam;
 				if ( pIncomingStr )
 				{
 					if ( strlen ( pIncomingStr ) > 7 )
 					{
-						// extract HWND from lParam
-						char str [ 256 ];
-						strcpy ( str, pIncomingStr + 7 );
-						int num = atoi ( str );
-						g_igLoader_HWND = (HWND)num;
+						// extract HWND from lParam ("[iglwnd]1234567" style text)
+						g_igLoader_HWND = reinterpret_cast<HWND>(static_cast<uintptr_t>(_atoi64(pIncomingStr + 7)));
 
 						// when get igl parent handle, change window to no-size, no-border, nout
 						DWORD dwWindowStyle = 0;
-						SetWindowLong ( hWnd, GWL_STYLE, (LONG)dwWindowStyle );
-						SetWindowPos ( hWnd, NULL, 0, 0, 640, 480, 0 );
+						SetWindowLongPtr ( hWnd, GWL_STYLE, static_cast<LONG_PTR>(dwWindowStyle) );
+						SetWindowPos ( hWnd, nullptr, 0, 0, 640, 480, 0 );
 						UpdateWindow ( hWnd );
 					}
 				}
@@ -415,18 +246,7 @@ LRESULT CALLBACK TempWindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 void CreateTempWindow ( HINSTANCE hInstance, LPSTR pFullAppPath, DWORD dwWindowWidth, DWORD dwWindowHeight )
 {
 	// Initial Window (ahead of lengthy DLL and media load)
-	char pAppName[_MAX_PATH];
-	strcpy(pAppName, pFullAppPath);
-	strrev(pAppName);
-	for(DWORD d=0; d<strlen(pAppName); d++)
-	{
-		if(pAppName[d]=='\\' || pAppName[d]=='/')
-			pAppName[d]=0;
-	}
-	strrev(pAppName);
-	if(strlen(pAppName)>4)
-		if(pAppName[strlen(pAppName)-4]=='.')
-			pAppName[strlen(pAppName)-4]=0;
+	const std::string pAppName = std::filesystem::path(pFullAppPath).stem().string();
 
 	// Register window
 	WNDCLASSA wc;
@@ -435,27 +255,27 @@ void CreateTempWindow ( HINSTANCE hInstance, LPSTR pFullAppPath, DWORD dwWindowW
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = hInstance;
-	wc.hIcon = NULL;
-	wc.hCursor = NULL;
-	wc.hbrBackground = NULL;
-	wc.lpszMenuName = NULL;
-	wc.lpszClassName = pAppName;
+	wc.hIcon = nullptr;
+	wc.hCursor = nullptr;
+	wc.hbrBackground = nullptr;
+	wc.lpszMenuName = nullptr;
+	wc.lpszClassName = pAppName.c_str();
 	RegisterClassA( &wc );
 
 	// Create Window
 	g_hTempWindow = CreateWindowExA( 
 										0,                      // no extended styles           
-										pAppName,				// class name                   
-										pAppName,				// window name                  
+										pAppName.c_str(),		// class name                   
+										pAppName.c_str(),		// window name                  
 										0,					    // no WS_OVERLAPPEDWINDOW for pure window for igloader browser
 										-50000,					// temp window hide completely! 
 										-50000,					//  
 										dwWindowWidth,			// default width                
 										dwWindowHeight,			// default height               
-										(HWND) NULL,            // no parent or owner window    
-										(HMENU) NULL,           // class menu used              
+										(HWND) nullptr,            // no parent or owner window    
+										(HMENU) nullptr,           // class menu used              
 										hInstance,              // instance handle              
-										NULL);                  // no window creation data      
+										nullptr);                  // no window creation data      
 	
 	// Return if not valid
 	if (!g_hTempWindow) 
@@ -467,173 +287,50 @@ void CreateTempWindow ( HINSTANCE hInstance, LPSTR pFullAppPath, DWORD dwWindowW
 }
 
 
-void FFindCloseFile(void)
+void DeleteContentsOfDBPDATA(bool bOnlyIfOlderThan2DAYS)
 {
-	_findclose(hInternalFile);
-	hInternalFile=NULL;
-}
+	std::error_code ec;
+	const auto currentDir = std::filesystem::current_path(ec);
+	if (ec || !std::filesystem::exists(currentDir, ec))
+		return;
 
-void FFindFirstFile(void)
-{
-	if(hInternalFile) FFindCloseFile();
-	hInternalFile = _findfirst("*.*", &filedata);
-	if(hInternalFile!=-1L)
+	const auto now = std::filesystem::file_time_type::clock::now();
+	for (const auto& entry : std::filesystem::directory_iterator(currentDir, ec))
 	{
-		// Success!
-		FileReturnValue=0;
-	}
-}
-
-int FGetFileReturnValue(void)
-{
-	return FileReturnValue;
-}
-
-void FFindNextFile(void)
-{
-	FileReturnValue = _findnext(hInternalFile, &filedata);
-}
-
-int FGetActualTypeValue(int flagvalue)
-{
-	if(flagvalue & _A_SUBDIR)
-		return 1;
-	else
-		return 0;
-}
-
-void DeleteContentsOfDBPDATA ( bool bOnlyIfOlderThan2DAYS )
-{
-	// Delete all files in current folder
-	FFindFirstFile();
-	int iAttempts=20;
-	while(FGetFileReturnValue()!=-1L && iAttempts>0)
-	{
-		// only if older than 2 days
-		bool bGo = false;
-		if ( bOnlyIfOlderThan2DAYS==false ) bGo = true;
-		if ( bOnlyIfOlderThan2DAYS==true )
+		if (ec) break;
+		if (bOnlyIfOlderThan2DAYS)
 		{
-			time_t ThisFileDays = filedata.time_write / 60 / 60 / 24;
-			time_t Difference = TodaysDay - ThisFileDays; 
-			if ( Difference >= 2 )
-			{
-				// this file is at least 2 days old
-				bGo = true;
-			}
+			auto writeTime = entry.last_write_time(ec);
+			if (ec) continue;
+			auto ageDuration = std::chrono::duration_cast<std::chrono::hours>(now - writeTime);
+			if (ageDuration.count() < 48) // 2 days
+				continue;
 		}
 
-		// go
-		if ( bGo )
-		{
-			if(FGetActualTypeValue(filedata.attrib)==1)
-			{
-				if(stricmp(filedata.name, ".")!=NULL
-				&& stricmp(filedata.name, "..")!=NULL)
-				{
-					char file[_MAX_PATH];
-					strcpy(file, filedata.name);
-					char old[_MAX_PATH];
-					getcwd(old, _MAX_PATH);
-					BOOL bResult = RemoveDirectoryW(TextConvert::UTF8ToUTF16(file).c_str());
-					if(bResult==FALSE)
-					{
-						chdir(file);
-						FFindCloseFile();
-						DeleteContentsOfDBPDATA ( bOnlyIfOlderThan2DAYS );
-						chdir(old);
-						BOOL bResult = RemoveDirectoryW(TextConvert::UTF8ToUTF16(file).c_str());
-						FFindFirstFile();
-					}
-					iAttempts--;
-				}
-			}
-			else
-			{
-				DeleteFileW(TextConvert::UTF8ToUTF16(filedata.name).c_str());
-			}
-		}
-		FFindNextFile();
+		std::error_code rmEc;
+		std::filesystem::remove_all(entry.path(), rmEc);
 	}
-	FFindCloseFile();
 }
 
 void MakeOrEnterUniqueDBPDATA(void)
 {
-	// Default DBPDATA string
-	strcpy(gpDBPDataName,"dbpdata");
-
-	// Prepare DBPDATA string builder
-	DWORD dwBuildID=2;
-	char pBuildStart[_MAX_PATH];
-	strcpy(pBuildStart, gpDBPDataName);
-
-	//05032015 - 015 - To help the virus checkers that are flagging the sound dll we will keep the folder the same every time
-	// Go for a million attempts
-	/*while(dwBuildID<1000000)
-	{
-		// Check if DBPDATA folder exists
-		if(chdir(gpDBPDataName)==-1)
-		{*/
-			// Make it as unique
-			mkdir(gpDBPDataName);
-
-			// Leave now
-			/*break;
-		}
-		else
-		{
-			// Does exist, so back out of it..
-			chdir("..");
-
-			// Create new folder name from build data
-			wsprintf(gpDBPDataName, "%s%d", pBuildStart, dwBuildID);
-		}
-
-		// Will change foldername slightly
-		dwBuildID++;
-	}*/
-
-	// get todays day when made directory
-	FFindFirstFile();
-	TodaysDay = filedata.time_write / 60 / 60 / 24;
-	FFindCloseFile();
+	strcpy_s(gpDBPDataName, "dbpdata");
+	std::error_code ec;
+	std::filesystem::create_directories(gpDBPDataName, ec);
 }
 
 void DeleteAllOldDBPDATAFolders(void)
 {
-	// Default DBPDATA string
-	strcpy(gpDBPDataName,"dbpdata");
-
-	// Prepare DBPDATA string builder
-	DWORD dwBuildID=2;
-	char pBuildStart[_MAX_PATH];
-	strcpy(pBuildStart, gpDBPDataName);
-
-	// Go for a million attempts
-	while(dwBuildID<1000000)
+	strcpy_s(gpDBPDataName, "dbpdata");
+	std::error_code ec;
+	for (DWORD dwBuildID = 2; dwBuildID < 1000000; ++dwBuildID)
 	{
-		// Check if DBPDATA folder exists
-		if(chdir(gpDBPDataName)!=-1 || dwBuildID==2)
-		{
-			// Delete contents of directory
-			DeleteContentsOfDBPDATA(true);
-
-			// Delete directory (if empty)
-			chdir("..");
-			rmdir(gpDBPDataName);
-
-			// Create new folder name from build data
-			sprintf_s(gpDBPDataName, _MAX_PATH, "%s%d", pBuildStart, dwBuildID);
-		}
-		else
-		{
-			// Done scanning
+		char folderName[_MAX_PATH];
+		sprintf_s(folderName, _MAX_PATH, "dbpdata%lu", dwBuildID);
+		if (!std::filesystem::exists(folderName, ec))
 			break;
-		}
 
-		// Will change foldername slightly
-		dwBuildID++;
+		std::filesystem::remove_all(folderName, ec);
 	}
 }
 
@@ -728,7 +425,7 @@ void DumpDebugReport (
 	WritePrivateProfileStringA ( "COMMON", "PathToEXE", pReportFile, pReportFile );
 	if ( CEXE.m_dwRuntimeErrorDWORD==0 )
 	{
-		// crashed out inside a function - hard crash (ie access NULL ptr)
+		// crashed out inside a function - hard crash (ie access nullptr ptr)
 		if ( g_pGlob )
 			sprintf_s ( pLineToReport, _MAX_PATH, "Internal Code:%d", g_pGlob->dwInternalFunctionCode );
 		else
@@ -884,11 +581,11 @@ void DumpDebugReport (
 
 bool FileExists(LPSTR pFilename)
 {
-	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(hFile);
-		hFile=NULL;
+		hFile=nullptr;
 		return true;
 	}
 	return false;
@@ -896,7 +593,7 @@ bool FileExists(LPSTR pFilename)
 
 // WINDOWS MAIN FUNCTION
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance, LPSTR lpCmdLine, [[maybe_unused]] int nCmdShow)
 {
 	db3::SetupDiagnosticHandlers();
 
@@ -905,14 +602,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return 1;
 
 	// Memory Manager Initial Snapshot
-	strcpy ( g_MM_FunctionName, "WinMain" );
+	strcpy_s(g_MM_FunctionName, "WinMain");
 	#ifdef  __USE_MEMORY_MANAGER__
 	mm_SnapShot();
-	#endif
-
-	// Very first thing is a possible demo splash dialogue
-	#ifdef DEMOSPLASH
-	PopupDemoSplashWindow(hInstance);
 	#endif
 
 	// Store reference to CL$()
@@ -926,8 +618,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		GetModuleFileNameW(hInstance, wPath, _MAX_PATH);
 		ActualExecutablePath = std::filesystem::path(wPath);
 		std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
-		strncpy(ActualEXEFilename, utf8Path.c_str(), _MAX_PATH - 1);
-		ActualEXEFilename[_MAX_PATH - 1] = '\0';
+		strcpy_s(ActualEXEFilename, _MAX_PATH, utf8Path.c_str());
 	}
 	auto PackageStartup =
 		RuntimePackageBootstrap::Start(ActualExecutablePath);
@@ -937,7 +628,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			"Dark Basic Professional could not authenticate its runtime package.\n\n" +
 			PackageStartup.error().message);
 		MessageBoxW(
-			NULL,
+			nullptr,
 			message.c_str(),
 			L"Runtime package error",
 			MB_OK | MB_ICONERROR | MB_TOPMOST);
@@ -947,68 +638,35 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	auto RuntimePackage = std::move(PackageStartup.value());
 
 	// Get current working directory (for temp folder compare)
+	std::error_code ec;
+	const auto currentPath = std::filesystem::current_path(ec);
 	char CurrentDirectory[_MAX_PATH];
-	getcwd(CurrentDirectory, _MAX_PATH);
+	strcpy_s(CurrentDirectory, currentPath.string().c_str());
 
-//	// test redirection when testing DarkEXE Project
-//	strcpy(ActualEXEFilename, "Application.exe");
-//	strcpy(ActualEXEFilename, "test.exe");
-//	strcpy(ActualEXEFilename, "FPSC-Game.exe");
-//	strcpy(ActualEXEFilename, "bigrocks.exe");
-//	strcpy(ActualEXEFilename, "TerrainProto.exe");
-//	strcpy(ActualEXEFilename, "FPSC-Proto-Game.exe");
-//	strcpy(ActualEXEFilename, "two-compounds.exe");
-//	strcpy(ActualEXEFilename, "Bullet Physics Demo.exe");
-//	strcpy(ActualEXEFilename, "FPSC-Lightmapper.exe");
-//	strcpy(ActualEXEFilename, "FPSC-MapEditor_.exe");
-
-	// lee - 050406 - u6rc6 - new define for an EXE which uses local exe location for extraction TEMP
-	char WindowsTempDirectory[_MAX_PATH];
-	#ifdef LOCALLYEXTRACTINGEXE
-	// The TEMP folder is the EXE folder
-	strcpy ( WindowsTempDirectory, CurrentDirectory );
-	MakeOrEnterUniqueDBPDATA();
-	strcat(WindowsTempDirectory, "\\");
-	strcat(WindowsTempDirectory, gpDBPDataName);
-	strcpy(gUnpackDirectory, WindowsTempDirectory);
-	chdir(gpDBPDataName);
-	DeleteContentsOfDBPDATA(false);
-	chdir(CurrentDirectory);
-	#else
 	// Find temporary directory (C:\WINDOWS\Temp)
+	char WindowsTempDirectory[_MAX_PATH];
 	GetTempPathA(_MAX_PATH, WindowsTempDirectory);
-	if(stricmp(WindowsTempDirectory, CurrentDirectory)!=NULL)
+	if(_stricmp(WindowsTempDirectory, CurrentDirectory)!=0)
 	{
-		// XP Temp Folder
-		chdir(WindowsTempDirectory);
-		MakeOrEnterUniqueDBPDATA();
-		strcat(WindowsTempDirectory, "\\");
-		strcat(WindowsTempDirectory, gpDBPDataName);
-		strcpy(gUnpackDirectory, WindowsTempDirectory);
-		chdir(gpDBPDataName);
+		std::filesystem::path unpackPath = std::filesystem::path(WindowsTempDirectory) / "dbpdata";
+		strcpy_s(gUnpackDirectory, _MAX_PATH, unpackPath.string().c_str());
+		std::filesystem::create_directories(unpackPath, ec);
+		std::filesystem::current_path(unpackPath, ec);
 		DeleteContentsOfDBPDATA(false);
-		chdir(CurrentDirectory);
+		std::filesystem::current_path(currentPath, ec);
 	}
 	else
 	{
-		// Pre-XP Temp Folder
-		GetWindowsDirectoryA(WindowsTempDirectory, _MAX_PATH);
-		_chdir(WindowsTempDirectory);
-		mkdir("temp");
-		chdir("temp");
-		MakeOrEnterUniqueDBPDATA();
-		strcat(WindowsTempDirectory, "\\temp\\");
-		strcat(WindowsTempDirectory, gpDBPDataName);
-		strcpy(gUnpackDirectory, WindowsTempDirectory);
-		chdir(gpDBPDataName);
+		std::filesystem::path unpackPath = std::filesystem::path(CurrentDirectory) / "dbpdata";
+		strcpy_s(gUnpackDirectory, _MAX_PATH, unpackPath.string().c_str());
+		std::filesystem::create_directories(unpackPath, ec);
+		std::filesystem::current_path(unpackPath, ec);
 		DeleteContentsOfDBPDATA(false);
-		chdir(CurrentDirectory);
+		std::filesystem::current_path(currentPath, ec);
 	}
-	#endif
 
 	// The executable block is mounted under its canonical package path.
-	char LoadWithFilename[_MAX_PATH];
-	strcpy(LoadWithFilename, "_virtual.dat");
+	char LoadWithFilename[] = "_virtual.dat";
 	int RuntimeExitCode = 0;
 
 	// If EXE is an installer, create files then quit
@@ -1024,7 +682,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				"Dark Basic Professional could not publish the installed application.\n\n" +
 				installed.error().message);
 			MessageBoxW(
-				NULL,
+				nullptr,
 				message.c_str(),
 				L"Installer package error",
 				MB_OK | MB_ICONERROR | MB_TOPMOST);
@@ -1039,7 +697,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		CEXE.m_AbsoluteAppFile = ActualEXEFilename;
 
 		// In case of error
-		LPSTR pErrorString = NULL;
+		LPSTR pErrorString = nullptr;
 
 		// Load EXE Block
 		if(CEXE.Load(LoadWithFilename))
@@ -1074,30 +732,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			{
 				// Report Failure to Run
 				ShowCursor(TRUE);
-				SetCursor(LoadCursor(NULL, IDC_ARROW));
-				char pFullError[_MAX_PATH];
-				strcpy ( pFullError, pErrorString );
-
-				// is there any additional error info after EXEPATH string?
-				DWORD dwEXEPathLength = strlen ( g_pGlob->pEXEUnpackDirectory );
-				LPSTR pSecretErrorMessage = g_pGlob->pEXEUnpackDirectory + dwEXEPathLength + 1;
-				if ( strlen ( pSecretErrorMessage ) > 0 && strlen ( pSecretErrorMessage ) < _MAX_PATH )
+				SetCursor(LoadCursor(nullptr, IDC_ARROW));
+				// surface any trailing packaged error detail after the unpack path
+				std::string fullError(pErrorString);
+				if ( g_pGlob && g_pGlob->pEXEUnpackDirectory )
 				{
-					// addition error info
-					strcat ( pFullError, ".\n" );
-					strcat ( pFullError, pSecretErrorMessage );
+					const size_t dwEXEPathLength = strlen( g_pGlob->pEXEUnpackDirectory );
+					LPSTR pSecretErrorMessage = g_pGlob->pEXEUnpackDirectory + dwEXEPathLength + 1;
+					if ( pSecretErrorMessage && pSecretErrorMessage[0] != 0 )
+						fullError += std::string(".\n") + pSecretErrorMessage;
 				}
-				//MessageBox(NULL, pFullError, "Error", MB_TOPMOST | MB_OK);
-				char err[512];
-				sprintf_s ( err, 512, "GameGuru has detected an unexpected issue and needs to restart your session. If this problem persists, please contact support with error code (%s)", pErrorString );
-				MessageBoxW(NULL, TextConvert::UTF8ToUTF16(err).c_str(), L"GameGuru Problem Detected", MB_TOPMOST | MB_OK);
+				const std::wstring message = TextConvert::UTF8ToUTF16(
+					"An issue was detected and the session needs to restart: " + fullError);
+				MessageBoxW(nullptr, message.c_str(), L"Runtime Problem Detected", MB_TOPMOST | MB_OK);
 				SAFE_DELETE(pErrorString);
 			}
-
-			// Demo Prompts EndUser to download DBPro Demo :)
-			#ifdef DEMOSPLASH
-			PopupDemoEndLink(hInstance);
-			#endif
 
 			// Free EXE Block
 			CEXE.Free();
@@ -1112,13 +761,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// Unmount before shutting down the VFS hook layer.
 	RuntimePackage.reset();
 
-	// leeadd - 230604 - u54 - use current date to remove
-	chdir(WindowsTempDirectory);
-	if ( chdir("..")!=-1 ) DeleteAllOldDBPDATAFolders();
-	chdir(CurrentDirectory);
+	// Clean up old DBP data folders in temp directory
+	if (std::filesystem::exists(WindowsTempDirectory, ec))
+	{
+		std::filesystem::current_path(WindowsTempDirectory, ec);
+		DeleteAllOldDBPDATAFolders();
+		std::filesystem::current_path(currentPath, ec);
+	}
 
 	// Delete temporary unpack directory
-	rmdir(gUnpackDirectory);
+	std::filesystem::remove_all(gUnpackDirectory, ec);
 
 	// Shutdown Virtual File System hooks and free resources
 	VFSHooks::Shutdown();

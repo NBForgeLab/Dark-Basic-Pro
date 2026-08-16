@@ -22,7 +22,7 @@ class CDeclaration
 		[[nodiscard]] const CDeclaration* GetNext(void) const noexcept { return m_pNext.get(); }
 		[[nodiscard]] CDeclaration* GetPrev(void) noexcept { return m_pPrev; }
 		[[nodiscard]] const CDeclaration* GetPrev(void) const noexcept { return m_pPrev; }
-		CDeclaration* Find(LPSTR pName, DWORD dwArrFlag);
+		CDeclaration* Find(LPCSTR pName, DWORD dwArrFlag);
 
 		void SetLineNumber(DWORD dwLine) noexcept { m_dwLineNumber=dwLine; }
 		[[nodiscard]] DWORD GetLineNumber(void) const noexcept { return m_dwLineNumber; }
@@ -34,7 +34,7 @@ class CDeclaration
 		void SetInit(CStr* pInit) { m_pInit.reset(pInit); }
 		void SetOffset(DWORD dwOffset) noexcept { m_dwOffset = dwOffset; }
 		void SetDataSize(DWORD dwSize) noexcept { m_dwDataSize = dwSize; }
-		void SetDecData(DWORD dwDecArr, LPSTR pDecArrValue, LPSTR pDecName, LPSTR pDecType, LPSTR pDecInit, DWORD LineNumberRef);
+		void SetDecData(DWORD dwDecArr, LPCSTR pDecArrValue, LPCSTR pDecName, LPCSTR pDecType, LPCSTR pDecInit, DWORD LineNumberRef);
 
 		bool GetNumberOfDecsInChain(DWORD* pdwCount);
 		std::string GetTypeStringOfDecsInChain(void);

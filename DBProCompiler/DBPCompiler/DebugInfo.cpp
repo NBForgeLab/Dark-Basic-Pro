@@ -13,11 +13,11 @@ CDebugInfo::CDebugInfo()
 	// All Ref Only
 	m_bDebugModeOn=false;
 	m_dwProgramSize=0;
-	m_dwProgramPtr=NULL;
+	m_dwProgramPtr=nullptr;
 	m_bParsingMain=true;
 
 	m_bMessageArrived=false;
-	m_pCliText=NULL;
+	m_pCliText=nullptr;
 }
 
 CDebugInfo::~CDebugInfo()
@@ -25,6 +25,6 @@ CDebugInfo::~CDebugInfo()
 	if(m_pCliText)
 	{
 		delete m_pCliText;
-		m_pCliText=NULL;
+		m_pCliText=nullptr;
 	}
 }

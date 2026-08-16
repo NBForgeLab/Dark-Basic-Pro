@@ -7,20 +7,26 @@
 #include "ParserHeader.h"
 #include "Task.h"
 #include <memory>
+#include <string_view>
 
 class CIncludeTable  
 {
 	public:
 		CIncludeTable();
-		virtual ~CIncludeTable();
+		virtual ~CIncludeTable() = default;
 		void Add(CIncludeTable* pNew);
+		void Add(std::unique_ptr<CIncludeTable> pNew);
 		CIncludeTable* GetNext(void) { return m_pNext.get(); }
+		const CIncludeTable* GetNext(void) const { return m_pNext.get(); }
 
-		bool				FindInclude(LPSTR pFilename);
+		bool				FindInclude(LPCSTR pFilename) const;
+		bool				FindInclude(std::string_view filename) const;
 		void				SetFilename(CStr* pFile) { m_pFilename.reset(pFile); }
+		void				SetFilename(std::unique_ptr<CStr> pFile) { m_pFilename = std::move(pFile); }
 		CStr*				GetFilename(void) { return m_pFilename.get(); }
+		const CStr*			GetFilename(void) const { return m_pFilename.get(); }
 		void				SetFirstByte(DWORD dwByte) { m_dwFirstByte=dwByte; }
-		DWORD				GetFirstByte(void) { return m_dwFirstByte; }
+		DWORD				GetFirstByte(void) const { return m_dwFirstByte; }
 
 	private:
 
@@ -32,7 +38,7 @@ class CIncludeTable
 		std::unique_ptr<CIncludeTable>	m_pNext;
 
 		// Safe Access
-		db3::CLock			m_Lock;
+		mutable db3::CLock	m_Lock;
 };
 
 #endif // !defined(AFX_INCLUDETABLE_H__D33B3943_5954_4196_B917_9DA3ACD7978D__INCLUDED_)

@@ -27,7 +27,7 @@ class CParseInit
 		CParameter*		GetParameter(void) { return m_pDataParamList.get(); }
 
 		bool			WriteDBM(void);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText);
+		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText);
 
 	private:
 

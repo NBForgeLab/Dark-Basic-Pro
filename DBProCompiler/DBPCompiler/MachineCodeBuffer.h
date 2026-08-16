@@ -61,6 +61,13 @@ public:
 	 */
 	void WriteDWORD(DWORD value, DWORD dwSize);
 
+	/**
+	 * @brief Writes a 64-bit QWORD value at the current position and advances by @p dwSize bytes.
+	 * @param[in] value   The 64-bit value to write.
+	 * @param[in] dwSize  Number of bytes to advance (typically 1, 2, 4, or 8).
+	 */
+	void WriteQWORD(uint64_t value, DWORD dwSize = 8);
+
 	/** @brief Returns the program start pointer (beginning of the MC buffer). */
 	[[nodiscard]] LPSTR GetProgramStart() const noexcept { return m_pProgramStart; }
 

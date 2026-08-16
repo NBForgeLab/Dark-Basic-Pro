@@ -1,3 +1,4 @@
+#include "ParserHeader.h"
 #include "Tokenizer.h"
 #include "Statement.h"
 #include <cctype>
@@ -222,12 +223,12 @@ LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 	if (!pString || !*pString) return nullptr;
 
 	char SepChars[33];
-	for(unsigned int s=0; s<32; s++) SepChars[s]=1+s;
+	for(unsigned int s=0; s<32; s++) SepChars[s]=static_cast<char>(1+s);
 	SepChars[32]=0;
 
 	if ( bIgnoreSpacesAroundEquateSymbol) SepChars[31]=31;
 
-	LPSTR pFindStartOfToken=NULL;
+	LPSTR pFindStartOfToken=nullptr;
 	DWORD dwSpeechMark=0;
 	bool bLineSeperatorFlag=false;
 	bool bIncToAvoidRepeatCR=false;
@@ -290,14 +291,14 @@ LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 		{
 			if(*(unsigned char*)(pStringPointer+0)==':')
 			{
-				if(pFindStartOfToken==NULL)
+				if(pFindStartOfToken==nullptr)
 					bQuickQuit=true;
 				else
 					break;
 			}
 		}
 
-		if(pFindStartOfToken==NULL)
+		if(pFindStartOfToken==nullptr)
 			if(pStringPointer>=g_pStatementList->GetFileDataEnd()-1)
 				bQuickQuit=true;
 
@@ -331,7 +332,7 @@ LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 		{
 			if(bProduceCRTK && pStringPointer>(*pString))
 			{
-				if(pFindStartOfToken==NULL)
+				if(pFindStartOfToken==nullptr)
 				{
 					LPSTR pProducedToken = new char[3];
 					pProducedToken[0]=13;
@@ -367,12 +368,12 @@ LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 					bIncToAvoidRepeatCR = true;
 				}
 				bLineSeperatorFlag = false;
-				if ( pFindStartOfToken!=NULL )
+				if ( pFindStartOfToken!=nullptr )
 					break;
 			}
 		}
 
-		if(pFindStartOfToken==NULL)
+		if(pFindStartOfToken==nullptr)
 		{
 			if(bFlag==false)
 			{
@@ -388,10 +389,10 @@ LPSTR CTokenizer::ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, 
 		pStringPointer++;
 	}
 
-	LPSTR pProducedToken = NULL;
-	if(pFindStartOfToken!=NULL)
+	LPSTR pProducedToken = nullptr;
+	if(pFindStartOfToken!=nullptr)
 	{
-		unsigned int length = pStringPointer-pFindStartOfToken;
+		unsigned int length = static_cast<unsigned int>(pStringPointer-pFindStartOfToken);
 		if(length>0)
 		{
 			pProducedToken = new char[length+1];
@@ -411,7 +412,7 @@ LPSTR CTokenizer::ProduceNextArrayToken(LPSTR* pOrigPointer) const
 	DWORD dwSpeechMarks=0;
 	LPSTR pPointer=*pOrigPointer;
 	LPSTR pStart=pPointer;
-	LPSTR pEndOfBracket=NULL;
+	LPSTR pEndOfBracket=nullptr;
 	DWORD dwInitGetStage=0;
 	while(true)
 	{
@@ -424,7 +425,7 @@ LPSTR CTokenizer::ProduceNextArrayToken(LPSTR* pOrigPointer) const
 
 		if(*(unsigned char*)pPointer=='"') dwSpeechMarks=1-dwSpeechMarks;
 
-		if(pEndOfBracket==NULL)
+		if(pEndOfBracket==nullptr)
 		{
 			if(*(unsigned char*)pPointer=='(') iBracketCount++;
 			if(iBracketCount>0)
@@ -482,7 +483,7 @@ LPSTR CTokenizer::ProduceNextArrayToken(LPSTR* pOrigPointer) const
 
 	if(pPointer)
 	{
-		unsigned int length = pPointer-pStart;
+		unsigned int length = static_cast<unsigned int>(pPointer-pStart);
 		if(length>0)
 		{
 			LPSTR pProduceLine = new char[length+1];
@@ -493,7 +494,7 @@ LPSTR CTokenizer::ProduceNextArrayToken(LPSTR* pOrigPointer) const
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 LPSTR CTokenizer::ProduceFullSegment(LPSTR* pOrigPointer) const
@@ -518,7 +519,7 @@ LPSTR CTokenizer::ProduceFullSegment(LPSTR* pOrigPointer) const
 		pPointer++;
 	}
 
-	unsigned int length = pPointer-pStart;
+	unsigned int length = static_cast<unsigned int>(pPointer-pStart);
 	if(length>0)
 	{
 		LPSTR pProduceLine = new char[length+1];
@@ -528,5 +529,5 @@ LPSTR CTokenizer::ProduceFullSegment(LPSTR* pOrigPointer) const
 		return pProduceLine;
 	}
 
-	return NULL;
+	return nullptr;
 }

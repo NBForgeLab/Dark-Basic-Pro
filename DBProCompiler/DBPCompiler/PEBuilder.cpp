@@ -1,4 +1,4 @@
-#include "PEBuilder.h"
+﻿#include "PEBuilder.h"
 #include "ASMWriter.h"
 #include "DBPCompiler.h"
 #include "DB3Time.h"
@@ -106,7 +106,7 @@ bool CPEBuilder::UpdateDLLData() const
 		{
 			const auto* existing = reinterpret_cast<const char*>(
 				g_pEXE->m_pDLLFilenameArray[index]);
-			if (existing != nullptr && stricmp(existing, filename) == 0)
+			if (existing != nullptr && _stricmp(existing, filename) == 0)
 			{
 				alreadyPresent = true;
 				break;
@@ -132,7 +132,7 @@ bool CPEBuilder::UpdateDLLData() const
 		pendingEntries.begin(),
 		pendingEntries.end(),
 		[](CDataTable* entry) {
-			return stricmp(entry->GetString()->GetStr(), "dbprocore.dll") == 0;
+			return _stricmp(entry->GetString()->GetStr(), "dbprocore.dll") == 0;
 		});
 
 	const DWORD newSize = oldSize + static_cast<DWORD>(pendingEntries.size());
@@ -187,7 +187,7 @@ bool CPEBuilder::UpdateCommandData() const
 {
 	db3::CProfile<> prof("CPEBuilder::UpdateCommandData");
 
-	if(g_pEXE->m_pCommandDLLIdArray==NULL)
+	if(g_pEXE->m_pCommandDLLIdArray==nullptr)
 	{
 		DWORD dwNewSize = g_pStatementList->GetCommandIndexCounter();
 		LPSTR pNewArray1 = (LPSTR)g_pEXE->CreateArray(dwNewSize);
@@ -223,8 +223,8 @@ bool CPEBuilder::UpdateCommandData() const
 		{
 			pStringEntry->SetAddedToEXEData(true);
 
-			LPSTR pLeft = "???";
-			LPSTR pRight = "???";
+			LPSTR pLeft = nullptr;
+			LPSTR pRight = nullptr;
 			std::unique_ptr<char[]> pLeftOwner, pRightOwner;
 			if(pStringEntry)
 			{
@@ -253,7 +253,7 @@ bool CPEBuilder::UpdateStringData() const
 {
 	db3::CProfile<> prof("CPEBuilder::UpdateStringData");
 
-	if(g_pEXE->m_pStringsArray==NULL)
+	if(g_pEXE->m_pStringsArray==nullptr)
 	{
 		DWORD dwNewSize = g_pStatementList->GetStringIndexCounter();
 		uintptr_t* pNewArray = g_pEXE->CreatePtrArray(dwNewSize);
@@ -281,7 +281,7 @@ bool CPEBuilder::UpdateStringData() const
 		{
 			pStringEntry->SetAddedToEXEData(true);
 
-			LPSTR pStringData=NULL;
+			LPCSTR pStringData=nullptr;
 			CStr noSpeechMarks;
 			if(pStringEntry)
 			{
@@ -308,7 +308,7 @@ bool CPEBuilder::UpdateDataData() const
 {
 	db3::CProfile<> prof("CPEBuilder::UpdateDataData");
 
-	if(g_pEXE->m_pDataArray==NULL)
+	if(g_pEXE->m_pDataArray==nullptr)
 	{
 		DWORD dwNewSize = g_pStatementList->GetDataIndexCounter();
 		LPSTR pNewArray1 = (LPSTR)new char[dwNewSize*10];
@@ -354,7 +354,7 @@ bool CPEBuilder::UpdateDataData() const
 			}
 			if(dwType==2)
 			{
-				LPSTR pDataItem=NULL;
+				LPCSTR pDataItem=nullptr;
 				if(pDataEntry)
 					pDataItem = pDataEntry->GetString()->GetStr();
 				else
@@ -381,8 +381,8 @@ bool CPEBuilder::UpdateDynamicData() const
 
 	std::unique_ptr<DWORD[]> oldDynamicVars((DWORD*)g_pEXE->m_pDynamicVarsArray);
 	std::unique_ptr<DWORD[]> oldDynamicVarsType((DWORD*)g_pEXE->m_pDynamicVarsArrayType);
-	g_pEXE->m_pDynamicVarsArray = NULL;
-	g_pEXE->m_pDynamicVarsArrayType = NULL;
+	g_pEXE->m_pDynamicVarsArray = nullptr;
+	g_pEXE->m_pDynamicVarsArrayType = nullptr;
 
 	DWORD dwDynamicVarsCounter=0;
 	for(short pass=0; pass<=1; pass++)
@@ -397,7 +397,7 @@ bool CPEBuilder::UpdateDynamicData() const
 		CVarTable* pVarEntry = g_pVarTable;
 		while(pVarEntry)
 		{
-			if(strcmp(pVarEntry->GetVarScope()->GetStr(),"")==NULL)
+			if(strcmp(pVarEntry->GetVarScope()->GetStr(),"")==0)
 			{
 				if(pVarEntry->GetArrFlag()==1 || pVarEntry->GetVarTypeValue()==3)
 				{
@@ -421,21 +421,21 @@ bool CPEBuilder::UpdateDynamicData() const
 	return true;
 }
 
-static void UpdateStructurePatternDataRec(LPSTR pPattern, CDeclaration* pDecMain)
+static void UpdateStructurePatternDataRec(std::string& pattern, CDeclaration* pDecMain)
 {
 	while(pDecMain)
 	{
-		LPSTR pTypeLetter = "-";
+		LPCSTR pTypeLetter = "-";
 		LPSTR pFullString = pDecMain->GetType()->GetStr();
-		if ( stricmp ( "integer", pFullString )==NULL )			pTypeLetter = "L";
-		if ( stricmp ( "float", pFullString )==NULL )			pTypeLetter = "F";
-		if ( stricmp ( "string", pFullString )==NULL )			pTypeLetter = "S";
-		if ( stricmp ( "boolean", pFullString )==NULL )			pTypeLetter = "B";
-		if ( stricmp ( "byte", pFullString )==NULL )			pTypeLetter = "Y";
-		if ( stricmp ( "word", pFullString )==NULL )			pTypeLetter = "W";
-		if ( stricmp ( "dword", pFullString )==NULL )			pTypeLetter = "D";
-		if ( stricmp ( "double float", pFullString )==NULL )	pTypeLetter = "O";
-		if ( stricmp ( "double integer", pFullString )==NULL )	pTypeLetter = "R";
+		if ( _stricmp ( "integer", pFullString )==0 )			pTypeLetter = "L";
+		if ( _stricmp ( "float", pFullString )==0 )			pTypeLetter = "F";
+		if ( _stricmp ( "string", pFullString )==0 )			pTypeLetter = "S";
+		if ( _stricmp ( "boolean", pFullString )==0 )			pTypeLetter = "B";
+		if ( _stricmp ( "byte", pFullString )==0 )			pTypeLetter = "Y";
+		if ( _stricmp ( "word", pFullString )==0 )			pTypeLetter = "W";
+		if ( _stricmp ( "dword", pFullString )==0 )			pTypeLetter = "D";
+		if ( _stricmp ( "double float", pFullString )==0 )	pTypeLetter = "O";
+		if ( _stricmp ( "double integer", pFullString )==0 )	pTypeLetter = "R";
 
 		CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pDecMain->GetType()->GetStr());
 		if(pStruct)
@@ -443,12 +443,12 @@ static void UpdateStructurePatternDataRec(LPSTR pPattern, CDeclaration* pDecMain
 			CDeclaration* pDeeperDec = pStruct->GetDecChain();
 			if(pDeeperDec)
 			{
-				UpdateStructurePatternDataRec ( pPattern, pDeeperDec );
+				UpdateStructurePatternDataRec ( pattern, pDeeperDec );
 				pTypeLetter = "";
 			}
 		}
 
-		strcat ( pPattern, pTypeLetter );
+		pattern += pTypeLetter;
 		pDecMain = pDecMain->GetNext();
 	}
 }
@@ -459,7 +459,7 @@ bool CPEBuilder::UpdateStructurePatternData() const
 
 	g_pEXE->m_dwUsertypeStringPatternQuantity = 0;
 	std::unique_ptr<char[]> oldPatternArray((char*)g_pEXE->m_pUsertypeStringPatternArray);
-	g_pEXE->m_pUsertypeStringPatternArray = NULL;
+	g_pEXE->m_pUsertypeStringPatternArray = nullptr;
 
 	for(short pass=0; pass<=1; pass++)
 	{
@@ -468,7 +468,7 @@ bool CPEBuilder::UpdateStructurePatternData() const
 			if ( g_pEXE->m_dwUsertypeStringPatternQuantity > 0 )
 			{
 				g_pEXE->m_pUsertypeStringPatternArray = new char[g_pEXE->m_dwUsertypeStringPatternQuantity];
-				strcpy ( (LPSTR)g_pEXE->m_pUsertypeStringPatternArray, "" );
+				g_pEXE->m_pUsertypeStringPatternArray[0] = 0;
 			}
 		}
 
@@ -478,18 +478,18 @@ bool CPEBuilder::UpdateStructurePatternData() const
 		{
 			if(pEntry->GetDecChain())
 			{
-				char pPattern[512];
 				LPSTR pTypeName = pEntry->GetTypeName()->GetStr();
-				strcpy ( pPattern, pTypeName );
-				strcat ( pPattern, ":" );
-				char num[32];
-				wsprintf ( num, "%d", g_pStructTable->FindIndex(pTypeName) );
-				strcat ( pPattern, num );
-				strcat ( pPattern, ":" );
-				UpdateStructurePatternDataRec ( pPattern, pEntry->GetDecChain() );
-				strcat ( pPattern, ":" );
-				if(pass==1) strcat ( (LPSTR)g_pEXE->m_pUsertypeStringPatternArray, pPattern );
-				dwCounter+=strlen(pPattern)+1;
+				std::string pPattern = std::string(pTypeName) + ":" +
+					std::to_string(g_pStructTable->FindIndex(pTypeName)) + ":";
+				UpdateStructurePatternDataRec(pPattern, pEntry->GetDecChain());
+				pPattern += ":";
+				if(pass==1)
+					strncat_s(
+						g_pEXE->m_pUsertypeStringPatternArray,
+						g_pEXE->m_dwUsertypeStringPatternQuantity,
+						pPattern.c_str(),
+						_TRUNCATE);
+				dwCounter += static_cast<DWORD>(pPattern.size()) + 1;
 			}
 			pEntry=pEntry->GetNext();
 		}

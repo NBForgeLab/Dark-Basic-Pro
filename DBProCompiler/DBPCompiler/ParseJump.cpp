@@ -22,20 +22,20 @@ CParseJump::CParseJump()
 	m_dwEndLineNumber=0;
 
 	m_dwJumpType=0;
-	m_pCodeBlockA=NULL;
-	m_pCodeBlockB=NULL;
-	m_pExitLabelParameterRef=NULL;//ref only
+	m_pCodeBlockA=nullptr;
+	m_pCodeBlockB=nullptr;
+	m_pExitLabelParameterRef=nullptr;//ref only
 }
 
 CParseJump::~CParseJump()
 {
 	// Statements Deleted One by One
 	m_pCodeBlockA->Free();
-	m_pCodeBlockA=NULL;
+	m_pCodeBlockA=nullptr;
 
 	// Statements Deleted One by One
 	m_pCodeBlockB->Free();
-	m_pCodeBlockB=NULL;
+	m_pCodeBlockB=nullptr;
 
 	// unique_ptr members auto-cleanup
 }
@@ -92,12 +92,12 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 				CParseInstruction pTemp;
 				pTemp.SetLineNumber(GetStartLineNumber());
 				pTemp.PassStartEndCharForPossibleDebugHook(0, 0);
-				pTemp.WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), NULL, NULL, NULL);
+				pTemp.WriteDBMHardCode(static_cast<DWORD>(BuildTask::Sync), nullptr, nullptr, nullptr);
 			}
 		}
 
 		// Get Label to Jump To
-		LPSTR pLabelStr = NULL;
+		LPSTR pLabelStr = nullptr;
 		if(GetExitLabelRefParameterRef())
 			pLabelStr = GetExitLabelRefParameterRef()->GetMathItem()->GetResultStringToken()->GetStr();
 		else
@@ -140,16 +140,16 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), m_pParameter->GetMathItem()->FindResultData());
 				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), pCaseCondition->GetMathItem()->FindResultData());
 
-				// CALL String Comparison, result in EAX
+				// CALL String Comparison, result in RAX
 				CInstructionTableEntry* pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::EqualSS));
 				LPSTR pMathCommand=pRef->GetDecoratedName()->GetStr();
 				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", pMathCommand);
 
 				// Free stack
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopEbx), NULL);
-				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopEbx), NULL);
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopRbx), nullptr);
+				g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopRbx), nullptr);
 
-				// If EAX is one, jump to the label colding the case code
+				// If RAX is one, jump to the label colding the case code
 				CStr pOne("1");
 				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::ConditionData), &pOne, 7);
 				CStr* pJumpToLabel=pCaseLabel->GetMathItem()->FindResultStringTokenForDBM();
@@ -162,10 +162,10 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 		}
 		else
 		{
-			// Move Variable into EAX
-			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::AssignToEax), m_pParameter->GetMathItem()->FindResultData());
+			// Move Variable into RAX
+			g_pASMWriter->WriteASMTaskP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::AssignToRax), m_pParameter->GetMathItem()->FindResultData());
 
-			// Compares numeric values against EAX
+			// Compares numeric values against RAX
 			while(pCaseCondition)
 			{
 				// Set the CMP Instruction for the Condition
@@ -213,7 +213,7 @@ bool CParseJump::WriteDBM(DWORD PlacementCode)
 	return true;
 }
 
-bool CParseJump::WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult)
+bool CParseJump::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
 {
 	// Write out text
 	CStr strDBMLine(256);

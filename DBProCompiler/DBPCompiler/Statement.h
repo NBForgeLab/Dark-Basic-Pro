@@ -222,10 +222,10 @@ class CStatement
 		LPSTR			SeekToRemEnd(LPSTR pPointer);
 		DWORD			GetTokenToSeperator(void);
 		DWORD			FindToken(LPSTR pPointer, bool bIncrementLineNumber);
-		DWORD			DetermineNameToken(LPSTR pToken);
+		DWORD			DetermineNameToken(LPCSTR pToken);
 		DWORD			DetermineToken(LPSTR pToken);
-		bool			DetermineIfReservedWord(LPSTR pToken);
-		bool			DetermineIfFunctionName(LPSTR pWord, bool bIncludeUserFunctions);
+		bool			DetermineIfReservedWord(LPCSTR pToken);
+		bool			DetermineIfFunctionName(LPCSTR pWord, bool bIncludeUserFunctions);
 		LPSTR			ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas, bool bIgnoreSpacesAsSeperators);
 		LPSTR			ProduceNextToken(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas);
 		LPSTR			ProduceNextArrayToken(LPSTR* pOrigPointer);
@@ -249,7 +249,7 @@ class CStatement
 		CParameter*		GetParameter(void) { return m_pParameters.get(); }
 
 		bool			WriteDBM(void);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
 
 	private:
 		bool			WriteDBMNode(void);
@@ -374,7 +374,7 @@ class CMathOp
 
 		bool WriteDBM(void);
 		bool WriteDBMBit(DWORD dwLineNumber);
-		bool WriteDBMLine(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
+		bool WriteDBMLine(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
 
 		// Tokenizer (extracted subsystem)
 		[[nodiscard]] CTokenizer& GetTokenizer() noexcept { return m_tokenizer; }

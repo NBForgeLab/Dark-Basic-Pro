@@ -29,7 +29,7 @@ using TargetAbi32 = TargetAbiTraits<32>;
 using TargetAbi64 = TargetAbiTraits<64>;
 
 // Dark Basic Professional compiler target program ABI representation
-using ActiveTargetAbi = TargetAbi32;
+using ActiveTargetAbi = TargetAbi64;
 
 static_assert(TargetAbi32::address_size == 4);
 static_assert(TargetAbi64::address_size == 8);
@@ -58,6 +58,23 @@ template <typename Abi>
     }
 
     return static_cast<std::uintptr_t>(value);
+}
+
+template <typename Abi = ActiveTargetAbi>
+[[nodiscard]] std::optional<typename Abi::address_type> FromHostAddress(
+    const std::uintptr_t value) noexcept
+{
+    using TargetAddress = typename Abi::address_type;
+    static_assert(std::is_unsigned_v<TargetAddress>);
+
+    if constexpr (sizeof(std::uintptr_t) > sizeof(TargetAddress)) {
+        if (value > static_cast<std::uintptr_t>(
+                        (std::numeric_limits<TargetAddress>::max)())) {
+            return std::nullopt;
+        }
+    }
+
+    return static_cast<TargetAddress>(value);
 }
 
 template <typename Pointer, typename Abi = ActiveTargetAbi>

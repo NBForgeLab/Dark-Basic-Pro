@@ -16,7 +16,7 @@ extern CDataTable* g_pStringTable;
 
 CParameter::CParameter()
 {
-	m_pPrev=NULL;
+	m_pPrev=nullptr;
 }
 
 CParameter::~CParameter()
@@ -182,7 +182,7 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 						// Check if variable exists
 						if(g_pVarTable->FindVariableExist(pVarString, dwArrFlag))
 						{
-							ReturnTypeString=NULL;
+							ReturnTypeString=nullptr;
 							if(g_pVarTable->FindTypeOfVariable(pVarString, dwArrFlag, &ReturnTypeString))
 							{
 								// Determine var type

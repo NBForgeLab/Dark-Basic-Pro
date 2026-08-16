@@ -20,14 +20,17 @@
 
 #include <algorithm>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 std::unordered_map<std::string, CLabelTable*> CLabelTable::g_Table;
 
-static std::string to_lower(const std::string& s)
+static std::string to_lower(std::string_view s)
 {
-	std::string res = s;
-	std::transform(res.begin(), res.end(), res.begin(), ::tolower);
+	std::string res(s);
+	std::transform(res.begin(), res.end(), res.begin(), [](unsigned char c) {
+		return static_cast<char>(std::tolower(c));
+	});
 	return res;
 }
 #endif
@@ -42,21 +45,21 @@ CLabelTable::CLabelTable()
 	m_dwCodeIndex=0;
 	m_dwDataIndex=0;
 	m_dwBytePos=0;
-	m_pSRef=NULL; // Reference Only
+	m_pSRef=nullptr; // Reference Only
 
-	m_pNext=NULL;
-	m_pPrev=NULL;
+	m_pNext=nullptr;
+	m_pPrev=nullptr;
 }
 
-CLabelTable::CLabelTable(LPSTR pStr)
+CLabelTable::CLabelTable(LPCSTR pStr)
 {
 	m_pName.reset(new CStr(pStr));
 	m_dwCodeIndex=0;
 	m_dwDataIndex=0;
 	m_dwBytePos=0;
 
-	m_pNext=NULL;
-	m_pPrev=NULL;
+	m_pNext=nullptr;
+	m_pPrev=nullptr;
 
 #ifdef __AARON_LBLTBLPERF__
 	std::string lowerStr = to_lower(pStr);
@@ -120,13 +123,13 @@ void CLabelTable::Insert(CLabelTable* pNew)
 	pNew->m_pPrev = pNeighA;
 }
 
-void CLabelTable::AddInOrder(LPSTR pName, CLabelTable* pNew)
+void CLabelTable::AddInOrder(LPCSTR pName, CLabelTable* pNew)
 {
 	// Find place to insert new variable
 	CLabelTable* pLocation = this->GetNext();
 	while(pLocation)
 	{
-		if(stricmp(pName,pLocation->GetName()->GetStr())<0) break;
+		if(_stricmp(pName,pLocation->GetName()->GetStr())<0) break;
 		pLocation=pLocation->GetNext();
 	}
 	if(pLocation)
@@ -149,7 +152,7 @@ CLabelTable* CLabelTable::Advance(DWORD dwCountdown)
 		if(m_pNext)
 			return m_pNext->Advance(dwCountdown-1);
 
-	return NULL;
+	return nullptr;
 }
 
 CLabelTable* CLabelTable::Subtract(DWORD dwCountdown)
@@ -160,10 +163,10 @@ CLabelTable* CLabelTable::Subtract(DWORD dwCountdown)
 		if(m_pPrev)
 			return m_pPrev->Subtract(dwCountdown-1);
 
-	return NULL;
+	return nullptr;
 }
 
-bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
+bool CLabelTable::AddLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
 {
 	// Make string
 	auto pStr = std::make_unique<CStr>(pStrName);
@@ -174,7 +177,7 @@ bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex,
 		pStr->SetChar(length,0);
 
 	// Ensure label is unique (already got)
-	if(FindLabel(pStr->GetStr())!=NULL)
+	if(FindLabel(pStr->GetStr())!=nullptr)
 	{
 		return true;
 	}
@@ -206,96 +209,20 @@ bool CLabelTable::AddLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex,
 	return true;
 }
 
-CLabelTable* CLabelTable::FindLabel(LPSTR pLabelName)
+CLabelTable* CLabelTable::FindLabel(LPCSTR pLabelName)
 {
-#ifdef __AARON_LBLTBLPERF__
+	if (!pLabelName)
+		return nullptr;
+
 	std::string lowerLabelName = to_lower(pLabelName);
 	auto it = g_Table.find(lowerLabelName);
 	if (it == g_Table.end() || !it->second)
 		return nullptr;
 
 	return it->second;
-#else
-	DWORD dwTime=timeGetTime();
-
-	// Start search in middle of list
-	CLabelTable* pCurrent = this;
-	DWORD dFirst = 0;
-	DWORD dLast = g_pStatementList->GetLabelQtyCounter();
-	DWORD dMiddlePos = 0;
-	DWORD dwStep = ((dLast-dFirst)/2);
-	if(dwStep<1) dwStep=1;
-	dMiddlePos = dFirst + dwStep;
-	pCurrent = pCurrent->Advance(dwStep);
-
-	// First find name in list (irrespective of scope)
-	DWORD dwDirectionSwitchAtOneStep=0;
-	while(pCurrent)
-	{
-		// Close in on item
-		DWORD dwDirection=0;
-		if(stricmp(pLabelName, pCurrent->GetName()->GetStr())<0)
-		{
-			dLast = dMiddlePos;
-			dwStep = ((dLast-dFirst)/2);
-			if(dwStep<1) dwStep=1;
-			dMiddlePos = dMiddlePos - dwStep;
-			pCurrent = pCurrent->Subtract(dwStep);
-			dwDirection=1;
-		}
-		else
-		{
-			if(stricmp(pLabelName, pCurrent->GetName()->GetStr())>0)
-			{
-				dFirst = dMiddlePos;
-				dwStep = ((dLast-dFirst)/2);
-				if(dwStep<1) dwStep=1;
-				dMiddlePos = dMiddlePos + dwStep;
-				pCurrent = pCurrent->Advance(dwStep);
-				dwDirection=2;
-			}
-		}
-
-		// If one step and direction switch, not here in list!
-		if(dwStep==1)
-		{
-			if(dwDirectionSwitchAtOneStep==0)
-				dwDirectionSwitchAtOneStep=dwDirection;
-			else
-				if(dwDirectionSwitchAtOneStep!=dwDirection)
-					break;
-		}
-
-		// No more items
-		if(pCurrent==NULL)
-			break;
-
-		if(dFirst==dLast)
-			break;
-
-		// Check if this is the one
-		if(stricmp(pCurrent->GetName()->GetStr(),pLabelName)==NULL)
-			break;
-	}
-
-	if(pCurrent)
-	{
-		if(pCurrent->GetName())
-		{
-			if(stricmp(pLabelName, pCurrent->GetName()->GetStr())==NULL)
-			{
-				// Found Label
-				return pCurrent;
-			}
-		}
-	}
-
-	// Not Found
-	return NULL;
-#endif
 }
 
-bool CLabelTable::UpdateLabel(LPSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
+bool CLabelTable::UpdateLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
 {
 	CLabelTable* pLabel = FindLabel(pStrName);
 	if(pLabel)

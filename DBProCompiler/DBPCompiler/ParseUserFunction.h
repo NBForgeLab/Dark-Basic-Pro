@@ -40,7 +40,7 @@ class CParseUserFunction
 		bool			ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree);
 
 		bool			WriteDBM(DWORD PlacementCode);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPSTR pText, LPSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
 
 	private:
 
