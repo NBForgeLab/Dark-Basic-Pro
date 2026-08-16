@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Generates a code coverage report from MSVC or GCC/Clang coverage data.
 
@@ -13,7 +13,7 @@
     and writes the report in the requested format.
 
 .PARAMETER BuildDirectory
-    Path to the CMake build directory (e.g. out/build/windows-x86-coverage).
+    Path to the CMake build directory (e.g. out/build/windows-x64-coverage).
     Defaults to the first directory matching out/build/*coverage* if omitted.
 
 .PARAMETER OutputFormat
@@ -29,7 +29,7 @@
     # Auto-detect build directory, print text summary to console.
 
 .EXAMPLE
-    .\scripts\coverage-report.ps1 -BuildDirectory out/build/windows-x86-coverage -OutputFormat json
+    .\scripts\coverage-report.ps1 -BuildDirectory out/build/windows-x64-coverage -OutputFormat json
     # Generate JSON report for the coverage preset build.
 #>
 

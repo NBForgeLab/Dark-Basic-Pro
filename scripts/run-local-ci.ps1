@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
@@ -69,7 +69,7 @@ Write-Host "=========================================" -ForegroundColor Cyan
 # Phase 1: Toolchain Build
 Write-Host "`n[1/5] Building Toolchain ($Configuration)..." -ForegroundColor Yellow
 $rootPath = Resolve-Path (Join-Path $PSScriptRoot "..")
-$preset = "windows-x86-" + $Configuration.ToLowerInvariant()
+$preset = "windows-x64-" + $Configuration.ToLowerInvariant()
 $buildPath = Join-Path $rootPath "out\build\$preset"
 
 # Run CMake Configuration

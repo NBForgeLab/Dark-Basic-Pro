@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 4.2)
 
-# Allow Win32 by default, but permit x64 build configurations
-if(NOT CMAKE_GENERATOR_PLATFORM)
-    set(CMAKE_GENERATOR_PLATFORM Win32 CACHE STRING "Target Platform (Win32 or x64)" FORCE)
-endif()
+# DarkBasic Pro is a pure native x64 codebase: 64-bit only, no 32-bit
+# (Win32/x86) build platform exists anymore.
+set(CMAKE_GENERATOR_PLATFORM x64 CACHE STRING "Target Platform (x64 only)" FORCE)
 
 project(DarkBasicPro VERSION 1.0.5 LANGUAGES C CXX ASM_MASM)
 
@@ -23,17 +22,13 @@ if(DBP_ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-# Enable SAFESEH for MASM on Win32 only
-if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(CMAKE_ASM_MASM_FLAGS "${CMAKE_ASM_MASM_FLAGS} /safeseh")
+# Enforce the native x64-only policy: refuse any 32-bit configuration.
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR
+        "DarkBasic Pro supports native x64 only: 32-bit (Win32/x86) "
+        "configurations are no longer supported.")
 endif()
-
-# Report active target architecture bitness
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(STATUS "DarkBasic Pro targeting 64-bit architecture (x64).")
-else()
-    message(STATUS "DarkBasic Pro targeting 32-bit architecture (Win32/x86).")
-endif()
+message(STATUS "DarkBasic Pro targeting 64-bit architecture (x64).")
 
 # Dependency revisions are immutable commits corresponding to the upstream
 # v1.17.0 releases (Apache-2.0 for spdlog, BSD-3-Clause for GoogleTest).
@@ -111,11 +106,7 @@ if(NOT DBP_DXSDK_ROOT)
     endif()
 endif()
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(DXSDK_ARCH_DIR "x64")
-else()
-    set(DXSDK_ARCH_DIR "x86")
-endif()
+set(DXSDK_ARCH_DIR "x64")
 
 if(EXISTS "${DBP_DXSDK_ROOT}/Include")
     set(DXSDK_INCLUDE_DIR "${DBP_DXSDK_ROOT}/Include")
@@ -159,14 +150,6 @@ install(DIRECTORY Install/Help DESTINATION . COMPONENT Data)
 install(DIRECTORY Install/Editor DESTINATION . COMPONENT Data)
 install(DIRECTORY Install/Projects DESTINATION . COMPONENT Data)
 install(FILES Install/Launch.CFG Install/Launch.exe DESTINATION . COMPONENT Data)
-
-# Install legacy DLLs
-install(FILES Install/Compiler/BCGCB59.dll
-              Install/Compiler/MD5.dll
-              Install/Compiler/mfc71.dll
-              Install/Compiler/msvcr71.dll
-        DESTINATION bin
-        COMPONENT Runtime)
 
 # Install compiler support files
 install(FILES Install/Compiler/setup.ini DESTINATION bin COMPONENT Runtime)

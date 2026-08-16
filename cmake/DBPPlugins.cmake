@@ -30,6 +30,18 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Music" "${CMAKE_BINARY_DIR}/plugins/music")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System" "${CMAKE_BINARY_DIR}/plugins/system")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Data" "${CMAKE_BINARY_DIR}/plugins/data")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ConvX" "${CMAKE_BINARY_DIR}/plugins/convx")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Conv3DS" "${CMAKE_BINARY_DIR}/plugins/conv3ds")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ConvMD2" "${CMAKE_BINARY_DIR}/plugins/convmd2")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ConvMD3" "${CMAKE_BINARY_DIR}/plugins/convmd3")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ConvMDL" "${CMAKE_BINARY_DIR}/plugins/convmdl")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/EnhancedMatrix" "${CMAKE_BINARY_DIR}/plugins/enhancedmatrix")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/GameFX" "${CMAKE_BINARY_DIR}/plugins/gamefx")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ODE" "${CMAKE_BINARY_DIR}/plugins/ode")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/BlitzTerrain" "${CMAKE_BINARY_DIR}/plugins/blitzterrain")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/DarkLIGHTS" "${CMAKE_BINARY_DIR}/plugins/darklights")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/DarkAI" "${CMAKE_BINARY_DIR}/plugins/darkai")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/Enhancements" "${CMAKE_BINARY_DIR}/plugins/enhancements")
 
 # Multiplayer and MultiplayerPlus are excluded: they depend on the deprecated
 # DirectPlay4/8 SDK headers (dplay.h, dplobby.h, dplay8.h, dpaddr.h) which are

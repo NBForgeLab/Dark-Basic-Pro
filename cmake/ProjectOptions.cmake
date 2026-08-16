@@ -92,12 +92,15 @@ function(dbp_enable_coverage target)
 endfunction()
 
 function(dbp_apply_legacy_cpp_options target)
-    target_compile_features(${target} PRIVATE cxx_std_17)
+    # All compiler targets build as native x64, standards-conformant C++20
+    # with high warning visibility and strict conformance mode.
+    target_compile_features(${target} PRIVATE cxx_std_20)
 
     if(MSVC)
         target_compile_options(${target} PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:/EHa>
-            $<$<COMPILE_LANGUAGE:C,CXX>:/W3>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/W4>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/permissive->
         )
     endif()
 
@@ -108,15 +111,13 @@ function(dbp_apply_legacy_cpp_options target)
 endfunction()
 
 function(dbp_apply_modern_cpp_options target)
-    # The current tests include legacy headers whose public API accepts mutable
-    # character pointers. Keep the compatibility suite on C++17 until those
-    # APIs are made const-correct in the memory-safety phase.
-    target_compile_features(${target} PRIVATE cxx_std_17)
+    target_compile_features(${target} PRIVATE cxx_std_20)
 
     if(MSVC)
         target_compile_options(${target} PRIVATE
             $<$<COMPILE_LANGUAGE:CXX>:/EHa>
             $<$<COMPILE_LANGUAGE:C,CXX>:/W4>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/permissive->
         )
     endif()
 
