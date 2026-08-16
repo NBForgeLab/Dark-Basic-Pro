@@ -74,7 +74,7 @@ DWORD ReturnAFloat( int iValue )
 DWORD ReverseString( DWORD pOldString, DWORD pStringIn )
 {
 	// Delete old string
-	if(pOldString) g_pGlob->CreateDeleteString ( (DWORD*)&pOldString, 0 );
+	if(pOldString) g_pGlob->CreateDeleteString((DWORD_PTR*)&pOldString, 0 );
 
 	// Return string pointer
 	LPSTR pReturnString=NULL;
@@ -84,7 +84,7 @@ DWORD ReverseString( DWORD pOldString, DWORD pStringIn )
 	{
 		// Create a new string and copy input string to it
 		DWORD dwSize=strlen( (LPSTR)pStringIn );
-		g_pGlob->CreateDeleteString ( (DWORD*)&pReturnString, dwSize+1 );
+		g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturnString, dwSize+1 );
 		strcpy(pReturnString, (LPSTR)pStringIn);
 
 		// Reverse the new string
