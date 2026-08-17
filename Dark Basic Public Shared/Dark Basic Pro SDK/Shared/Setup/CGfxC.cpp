@@ -326,6 +326,7 @@ static bool InitD3DX ( void )
 	return bRet;
 }
 
+
 DARKSDK bool Constructor ( void )
 {
 	// point pointers to nothing
@@ -373,7 +374,17 @@ DARKSDK bool Constructor ( void )
 	*/
 
 	// setup direct3d
-	if ( FAILED ( m_pD3D = Direct3DCreate9 ( D3D_SDK_VERSION ) ) || bD3DXAvailable==false )
+	__try {
+		m_pD3D = Direct3DCreate9 ( D3D_SDK_VERSION );
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		m_pD3D = NULL;
+	}
+	// Direct3DCreate9 returns a pointer, not an HRESULT: FAILED(NULL) is
+	// FALSE because NULL maps to S_OK, so the legacy code only caught this
+	// branch on GPUs where creation actually failed with an error code.
+	// Test the pointer explicitly so GPU-less environments fail cleanly.
+	if ( m_pD3D == NULL || bD3DXAvailable == false )
 	{
 		#if DEBUG_MODE
 			fwrite ( 
@@ -385,7 +396,11 @@ DARKSDK bool Constructor ( void )
 		#endif
 
 		Error ( "Unable to create Direct3D interface" );
-	}
+		// The D3D interface is mandatory for the DirectX display layer; without
+		// it the constructor must fail cleanly instead of dereferencing a null
+		// m_pD3D below (headless/remote/VM environments have no D3D9 device).
+		return false;
+		}
 	#if DEBUG_MODE
 		else
 		{
@@ -409,6 +424,17 @@ DARKSDK bool Constructor ( void )
 
 	// obtain hardware information
 	m_iAdapterCount = m_pD3D->GetAdapterCount ( );
+
+	// Headless / GPU-less environments: Direct3DCreate9 can still return an
+	// object (e.g. via the software/WARP renderer) that reports zero adapters.
+	// Proceeding with an empty adapter list leaves the display-mode state
+	// uninitialized and crashes later, so fail cleanly here and let the core
+	// fall back to the GDI display layer.
+	if ( m_iAdapterCount == 0 )
+	{
+		Error ( "No display adapters available" );
+		return false;
+	}
 
 	#if DEBUG_MODE
 		if ( m_iAdapterCount == 0 )
@@ -516,9 +542,7 @@ DARKSDK bool Constructor ( void )
 	m_pD3D->GetAdapterDisplayMode ( 0, &m_WindowsD3DMODE );
 
 	// mike - 010904 - 5.7 - disable screen saver at start of program
-	SystemParametersInfo ( SPI_SETSCREENSAVEACTIVE, FALSE, 0, SPIF_SENDCHANGE );
-
-	// U70 - 170608 - WOW Support
+	SystemParametersInfo ( SPI_SETSCREENSAVEACTIVE, FALSE, 0, SPIF_SENDCHANGE );	// U70 - 170608 - WOW Support
 	#ifdef WOWSUPPORT
 	if (FAILED(WOWvxPlayerCreate( &g_WOWhandle )))
 	{
@@ -527,6 +551,7 @@ DARKSDK bool Constructor ( void )
 	#endif
 
 	// Success
+
 	return true;
 }
 
@@ -888,7 +913,7 @@ DARKSDK void PassCoreData ( LPVOID pGlobPtr, int iStage )
 					g_pGlob = (GlobStruct*)pGlobPtr;
 
 					// U70 - 180608 - new auto stereoscopic feature
-					if(g_pGlob->g_Camera3D) g_Camera_GetStereoscopicFinalTexture = ( DLL_D3DGetStereoFunctionCall ) GetProcAddress ( g_pGlob->g_Camera3D, "?GetStereoscopicFinalTexture@@YAPAUIDirect3DTexture9@@XZ" );
+					if(g_pGlob->g_Camera3D) g_Camera_GetStereoscopicFinalTexture = ( DLL_D3DGetStereoFunctionCall ) GetProcAddress ( g_pGlob->g_Camera3D, "?GetStereoscopicFinalTexture@@YAPEAUIDirect3DTexture9@@XZ" );
 
 					// U71 - 071108 - get ptrs to Basic3D functions (for screen effect post processing)
 					if(g_pGlob->g_Basic3D) g_Basic3D_TextureScreen = ( DLL_Basic3DTextureScreen ) GetProcAddress ( g_pGlob->g_Basic3D, "?TextureScreen@@YAXHH@Z" );
@@ -3929,16 +3954,16 @@ DARKSDK void SetDisplayModeEx ( int iWidth, int iHeight, int iDepth )
 		}
 		else
 		{
-			LPSTR pError = "Unknown Change Display Settings Error";
+			LPSTR pError = const_cast<LPSTR>("Unknown Change Display Settings Error");
 			switch ( hRes )
 			{
-				case DISP_CHANGE_BADDUALVIEW : pError = "The settings change was unsuccessful because the system is DualView capable."; break;
-				case DISP_CHANGE_BADFLAGS : pError = "An invalid set of flags was passed in."; break;
-				case DISP_CHANGE_BADMODE : pError = "The graphics mode is not supported."; break;
-				case DISP_CHANGE_BADPARAM : pError = "An invalid parameter was passed in. This can include an invalid flag or combination of flags."; break;
-				case DISP_CHANGE_FAILED : pError = "The display driver failed the specified graphics mode."; break;
-				case DISP_CHANGE_NOTUPDATED : pError = "Unable to write settings to the registry."; break;
-				case DISP_CHANGE_RESTART : pError = "The computer must be restarted for the graphics mode to work."; break;
+				case DISP_CHANGE_BADDUALVIEW : pError = const_cast<LPSTR>("The settings change was unsuccessful because the system is DualView capable."); break;
+				case DISP_CHANGE_BADFLAGS : pError = const_cast<LPSTR>("An invalid set of flags was passed in."); break;
+				case DISP_CHANGE_BADMODE : pError = const_cast<LPSTR>("The graphics mode is not supported."); break;
+				case DISP_CHANGE_BADPARAM : pError = const_cast<LPSTR>("An invalid parameter was passed in. This can include an invalid flag or combination of flags."); break;
+				case DISP_CHANGE_FAILED : pError = const_cast<LPSTR>("The display driver failed the specified graphics mode."); break;
+				case DISP_CHANGE_NOTUPDATED : pError = const_cast<LPSTR>("Unable to write settings to the registry."); break;
+				case DISP_CHANGE_RESTART : pError = const_cast<LPSTR>("The computer must be restarted for the graphics mode to work."); break;
 			}
 			MessageBox ( NULL, pError, "Change Display Settings Error", MB_OK );
 		}

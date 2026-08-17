@@ -49,7 +49,7 @@ DARKSDK void PrintString(LPSTR pString, bool bIncludeCarriageReturn)
 
 DARKSDK void PrintNothing(void)
 {
-	PrintSomething("", true);
+	PrintSomething(const_cast<LPSTR>(""), true);
 }
 
 DARKSDK void InputSomething(LPSTR* pStr)
@@ -164,7 +164,7 @@ DARKSDK void InputSomething(LPSTR* pStr)
 	}
 
 	// Advance Cursor
-	SIZE Size = GetTextSize(" ");
+	SIZE Size = GetTextSize(const_cast<LPSTR>(" "));
 	g_Glob.iCursorX=0; g_Glob.iCursorY+=Size.cy;
 
 	// Create Output String

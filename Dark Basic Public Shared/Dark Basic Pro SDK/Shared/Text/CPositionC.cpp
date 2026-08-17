@@ -700,7 +700,8 @@ void TextInternalUpdate ( int iID )
 			D3DXVec3TransformCoord ( &m_pTextPos->vecLook, &m_pTextPos->vecLook,  &matRotation );
 			D3DXVec3TransformCoord ( &m_pTextPos->vecUp,   &m_pTextPos->vecUp,    &matRotation );
 
-			D3DXMatrixRotationAxis ( &matRotation, &D3DXVECTOR3 ( 0.0f, 1.0f, 0.0f ), D3DXToRadian ( m_pTextPos->vecRotate.y ) );
+			D3DXVECTOR3 vUpAxis ( 0.0f, 1.0f, 0.0f );
+			D3DXMatrixRotationAxis ( &matRotation, &vUpAxis, D3DXToRadian ( m_pTextPos->vecRotate.y ) );
 			D3DXVec3TransformCoord ( &m_pTextPos->vecLook, &m_pTextPos->vecLook, &matRotation );
 	// LEEFIX - 051002 - Y rotation changes right, not up which stays the same throughout a Y rotation
 	//		D3DXVec3TransformCoord ( &m_pTextPos->vecUp,   &m_pTextPos->vecUp,   &matRotation );

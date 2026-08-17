@@ -35,7 +35,7 @@ DARKSDK void EXT_SetDefaultDisplayProperties(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Text_SetCharacterSet)
 	#endif
-		g_Text_SetCharacterSet("Fixedsys", 0);
+		g_Text_SetCharacterSet(const_cast<char*>("Fixedsys"), 0);
 }
 
 DARKSDK void EXT_ClearPrintArea(void)
@@ -48,8 +48,8 @@ DARKSDK void EXT_ClearSomeText(int LeftmostToClear, int RightmostToClear)
 {
 	// Work out Text Details
 	SIZE Size;
-	Size.cx=g_Text_GetWidth("_");
-	Size.cy=g_Text_GetHeight("_");
+	Size.cx=g_Text_GetWidth(const_cast<char*>("_"));
+	Size.cy=g_Text_GetHeight(const_cast<char*>("_"));
 
 	// Clear Area
 	DWORD dwStoreColor = g_Glob.dwForeColor;
@@ -72,7 +72,7 @@ DARKSDK void EXT_PrintSomething(LPSTR pStr, bool bIncludeCarriageReturn)
 		SIZE Size;
 		Size.cx=g_Text_GetWidth(pStr);
 		Size.cy=g_Text_GetHeight(pStr);
-		if(Size.cy==0) Size.cy=g_Text_GetHeight(" ");
+		if(Size.cy==0) Size.cy=g_Text_GetHeight(const_cast<char*>(" "));
 
 		// Write Text
 		g_Text_Text(g_Glob.iCursorX, g_Glob.iCursorY, pStr);

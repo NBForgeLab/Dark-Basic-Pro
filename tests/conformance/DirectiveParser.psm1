@@ -1,15 +1,35 @@
+Set-StrictMode -Version 3.0
+
+<#
+.SYNOPSIS
+    Parses REM EXPECT: test directives from a DarkBASIC .dba conformance
+    fixture into a structured expectation object.
+
+.DESCRIPTION
+    Supported directives:
+      REM EXPECT: COMPILE_SUCCESS / COMPILE_FAIL
+      REM EXPECT: RUNTIME_OUTPUT "text"
+      REM EXPECT: EXIT_CODE <number>
+      REM EXPECT: TIMEOUT_SECONDS <number>
+      REM EXPECT: COMPILER_ERROR "text"
+#>
 function ConvertFrom-TestDirective {
     [CmdletBinding()]
+    [OutputType([PSCustomObject])]
     param(
+        # Real .dba fixtures contain blank lines; AllowEmptyString lets
+        # Mandatory stay in place while accepting those elements.
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
         [string[]]$FileContent
     )
 
     $result = [pscustomobject]@{
-        CompileSuccess  = $true
-        RuntimeOutputs  = [System.Collections.Generic.List[string]]::new()
-        ExitCode        = 0
-        TimeoutSeconds  = 5
-        CompilerError   = $null
+        CompileSuccess = $true
+        RuntimeOutputs = [System.Collections.Generic.List[string]]::new()
+        ExitCode       = 0
+        TimeoutSeconds = 5
+        CompilerError  = $null
     }
 
     foreach ($line in $FileContent) {
@@ -39,12 +59,4 @@ function ConvertFrom-TestDirective {
     return $result
 }
 
-function Parse-TestDirectives {
-    [CmdletBinding()]
-    param(
-        [string[]]$FileContent
-    )
-    return ConvertFrom-TestDirective -FileContent $FileContent
-}
-
-Export-ModuleMember -Function ConvertFrom-TestDirective, Parse-TestDirectives
+Export-ModuleMember -Function ConvertFrom-TestDirective

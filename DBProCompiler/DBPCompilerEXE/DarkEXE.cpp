@@ -595,6 +595,7 @@ bool FileExists(LPSTR pFilename)
 
 int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance, LPSTR lpCmdLine, [[maybe_unused]] int nCmdShow)
 {
+	// Install diagnostic handlers before any packaged asset is touched
 	db3::SetupDiagnosticHandlers();
 
 	// Initialize Virtual File System hooks
@@ -742,9 +743,25 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 					if ( pSecretErrorMessage && pSecretErrorMessage[0] != 0 )
 						fullError += std::string(".\n") + pSecretErrorMessage;
 				}
-				const std::wstring message = TextConvert::UTF8ToUTF16(
-					"An issue was detected and the session needs to restart: " + fullError);
-				MessageBoxW(nullptr, message.c_str(), L"Runtime Problem Detected", MB_TOPMOST | MB_OK);
+				// Persist the failure instead of blocking on a modal dialog: the
+				// conformance/headless runtime cannot dismiss a message box, and a
+				// dialog would hang every automated run. Write dbp_error.txt in the
+				// working directory (next to output.txt) for the harness to read.
+				const std::string errorFilePath = "dbp_error.txt";
+				FILE* pErrorFile = nullptr;
+				if ( fopen_s ( &pErrorFile, errorFilePath.c_str(), "w" ) == 0 && pErrorFile )
+				{
+					fputs(fullError.c_str(), pErrorFile);
+					fputc('\n', pErrorFile);
+					fclose(pErrorFile);
+				}
+				else
+				{
+					// Only fall back to a dialog when the error could not be persisted.
+					const std::wstring message = TextConvert::UTF8ToUTF16(
+						"An issue was detected and the session needs to restart: " + fullError);
+					MessageBoxW(nullptr, message.c_str(), L"Runtime Problem Detected", MB_TOPMOST | MB_OK);
+				}
 				SAFE_DELETE(pErrorString);
 			}
 

@@ -563,6 +563,66 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::REPSTOSB),		"REP STOSB",		0xF3,	0xAA,	-1,		false);
 }
 
+int CASMWriter::DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2)
+{
+	// rel32 direct branches: CALL/JMP (E8/E9) and Jcc (0F 8x)
+	if (iOp1 == 0xE8 || iOp1 == 0xE9) return 4;
+	if (iOp1 == 0x0F && iOp2 != -1 && (iOp2 & 0xF0) == 0x80) return 4;
+	if (iOp2 == 0xE8 || iOp2 == 0xE9) return 4;
+
+	if (iOp2 == -1)
+	{
+		// No ModRM byte: accumulator/relative immediate forms, PUSH imm, or
+		// MOV reg, imm64 (the only 8-byte ref slot in this family).
+		if (iOp1 == 0x68) return 4;              // PUSH imm32
+		if (iOp1 == 0x6A) return 1;              // PUSH imm8
+		if (iOp1 == 0x04 || iOp1 == 0x2C || iOp1 == 0x24 ||
+			iOp1 == 0x0C || iOp1 == 0x34 || iOp1 == 0x3C) return 1; // AL imm8
+		if (iOp1 == 0x05 || iOp1 == 0x2D || iOp1 == 0x25 ||
+			iOp1 == 0x0D || iOp1 == 0x35 || iOp1 == 0x3D)
+			return (iPreOp == 0x66) ? 2 : 4;                       // AX imm16 / EAX imm32 (RAX imm32 with 48)
+		if (iOp1 >= 0xB0 && iOp1 <= 0xB7) return 1;                // MOV r8, imm8
+		if (iOp1 >= 0xB8 && iOp1 <= 0xBF)                          // MOV r, imm
+		{
+			if (iPreOp == 0x48) return 8;                          // MOV r64, imm64
+			if (iPreOp == 0x66) return 2;                          // MOV r16, imm16
+			return 4;                                              // MOV r32, imm32
+		}
+		return 8;
+	}
+
+	// Shift/rotate by imm8 (C0/C1 group).
+	if (iOp1 == 0xC0 || iOp1 == 0xC1) return 1;
+	// MOV r/m8/16/32, imm: C6 = imm8, C7 = imm16 with 66 prefix / imm32 otherwise.
+	if (iOp1 == 0xC6) return 1;
+	if (iOp1 == 0xC7) return (iPreOp == 0x66) ? 2 : 4;
+
+	const int mod = (iOp2 >> 6) & 3;
+	const int rm  = iOp2 & 7;
+	if (mod == 2) return 4;                      // [reg+disp32]
+	if (mod == 0 && rm == 5) return 4;           // [RIP+disp32]
+	if (mod == 1) return 1;                      // [reg+disp8]
+	if (mod == 3)
+	{
+		// Register forms with an immediate: 81 = imm32, 83 = imm8.
+		if (iOp1 == 0x81) return 4;
+		if (iOp1 == 0x83) return 1;
+	}
+	return 8;
+}
+
+int CASMWriter::DetermineSecondOpDataWidth(int iPreOp, int iOp1, int iOp2)
+{
+	// MOV r/m, imm: the value slot is imm8/imm16/imm32 for C6/C7; register
+	// forms 80/81/83 carry imm8/imm32/imm8. All other instructions take a
+	// single operand, so the second slot is empty.
+	if (iOp1 == 0xC6) return 1;
+	if (iOp1 == 0xC7) return (iPreOp == 0x66) ? 2 : 4;
+	if (iOp1 == 0x80 || iOp1 == 0x83) return 1;
+	if (iOp1 == 0x81) return 4;
+	return 0;
+}
+
 void CASMWriter::DefineASM(DWORD dwASMCode, LPCSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData, int iOp3)
 {
 	// Store Debug String for ASM Code
@@ -576,6 +636,11 @@ void CASMWriter::DefineASM(DWORD dwASMCode, LPCSTR pDebugStr, int iPreOp, int iO
 
 	// Store OpData Flag for ASM Code
 	m_bASMOpData[dwASMCode]=bOpData;
+
+	// Store operand slot width derived from the encoding (4 for disp32/rel32,
+	// 8 for imm64; other immediate widths for the value operands).
+	m_iASMOpDataWidth[dwASMCode] = DetermineOpDataWidth(iPreOp, iOp1, iOp2);
+	m_iASMOpData2Width[dwASMCode] = DetermineSecondOpDataWidth(iPreOp, iOp1, iOp2);
 }
 
 bool CASMWriter::CreateASMHeader(void)
@@ -617,8 +682,56 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 	// Check and expand if MCB too small
 	CheckAndExpandMCBMemory();
 
-	// Write OpCode(s)
-	if(iPreOpCode!=-1)
+	// x64-native addressing: RIP-relative disp32 ([rip+disp32]) physically
+	// cannot reach targets outside the +-2GB window - module globals
+	// (_ERR_/_ESC_/_REK_ live in the EXE image), the variable space, and the
+	// heap can all be far beyond it. Detect the RIP-relative memory forms
+	// (ModRM mod=00, rm=101) and rewrite them to register-indirect through
+	// R11, a scratch register this codegen never otherwise uses:
+	//     mov r11, <imm64 addr>    49 BB <addr>
+	//     <op> [r11]               ModRM rm=011, no disp32
+	// The address ref slot moves into the imm64 of the mov r11; the memory
+	// instruction itself carries no displacement and works at any distance.
+	const bool bRipRelMemOp =
+		(iOpCode2 != -1) && ((iOpCode2 & 0x07) == 0x05) && ((iOpCode2 & 0xC0) == 0x00);
+
+	if (bRipRelMemOp && lpOpData != nullptr && lpOpData[0] != '\0')
+	{
+		// mov r11, imm64 (REX.W|REX.B 0x49 + 0xBB), with an 8-byte ref slot
+		// for the absolute target address.
+		CheckAndExpandREFMemory();
+		const DWORD addrPos = m_machineCodeBuffer.GetCurrentMCPosition();
+		m_machineCodeBuffer.WriteByte(0x49);
+		m_machineCodeBuffer.WriteByte(0xBB);
+		CStr cleanAddr(lpOpData);
+		cleanAddr.EatEdgeSpacesandTabs(nullptr);
+		m_referenceTracker.AddReference(addrPos + 2, cleanAddr.GetStr(), 8u, addrPos + 10u);
+		m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, 8u);
+		// The address is consumed by the mov r11; the memory op now uses [r11].
+		lpOpData = nullptr;
+		iOpCode2 = (iOpCode2 & 0xF8) | 0x03;   // rm=101 (RIP) -> rm=011 (R11)
+	}
+
+	// Write OpCode(s). The rewritten memory form needs REX.B for R11:
+	// 48 (REX.W) becomes 49 (REX.W+B), 66 keeps operand size with a 41
+	// prefix, and no-prefix forms get 41.
+	if(bRipRelMemOp)
+	{
+		if (iPreOpCode == 0x48)
+		{
+			m_machineCodeBuffer.WriteByte(0x49);
+		}
+		else if (iPreOpCode == 0x66)
+		{
+			m_machineCodeBuffer.WriteByte(0x41);
+			m_machineCodeBuffer.WriteByte(0x66);
+		}
+		else
+		{
+			m_machineCodeBuffer.WriteByte(0x41);
+		}
+	}
+	else if(iPreOpCode!=-1)
 	{
 		m_machineCodeBuffer.WriteByte(iPreOpCode);
 	}
@@ -635,6 +748,29 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 		m_machineCodeBuffer.WriteByte(iOp3);
 	}
 
+	// x64 operand slot widths derived from the instruction encoding. The
+	// legacy uniform-8-byte ref emission corrupted every disp32/rel32 slot
+	// (writing absolute 64-bit addresses into 4-byte PC-relative fields) and
+	// clobbered the following instruction - the root cause of boot-time AVs
+	// in compiled applications. For the rewritten register-indirect memory
+	// form the address lives in the mov r11 imm64, so the memory op itself
+	// has no disp32 slot.
+	const int iOpDataWidth = bRipRelMemOp
+		? 0 : DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2);
+	const int iOpData2Width = DetermineSecondOpDataWidth(iPreOpCode, iOpCode1, iOpCode2);
+	int iOpcodeLen = 0;
+	if(iPreOpCode!=-1) iOpcodeLen++;
+	if(iOpCode1!=-1) iOpcodeLen++;
+	if(iOpCode2!=-1) iOpcodeLen++;
+	if(iOp3!=-1) iOpcodeLen++;
+	if (bRipRelMemOp)
+	{
+		// 49 BB mov r11, imm64 prefix; the 66 form also gains a 41 REX.B.
+		iOpcodeLen += 2;
+		if (iPreOpCode == 0x66) iOpcodeLen += 1;
+	}
+	const int iFullInstLen = iOpcodeLen + iOpDataWidth + iOpData2Width;
+
 	// Write Optional OpData 1 and 2
 	for(DWORD n=0; n<2; n++)
 	{
@@ -650,11 +786,20 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 				// REF or IMM
 				if(bSecondOpDataIsIMM==true && n==1)
 				{
-					// WRITE IMM INTO MC
-					uint64_t dwDataAsQWORD = static_cast<uint64_t>(_atoi64(pData));
-					// Convert legacy size code (0=1byte, 1=2bytes, 2=4bytes, 3=8bytes) to actual byte size
-					DWORD dwByteSize = (dwSecondOpDataIMMSize == 0) ? 1 : (dwSecondOpDataIMMSize == 1) ? 2 : (dwSecondOpDataIMMSize == 2) ? 4 : 8;
-					m_machineCodeBuffer.WriteQWORD(dwDataAsQWORD, dwByteSize);
+				// WRITE IMM INTO MC
+				uint64_t dwDataAsQWORD = static_cast<uint64_t>(_atoi64(pData));
+				// The immediate slot width is a property of the instruction
+				// encoding, not of the caller's legacy size code: MOV r64,imm64
+				// (48 B8-BF) requires 8 bytes while C6/C7 imm slots are
+				// 1/2/4 bytes. The 64-bit port widened the opcode (48 REX.W)
+				// without widening the emitted immediate, which truncated every
+				// 64-bit constant load and desynchronized the instruction
+				// stream. Derive the width from the encoding instead.
+				DWORD dwByteSize = (iOpCode2 != -1)
+					? static_cast<DWORD>(DetermineSecondOpDataWidth(iPreOpCode, iOpCode1, iOpCode2))
+					: static_cast<DWORD>(DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2));
+				if (dwByteSize == 0) dwByteSize = 4;
+				m_machineCodeBuffer.WriteQWORD(dwDataAsQWORD, dwByteSize);
 				}
 				else
 				{
@@ -663,11 +808,18 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 					CStr cleanStr(pData);
 					cleanStr.EatEdgeSpacesandTabs(nullptr);
 
-					DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
-					m_referenceTracker.AddReference(MCBBytePos, cleanStr.GetStr());
+					const DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
+					const int iSlotBytes = (n==0) ? iOpDataWidth : iOpData2Width;
+					// PC-relative reference point: the end of the enclosing
+					// instruction (RIP for disp32, next instruction for rel32).
+					const DWORD dwRelEnd = (n==0)
+						? (MCBBytePos + static_cast<DWORD>(iFullInstLen - iOpcodeLen))
+						: (MCBBytePos + static_cast<DWORD>(iOpData2Width));
+					m_referenceTracker.AddReference(MCBBytePos, cleanStr.GetStr(),
+						static_cast<std::uint32_t>(iSlotBytes), dwRelEnd);
 
-					// WRITE BLANK(XXXX) INTO MB (8 bytes for TargetAbi64)
-					m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, dbp::abi::ActiveTargetAbi::address_size);
+					// WRITE BLANK(XX) INTO MB sized to the operand slot
+					m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, static_cast<DWORD>(iSlotBytes));
 				}
 			}
 		}
@@ -1196,6 +1348,167 @@ DWORD CASMWriter::DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeVal
 	return m_taskEmitter.DetermineASMCallForREL(dwASMCodeAsAByte, dwTypeValue);
 }
 
+void CASMWriter::ClearPendingCallArgs() noexcept
+{
+	m_pendingCallArgs.clear();
+	m_pendingCallSlotCount = 0;
+}
+
+void CASMWriter::RecordPendingCallArg(DWORD dwType, DWORD dwSlotCount)
+{
+	PendingCallArg arg;
+	arg.slotIndex = m_pendingCallSlotCount;
+	arg.slotCount = dwSlotCount > 0 ? dwSlotCount : 1u;
+	// DBPro type codes (CStructTable::SetStructDefaults): 2 = float
+	// (4 bytes), 8 = double float (8 bytes). Everything else - integers,
+	// string handles, pointers - travels in the integer argument registers.
+	if (dwType == 2)
+		arg.kind = PendingCallArg::Kind::Float;
+	else if (dwType == 8)
+		arg.kind = PendingCallArg::Kind::Double;
+	m_pendingCallArgs.push_back(arg);
+	m_pendingCallSlotCount += arg.slotCount;
+}
+
+bool CASMWriter::EmitCommandCallAbiSetup()
+{
+	if (m_machineCodeBuffer.GetProgramStart() == nullptr)
+		return false;
+	CheckAndExpandMCBMemory();
+
+	// Arguments were recorded in emission order (argument #N first), so the
+	// last recorded argument is #1 and sits at the lowest machine-stack slot.
+	const DWORD nArgs = static_cast<DWORD>(m_pendingCallArgs.size());
+
+	// mov r12, rsp — R12 is callee-saved in the x64 ABI (every plugin
+	// preserves it across the call) and this codegen never otherwise uses it
+	// as a value register, so it is a safe scratch for the pre-call RSP.
+	m_machineCodeBuffer.WriteByte(0x49);
+	m_machineCodeBuffer.WriteByte(0x89);
+	m_machineCodeBuffer.WriteByte(0xE4);
+
+	// Reserve the 32-byte shadow space plus room for arguments 5+.
+	const DWORD dwExtraStack = (nArgs > 4) ? 8u * (nArgs - 4u) : 0u;
+	const DWORD dwReserve = 32u + dwExtraStack;
+	if (dwReserve <= 127)
+	{
+		// sub rsp, imm8
+		m_machineCodeBuffer.WriteByte(0x48);
+		m_machineCodeBuffer.WriteByte(0x83);
+		m_machineCodeBuffer.WriteByte(0xEC);
+		m_machineCodeBuffer.WriteByte(static_cast<int>(dwReserve));
+	}
+	else
+	{
+		// sub rsp, imm32
+		m_machineCodeBuffer.WriteByte(0x48);
+		m_machineCodeBuffer.WriteByte(0x81);
+		m_machineCodeBuffer.WriteByte(0xEC);
+		m_machineCodeBuffer.WriteDWORD(dwReserve, 4);
+	}
+	// and rsp, -16 — guarantee 16-byte alignment at the call site.
+	m_machineCodeBuffer.WriteByte(0x48);
+	m_machineCodeBuffer.WriteByte(0x83);
+	m_machineCodeBuffer.WriteByte(0xE4);
+	m_machineCodeBuffer.WriteByte(0xF0);
+
+	// Arguments 5+ must sit at [rsp+32+8i] for the callee. Their sources and
+	// destinations never overlap, so copy from the deepest argument upward.
+	for (DWORD i = 5; i <= nArgs; i++)
+	{
+		const DWORD argIndex = nArgs - i;
+		const PendingCallArg& arg = m_pendingCallArgs[argIndex];
+		const int dispSource = static_cast<int>(static_cast<std::int8_t>(8 * static_cast<int>(arg.slotIndex)));
+		const int dispDest = static_cast<int>(static_cast<std::int8_t>(32 + 8 * static_cast<int>(i - 5)));
+		// mov r11, [r12+disp8]
+		m_machineCodeBuffer.WriteByte(0x4D);
+		m_machineCodeBuffer.WriteByte(0x8B);
+		m_machineCodeBuffer.WriteByte(0x5C);
+		m_machineCodeBuffer.WriteByte(0x24);
+		m_machineCodeBuffer.WriteByte(dispSource);
+		// mov [rsp+disp8], r11
+		m_machineCodeBuffer.WriteByte(0x4C);
+		m_machineCodeBuffer.WriteByte(0x89);
+		m_machineCodeBuffer.WriteByte(0x5C);
+		m_machineCodeBuffer.WriteByte(0x24);
+		m_machineCodeBuffer.WriteByte(dispDest);
+	}
+
+	// Marshal arguments 1-4 into their ABI registers.
+	static constexpr std::uint8_t kRegLoad[4][3] = {
+		{ 0x49, 0x8B, 0x4C },  // mov rcx, [r12+disp8]
+		{ 0x49, 0x8B, 0x54 },  // mov rdx, [r12+disp8]
+		{ 0x4D, 0x8B, 0x44 },  // mov r8,  [r12+disp8]
+		{ 0x4D, 0x8B, 0x4C },  // mov r9,  [r12+disp8]
+	};
+	static constexpr std::uint8_t kXmmLow[4] = { 0xC0, 0xC8, 0xD0, 0xD8 };
+	for (DWORD i = 1; i <= nArgs && i <= 4; i++)
+	{
+		const PendingCallArg& arg = m_pendingCallArgs[nArgs - i];
+		const int disp = static_cast<int>(static_cast<std::int8_t>(8 * static_cast<int>(arg.slotIndex)));
+		if (arg.kind == PendingCallArg::Kind::Integer)
+		{
+			const auto& enc = kRegLoad[i - 1];
+			m_machineCodeBuffer.WriteByte(enc[0]);
+			m_machineCodeBuffer.WriteByte(enc[1]);
+			m_machineCodeBuffer.WriteByte(enc[2]);
+			m_machineCodeBuffer.WriteByte(0x24);  // SIB: [r12+disp8]
+			m_machineCodeBuffer.WriteByte(disp);
+		}
+		else
+		{
+			// mov rax, [r12+disp8] — full 64-bit load; a float's bits live in
+			// the low 4 bytes, a double occupies the whole slot.
+			m_machineCodeBuffer.WriteByte(0x49);
+			m_machineCodeBuffer.WriteByte(0x8B);
+			m_machineCodeBuffer.WriteByte(0x44);
+			m_machineCodeBuffer.WriteByte(0x24);
+			m_machineCodeBuffer.WriteByte(disp);
+			// movd (float) / movq (double) xmmN, rax
+			m_machineCodeBuffer.WriteByte(0x66);
+			if (arg.kind == PendingCallArg::Kind::Double)
+				m_machineCodeBuffer.WriteByte(0x48);  // REX.W for movq
+			m_machineCodeBuffer.WriteByte(0x0F);
+			m_machineCodeBuffer.WriteByte(0x6E);
+			m_machineCodeBuffer.WriteByte(kXmmLow[i - 1]);
+		}
+	}
+
+	return true;
+}
+
+void CASMWriter::EmitCommandCallAbiTeardown(bool bKeepArgsOnStack)
+{
+	if (m_machineCodeBuffer.GetProgramStart() == nullptr)
+	{
+		ClearPendingCallArgs();
+		return;
+	}
+	CheckAndExpandMCBMemory();
+
+	if (bKeepArgsOnStack)
+	{
+		// Debug hooks pop their own arguments after the call: restore RSP to
+		// just above the pushed arguments (r12 - 8*slotCount).
+		const int disp = static_cast<int>(static_cast<std::int8_t>(-8 * static_cast<int>(m_pendingCallSlotCount)));
+		// lea rsp, [r12+disp8]
+		m_machineCodeBuffer.WriteByte(0x49);
+		m_machineCodeBuffer.WriteByte(0x8D);
+		m_machineCodeBuffer.WriteByte(0x64);
+		m_machineCodeBuffer.WriteByte(0x24);
+		m_machineCodeBuffer.WriteByte(disp);
+	}
+	else
+	{
+		// mov rsp, r12 — discard shadow space; the caller pops the arguments
+		// exactly as before the marshalling was introduced.
+		m_machineCodeBuffer.WriteByte(0x4C);
+		m_machineCodeBuffer.WriteByte(0x89);
+		m_machineCodeBuffer.WriteByte(0xE4);
+	}
+	ClearPendingCallArgs();
+}
+
 bool CASMWriter::WriteASMCall(DWORD dwLine, LPCSTR pDLL, LPCSTR pDecoratedName)
 {
 	CStr CommandString("");
@@ -1408,6 +1721,20 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	DWORD dwP2Mode=DetMode(pP2, dwP2Type, dwP2Offset);
 	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset);
 
+	// Command-call argument tracking: the machine stack only accumulates
+	// command arguments across consecutive argument-producer tasks
+	// (Push/PushAddress/PushUdt). Any other task consumes whatever sits on
+	// the stack (array-index bookkeeping, nested calls, user-function jumps,
+	// assignments), so the pending-argument list is cleared here to keep the
+	// call-site ABI marshalling count exact.
+	if (dwTask != static_cast<DWORD>(ASMTask::Push) &&
+		dwTask != static_cast<DWORD>(ASMTask::PushAddress) &&
+		dwTask != static_cast<DWORD>(ASMTask::PushUdt) &&
+		dwTask != static_cast<DWORD>(ASMTask::Call))
+	{
+		ClearPendingCallArgs();
+	}
+
 	// Batches of ASM Ops to perform a single task
 	if(dwTask==static_cast<DWORD>(ASMTask::AssignToRax))
 	{
@@ -1448,6 +1775,10 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		}
 		WriteASMXtoRAX(dwP1Mode, pP1, pP1Off, dwP1Type, dwP1Offset);
 		WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, dwP1Type, dwP1Offset);
+		// 8-byte stack values (double float / double integer) occupy two slots.
+		const bool bDoubleWidth =
+			(dwP1Type == 8 || dwP1Type == 9 || dwP1Type == 108 || dwP1Type == 109);
+		RecordPendingCallArg(dwP1Type, bDoubleWidth ? 2u : 1u);
 		WriteASMComment("PUSH TO STACK", "", "", "");
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::PushAddress))
@@ -1469,6 +1800,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAX4), num.GetStr());
 		}
 		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRAX), nullptr);
+		RecordPendingCallArg(0, 1u);
 		WriteASMComment("PUSH ADDRESS TO STACK", "", "", "");
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::Call))
@@ -1485,8 +1817,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		// Produce token Command Call token
 		CStr tokenCommandStr("[");
 		tokenCommandStr.AddNumericText(dwIndex);
+		// x64 ABI marshalling: move the machine-stack arguments into
+		// RCX/RDX/R8/R9 (+XMM0-3 for float/double), reserve the 32-byte
+		// shadow space and align RSP to 16 bytes before the call.
+		EmitCommandCallAbiSetup();
 		WriteASMLine(static_cast<DWORD>(ASMOp::MOVRBXIMM4), tokenCommandStr.GetStr());
 		WriteASMLine(static_cast<DWORD>(ASMOp::CALLRBX), "");
+		// Restore the pre-call stack pointer; the caller then pops the
+		// arguments exactly as before.
+		EmitCommandCallAbiTeardown(false);
 
 		// Comment Details
 		WriteASMComment("CALL", pDLLString.get(), pCommandString.get(), "");
@@ -2440,6 +2779,11 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			// push udtptr to stack
 			WriteASMLine(static_cast<DWORD>(ASMOp::PUSHFROMRAX), nullptr);
 		}
+
+		// Record the UDT as a single integer-shaped argument spanning all of
+		// its stack slots so later argument offsets stay accurate. (By-value
+		// UDT command parameters are outside the conformance path.)
+		RecordPendingCallArg(1001, dwP2Offset > 0 ? dwP2Offset : 1u);
 
 		// Comment on this task
 		WriteASMComment("PUSH UDT TO STACK", "", "", "");

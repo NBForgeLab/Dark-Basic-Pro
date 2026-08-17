@@ -124,9 +124,12 @@ $env:DBP_CONFORMANCE_COMPILER = Join-Path `
 $env:DBP_CONFORMANCE_RUNTIME_ROOT = Join-Path $buildPath "bin\$Configuration"
 $conformanceResult = $null
 try {
-    $conformanceResult = Invoke-Pester `
-        -Path $conformancePath `
-        -PassThru
+    # Pester 6-style configuration object (also supported by Pester 5).
+    $pesterConfig = New-PesterConfiguration
+    $pesterConfig.Run.Path = $conformancePath
+    $pesterConfig.Run.PassThru = $true
+    $pesterConfig.Output.Verbosity = 'Detailed'
+    $conformanceResult = Invoke-Pester -Configuration $pesterConfig
 }
 catch {
     Write-Error $_

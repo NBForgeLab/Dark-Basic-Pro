@@ -1967,6 +1967,7 @@ DARKSDK void ChangeMouse( DWORD dwCursorID )
 
 }
 
+
 DARKSDK DWORD InitDisplayEx(DWORD dwDisplayType, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, HINSTANCE hInstance, LPSTR pApplicationName, HWND pParentHWND, DWORD dwInExStyle, DWORD dwInStyle)
 {
 	// dwDisplayType
@@ -2191,13 +2192,17 @@ DARKSDK DWORD InitDisplayEx(DWORD dwDisplayType, DWORD dwWidth, DWORD dwHeight, 
 		// Release all if failed
 		if ( bDXFailed==true )
 		{
-			// Failed DX9 check
-			return 1;
+			// Direct3D 9 is unavailable (headless, remote desktop, or VM).
+			// Fall back to the lightweight GDI display layer instead of
+			// failing the whole application.
+			g_Glob.g_GFX=NULL;
 		}
-
-		// Initialise DisplayDLL
-		g_bUseExternalDisplayLayer=true;
-		g_GFX_OverrideHWND(g_Glob.hWnd);
+		else
+		{
+			// Initialise DisplayDLL
+			g_bUseExternalDisplayLayer=true;
+			g_GFX_OverrideHWND(g_Glob.hWnd);
+		}
 	}
 	#ifndef DARKSDK_COMPILE
 	else

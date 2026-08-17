@@ -41,6 +41,7 @@ typedef void				( *GFX_RetVoidParamInt3PFN )  ( int, int, int );
 typedef void				( *GFX_RetVoidParamIntP3PFN )  ( int*, int*, int* );
 typedef int 				( *GFX_RetIntParamVoidPFN  )  ( void );
 typedef char*				( *GFX_RetPCharParamIntPFN )  ( int );
+typedef void				( *GFX_RetVoidParamIntPCharPFN )  ( int, char* );
 typedef void 				( *GFX_RetVoidParamIntPFN  )  ( int );
 typedef void 				( *GFX_RetVoidParamInt2PFN )  ( int, int );
 typedef void 				( *GFX_RetVoidParamHWNDPFN )  ( HWND );
@@ -85,12 +86,12 @@ extern GFX_RetIntParamVoidPFN		g_GFX_GetDisplayFPS;				// get display fps
 extern GFX_RetBoolParamVoidPFN		g_GFX_GetWindowedMode;				// get windowed mode
 
 extern GFX_RetIntParamVoidPFN		g_GFX_GetNumberOfDisplayModes;		// get number of display modes for adapter
-extern GFX_RetPCharParamIntPFN		g_GFX_GetDisplayMode;				// get the specified display mode
+extern GFX_RetVoidParamIntPCharPFN	g_GFX_GetDisplayMode;				// get the specified display mode
 
 extern GFX_RetIntParamVoidPFN		g_GFX_GetNumberOfDisplayDevices;	// get the number of graphics cards installed
 extern GFX_RetVoidParamIntPFN		g_GFX_SetDisplayDevice;				// select which device to use
-extern GFX_RetPCharParamIntPFN		g_GFX_GetDeviceName;				// get name of device
-extern GFX_RetPCharParamIntPFN		g_GFX_GetDeviceDriverName;			// useful for debugging purposes
+extern GFX_RetVoidParamIntPCharPFN	g_GFX_GetDeviceName;				// get name of device
+extern GFX_RetVoidParamIntPCharPFN	g_GFX_GetDeviceDriverName;			// useful for debugging purposes
 
 extern GFX_RetVoidParamIntPFN		g_GFX_SetDitherMode;				// set dithering on / off
 extern GFX_RetVoidParamIntPFN		g_GFX_SetShadeMode;					// set shading to flat or gouraud

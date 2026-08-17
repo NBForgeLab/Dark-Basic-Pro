@@ -80,12 +80,12 @@ DBPRO_GLOBAL GFX_RetIntParamVoidPFN					g_GFX_GetDisplayFPS;				// get display f
 DBPRO_GLOBAL GFX_RetBoolParamVoidPFN				g_GFX_GetWindowedMode;				// get windowed mode
 
 DBPRO_GLOBAL GFX_RetIntParamVoidPFN					g_GFX_GetNumberOfDisplayModes;		// get number of display modes for adapter
-DBPRO_GLOBAL GFX_RetPCharParamIntPFN				g_GFX_GetDisplayMode;				// get the specified display mode
+DBPRO_GLOBAL GFX_RetVoidParamIntPCharPFN			g_GFX_GetDisplayMode;				// get the specified display mode
 
 DBPRO_GLOBAL GFX_RetIntParamVoidPFN					g_GFX_GetNumberOfDisplayDevices;	// get the number of graphics cards installed
 DBPRO_GLOBAL GFX_RetVoidParamIntPFN					g_GFX_SetDisplayDevice;				// select which device to use
-DBPRO_GLOBAL GFX_RetPCharParamIntPFN				g_GFX_GetDeviceName;				// get name of device
-DBPRO_GLOBAL GFX_RetPCharParamIntPFN				g_GFX_GetDeviceDriverName;			// useful for debugging purposes
+DBPRO_GLOBAL GFX_RetVoidParamIntPCharPFN			g_GFX_GetDeviceName;				// get name of device
+DBPRO_GLOBAL GFX_RetVoidParamIntPCharPFN			g_GFX_GetDeviceDriverName;			// useful for debugging purposes
 
 DBPRO_GLOBAL GFX_RetVoidParamIntPFN					g_GFX_SetDitherMode;				// set dithering on / off
 DBPRO_GLOBAL GFX_RetVoidParamIntPFN					g_GFX_SetShadeMode;					// set shading to flat or gouraud
@@ -417,14 +417,14 @@ DARKSDK bool SetDBDLLExtCalls(void)
 		// Get Display Functions
 		g_GFX_Constructor				= ( GFX_RetBoolParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?Constructor@@YA_NXZ" );
 		g_GFX_Destructor				= ( GFX_RetVoidParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?Destructor@@YAXXZ" );
-		g_GFX_SetErrorHandler			= ( PTR_RetVoidParamLPVOID )	   GetProcAddress ( g_Glob.g_GFX, "?SetErrorHandler@@YAXPAX@Z" );
-		g_GFX_PassCoreData				= ( RetVoidFCoreData2PFN )		   GetProcAddress ( g_Glob.g_GFX, "?PassCoreData@@YAXPAXH@Z" );
-		g_GFX_GetDirect3D				= ( GFX_GetDirect3DDevicePFN )	   GetProcAddress ( g_Glob.g_GFX, "?GetDirect3D@@YAPAUIDirect3D9@@XZ" );
+		g_GFX_SetErrorHandler			= ( PTR_RetVoidParamLPVOID )	   GetProcAddress ( g_Glob.g_GFX, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_GFX_PassCoreData				= ( RetVoidFCoreData2PFN )		   GetProcAddress ( g_Glob.g_GFX, "?PassCoreData@@YAXPEAXH@Z" );
+		g_GFX_GetDirect3D				= ( GFX_GetDirect3DDevicePFN )	   GetProcAddress ( g_Glob.g_GFX, "?GetDirect3D@@YAPEAUIDirect3D9@@XZ" );
 
 		g_GFX_Begin						= ( GFX_RetVoidParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?Begin@@YAXXZ" );
 		g_GFX_End						= ( GFX_RetVoidParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?End@@YAXXZ" );
 		g_GFX_Render					= ( GFX_RetVoidParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?Render@@YAXXZ" );
-		g_GFX_OverrideHWND				= ( GFX_RetVoidParamHWNDPFN )      GetProcAddress ( g_Glob.g_GFX, "?OverrideHWND@@YAXPAUHWND__@@@Z" );
+		g_GFX_OverrideHWND				= ( GFX_RetVoidParamHWNDPFN )      GetProcAddress ( g_Glob.g_GFX, "?OverrideHWND@@YAXPEAUHWND__@@@Z" );
 
 		g_GFX_SetDisplayDebugMode		= ( GFX_RetBoolParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?SetDisplayDebugMode@@YA_NXZ" );
 		g_GFX_SetDisplayMode1    		= ( GFX_RetBoolParamInt2PFN )      GetProcAddress ( g_Glob.g_GFX, "?SetDisplayMode@@YA_NHH@Z" );
@@ -451,12 +451,12 @@ DARKSDK bool SetDBDLLExtCalls(void)
 		g_GFX_GetWindowedMode			= ( GFX_RetBoolParamVoidPFN )      GetProcAddress ( g_Glob.g_GFX, "?GetWindowedMode@@YA_NXZ" );
 
 		g_GFX_GetNumberOfDisplayModes	= ( GFX_RetIntParamVoidPFN )       GetProcAddress ( g_Glob.g_GFX, "?GetNumberOfDisplayModes@@YAHXZ" );
-		g_GFX_GetDisplayMode         	= ( GFX_RetPCharParamIntPFN )      GetProcAddress ( g_Glob.g_GFX, "?GetDisplayMode@@YAPADH@Z" );
+		g_GFX_GetDisplayMode         	= ( GFX_RetVoidParamIntPCharPFN )  GetProcAddress ( g_Glob.g_GFX, "?GetDisplayMode@@YAXHPEAD@Z" );
 
 		g_GFX_GetNumberOfDisplayDevices	= ( GFX_RetIntParamVoidPFN )       GetProcAddress ( g_Glob.g_GFX, "?GetNumberOfDisplayDevices@@YAHXZ" );
 		g_GFX_SetDisplayDevice	        = ( GFX_RetVoidParamIntPFN )       GetProcAddress ( g_Glob.g_GFX, "?SetDisplayDevice@@YAXH@Z" );
-		g_GFX_GetDeviceName		        = ( GFX_RetPCharParamIntPFN )      GetProcAddress ( g_Glob.g_GFX, "?GetDeviceName@@YAPADH@Z" );
-		g_GFX_GetDeviceDriverName       = ( GFX_RetPCharParamIntPFN )      GetProcAddress ( g_Glob.g_GFX, "?GetDeviceDriverName@@YAPADH@Z" );
+		g_GFX_GetDeviceName		        = ( GFX_RetVoidParamIntPCharPFN )  GetProcAddress ( g_Glob.g_GFX, "?GetDeviceName@@YAXHPEAD@Z" );
+		g_GFX_GetDeviceDriverName       = ( GFX_RetVoidParamIntPCharPFN )  GetProcAddress ( g_Glob.g_GFX, "?GetDeviceDriverName@@YAXHPEAD@Z" );
 
 		g_GFX_SetDitherMode		        = ( GFX_RetVoidParamIntPFN )      GetProcAddress ( g_Glob.g_GFX, "?SetDitherMode@@YAXH@Z" );
 		g_GFX_SetShadeMode		        = ( GFX_RetVoidParamIntPFN )      GetProcAddress ( g_Glob.g_GFX, "?SetShadeMode@@YAXH@Z" );
@@ -512,16 +512,16 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	if(g_Glob.g_Text)
 	{
 		// Get Text Functions
-		g_Text_Constructor		    = ( PTR_RetVoidParamHINSTANCEPFN) GetProcAddress ( g_Glob.g_Text, "?TextConstructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Text_Constructor		    = ( PTR_RetVoidParamHINSTANCEPFN) GetProcAddress ( g_Glob.g_Text, "?TextConstructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Text_Destructor		    = ( GFX_RetVoidParamVoidPFN )	  GetProcAddress ( g_Glob.g_Text, "?TextDestructor@@YAXXZ" );
-		g_Text_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )	  GetProcAddress ( g_Glob.g_Text, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Text_PassCoreData			= ( RetVoidFCoreDataPFN )		  GetProcAddress ( g_Glob.g_Text, "?PassCoreData@@YAXPAX@Z" );
+		g_Text_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )	  GetProcAddress ( g_Glob.g_Text, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Text_PassCoreData			= ( RetVoidFCoreDataPFN )		  GetProcAddress ( g_Glob.g_Text, "?PassCoreData@@YAXPEAX@Z" );
 
 		g_Text_SetColor		        = ( TEXT_VoidInt4PFN )			 GetProcAddress ( g_Glob.g_Text, "?SetTextColor@@YAXHHHH@Z" );
 		g_Text_Text					= ( TEXT_Int2Char1PFN )			 GetProcAddress ( g_Glob.g_Text, "?BasicText@@YAXHHK@Z" );
-		g_Text_SetCharacterSet		= ( TEXT_Char1Int1PFN )			 GetProcAddress ( g_Glob.g_Text, "?SetTextFont@@YAXPADH@Z" );
-		g_Text_GetWidth				= ( TEXT_retInt1Char1PFN )		 GetProcAddress ( g_Glob.g_Text, "?GetTextWidth@@YAHPAD@Z" );
-		g_Text_GetHeight			= ( TEXT_retInt1Char1PFN )		 GetProcAddress ( g_Glob.g_Text, "?GetTextHeight@@YAHPAD@Z" );
+		g_Text_SetCharacterSet		= ( TEXT_Char1Int1PFN )			 GetProcAddress ( g_Glob.g_Text, "?SetTextFont@@YAXPEADH@Z" );
+		g_Text_GetWidth				= ( TEXT_retInt1Char1PFN )		 GetProcAddress ( g_Glob.g_Text, "?GetTextWidth@@YAHPEAD@Z" );
+		g_Text_GetHeight			= ( TEXT_retInt1Char1PFN )		 GetProcAddress ( g_Glob.g_Text, "?GetTextHeight@@YAHPEAD@Z" );
 	}
 	#else
 		// mike - 020206 - addition for vs8
@@ -542,10 +542,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	if(g_Glob.g_Basic2D)
 	{
 		// Get Basic2D Functions
-		g_Basic2D_Constructor   = ( PTR_RetVoidParamHINSTANCEPFN )		GetProcAddress ( g_Glob.g_Basic2D, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Basic2D_Constructor   = ( PTR_RetVoidParamHINSTANCEPFN )		GetProcAddress ( g_Glob.g_Basic2D, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Basic2D_Destructor	= ( BASIC2D_RetVoidParamVoidPFN )		GetProcAddress ( g_Glob.g_Basic2D, "?Destructor@@YAXXZ" );
-		g_Basic2D_SetErrorHandler=( PTR_RetVoidParamLPVOID )			GetProcAddress ( g_Glob.g_Basic2D, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Basic2D_PassCoreData	= ( RetVoidFCoreDataPFN )				GetProcAddress ( g_Glob.g_Basic2D, "?PassCoreData@@YAXPAX@Z" );
+		g_Basic2D_SetErrorHandler=( PTR_RetVoidParamLPVOID )			GetProcAddress ( g_Glob.g_Basic2D, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Basic2D_PassCoreData	= ( RetVoidFCoreDataPFN )				GetProcAddress ( g_Glob.g_Basic2D, "?PassCoreData@@YAXPEAX@Z" );
 
 		g_Basic2D_Dot           = ( BASIC2D_RetVoidParamInt2PFN )		GetProcAddress ( g_Glob.g_Basic2D, "?Dot@@YAXHH@Z" );
 		g_Basic2D_Lock          = ( BASIC2D_RetVoidParamVoidPFN )		GetProcAddress ( g_Glob.g_Basic2D, "?Lock@@YAXXZ" );
@@ -579,10 +579,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Sprites)
 	{
-		g_Sprites_Constructor       = ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_Glob.g_Sprites, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
+		g_Sprites_Constructor       = ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_Glob.g_Sprites, "?Constructor@@YAXPEAUHINSTANCE__@@0@Z" );
 		g_Sprites_Destructor        = ( SPRITES_RetVoidParamVoidPFN )			GetProcAddress ( g_Glob.g_Sprites, "?Destructor@@YAXXZ" );
-		g_Sprites_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Sprites, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Sprites_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Sprites, "?PassCoreData@@YAXPAX@Z" );
+		g_Sprites_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Sprites, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Sprites_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Sprites, "?PassCoreData@@YAXPEAX@Z" );
 		g_Sprites_Update            = ( SPRITES_RetVoidParamVoidPFN )			GetProcAddress ( g_Glob.g_Sprites, "?Update@@YAXXZ" );
 		g_Sprites_SaveBack          = ( SPRITES_RetVoidParamVoidPFN )			GetProcAddress ( g_Glob.g_Sprites, "?SaveBack@@YAXXZ" );
 		g_Sprites_RestoreBack       = ( SPRITES_RetVoidParamVoidPFN )			GetProcAddress ( g_Glob.g_Sprites, "?RestoreBack@@YAXXZ" );
@@ -602,13 +602,13 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Image)
 	{
-		g_Image_Constructor          = ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Image, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Image_Constructor          = ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Image, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Image_Destructor           = ( IMAGE_RetVoidParamVoidPFN )			GetProcAddress ( g_Glob.g_Image, "?Destructor@@YAXXZ" );
-		g_Image_SetErrorHandler		 = ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Image, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Image_PassSpriteInstance	 = ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Image, "?PassSpriteInstance@@YAXPAUHINSTANCE__@@@Z" );
+		g_Image_SetErrorHandler		 = ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Image, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Image_PassSpriteInstance	 = ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Image, "?PassSpriteInstance@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Image_SetMipmapNum         = ( IMAGE_RetVoidParamIntPFN )				GetProcAddress ( g_Glob.g_Image, "?SetMipmapNum@@YAXH@Z" );
 		g_Image_SetColorKey          = ( IMAGE_RetVoidParamInt3PFN )			GetProcAddress ( g_Glob.g_Image, "?SetColorKey@@YAXHHH@Z" );
-		g_Image_PassCoreData		 = ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Image, "?PassCoreData@@YAXPAX@Z" );
+		g_Image_PassCoreData		 = ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Image, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		// mike - 020206 - addition for vs8
@@ -626,10 +626,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	if(g_Glob.g_Input)
 	{
 		// Input Functions
-		g_Input_Constructor			= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Input, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Input_Constructor			= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Input, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Input_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Input, "?Destructor@@YAXXZ" );
-		g_Input_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Input, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Input_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Input, "?PassCoreData@@YAXPAX@Z" );
+		g_Input_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Input, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Input_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Input, "?PassCoreData@@YAXPEAX@Z" );
 		g_Input_ClearData			= ( GFX_RetVoidParamVoidPFN )				GetProcAddress ( g_Glob.g_Input, "?ClearData@@YAXXZ" );
 	}
 	#else
@@ -659,8 +659,8 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	{
 		g_System_Constructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_System, "?Constructor@@YAXXZ" );
 		g_System_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_System, "?Destructor@@YAXXZ" );
-		g_System_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_System, "?SetErrorHandler@@YAXPAX@Z" );
-		g_System_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_System, "?PassCoreData@@YAXPAX@Z" );
+		g_System_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_System, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_System_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_System, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		g_System_Constructor		= ( RetVoidFunctionPointerPFN ) ConstructorSystem;
@@ -673,10 +673,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	if(g_Glob.g_Sound)
 	{
 		// Sound Functions
-		g_Sound_Constructor			= ( GFX_RetVoidParamHWNDPFN )				GetProcAddress ( g_Glob.g_Sound, "?Constructor@@YAXPAUHWND__@@@Z" );
+		g_Sound_Constructor			= ( GFX_RetVoidParamHWNDPFN )				GetProcAddress ( g_Glob.g_Sound, "?Constructor@@YAXPEAUHWND__@@@Z" );
 		g_Sound_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Sound, "?Destructor@@YAXXZ" );
-		g_Sound_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Sound, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Sound_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Sound, "?PassCoreData@@YAXPAX@Z" );
+		g_Sound_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Sound, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Sound_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Sound, "?PassCoreData@@YAXPEAX@Z" );
 		g_Sound_Update				= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Sound, "?Update@@YAXXZ" );
 	}
 	#else
@@ -691,10 +691,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	if(g_Glob.g_Music)
 	{
 		// Music Functions
-		g_Music_Constructor			= ( GFX_RetVoidParamHWNDPFN )				GetProcAddress ( g_Glob.g_Music, "?Constructor@@YAXPAUHWND__@@@Z" );
+		g_Music_Constructor			= ( GFX_RetVoidParamHWNDPFN )				GetProcAddress ( g_Glob.g_Music, "?Constructor@@YAXPEAUHWND__@@@Z" );
 		g_Music_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Music, "?Destructor@@YAXXZ" );
-		g_Music_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Music, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Music_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Music, "?PassCoreData@@YAXPAX@Z" );
+		g_Music_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Music, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Music_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Music, "?PassCoreData@@YAXPEAX@Z" );
 		g_Music_Update				= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Music, "?Update@@YAXXZ" );
 	}
 	#else
@@ -711,8 +711,8 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	{
 		g_File_Constructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_File, "?Constructor@@YAXXZ" );
 		g_File_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_File, "?Destructor@@YAXXZ" );
-		g_File_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_File, "?SetErrorHandler@@YAXPAX@Z" );
-		g_File_PassCoreData			= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_File, "?PassCoreData@@YAXPAX@Z" );
+		g_File_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_File, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_File_PassCoreData			= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_File, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		//g_File_Constructor			= ( RetVoidFunctionPointerPFN ) ConstructorFile;
@@ -728,8 +728,8 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	{
 		g_FTP_Constructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_FTP, "?Constructor@@YAXXZ" );
 		g_FTP_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_FTP, "?Destructor@@YAXXZ" );
-		g_FTP_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_FTP, "?SetErrorHandler@@YAXPAX@Z" );
-		g_FTP_PassCoreData			= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_FTP, "?PassCoreData@@YAXPAX@Z" );
+		g_FTP_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_FTP, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_FTP_PassCoreData			= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_FTP, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		g_FTP_Constructor			= ( RetVoidFunctionPointerPFN ) ConstructorFTP;
@@ -744,8 +744,8 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	{
 		g_Memblocks_Constructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Memblocks, "?Constructor@@YAXXZ" );
 		g_Memblocks_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Memblocks, "?Destructor@@YAXXZ" );
-		g_Memblocks_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Memblocks, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Memblocks_PassCoreData	= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Memblocks, "?PassCoreData@@YAXPAX@Z" );
+		g_Memblocks_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Memblocks, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Memblocks_PassCoreData	= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Memblocks, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		g_Memblocks_Constructor		= ( RetVoidFunctionPointerPFN )	ConstructorMemblocks;
@@ -760,8 +760,8 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	{
 		g_Animation_Constructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Animation, "?Constructor@@YAXXZ" );
 		g_Animation_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Animation, "?Destructor@@YAXXZ" );
-		g_Animation_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Animation, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Animation_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Animation, "?PassCoreData@@YAXPAX@Z" );
+		g_Animation_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Animation, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Animation_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Animation, "?PassCoreData@@YAXPEAX@Z" );
 		g_Animation_UpdateAnims			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Animation, "?UpdateAllAnimation@@YAXXZ" );
 		g_Animation_PreventTextureLock	= ( RetVoidFunctionBoolPFN )				GetProcAddress ( g_Glob.g_Animation, "?PreventTextureLock@@YAX_N@Z" );
 	}
@@ -778,10 +778,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	if(g_Glob.g_Bitmap)
 	{
 		// Bitmap Functions
-		g_Bitmap_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Bitmap, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Bitmap_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Bitmap, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Bitmap_Destructor			= ( IMAGE_RetVoidParamVoidPFN )				GetProcAddress ( g_Glob.g_Bitmap, "?Destructor@@YAXXZ" );
-		g_Bitmap_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Bitmap, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Bitmap_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Bitmap, "?PassCoreData@@YAXPAX@Z" );
+		g_Bitmap_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Bitmap, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Bitmap_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Bitmap, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		// mike - 020206 - addition for vs8
@@ -798,8 +798,8 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	{
 		g_Multiplayer_Constructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Multiplayer, "?Constructor@@YAXXZ" );
 		g_Multiplayer_Destructor		= ( RetVoidFunctionPointerPFN )			GetProcAddress ( g_Glob.g_Multiplayer, "?Destructor@@YAXXZ" );
-		g_Multiplayer_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Multiplayer, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Multiplayer_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Multiplayer, "?PassCoreData@@YAXPAX@Z" );
+		g_Multiplayer_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Multiplayer, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Multiplayer_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Multiplayer, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		g_Multiplayer_Constructor		= ( RetVoidFunctionPointerPFN ) ConstructorMultiplayer;
@@ -812,10 +812,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Camera3D)
 	{
-		g_Camera3D_Constructor		= ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_Glob.g_Camera3D, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
+		g_Camera3D_Constructor		= ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_Glob.g_Camera3D, "?Constructor@@YAXPEAUHINSTANCE__@@0@Z" );
 		g_Camera3D_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Camera3D, "?Destructor@@YAXXZ" );
-		g_Camera3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Camera3D, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Camera3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Camera3D, "?PassCoreData@@YAXPAX@Z" );
+		g_Camera3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Camera3D, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Camera3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Camera3D, "?PassCoreData@@YAXPEAX@Z" );
 		g_Camera3D_Update			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Camera3D, "?Update@@YAXXZ" );
 		g_Camera3D_StartScene		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Camera3D, "?StartScene@@YAXXZ" );
 		g_Camera3D_StartSceneInt	= ( RetVoidFunctionPointerIntPFN )			GetProcAddress ( g_Glob.g_Camera3D, "?StartSceneEx@@YAXH@Z" );
@@ -842,10 +842,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Light3D)
 	{
-		g_Light3D_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Light3D, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Light3D_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Light3D, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Light3D_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Light3D, "?Destructor@@YAXXZ" );
-		g_Light3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Light3D, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Light3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Light3D, "?PassCoreData@@YAXPAX@Z" );
+		g_Light3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Light3D, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Light3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Light3D, "?PassCoreData@@YAXPEAX@Z" );
 		g_Light3D_Update			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Light3D, "?Update@@YAXXZ" );
 	}
 	#else
@@ -860,10 +860,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Matrix3D)
 	{
-		g_Matrix3D_Constructor		= ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_Glob.g_Matrix3D, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
+		g_Matrix3D_Constructor		= ( SPRITES_RetVoidParamHINSTANCE2PFN )		GetProcAddress ( g_Glob.g_Matrix3D, "?Constructor@@YAXPEAUHINSTANCE__@@0@Z" );
 		g_Matrix3D_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Matrix3D, "?Destructor@@YAXXZ" );
-		g_Matrix3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Matrix3D, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Matrix3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Matrix3D, "?PassCoreData@@YAXPAX@Z" );
+		g_Matrix3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Matrix3D, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Matrix3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Matrix3D, "?PassCoreData@@YAXPEAX@Z" );
 		g_Matrix3D_Update			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Matrix3D, "?Update@@YAXXZ" );
 		g_Matrix3D_LastUpdate		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Matrix3D, "?UpdateLast@@YAXXZ" );
 	}
@@ -880,10 +880,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Basic3D)
 	{
-		g_Basic3D_Constructor		= ( BASIC3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_Basic3D, "?Constructor@@YAXPAUHINSTANCE__@@000@Z" );
+		g_Basic3D_Constructor		= ( BASIC3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_Basic3D, "?Constructor@@YAXPEAUHINSTANCE__@@000@Z" );
 		g_Basic3D_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Basic3D, "?Destructor@@YAXXZ" );
-		g_Basic3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Basic3D, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Basic3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Basic3D, "?PassCoreData@@YAXPAX@Z" );
+		g_Basic3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Basic3D, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Basic3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Basic3D, "?PassCoreData@@YAXPEAX@Z" );
 		g_Basic3D_UpdateViewProjForMotionBlur = ( RetVoidFunctionPointerPFN )	GetProcAddress ( g_Glob.g_Basic3D, "?UpdateViewProjForMotionBlur@@YAXXZ" );
 		g_Basic3D_UpdateAnimationCycle = ( RetVoidFunctionPointerPFN )		GetProcAddress ( g_Glob.g_Basic3D, "?UpdateAnimationCycle@@YAXXZ" );
 		g_Basic3D_UpdateOnce		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Basic3D, "?UpdateOnce@@YAXXZ" );
@@ -893,7 +893,7 @@ DARKSDK bool SetDBDLLExtCalls(void)
 		g_Basic3D_StencilRenderStart = ( RetVoidFunctionPointerPFN )			GetProcAddress ( g_Glob.g_Basic3D, "?StencilRenderStart@@YAXXZ" );
 		g_Basic3D_StencilRenderEnd = ( RetVoidFunctionPointerPFN )			GetProcAddress ( g_Glob.g_Basic3D, "?StencilRenderEnd@@YAXXZ" );
 
-		g_Basic3D_SendFormats				= ( BASIC3D_RetVoidParamHINSTANCE6PFN )		GetProcAddress ( g_Glob.g_Basic3D, "?SendFormats@@YAXPAUHINSTANCE__@@00000@Z" );
+		g_Basic3D_SendFormats				= ( BASIC3D_RetVoidParamHINSTANCE6PFN )		GetProcAddress ( g_Glob.g_Basic3D, "?SendFormats@@YAXPEAUHINSTANCE__@@00000@Z" );
 		g_Basic3D_AutomaticCollisionStart	= ( RetVoidFunctionPointerPFN )		GetProcAddress ( g_Glob.g_Basic3D, "?AutomaticStart@@YAXXZ" );
 		g_Basic3D_AutomaticCollisionEnd		= ( RetVoidFunctionPointerPFN )		GetProcAddress ( g_Glob.g_Basic3D, "?AutomaticEnd@@YAXXZ" );
 		g_Basic3D_RenderQuad				= ( RetIntFunctionPointerIntPFN )	GetProcAddress ( g_Glob.g_Basic3D, "?RenderQuad@@YAHH@Z" );
@@ -920,10 +920,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_World3D)
 	{
-		g_World3D_Constructor		= ( WORLD3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_World3D, "?Constructor@@YAXPAUHINSTANCE__@@000@Z" );
+		g_World3D_Constructor		= ( WORLD3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_World3D, "?Constructor@@YAXPEAUHINSTANCE__@@000@Z" );
 		g_World3D_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_World3D, "?Destructor@@YAXXZ" );
-		g_World3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_World3D, "?SetErrorHandler@@YAXPAX@Z" );
-		g_World3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_World3D, "?PassCoreData@@YAXPAX@Z" );
+		g_World3D_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_World3D, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_World3D_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_World3D, "?PassCoreData@@YAXPEAX@Z" );
 		g_World3D_Update			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_World3D, "?UpdateEx@@YAXXZ" );
 		g_World3D_Start				= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_World3D, "?StartEx@@YAXXZ" );
 		g_World3D_End				= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_World3D, "?EndEx@@YAXXZ" );
@@ -941,38 +941,38 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	// Q2BSP Functions
 	if(g_Glob.g_Q2BSP)
 	{
-		g_Q2BSP_Constructor			= ( WORLD3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_Q2BSP, "?Constructor@@YAXPAUHINSTANCE__@@000@Z" );
+		g_Q2BSP_Constructor			= ( WORLD3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_Q2BSP, "?Constructor@@YAXPEAUHINSTANCE__@@000@Z" );
 		g_Q2BSP_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Q2BSP, "?Destructor@@YAXXZ" );
-		g_Q2BSP_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Q2BSP, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Q2BSP_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Q2BSP, "?PassCoreData@@YAXPAX@Z" );
+		g_Q2BSP_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Q2BSP, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Q2BSP_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Q2BSP, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	
 	// ownBSP Functions
 	if(g_Glob.g_OwnBSP)
 	{
-		g_OwnBSP_Constructor		= ( WORLD3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_OwnBSP, "?Constructor@@YAXPAUHINSTANCE__@@000@Z" );
+		g_OwnBSP_Constructor		= ( WORLD3D_RetVoidParamHINSTANCE4PFN )		GetProcAddress ( g_Glob.g_OwnBSP, "?Constructor@@YAXPEAUHINSTANCE__@@000@Z" );
 		g_OwnBSP_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_OwnBSP, "?Destructor@@YAXXZ" );
-		g_OwnBSP_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_OwnBSP, "?SetErrorHandler@@YAXPAX@Z" );
-		g_OwnBSP_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_OwnBSP, "?PassCoreData@@YAXPAX@Z" );
+		g_OwnBSP_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_OwnBSP, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_OwnBSP_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_OwnBSP, "?PassCoreData@@YAXPEAX@Z" );
 	}
 
 	// BSPCompiler Functions
 	if(g_Glob.g_BSPCompiler)
 	{
-		g_BSPCompiler_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_BSPCompiler, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_BSPCompiler_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_BSPCompiler, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_BSPCompiler_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_BSPCompiler, "?Destructor@@YAXXZ" );
-		g_BSPCompiler_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_BSPCompiler, "?SetErrorHandler@@YAXPAX@Z" );
-		g_BSPCompiler_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_BSPCompiler, "?PassCoreData@@YAXPAX@Z" );
+		g_BSPCompiler_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_BSPCompiler, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_BSPCompiler_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_BSPCompiler, "?PassCoreData@@YAXPEAX@Z" );
 	}
 
 	// Vectors Functions
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Vectors)
 	{
-		g_Vectors_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Vectors, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
+		g_Vectors_Constructor		= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_Vectors, "?Constructor@@YAXPEAUHINSTANCE__@@@Z" );
 		g_Vectors_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Vectors, "?Destructor@@YAXXZ" );
-		g_Vectors_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Vectors, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Vectors_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Vectors, "?PassCoreData@@YAXPAX@Z" );
+		g_Vectors_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Vectors, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Vectors_PassCoreData		= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Vectors, "?PassCoreData@@YAXPEAX@Z" );
 	}
 	#else
 		g_Vectors_Constructor		= Constructor3DMaths;
@@ -985,10 +985,10 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_Particles)
 	{
-		g_Particles_Constructor		= ( PTR_RetVoidParamHINSTANCE2PFN )			GetProcAddress ( g_Glob.g_Particles, "?Constructor@@YAXPAUHINSTANCE__@@0@Z" );
+		g_Particles_Constructor		= ( PTR_RetVoidParamHINSTANCE2PFN )			GetProcAddress ( g_Glob.g_Particles, "?Constructor@@YAXPEAUHINSTANCE__@@0@Z" );
 		g_Particles_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Particles, "?Destructor@@YAXXZ" );
-		g_Particles_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Particles, "?SetErrorHandler@@YAXPAX@Z" );
-		g_Particles_PassCoreData	= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Particles, "?PassCoreData@@YAXPAX@Z" );
+		g_Particles_SetErrorHandler	= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_Particles, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_Particles_PassCoreData	= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_Particles, "?PassCoreData@@YAXPEAX@Z" );
 		g_Particles_Update			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_Particles, "?Update@@YAXXZ" );
 	}
 	#else
@@ -1002,20 +1002,20 @@ DARKSDK bool SetDBDLLExtCalls(void)
 	// LODTerrain Functions
 	if(g_Glob.g_LODTerrain)
 	{
-		g_LODTerrain_Constructor	= ( PTR_RetVoidParamHINSTANCE3PFN )			GetProcAddress ( g_Glob.g_LODTerrain, "?Constructor@@YAXPAUHINSTANCE__@@00@Z" );
+		g_LODTerrain_Constructor	= ( PTR_RetVoidParamHINSTANCE3PFN )			GetProcAddress ( g_Glob.g_LODTerrain, "?Constructor@@YAXPEAUHINSTANCE__@@00@Z" );
 		g_LODTerrain_Destructor		= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_LODTerrain, "?Destructor@@YAXXZ" );
-		g_LODTerrain_SetErrorHandler= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_LODTerrain, "?SetErrorHandler@@YAXPAX@Z" );
-		g_LODTerrain_PassCoreData	= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_LODTerrain, "?PassCoreData@@YAXPAX@Z" );
+		g_LODTerrain_SetErrorHandler= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_LODTerrain, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_LODTerrain_PassCoreData	= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_LODTerrain, "?PassCoreData@@YAXPEAX@Z" );
 		g_LODTerrain_Update			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_LODTerrain, "?Update@@YAXXZ" );
 	}
 
 	// CSG Functions
 	if(g_Glob.g_CSG)
 	{
-		g_CSG_Constructor			= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_CSG, "?ConstructorCSG@@YAXPAUHINSTANCE__@@@Z" );
+		g_CSG_Constructor			= ( PTR_RetVoidParamHINSTANCEPFN )			GetProcAddress ( g_Glob.g_CSG, "?ConstructorCSG@@YAXPEAUHINSTANCE__@@@Z" );
 		g_CSG_Destructor			= ( RetVoidFunctionPointerPFN )				GetProcAddress ( g_Glob.g_CSG, "?DestructorCSG@@YAXXZ" );
-		g_CSG_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_CSG, "?SetErrorHandler@@YAXPAX@Z" );
-		g_CSG_PassCoreData			= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_CSG, "?PassCoreData@@YAXPAX@Z" );
+		g_CSG_SetErrorHandler		= ( PTR_RetVoidParamLPVOID )				GetProcAddress ( g_Glob.g_CSG, "?SetErrorHandler@@YAXPEAX@Z" );
+		g_CSG_PassCoreData			= ( RetVoidFCoreDataPFN )					GetProcAddress ( g_Glob.g_CSG, "?PassCoreData@@YAXPEAX@Z" );
 	}
 
 	// U75 - 120809 - Stack up render calls in order for SETUP/DISPLAY rendering

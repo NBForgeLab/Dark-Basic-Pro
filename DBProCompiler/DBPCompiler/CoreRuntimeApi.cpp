@@ -64,7 +64,11 @@ CoreApiResult ResolveCoreRuntimeApi(
     if (!api.initializeDisplay) return Missing("?InitDisplay@@YAKKKKKPEAUHINSTANCE__@@PEAD@Z");
 
     api.deleteVariableItem = ResolveWithFallback<CoreVoidDwordPointer>(
-        lookup, "?DeleteSingleVariableAllocation@@YAXPEAK@Z", "?DeleteSingleVariableAllocation@@YAXPAK@Z");
+        lookup, "?DeleteSingleVariableAllocation@@YAXPEAK@Z", "?DeleteSingleVariableAllocation@@YAXPEA_K@Z");
+    if (!api.deleteVariableItem) {
+        api.deleteVariableItem = Resolve<CoreVoidDwordPointer>(
+            lookup, "?DeleteSingleVariableAllocation@@YAXPAK@Z");
+    }
     if (!api.deleteVariableItem) return Missing("?DeleteSingleVariableAllocation@@YAXPEAK@Z");
 #else
     api.passCommandLine = ResolveWithFallback<CorePassPointer>(

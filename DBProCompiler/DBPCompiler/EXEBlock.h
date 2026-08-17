@@ -125,6 +125,8 @@ class CEXEBlock
 		DWORD*			m_pRefArray;
 		DWORD*			m_pRefTypeArray;
 		DWORD*			m_pRefIndexArray;
+		DWORD*			m_pRefWidthArray;
+		DWORD*			m_pRefRelEndArray;
 
 		// Runtime Error and Escape Value DWORDs
 		DWORD			m_dwRuntimeErrorDWORD;

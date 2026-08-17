@@ -116,11 +116,11 @@ DARKSDK void Constructor ( HINSTANCE hSetup )
 	#endif
 
 	// now setup function pointer and get interface to D3D
-	//g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
+	//g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPEAUIDirect3DDevice9@@XZ" );
 
 	#ifndef DARKSDK_COMPILE
 	{
-		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
+		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPEAUIDirect3DDevice9@@XZ" );
 	}
 	#else
 	{

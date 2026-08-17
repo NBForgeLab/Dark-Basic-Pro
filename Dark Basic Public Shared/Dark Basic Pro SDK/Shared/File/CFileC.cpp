@@ -204,11 +204,11 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 	#ifndef DARKSDK_COMPILE
 	if(g_pGlob->g_Memblocks)
 	{
-		g_MEM_Make = ( RetVoidMakeMemblock )		GetProcAddress ( g_pGlob->g_Memblocks, "?ExtMakeMemblock@@YAPADHK@Z" );
+		g_MEM_Make = ( RetVoidMakeMemblock )		GetProcAddress ( g_pGlob->g_Memblocks, "?ExtMakeMemblock@@YAPEADHK@Z" );
 		g_MEM_Free = ( RetVoidFreeMemblock )		GetProcAddress ( g_pGlob->g_Memblocks, "?ExtFreeMemblock@@YAXH@Z" );
 		g_MEM_GetSize = ( RetVoidGetMemblockSize )	GetProcAddress ( g_pGlob->g_Memblocks, "?ExtGetMemblockSize@@YAKH@Z" );
 		g_MEM_SetSize = ( RetVoidSetMemblockSize )	GetProcAddress ( g_pGlob->g_Memblocks, "?ExtSetMemblockSize@@YAXHK@Z" );
-		g_MEM_GetPtr = ( RetVoidGetMemblockPtr )	GetProcAddress ( g_pGlob->g_Memblocks, "?ExtGetMemblockPtr@@YAPADH@Z" );
+		g_MEM_GetPtr = ( RetVoidGetMemblockPtr )	GetProcAddress ( g_pGlob->g_Memblocks, "?ExtGetMemblockPtr@@YAPEADH@Z" );
 	}
 	#else
 		g_MEM_Make		= dbExtMakeMemblock;
@@ -1144,13 +1144,13 @@ DARKSDK void DeleteDir( DWORD pFilename, int iFlag )
 
 DARKSDK void ExecuteFile( DWORD pFilename, DWORD pFilename2, DWORD pFilename3 )
 {
-	if(!DB_ExecuteFile(&ghExecuteFileProcess, "", (LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, false ))
+	if(!DB_ExecuteFile(&ghExecuteFileProcess, const_cast<LPSTR>(""), (LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, false ))
 		RunTimeWarning(RUNTIMEERROR_CANNOTEXECUTEFILE);
 }
 
 DARKSDK void ExecuteFileEx( DWORD pFilename, DWORD pFilename2, DWORD pFilename3, int iWaitForExeEndFlag )
 {
-	if(!DB_ExecuteFile(&ghExecuteFileProcess, "",(LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, true ))
+	if(!DB_ExecuteFile(&ghExecuteFileProcess, const_cast<LPSTR>(""),(LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, true ))
 		RunTimeWarning(RUNTIMEERROR_CANNOTEXECUTEFILE);
 
 	// Wait Here Until Exe Terminates
@@ -1182,7 +1182,7 @@ DARKSDK DWORD ExecuteFileIndi( DWORD pFilename, DWORD pFilename2, DWORD pFilenam
 {
 	// Create process and return handle
 	DWORD dwIndiExecuteFileProcess = 0;
-	if(!DB_ExecuteFileIndi ( &dwIndiExecuteFileProcess, "",(LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, iPriorityOfProcess ) )
+	if(!DB_ExecuteFileIndi ( &dwIndiExecuteFileProcess, const_cast<LPSTR>(""),(LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, iPriorityOfProcess ) )
 		RunTimeWarning(RUNTIMEERROR_CANNOTEXECUTEFILE);
 
 	// return handle for later monitoring
@@ -1349,6 +1349,7 @@ DARKSDK void OpenToRead( int f, DWORD pFilename )
 	else
 		RunTimeError(RUNTIMEERROR_FILENUMBERINVALID);
 }
+
 
 DARKSDK void OpenToWrite( int f, DWORD pFilename )
 {

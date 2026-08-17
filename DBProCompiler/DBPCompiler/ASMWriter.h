@@ -444,6 +444,12 @@ class CASMWriter : public ICodeGenerator
 
 		void GenerateASMCodes(void);
 		void DefineASM(DWORD dwASMCode, LPCSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData, int iOp3 = -1);
+		// Width in bytes of the reference operand slot emitted for each ASM op.
+		// disp32/rel32 slots are 4 bytes; imm64 slots are 8 bytes. The legacy
+		// uniform-8-byte model corrupted every 4-byte slot and clobbered the
+		// following instruction, which is the core boot AV this fixes.
+		static int DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2);
+		static int DetermineSecondOpDataWidth(int iPreOp, int iOp1, int iOp2);
 
 		bool CreateASMHeader(void);
 		bool CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, int iOp3 = -1);
@@ -483,6 +489,30 @@ class CASMWriter : public ICodeGenerator
 		void WriteASMARRtoRAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
 		void WriteASMXtoRAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
 		void WriteASMRAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
+
+		// Native x64 command-call ABI marshalling. Command arguments are
+		// accumulated on the machine stack by consecutive Push tasks (the
+		// parser pushes arguments in reverse order, so argument #1 ends up at
+		// the lowest address). At the call site they are marshalled into the
+		// Microsoft x64 ABI argument registers (RCX/RDX/R8/R9 for integer,
+		// pointer and int64 values; XMM0-3 for float/double) with 32 bytes of
+		// shadow space and 16-byte stack alignment, which the plugin DLLs -
+		// compiled as native x64 C++ - require. The legacy stack-passing call
+		// ABI delivered garbage to every command and crashed inside the CRT.
+		struct PendingCallArg {
+			std::uint32_t slotIndex = 0;   // 8-byte machine-stack slot index
+			std::uint32_t slotCount = 1;   // 8-byte slots occupied (1 or 2)
+			enum class Kind : std::uint8_t {
+				Integer,
+				Float,
+				Double,
+			} kind = Kind::Integer;
+		};
+
+		void ClearPendingCallArgs() noexcept;
+		void RecordPendingCallArg(DWORD dwType, DWORD dwSlotCount);
+		bool EmitCommandCallAbiSetup();
+		void EmitCommandCallAbiTeardown(bool bKeepArgsOnStack);
 
 		bool WriteASMCall(DWORD dwLine, LPCSTR pDLL, LPCSTR pDecoratedName);
 		bool WriteASMTaskP1(DWORD dwLine, DWORD dwTask, CResultData* pP1);
@@ -568,7 +598,16 @@ class CASMWriter : public ICodeGenerator
 		int						m_iASMOp2[ASMMAXCOUNT];
 		int						m_iASMOp3[ASMMAXCOUNT];
 		bool					m_bASMOpData[ASMMAXCOUNT];
+		int						m_iASMOpDataWidth[ASMMAXCOUNT];
+		int						m_iASMOpData2Width[ASMMAXCOUNT];
 		std::vector<uint8_t>	m_codeBuffer;
+
+		// Pending command-call arguments awaiting x64 ABI marshalling. The
+		// slot accounting is reset by any task that is not an argument
+		// producer (Push/PushAddress/PushUdt) so array-index bookkeeping,
+		// nested calls and user-function jumps never corrupt it.
+		std::vector<PendingCallArg>	m_pendingCallArgs;
+		std::uint32_t			m_pendingCallSlotCount = 0;
 };
 
 #endif // !defined(AFX_ASMWRITER_H__A3BE66B0_1587_46D3_AC0A_E4F78C0A3561__INCLUDED_)

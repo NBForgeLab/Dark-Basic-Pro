@@ -173,7 +173,7 @@ DARKSDK void TextConstructor ( HINSTANCE hSetup )
 	// setup the function pointer and then call it to get a pointer to the direct3d interface
 	#ifndef DARKSDK_COMPILE
 	{
-		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
+		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPEAUIDirect3DDevice9@@XZ" );
 	}
 	#else
 	{
@@ -1263,7 +1263,7 @@ DARKSDK DWORD ValF	( DWORD dwSrcStr )
 //					from multiple output types ( I dont want to start adding commands!)
 */
 // mike - 220107 - add this back in for gdk
-LONGLONG ValR	( DWORD dwSrcStr )
+DARKSDK LONGLONG ValR	( DWORD_PTR dwSrcStr )
 {
 	LONGLONG lValue = 0;
 	if(dwSrcStr) lValue = _atoi64((LPSTR)dwSrcStr);
@@ -1940,7 +1940,7 @@ double dbStrDouble (  double dValue )
 LONGLONG dbValR ( char* dwSrcStr )
 {
 	// mike - 220107 - modified this function for correct param and casting
-	return ValR ( ( DWORD ) dwSrcStr );
+	return ValR ( ( DWORD_PTR ) dwSrcStr );
 }
 
 void dbPerformChecklistForFonts ( void )

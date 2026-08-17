@@ -113,7 +113,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_STRING1             "APPNAME$[%S%?Appname@@YAKK@Z"
-    IDS_STRING2             "WINDIR$[%S%?Windir@@YAKK@Z"
+    IDS_STRING2             "WINDIR$[%S%?Windir@@YA_K_K@Z"
     IDS_STRING3             "PERFORM CHECKLIST FOR DRIVES%0%?ChecklistForDrives@@YAXXZ"
     IDS_STRING4             "PERFORM CHECKLIST FOR FILES%0%?ChecklistForFiles@@YAXXZ"
     IDS_STRING5             "CLOSE FILE%L%?CloseFile@@YAXH@Z%File Number"
@@ -134,9 +134,9 @@ BEGIN
     IDS_STRING16            "FILE SIZE[%LS%?FileSize@@YAHK@Z%Filename"
     IDS_STRING17            "FIND FIRST%0%?FindFirst@@YAXXZ"
     IDS_STRING18            "FIND NEXT%0%?FindNext@@YAXXZ"
-    IDS_STRING19            "GET DIR$[%S%?GetDir@@YAKK@Z"
-    IDS_STRING20            "GET FILE DATE$[%S%?GetFileDate@@YAKK@Z"
-    IDS_STRING21            "GET FILE NAME$[%S%?GetFileName@@YAKK@Z"
+    IDS_STRING19            "GET DIR$[%S%?GetDir@@YA_K_K@Z"
+    IDS_STRING20            "GET FILE DATE$[%S%?GetFileDate@@YA_K_K@Z"
+    IDS_STRING21            "GET FILE NAME$[%S%?GetFileName@@YA_K_K@Z"
     IDS_STRING22            "GET FILE TYPE[%L%?GetFileType@@YAHXZ"
     IDS_STRING23            "MAKE DIRECTORY%S%?MakeDir@@YAXK@Z%Directory Name"
     IDS_STRING24            "MAKE FILE%S%?MakeFile@@YAXK@Z%Filename"
@@ -177,14 +177,14 @@ BEGIN
     IDS_STRING51            "WRITE BYTE TO FILE%SLL%?WriteByteToFile@@YAXKHH@Z%Filename, Position, ByteValue"
     IDS_STRING52            "READ BYTE FROM FILE[%LSL%?ReadByteFromFile@@YAHKH@Z%Filename, Position"
     IDS_STRING53            "CD%S%?SetDir@@YAXK@Z%Path$"
-    IDS_STRING54            "GET FILE CREATION$[%S%?GetFileCreation@@YAKK@Z"
+    IDS_STRING54            "GET FILE CREATION$[%S%?GetFileCreation@@YA_K_K@Z"
     IDS_STRING55            "MAKE FILE FROM MEMBLOCK%LL%?MakeFileFromMemblock@@YAXHH@Z%File Number, Memblock Number"
     IDS_STRING56            "WRITE FILEMAP VALUE%SL%?WriteFilemapValue@@YAXKK@Z%Filemap Name, Value"
     IDS_STRING57            "WRITE FILEMAP STRING%SS%?WriteFilemapString@@YAXKK@Z%Filemap Name, String"
     IDS_STRING58            "WRITE FILEMAP%SLSL%?WriteFilemap@@YAXKKKH@Z%Filemap Name, Value, String, Type"
     IDS_STRING59            "READ FILEMAP VALUE[%LS%?ReadFilemapValue@@YAKK@Z%Filemap Name"
-    IDS_STRING60            "READ FILEMAP STRING[%SS%?ReadFilemapString@@YAKKK@Z%Filemap Name"
-    IDS_STRING61            "READ FILEMAP STRING$[%SS%?ReadFilemapString@@YAKKK@Z%Filemap Name"
+    IDS_STRING60            "READ FILEMAP STRING[%SS%?ReadFilemapString@@YA_K_KK@Z%Filemap Name"
+    IDS_STRING61            "READ FILEMAP STRING$[%SS%?ReadFilemapString@@YA_K_KK@Z%Filemap Name"
 END
 
 #endif    // English (U.K.) resources

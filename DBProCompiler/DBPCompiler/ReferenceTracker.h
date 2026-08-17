@@ -54,6 +54,19 @@ public:
     {
         std::uint32_t machineCodeOffset{};
         std::string label;
+        // Size of the operand slot in the generated machine code (4 for
+        // disp32/rel32 slots, 8 for imm64 slots). The boot-time ref patch
+        // needs this to write either an absolute 64-bit address or a
+        // relative 32-bit displacement, and to avoid clobbering bytes that
+        // belong to the following instruction.
+        std::uint32_t slotBytes{8u};
+        // Absolute MCB offset of the end of the enclosing instruction. For
+        // RIP-relative disp32 and rel32 slots the CPU computes the effective
+        // address from the address of the *next* instruction, so the patched
+        // displacement must be target - relEnd. Zero falls back to
+        // machineCodeOffset + slotBytes (operand at the tail of the
+        // instruction, e.g. imm64 slots).
+        std::uint32_t relEnd{0u};
     };
 
     using SymbolResolver =
@@ -72,11 +85,14 @@ public:
     /** Reserves additional storage when fewer than 100 slots remain. */
     bool CheckAndExpandREFMemory();
 
-    void AddReference(std::uint32_t machineCodeOffset, std::string_view label);
+    void AddReference(std::uint32_t machineCodeOffset, std::string_view label,
+                      std::uint32_t slotBytes = 8u, std::uint32_t relEnd = 0u);
 
     [[nodiscard]] std::uint32_t GetRefPointer() const noexcept;
     [[nodiscard]] std::uint32_t GetRefBufferSize() const noexcept;
     [[nodiscard]] std::uint32_t GetRef(std::size_t index) const noexcept;
+    [[nodiscard]] std::uint32_t GetRefWidth(std::size_t index) const noexcept;
+    [[nodiscard]] std::uint32_t GetRefRelEnd(std::size_t index) const noexcept;
     [[nodiscard]] const std::string* GetRefLabel(std::size_t index) const noexcept;
     bool SetRefLabel(std::size_t index, std::string_view label);
 

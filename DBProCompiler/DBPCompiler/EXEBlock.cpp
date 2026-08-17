@@ -27,6 +27,7 @@ HRESULT GetDXVersion( DWORD* pdwDirectXVersion, TCHAR* strDirectXVersion, int cc
 namespace
 {
 // Program reference slots hold 64-bit target-ABI addresses.
+
 bool WriteTargetAddress(uintptr_t* slot, const void* hostPointer, LPSTR* pReturnError, bool& bResult)
 {
     const auto address = dbp::abi::FromHostAddress(reinterpret_cast<std::uintptr_t>(hostPointer));
@@ -176,6 +177,8 @@ CEXEBlock::CEXEBlock()
 	m_pRefArray=nullptr;
 	m_pRefTypeArray=nullptr;
 	m_pRefIndexArray=nullptr;
+	m_pRefWidthArray=nullptr;
+	m_pRefRelEndArray=nullptr;
 
 	// Clear runtime error dword
 	m_dwRuntimeErrorDWORD=0;
@@ -247,6 +250,8 @@ void CEXEBlock::Clear(void)
 	SAFE_DELETE_ARRAY(m_pRefArray);
 	SAFE_DELETE_ARRAY(m_pRefIndexArray);
 	SAFE_DELETE_ARRAY(m_pRefTypeArray);
+	SAFE_DELETE_ARRAY(m_pRefWidthArray);
+	SAFE_DELETE_ARRAY(m_pRefRelEndArray);
 
 	// Release MCB Data 9leeadd - 090305 - DEP release)
 	VirtualFree ( m_pMachineCodeBlock, 0, MEM_DECOMMIT | MEM_RELEASE );
@@ -438,6 +443,8 @@ bool CEXEBlock::Save(char* lpFilename)
 		record(SaveValueArray(hFile, &m_pRefArray, &m_dwNumberOfReferences));
 		record(SaveValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences));
 		record(SaveValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences));
+		record(SaveValueArray(hFile, &m_pRefWidthArray, &m_dwNumberOfReferences));
+		record(SaveValueArray(hFile, &m_pRefRelEndArray, &m_dwNumberOfReferences));
 
 		// Runtime Error String Database
 		record(SaveValue(hFile, &m_dwNumberOfRuntimeErrorStrings));
@@ -611,8 +618,9 @@ bool CEXEBlock::Load(char* lpFilename)
 		// MCB Reference Data
                 record(LoadValue(hFile, &m_dwNumberOfReferences));
                 record(LoadValueArray(hFile, &m_pRefArray, &m_dwNumberOfReferences));
-                record(LoadValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences));
-                record(LoadValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences));
+                record(LoadValueArray(hFile, &m_pRefTypeArray, &m_dwNumberOfReferences));                record(LoadValueArray(hFile, &m_pRefIndexArray, &m_dwNumberOfReferences));
+                record(LoadValueArray(hFile, & m_pRefWidthArray, &m_dwNumberOfReferences));
+                record(LoadValueArray(hFile, & m_pRefRelEndArray, &m_dwNumberOfReferences));
 
 		// Runtime Error String Database
                 record(LoadValue(hFile, &m_dwNumberOfRuntimeErrorStrings));
@@ -993,7 +1001,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						g_DLL_PassCoreData = ( DLL_PassCore ) Hook_GetProcAddress( hDLLMod[dllindex], "?ReceiveCoreDataPtr@@YAXPAX@Z" );
 						if (!g_DLL_PassCoreData)
 							g_DLL_PassCoreData = ( DLL_PassCore ) Hook_GetProcAddress( hDLLMod[dllindex], "ReceiveCoreDataPtr" );
-					}
+						}
 
 					// Flag if official DLL
 					bool bIsOfficialDLL=false;
@@ -1491,10 +1499,6 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
 		{
 			int iRefType=(int)m_pRefTypeArray[ref];
-			if(ref>=167)
-			{
-				ref=ref;
-			}
 			if(iRefType>0)
 			{
 				// lee, somehow world3d decname is being looked for in imageDLL...
@@ -1537,17 +1541,16 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						if(dwAdd!=0)
 						{
 							*(pProgramRefPtr+ref)=dwAdd;
-						}
-						else
-						{
-							// Exit loop
-							g_bSuccessfulDLLLinks=false;
-							ref=m_dwNumberOfReferences;
-							if(*pReturnError==nullptr) *pReturnError = new char[1024];
-							int dlli = dll - 1; if(dlli<0) dlli=0;
-							sprintf_s(*pReturnError, 1024, "Could not find function '%s' in %d:%s", pStr, index, (LPSTR)m_pDLLFilenameArray[dlli]);
-							bResult=false;
-						}
+						}							else
+							{
+								// Exit loop
+								g_bSuccessfulDLLLinks=false;
+								ref=m_dwNumberOfReferences;
+								if(*pReturnError==nullptr) *pReturnError = new char[1024];
+								int dlli = dll - 1; if(dlli<0) dlli=0;
+								sprintf_s(*pReturnError, 1024, "Could not find function '%s' in %d:%s", pStr, index, (LPSTR)m_pDLLFilenameArray[dlli]);
+								bResult=false;
+							}
 					}
 				}
 				if(iRefType==2)
@@ -1634,7 +1637,13 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		g_bSuccessfulDLLLinks=true;
 	}
 
-	// [EXE] Replace Tokens with Data in Byte Positions
+	// [EXE] Replace Tokens with Data in Byte Positions.
+	// x64-native relocation model: imm64 slots receive the absolute 64-bit
+	// target; disp32/rel32 slots receive a PC-relative displacement computed
+	// against the end of the enclosing instruction (relEnd), exactly like a
+	// R_X86_64_PC32 relocation. The legacy uniform-8-byte patch wrote
+	// absolute addresses into 4-byte slots, truncating them and clobbering
+	// the following instruction - the root cause of boot-time AVs.
 	if(bResult==true)
 	{
 		for(DWORD ref=0; ref<m_dwNumberOfReferences; ref++)
@@ -1642,21 +1651,57 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			uintptr_t dwRefValue=*(pProgramRefPtr+ref);
 			DWORD dwBytePosition=m_pRefArray[ref];
 			int iRefType=(int)m_pRefTypeArray[ref];
-			if(iRefType==5)
+			DWORD dwSlotBytes = (m_pRefWidthArray != nullptr)
+				? m_pRefWidthArray[ref] : 8u;
+			DWORD dwRelEnd = (m_pRefRelEndArray != nullptr)
+				? m_pRefRelEndArray[ref] : 0u;
+			if(dwRelEnd==0) dwRelEnd = dwBytePosition + dwSlotBytes;
+			if(dwSlotBytes==8 && (iRefType==1 || iRefType==2 || iRefType==3 || iRefType==6))
 			{
-				// Adjust Label by making it a relative offset from 'here'
-				DWORD dwInstructionPos=dwBytePosition+4;
-				int iSigned = static_cast<int>(dwRefValue-dwInstructionPos);
+				// 64-bit absolute target pointer (imm64 slot)
+				*(uintptr_t*)((char*)m_pMachineCodeBlock+dwBytePosition)=dwRefValue;
+			}
+			else if(iRefType==3 && dwSlotBytes<8)
+			{
+				// Variable address in a RIP-relative disp32 slot. The ref value
+				// is the absolute runtime address of the variable (variable
+				// space, a separate allocation), so the displacement must be
+				// measured from the absolute address of the instruction end:
+				// target - (MCB base + relEnd). Subtracting the raw offset
+				// (relEnd) from an absolute pointer truncated the address into
+				// the slot - the boot-time AV.
+				const uintptr_t instructionEnd =
+					(uintptr_t)m_pMachineCodeBlock + dwRelEnd;
+				int iSigned = static_cast<int>(dwRefValue - instructionEnd);
 				*(int*)((char*)m_pMachineCodeBlock+dwBytePosition)=iSigned;
 			}
-			else if(iRefType==1 || iRefType==2 || iRefType==3 || iRefType==6)
+			else if(iRefType==5)
 			{
-				// 64-bit target pointer
-				*(uintptr_t*)((char*)m_pMachineCodeBlock+dwBytePosition)=dwRefValue;
+				// Code label in a rel32 slot: PC-relative displacement.
+				int iSigned = static_cast<int>(dwRefValue - dwRelEnd);
+				*(int*)((char*)m_pMachineCodeBlock+dwBytePosition)=iSigned;
+			}
+			else if(iRefType==4)
+			{
+				// Direct immediate value sized to the operand slot.
+				char* pTarget=(char*)m_pMachineCodeBlock+dwBytePosition;
+				if(dwSlotBytes==8)
+					*(uint64_t*)pTarget=static_cast<uint64_t>(dwRefValue);
+				else if(dwSlotBytes==4)
+					*(DWORD*)pTarget=static_cast<DWORD>(dwRefValue);
+				else if(dwSlotBytes==2)
+					*(WORD*)pTarget=static_cast<WORD>(dwRefValue);
+				else if(dwSlotBytes==1)
+					*(BYTE*)pTarget=static_cast<BYTE>(dwRefValue);
 			}
 			else
 			{
-				*(DWORD*)((char*)m_pMachineCodeBlock+dwBytePosition)=static_cast<DWORD>(dwRefValue);
+				// 64-bit target pointer (imm64 slot); fall back to a DWORD for
+				// any 4-byte slot that reaches this branch.
+				if(dwSlotBytes>=8)
+					*(uintptr_t*)((char*)m_pMachineCodeBlock+dwBytePosition)=dwRefValue;
+				else
+					*(DWORD*)((char*)m_pMachineCodeBlock+dwBytePosition)=static_cast<DWORD>(dwRefValue);
 			}
 		}
 	}

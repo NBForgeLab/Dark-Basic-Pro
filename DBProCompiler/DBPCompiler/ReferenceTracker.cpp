@@ -164,10 +164,12 @@ bool CReferenceTracker::CheckAndExpandREFMemory()
 
 void CReferenceTracker::AddReference(
     const std::uint32_t machineCodeOffset,
-    const std::string_view label)
+    const std::string_view label,
+    const std::uint32_t slotBytes,
+    const std::uint32_t relEnd)
 {
     CheckAndExpandREFMemory();
-    records_.push_back({machineCodeOffset, std::string(label)});
+    records_.push_back({machineCodeOffset, std::string(label), slotBytes, relEnd});
 }
 
 std::uint32_t CReferenceTracker::GetRefPointer() const noexcept
@@ -188,6 +190,16 @@ std::uint32_t CReferenceTracker::GetRef(const std::size_t index) const noexcept
 const std::string* CReferenceTracker::GetRefLabel(const std::size_t index) const noexcept
 {
     return index < records_.size() ? &records_[index].label : nullptr;
+}
+
+std::uint32_t CReferenceTracker::GetRefWidth(const std::size_t index) const noexcept
+{
+    return index < records_.size() ? records_[index].slotBytes : 8u;
+}
+
+std::uint32_t CReferenceTracker::GetRefRelEnd(const std::size_t index) const noexcept
+{
+    return index < records_.size() ? records_[index].relEnd : 0u;
 }
 
 bool CReferenceTracker::SetRefLabel(const std::size_t index, const std::string_view label)
@@ -215,6 +227,8 @@ bool CReferenceTracker::UpdateMCBRefData(
         std::uint32_t position;
         ReferenceKind kind;
         std::uint32_t index;
+        std::uint32_t slotBytes;
+        std::uint32_t relEnd;
     };
 
     std::vector<ResolvedRecord> resolved;
@@ -245,7 +259,8 @@ bool CReferenceTracker::UpdateMCBRefData(
             return false;
         }
         resolved.push_back(
-            {static_cast<std::uint32_t>(absolutePosition), parsed->kind, resolvedIndex});
+            {static_cast<std::uint32_t>(absolutePosition), parsed->kind, resolvedIndex,
+             record.slotBytes, record.relEnd});
     }
 
     if (resolved.empty())
@@ -262,17 +277,22 @@ bool CReferenceTracker::UpdateMCBRefData(
     auto positions = std::make_unique<DWORD[]>(newCount);
     auto types = std::make_unique<DWORD[]>(newCount);
     auto indexes = std::make_unique<DWORD[]>(newCount);
+    auto widths = std::make_unique<DWORD[]>(newCount);
+    auto relEnds = std::make_unique<DWORD[]>(newCount);
 
     if (oldCount != 0)
     {
         if (executable->m_pRefArray == nullptr || executable->m_pRefTypeArray == nullptr ||
-            executable->m_pRefIndexArray == nullptr)
+            executable->m_pRefIndexArray == nullptr || executable->m_pRefWidthArray == nullptr ||
+            executable->m_pRefRelEndArray == nullptr)
         {
             return false;
         }
         std::copy_n(executable->m_pRefArray, oldCount, positions.get());
         std::copy_n(executable->m_pRefTypeArray, oldCount, types.get());
         std::copy_n(executable->m_pRefIndexArray, oldCount, indexes.get());
+        std::copy_n(executable->m_pRefWidthArray, oldCount, widths.get());
+        std::copy_n(executable->m_pRefRelEndArray, oldCount, relEnds.get());
     }
 
     for (std::size_t index = 0; index < resolved.size(); ++index)
@@ -281,14 +301,20 @@ bool CReferenceTracker::UpdateMCBRefData(
         positions[target] = resolved[index].position;
         types[target] = static_cast<std::uint32_t>(resolved[index].kind);
         indexes[target] = resolved[index].index;
+        widths[target] = resolved[index].slotBytes;
+        relEnds[target] = resolved[index].relEnd;
     }
 
     delete[] executable->m_pRefArray;
     delete[] executable->m_pRefTypeArray;
     delete[] executable->m_pRefIndexArray;
+    delete[] executable->m_pRefWidthArray;
+    delete[] executable->m_pRefRelEndArray;
     executable->m_pRefArray = positions.release();
     executable->m_pRefTypeArray = types.release();
     executable->m_pRefIndexArray = indexes.release();
+    executable->m_pRefWidthArray = widths.release();
+    executable->m_pRefRelEndArray = relEnds.release();
     executable->m_dwNumberOfReferences = static_cast<DWORD>(newCount);
     return true;
 }

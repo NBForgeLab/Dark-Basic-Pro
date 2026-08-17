@@ -149,6 +149,11 @@ PeInspectionResult<PeImageInfo> PeExportInspector::Inspect(
         info.machine = PeMachine::X86;
     } else if (fileHeader->Machine == IMAGE_FILE_MACHINE_AMD64) {
         info.machine = PeMachine::X64;
+    } else {
+        // An architecture we do not support (ARM64, ARM, ...) must never be
+        // mistaken for x86. The resolver rejects anything but X86/X64, so
+        // without this fallback an unknown core would silently pass as X86.
+        info.machine = PeMachine::Other;
     }
 
     const auto optionalOffset = ntOffset + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER);

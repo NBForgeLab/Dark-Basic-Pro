@@ -49,6 +49,12 @@ ipch/
 *.lastbuildstate
 *.unsuccessfulbuild
 
+# Debug/trace artifacts from compiler and runner investigation
+boot_trace.txt
+dbp_error.txt
+CrashOn_*.txt
+tests/_*.cpp
+
 # Visual C++ browser and incremental build databases
 *.sbr
 *.bsc

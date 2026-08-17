@@ -36,6 +36,8 @@ void PopulateExeBlock(CEXEBlock& exe)
     exe.m_pRefArray = exe.CreateArray(3);
     exe.m_pRefTypeArray = exe.CreateArray(3);
     exe.m_pRefIndexArray = exe.CreateArray(3);
+    exe.m_pRefWidthArray = exe.CreateArray(3);
+    exe.m_pRefRelEndArray = exe.CreateArray(3);
 
     exe.m_dwNumberOfRuntimeErrorStrings = 1;
     exe.m_pRuntimeErrorStringsArray = exe.CreatePtrArray(1);
@@ -78,6 +80,8 @@ TEST(EXEBlockMemoryTest, ClearNullsAllOwnedPointers) {
     EXPECT_EQ(exe.m_pRefArray, nullptr);
     EXPECT_EQ(exe.m_pRefTypeArray, nullptr);
     EXPECT_EQ(exe.m_pRefIndexArray, nullptr);
+    EXPECT_EQ(exe.m_pRefWidthArray, nullptr);
+    EXPECT_EQ(exe.m_pRefRelEndArray, nullptr);
     EXPECT_EQ(exe.m_pRuntimeErrorStringsArray, nullptr);
     EXPECT_EQ(exe.m_pCommandDLLIdArray, nullptr);
     EXPECT_EQ(exe.m_pCommandDLLCallArray, nullptr);

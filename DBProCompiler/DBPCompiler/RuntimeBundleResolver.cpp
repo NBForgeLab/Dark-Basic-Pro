@@ -14,6 +14,13 @@ bool HasExport(const PeImageInfo& image, const char* name1, const char* name2 = 
     return false;
 }
 
+bool HasExportAny(const PeImageInfo& image, std::initializer_list<const char*> names) {
+    for (const auto* name : names) {
+        if (image.exports.count(name) != 0) return true;
+    }
+    return false;
+}
+
 RuntimeCapabilities DeriveCapabilities(const PeImageInfo& image) {
     RuntimeCapabilities capabilities;
 
@@ -25,23 +32,42 @@ RuntimeCapabilities DeriveCapabilities(const PeImageInfo& image) {
     const bool hasPassStructurePatterns = HasExport(image, "?PassStructurePatterns@@YAXPEAXK@Z", "?PassStructurePatterns@@YAXPAXK@Z");
 
     const bool hasInitDisplay = HasExport(image, "?InitDisplay@@YAKKKKKPEAUHINSTANCE__@@PEAD@Z", "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z");
-    const bool hasDeleteVarItem = HasExport(image, "?DeleteSingleVariableAllocation@@YAXPEAK@Z", "?DeleteSingleVariableAllocation@@YAXPAK@Z");
+    // The parameter was modernized from DWORD* to DWORD_PTR* (PEA_K on x64),
+    // so accept all three spellings of DeleteSingleVariableAllocation.
+    const bool hasDeleteVarItem = HasExportAny(image, {
+        "?DeleteSingleVariableAllocation@@YAXPEAK@Z",
+        "?DeleteSingleVariableAllocation@@YAXPAK@Z",
+        "?DeleteSingleVariableAllocation@@YAXPEA_K@Z"});
 
-    const std::array<const char*, 10> basicLifecycleExports{
+    // The space factories and GetGlobPtr were historically declared with
+    // 32-bit return types (DWORD) even on x64 builds of the legacy runtime.
+    // The modernized SDK core exports the 64-bit-clean variants instead.
+    // Accept both spellings so either runtime generation satisfies the
+    // bootstrap contract; the app-side resolver (CoreRuntimeApi) mirrors
+    // this fallback chain at load time.
+    const std::array<const char*, 7> basicLifecycleExports{
         "?PassDLLs@@YAXXZ",
         "?ConstructDLLs@@YAXXZ",
-        "?GetGlobPtr@@YAKXZ",
         "?CloseDisplay@@YAKXZ",
-        "?CreateVariableSpace@@YAKK@Z",
         "?DeleteVariableSpace@@YAXXZ",
-        "?CreateDataSpace@@YAKK@Z",
         "?DeleteDataSpace@@YAXXZ",
         "?UnDimDD@@YAKK@Z",
         "?Sync@@YAXXZ"};
 
-    const bool hasBasicLifecycle = std::all_of(
-        basicLifecycleExports.begin(), basicLifecycleExports.end(),
-        [&image](const char* name) { return HasExport(image, name); });
+    const bool hasBasicLifecycle =
+        std::all_of(
+            basicLifecycleExports.begin(), basicLifecycleExports.end(),
+            [&image](const char* name) { return HasExport(image, name); }) &&
+        HasExportAny(image, {
+            "?GetGlobPtr@@YAPEAUGlobStruct@@XZ",
+            "?GetGlobPtr@@YAPEAXXZ",
+            "?GetGlobPtr@@YAKXZ"}) &&
+        HasExportAny(image, {
+            "?CreateVariableSpace@@YA_KK@Z",
+            "?CreateVariableSpace@@YAKK@Z"}) &&
+        HasExportAny(image, {
+            "?CreateDataSpace@@YA_KK@Z",
+            "?CreateDataSpace@@YAKK@Z"});
 
     const bool hasLifecycle = hasBasicLifecycle && hasInitDisplay && hasDeleteVarItem;
 
