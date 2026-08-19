@@ -1691,7 +1691,7 @@ DARKSDK_DLL void SetTextureMode ( sMesh* pMesh, int iMode, int iMipMode )
 
 // Mesh Texture Functions
 
-DARKSDK_DLL int LoadOrFindTextureAsImage ( LPSTR pTextureName, LPSTR TexturePath, int iDivideTextureSize )
+DARKSDK_DLL int LoadOrFindTextureAsImage ( LPCSTR pTextureName, LPCSTR TexturePath, int iDivideTextureSize )
 {
 	// load texture
 	int iImageIndex = 0;
@@ -1780,7 +1780,7 @@ DARKSDK_DLL int LoadOrFindTextureAsImage ( LPSTR pTextureName, LPSTR TexturePath
 	return iImageIndex;
 }
 
-DARKSDK_DLL int LoadOrFindTextureAsImage ( LPSTR pTextureName, LPSTR TexturePath )
+DARKSDK_DLL int LoadOrFindTextureAsImage ( LPCSTR pTextureName, LPCSTR TexturePath )
 {
 	return LoadOrFindTextureAsImage ( pTextureName, TexturePath, 0 );
 }
@@ -3646,7 +3646,7 @@ DARKSDK_DLL bool CreateShadowMesh ( sMesh* pMesh, sMesh** ppShadowMesh, int iUse
 		if ( iUseShader==1 )
 		{
 			// standard static no bone shader for shadows
-			LPSTR pStencilShadowFX = "stencilshadow.fx";
+			LPCSTR pStencilShadowFX = "stencilshadow.fx";
 
 			// if original mesh has 'bone' animation, reproduce in shadow mesh
 			if ( pMesh->dwBoneCount > 0 )
@@ -3840,7 +3840,7 @@ DARKSDK_DLL bool CreateShadowMesh ( sMesh* pMesh, sMesh** ppShadowMesh, int iUse
 			}
 
 			// shadow FX static mesh only
-			LPSTR pStencilShadowFX = "stencilshadow.fx";
+			LPCSTR pStencilShadowFX = "stencilshadow.fx";
 			// if original mesh has 'bone' animation, reproduce in shadow mesh
 			if ( pMesh->dwBoneCount == 12345 )
 			{
@@ -4331,7 +4331,8 @@ DARKSDK_DLL bool CastShadowGeometryToShadowMesh ( D3DXVECTOR3 vecLightPos, sMesh
 			D3DXVECTOR3 N = *pNormalPos;
 			D3DXVec3Normalize ( &N, &N );
 			D3DXVec3Normalize ( &LightVec, &LightVec );
-			if ( D3DXVec3Dot ( &N, &(-LightVec) ) < 0.0f )
+			D3DXVECTOR3 NegLightVec = -LightVec;
+			if ( D3DXVec3Dot ( &N, &NegLightVec ) < 0.0f )
 			{
 				// stretch out
 				pVertexPos->x -= LightVec.x * fShadowRange;

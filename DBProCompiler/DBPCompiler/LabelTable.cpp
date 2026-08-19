@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "LabelTable.h"
+#include "StringUtils.h"
 #include "time.h"
 
 #ifdef __AARON_LBLTBLPERF__
@@ -24,6 +25,7 @@
 #include <unordered_map>
 
 std::unordered_map<std::string, CLabelTable*> CLabelTable::g_Table;
+std::vector<CLabelTable*> CLabelTable::g_Order;
 
 static std::string to_lower(std::string_view s)
 {
@@ -47,8 +49,7 @@ CLabelTable::CLabelTable()
 	m_dwBytePos=0;
 	m_pSRef=nullptr; // Reference Only
 
-	m_pNext=nullptr;
-	m_pPrev=nullptr;
+	m_orderIndex=static_cast<size_t>(-1);
 }
 
 CLabelTable::CLabelTable(LPCSTR pStr)
@@ -58,8 +59,7 @@ CLabelTable::CLabelTable(LPCSTR pStr)
 	m_dwDataIndex=0;
 	m_dwBytePos=0;
 
-	m_pNext=nullptr;
-	m_pPrev=nullptr;
+	m_orderIndex=static_cast<size_t>(-1);
 
 #ifdef __AARON_LBLTBLPERF__
 	std::string lowerStr = to_lower(pStr);
@@ -88,39 +88,43 @@ void CLabelTable::Free(void)
 #ifdef __AARON_LBLTBLPERF__
 	g_Table.clear();
 #endif
-	CLabelTable* pCurrent = this;
-	while(pCurrent)
-	{
-		CLabelTable* pNext = pCurrent->GetNext();
-		delete pCurrent;
-		pCurrent = pNext;
-	}
+	// delete every node tracked in the declaration-order index
+	for ( CLabelTable* pNode : g_Order )
+		delete pNode;
+	g_Order.clear();
 }
 
 void CLabelTable::Add(CLabelTable* pNew)
 {
-	CLabelTable* pCurrent = this;
-	while(pCurrent->m_pNext)
+	// register the head of the list (this) on first use
+	if ( g_Order.empty() )
 	{
-		pCurrent=pCurrent->GetNext();
+		g_Order.push_back(this);
+		this->m_orderIndex=0;
 	}
-	pCurrent->m_pNext=pNew;
-	pNew->m_pPrev=pCurrent;
+	g_Order.push_back(pNew);
+	pNew->m_orderIndex=g_Order.size()-1;
 }
 
 void CLabelTable::Insert(CLabelTable* pNew)
 {
-	// Get neighbors
-	CLabelTable* pNeighA = m_pPrev;
-	CLabelTable* pNeighB = this;
-
-	// Instruct neighbours to point to me
-	if(pNeighA) pNeighA->m_pNext = pNew;
-	pNeighB->m_pPrev = pNew;
-
-	// Insruct new to point to neighbors
-	pNew->m_pNext = pNeighB;
-	pNew->m_pPrev = pNeighA;
+	// register the head of the list (this) on first use
+	if ( g_Order.empty() )
+	{
+		g_Order.push_back(this);
+		this->m_orderIndex=0;
+	}
+	// defensive: an unregistered node must be the head of the list
+	if ( this->m_orderIndex==static_cast<size_t>(-1) )
+	{
+		g_Order.insert(g_Order.begin(), this);
+		this->m_orderIndex=0;
+	}
+	// insert pNew immediately before this node
+	g_Order.insert( g_Order.begin() + static_cast<std::ptrdiff_t>(this->m_orderIndex), pNew );
+	// refresh indices from the insertion point onwards
+	for ( size_t i=this->m_orderIndex; i<g_Order.size(); i++ )
+		g_Order[i]->m_orderIndex=i;
 }
 
 void CLabelTable::AddInOrder(LPCSTR pName, CLabelTable* pNew)
@@ -129,7 +133,7 @@ void CLabelTable::AddInOrder(LPCSTR pName, CLabelTable* pNew)
 	CLabelTable* pLocation = this->GetNext();
 	while(pLocation)
 	{
-		if(_stricmp(pName,pLocation->GetName()->GetStr())<0) break;
+		if(dbp::icompare(pName,pLocation->GetName()->GetStr()) < 0) break;
 		pLocation=pLocation->GetNext();
 	}
 	if(pLocation)
@@ -146,24 +150,20 @@ void CLabelTable::AddInOrder(LPCSTR pName, CLabelTable* pNew)
 
 CLabelTable* CLabelTable::Advance(DWORD dwCountdown)
 {
-	if(dwCountdown==0)
+	if ( dwCountdown==0 || m_orderIndex==static_cast<size_t>(-1) )
 		return this;
-	else
-		if(m_pNext)
-			return m_pNext->Advance(dwCountdown-1);
-
-	return nullptr;
+	if ( m_orderIndex + dwCountdown >= g_Order.size() )
+		return nullptr;
+	return g_Order[m_orderIndex + dwCountdown];
 }
 
 CLabelTable* CLabelTable::Subtract(DWORD dwCountdown)
 {
-	if(dwCountdown==0)
+	if ( dwCountdown==0 || m_orderIndex==static_cast<size_t>(-1) )
 		return this;
-	else
-		if(m_pPrev)
-			return m_pPrev->Subtract(dwCountdown-1);
-
-	return nullptr;
+	if ( m_orderIndex < dwCountdown )
+		return nullptr;
+	return g_Order[m_orderIndex - dwCountdown];
 }
 
 bool CLabelTable::AddLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)

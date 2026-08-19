@@ -1,4 +1,5 @@
 #include "IncludeTable.h"
+#include "StringUtils.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -40,7 +41,7 @@ bool CIncludeTable::FindInclude(std::string_view filename) const
 	{
 		if(pCurrent->GetFilename() && pCurrent->GetFilename()->GetStr())
 		{
-			if(_stricmp(filename.data(), pCurrent->GetFilename()->GetStr())==0)
+			if(dbp::iequals(filename.data(), pCurrent->GetFilename()->GetStr()))
 				return true;
 		}
 

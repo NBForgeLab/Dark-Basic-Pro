@@ -4,6 +4,7 @@
 
 // Includes
 #include "windows.h"
+#include "StringUtils.h"
 #include "resource.h"
 #include "FileBuilder.h"
 #include "Error.h"
@@ -58,7 +59,7 @@ bool PublicationFailureRequested(const char* const stage)
 		static_cast<DWORD>(std::size(value)));
 	return size!=0 &&
 		size<std::size(value) &&
-		_stricmp(value, stage)==0;
+		dbp::iequals(value, stage);
 }
 
 std::wstring HexKeyId(const dbp::package::KeyId& keyId)
@@ -197,10 +198,10 @@ bool CFileBuilder::AddWildcardFiles(LPSTR pMediaRoot, LPSTR pMediaWidlcardFile)
 			else if (wildcardOnlyStr.rfind("*.", 0) == 0)
 			{
 				std::string ext = wildcardOnlyStr.substr(1);
-				if (_stricmp(entry.path().extension().string().c_str(), ext.c_str()) == 0)
+				if (dbp::iequals(entry.path().extension().string().c_str(), ext.c_str()))
 					bMatch = true;
 			}
-			else if (_stricmp(filename.c_str(), wildcardOnlyStr.c_str()) == 0)
+			else if (dbp::iequals(filename.c_str(), wildcardOnlyStr.c_str()))
 			{
 				bMatch = true;
 			}

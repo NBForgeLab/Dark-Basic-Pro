@@ -75,8 +75,8 @@ DARKSDK void  SetTextureMode			( sMesh* pMesh, int iStage, int iMode, int iMipMo
 
 // Mesh Texture Functions
 
-int   LoadOrFindTextureAsImage	( LPSTR pTextureName, LPSTR TexturePath );
-int   LoadOrFindTextureAsImage	( LPSTR pTextureName, LPSTR TexturePath, int iDivideTextureSize );
+int   LoadOrFindTextureAsImage	( LPCSTR pTextureName, LPCSTR TexturePath );
+int   LoadOrFindTextureAsImage	( LPCSTR pTextureName, LPCSTR TexturePath, int iDivideTextureSize );
 void  LoadInternalTextures		( sMesh* pMesh, LPSTR pPath, int iDBProMode, int iDivideTextureSize, LPSTR pOptionalLightmapNoReduce );
 void  LoadInternalTextures		( sMesh* pMesh, LPSTR pPath, int iDBProMode, int iDivideTextureSize );
 void  LoadInternalTextures		( sMesh* pMesh, LPSTR pPath, int iDBProMode );

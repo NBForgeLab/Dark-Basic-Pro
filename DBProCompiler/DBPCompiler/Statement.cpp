@@ -2,6 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
+#include "StringUtils.h"
 #include <type_traits>
 #include <memory>
 #include <string>
@@ -1811,7 +1812,7 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 		else
 		{
 			// Ensure more to process, else leave
-			if(_stricmp(pString.get(),"")!=0)
+			if(!dbp::iequals(pString.get(),""))
 			{
 				// Variable Name (ie MYVAR [=x])
 				pDecInit.reset(StatementHelper::SeperateInitFromType(pString.get()));
@@ -2410,7 +2411,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, [[maybe_unused]] DWORD
 
 			// Check two type descriptions
 			if(pLeftTypeName && pRightTypeName)
-				if(_stricmp(pLeftTypeName->GetStr(), pRightTypeName->GetStr())==0)
+				if(dbp::iequals(pLeftTypeName->GetStr(), pRightTypeName->GetStr()))
 					bTypesSame=true;
 
 			// LEEFIX - 171002 - If dealing with UDT only - allow others to carry on
@@ -2457,7 +2458,7 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, [[maybe_unused]] DWORD
 		if(pRef)
 		{
 			// Some instructions only parse in single param items
-			if(_stricmp(pRef->GetName()->GetStr(),"INPUT")==0)
+			if(dbp::iequals(pRef->GetName()->GetStr(),"INPUT"))
 			{
 				dwValidInstructionToUse=pRef->GetInternalID();
 				bOneParamPerRepeatedInstruction=true;
@@ -2574,9 +2575,9 @@ bool CStatement::DoInstruction(DWORD StatementLineNumber, [[maybe_unused]] DWORD
 
 		// Determine which commands are concats
 		DWORD dwConcatMode=0;
-		if(_stricmp(pRef->GetName()->GetStr(),"PRINT")==0) dwConcatMode=1;
-		if(_stricmp(pRef->GetName()->GetStr(),"INPUT")==0) dwConcatMode=2;
-		if(_stricmp(pRef->GetName()->GetStr(),"READ")==0) dwConcatMode=3;
+		if(dbp::iequals(pRef->GetName()->GetStr(),"PRINT")) dwConcatMode=1;
+		if(dbp::iequals(pRef->GetName()->GetStr(),"INPUT")) dwConcatMode=2;
+		if(dbp::iequals(pRef->GetName()->GetStr(),"READ")) dwConcatMode=3;
 
 		// Some multi-commands require CONCAT instruction (ie printc)
 		if(dwConcatMode>0)
@@ -4805,7 +4806,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 				// leefix - 250604 - u54 - ONLY if original NAME matches current instruction considered
 				if ( pValidEntryRef && *pRef && (*pRef)->GetName() && pValidEntryRef->GetName() )
 				{
-					if ( _stricmp ( (*pRef)->GetName()->GetStr(), pValidEntryRef->GetName()->GetStr() )!=0 ) 
+					if ( !dbp::iequals( (*pRef)->GetName()->GetStr(), pValidEntryRef->GetName()->GetStr() ) ) 
 					{
 						bInValidParams=true;
 					}
@@ -4832,7 +4833,7 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 									if ( pParamData && pParamData->m_pStruct )
 									{
 										CStr* pParamTypeName = pParamData->m_pStruct->GetTypeName();
-										if ( pFunctionTypeName && pParamTypeName && _stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=0 )
+										if ( pFunctionTypeName && pParamTypeName && !dbp::iequals( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() ) )
 										{
 											g_pErrorReport->SetError(g_pStatementList->GetTokenLineNumber(), ERR_SYNTAX+8, pValidEntryRef->GetName()->GetStr(), pFunctionTypeName->GetStr());
 											bInValidParams=true;
@@ -4983,13 +4984,13 @@ bool CStatement::DetermineIfReservedWord(LPCSTR pWord)
 		return true;
 
 	// Other internal reserved words (please rewrite me!)
-	if ( _stricmp(pWord, "NEXT")==0 ) return true;
-	if ( _stricmp(pWord, "STEP")==0 ) return true;
-	if ( _stricmp(pWord, "TO")==0 ) return true;
-	if ( _stricmp(pWord, "THEN")==0 ) return true;
-	if ( _stricmp(pWord, "SYNC")==0 ) return true;
-	if ( _stricmp(pWord, "RETURN")==0 ) return true;
-	if ( _stricmp(pWord, "END")==0 ) return true;
+	if ( dbp::iequals(pWord, "NEXT") ) return true;
+	if ( dbp::iequals(pWord, "STEP") ) return true;
+	if ( dbp::iequals(pWord, "TO") ) return true;
+	if ( dbp::iequals(pWord, "THEN") ) return true;
+	if ( dbp::iequals(pWord, "SYNC") ) return true;
+	if ( dbp::iequals(pWord, "RETURN") ) return true;
+	if ( dbp::iequals(pWord, "END") ) return true;
 
 	// not a reserved word
 	return false;

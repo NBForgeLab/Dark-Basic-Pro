@@ -29,8 +29,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-
-
 //////////////////////////////////////////////////////////////////////////////////
 // GLOBALS ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -92,8 +90,6 @@ DBPRO_GLOBAL RetVoidGetMemblockPtr		g_MEM_GetPtr					= NULL;
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
-
-
 
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +261,7 @@ DARKSDK BOOL DB_FileExist(char* Filename)
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)Filename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
 
@@ -289,7 +285,7 @@ DARKSDK DWORD DB_FileSize(char* Filename)
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)Filename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
 
@@ -318,7 +314,7 @@ DARKSDK BOOL DB_FileWriteProtected(char* Filename)
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)Filename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
 
@@ -698,12 +694,12 @@ DARKSDK BOOL DB_OpenToRead(int FileIndex, char* Filename)
 		// Uses actual or virtual file..
 		char VirtualFilename[_MAX_PATH];
 		strcpy(VirtualFilename, (LPSTR)Filename);
-		g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+		g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 		CheckForWorkshopFile ( VirtualFilename );
 
 		// Decrypt and use media
-		g_pGlob->Decrypt( (DWORD)VirtualFilename );
+		g_pGlob->Decrypt( VirtualFilename );
 		pVirtFileEncrypted[FileIndex] = new char[strlen(VirtualFilename)+1];
 		strcpy(pVirtFileEncrypted[FileIndex], VirtualFilename);
 		bRes = DB_OpenToReadCore( FileIndex, VirtualFilename );
@@ -735,7 +731,7 @@ DARKSDK BOOL DB_CloseFile(int FileIndex)
 		// Re-encrypt
 		if(pVirtFileEncrypted[FileIndex])
 		{
-			g_pGlob->Encrypt( (DWORD_PTR)pVirtFileEncrypted[FileIndex] );
+			g_pGlob->Encrypt( pVirtFileEncrypted[FileIndex] );
 			delete pVirtFileEncrypted[FileIndex];
 			pVirtFileEncrypted[FileIndex]=NULL;
 		}
@@ -762,7 +758,7 @@ DARKSDK LPSTR GetReturnStringFromWorkString(char* WorkString = m_pWorkString)
 // Command Functions
 //
 
-DARKSDK void SetDir( DWORD pString )
+DARKSDK void SetDir( DWORD_PTR pString )
 {
 	if(pString)
 	{
@@ -893,10 +889,6 @@ DARKSDK void ChecklistForDrives(void)
 	int i = g_pGlob->checklistqty;
 
 	
-
-	
-
-	
 	/*
 	char storedrive[_MAX_PATH];
 	getcwd(storedrive, _MAX_PATH);
@@ -961,7 +953,7 @@ DARKSDK void FindNext(void)
 	}
 }
 
-DARKSDK int CanMakeFile( DWORD pFilename )
+DARKSDK int CanMakeFile( DWORD_PTR pFilename )
 {
 	// 031107 - used to determine if in LIMITED USER AREA (no write)
 	if(DB_CanMakeFile((LPSTR)pFilename))
@@ -970,13 +962,13 @@ DARKSDK int CanMakeFile( DWORD pFilename )
 		return 0;
 }
 
-DARKSDK void MakeFile( DWORD pFilename )
+DARKSDK void MakeFile( DWORD_PTR pFilename )
 {
 	if(!DB_MakeFile((LPSTR)pFilename))
 		RunTimeWarning(RUNTIMEERROR_CANNOTMAKEFILE);
 }
 
-DARKSDK void DeleteFile( DWORD pFilename )
+DARKSDK void DeleteFile( DWORD_PTR pFilename )
 {
 	// LEEADD - 190803 - Will set the file to NORMAL so can delete READONLY files too
 	if ( SetFileAttributes ( (LPSTR)pFilename, FILE_ATTRIBUTE_NORMAL )==FALSE )
@@ -1001,26 +993,26 @@ DARKSDK void DeleteFile( DWORD pFilename )
 	}
 }
 
-DARKSDK void CopyFileCore( DWORD pFromFilename, DWORD pFilename2 )
+DARKSDK void CopyFileCore( DWORD_PTR pFromFilename, DWORD_PTR pFilename2 )
 {
 	if(!DB_CopyFile((LPSTR)pFromFilename, (LPSTR)pFilename2 ))
 		RunTimeWarning(RUNTIMEERROR_FILEEXISTS);
 }
 
-DARKSDK void CopyFile( DWORD szFilename, DWORD pFilename2 )
+DARKSDK void CopyFile( DWORD_PTR szFilename, DWORD_PTR pFilename2 )
 {
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
-	CopyFileCore ( (DWORD)VirtualFilename, pFilename2 );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
+	CopyFileCore ( (DWORD_PTR)VirtualFilename, pFilename2 );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
-DARKSDK void RenameFile( DWORD pFilename, DWORD pFilename2 )
+DARKSDK void RenameFile( DWORD_PTR pFilename, DWORD_PTR pFilename2 )
 {
 	if(!DB_FileExist((LPSTR)pFilename2))
 	{
@@ -1031,7 +1023,7 @@ DARKSDK void RenameFile( DWORD pFilename, DWORD pFilename2 )
 		RunTimeWarning(RUNTIMEERROR_FILEEXISTS);
 }
 
-DARKSDK void MoveFile( DWORD pFilename, DWORD pFilename2 )
+DARKSDK void MoveFile( DWORD_PTR pFilename, DWORD_PTR pFilename2 )
 {
 	if(!DB_FileExist((LPSTR)pFilename2))
 	{
@@ -1042,7 +1034,7 @@ DARKSDK void MoveFile( DWORD pFilename, DWORD pFilename2 )
 		RunTimeWarning(RUNTIMEERROR_FILEEXISTS);
 }
 
-DARKSDK void WriteByteToFile( DWORD pFilename, int iPos, int iByte )
+DARKSDK void WriteByteToFile( DWORD_PTR pFilename, int iPos, int iByte )
 {
 	char FilenameString[256];
 	strcpy(FilenameString, (LPSTR)pFilename);
@@ -1086,7 +1078,7 @@ DARKSDK void WriteByteToFile( DWORD pFilename, int iPos, int iByte )
 		RunTimeWarning(RUNTIMEERROR_FILENOTEXIST);
 }
 
-DARKSDK int ReadByteFromFile( DWORD pFilename, int iPos )
+DARKSDK int ReadByteFromFile( DWORD_PTR pFilename, int iPos )
 {
 	int iResult=0;
 	char FilenameString[_MAX_PATH];
@@ -1124,31 +1116,31 @@ DARKSDK int ReadByteFromFile( DWORD pFilename, int iPos )
 	return iResult;
 }
 
-DARKSDK void MakeDir( DWORD pFilename )
+DARKSDK void MakeDir( DWORD_PTR pFilename )
 {
 	if(!DB_MakeDir((LPSTR)pFilename))
 		RunTimeWarning(RUNTIMEERROR_CANNOTMAKEDIR);
 }
 
-DARKSDK void DeleteDir( DWORD pFilename )
+DARKSDK void DeleteDir( DWORD_PTR pFilename )
 {
 	if(!DB_DeleteDirRecursively((LPSTR)pFilename))
 		RunTimeWarning(RUNTIMEERROR_CANNOTDELETEDIR);
 }
 
-DARKSDK void DeleteDir( DWORD pFilename, int iFlag )
+DARKSDK void DeleteDir( DWORD_PTR pFilename, int iFlag )
 {
 	if(!DB_DeleteDirRecursively((LPSTR)pFilename))
 		RunTimeWarning(RUNTIMEERROR_CANNOTDELETEDIR);
 }
 
-DARKSDK void ExecuteFile( DWORD pFilename, DWORD pFilename2, DWORD pFilename3 )
+DARKSDK void ExecuteFile( DWORD_PTR pFilename, DWORD_PTR pFilename2, DWORD_PTR pFilename3 )
 {
 	if(!DB_ExecuteFile(&ghExecuteFileProcess, const_cast<LPSTR>(""), (LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, false ))
 		RunTimeWarning(RUNTIMEERROR_CANNOTEXECUTEFILE);
 }
 
-DARKSDK void ExecuteFileEx( DWORD pFilename, DWORD pFilename2, DWORD pFilename3, int iWaitForExeEndFlag )
+DARKSDK void ExecuteFileEx( DWORD_PTR pFilename, DWORD_PTR pFilename2, DWORD_PTR pFilename3, int iWaitForExeEndFlag )
 {
 	if(!DB_ExecuteFile(&ghExecuteFileProcess, const_cast<LPSTR>(""),(LPSTR)pFilename, (LPSTR)pFilename2, (LPSTR)pFilename3, true ))
 		RunTimeWarning(RUNTIMEERROR_CANNOTEXECUTEFILE);
@@ -1178,7 +1170,7 @@ DARKSDK void ExecuteFileEx( DWORD pFilename, DWORD pFilename2, DWORD pFilename3,
 	}
 }
 
-DARKSDK DWORD ExecuteFileIndi( DWORD pFilename, DWORD pFilename2, DWORD pFilename3, int iPriorityOfProcess )
+DARKSDK DWORD ExecuteFileIndi( DWORD_PTR pFilename, DWORD_PTR pFilename2, DWORD_PTR pFilename3, int iPriorityOfProcess )
 {
 	// Create process and return handle
 	DWORD dwIndiExecuteFileProcess = 0;
@@ -1189,7 +1181,7 @@ DARKSDK DWORD ExecuteFileIndi( DWORD pFilename, DWORD pFilename2, DWORD pFilenam
 	return dwIndiExecuteFileProcess;
 }
 
-DARKSDK DWORD ExecuteFileIndi( DWORD pFilename, DWORD pFilename2, DWORD pFilename3 )
+DARKSDK DWORD ExecuteFileIndi( DWORD_PTR pFilename, DWORD_PTR pFilename2, DWORD_PTR pFilename3 )
 {
 	return ExecuteFileIndi( pFilename, pFilename2, pFilename3, 0 );
 }
@@ -1245,7 +1237,7 @@ DARKSDK int GetExecutableRunning ( DWORD dwIndiExecuteFileProcess )
 // File Mapping Functions
 //
 
-DARKSDK void WriteFilemap ( DWORD pFilemapname, DWORD dwValue, DWORD pString, int iWriteType )
+DARKSDK void WriteFilemap ( DWORD_PTR pFilemapname, DWORD dwValue, DWORD_PTR pString, int iWriteType )
 {
 	// Open or create filemap
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_WRITE, TRUE, (LPSTR)pFilemapname);
@@ -1270,13 +1262,13 @@ DARKSDK void WriteFilemap ( DWORD pFilemapname, DWORD dwValue, DWORD pString, in
 //	CloseHandle(hFileMap);
 }
 
-DARKSDK void WriteFilemapValue ( DWORD pFilemapname, DWORD dwValue )
+DARKSDK void WriteFilemapValue ( DWORD_PTR pFilemapname, DWORD dwValue )
 {
 	// Write value to filemap
 	WriteFilemap ( pFilemapname, dwValue, NULL, 0 );
 }
 
-DARKSDK void WriteFilemapString ( DWORD pFilemapname, DWORD pString )
+DARKSDK void WriteFilemapString ( DWORD_PTR pFilemapname, DWORD_PTR pString )
 {
 	// Write string to filemap
 	if ( pString )
@@ -1284,7 +1276,7 @@ DARKSDK void WriteFilemapString ( DWORD pFilemapname, DWORD pString )
 			WriteFilemap ( pFilemapname, 0, pString, 1 );
 }
 
-DARKSDK DWORD ReadFilemapValue ( DWORD pFilemapname )
+DARKSDK DWORD ReadFilemapValue ( DWORD_PTR pFilemapname )
 {
 	// Open or create filemap for reading
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_WRITE, TRUE, (LPSTR)pFilemapname);
@@ -1302,7 +1294,7 @@ DARKSDK DWORD ReadFilemapValue ( DWORD pFilemapname )
 	return dwValue;
 }
 
-DARKSDK DWORD_PTR ReadFilemapString( DWORD_PTR pDestStr, DWORD pFilemapname )
+DARKSDK DWORD_PTR ReadFilemapString( DWORD_PTR pDestStr, DWORD_PTR pFilemapname )
 {
 	// Open or create filemap for reading
 	HANDLE hFileMap = OpenFileMapping(FILE_MAP_READ, TRUE, (LPSTR)pFilemapname);
@@ -1328,7 +1320,7 @@ DARKSDK DWORD_PTR ReadFilemapString( DWORD_PTR pDestStr, DWORD pFilemapname )
 // Sequential File Access Functions
 //
 
-DARKSDK void OpenToRead( int f, DWORD pFilename )
+DARKSDK void OpenToRead( int f, DWORD_PTR pFilename )
 {
 
 	if(f>=1 && f<=MAX_FILES)
@@ -1351,7 +1343,7 @@ DARKSDK void OpenToRead( int f, DWORD pFilename )
 }
 
 
-DARKSDK void OpenToWrite( int f, DWORD pFilename )
+DARKSDK void OpenToWrite( int f, DWORD_PTR pFilename )
 {
 	if(f>=1 && f<=MAX_FILES)
 	{
@@ -1488,7 +1480,7 @@ DARKSDK DWORD ReadFloat( int f )
 	return *(DWORD*)&fResult;
 }
 
-DARKSDK DWORD ReadString( int f, DWORD pDestStr )
+DARKSDK DWORD ReadString( int f, DWORD_PTR pDestStr )
 {
     /*
         20091129 v75 - IRM - http://forum.thegamecreators.com/?m=forum_view&t=81894&b=15
@@ -1650,7 +1642,7 @@ DARKSDK void MakePathToThisFolder(char* thepathiwant)
 	chdir(olddir);
 }
 
-DARKSDK void ReadFileBlock( int f, DWORD pFilename )
+DARKSDK void ReadFileBlock( int f, DWORD_PTR pFilename )
 {
 	if(f>=1 && f<=MAX_FILES)
 	{
@@ -1713,7 +1705,7 @@ DARKSDK void SkipBytes( int f, int iSkipValue )
 		RunTimeWarning(RUNTIMEERROR_FILENUMBERINVALID);
 }
 
-DARKSDK void ReadDirBlock( int f, DWORD pFilename )
+DARKSDK void ReadDirBlock( int f, DWORD_PTR pFilename )
 {
 	if(f>=1 && f<=MAX_FILES)
 	{
@@ -1861,7 +1853,7 @@ DARKSDK void WriteFloat( int f, float fValue )
 		RunTimeWarning(RUNTIMEERROR_FILENUMBERINVALID);
 }
 
-DARKSDK void WriteString( int f, DWORD pString )
+DARKSDK void WriteString( int f, DWORD_PTR pString )
 {
     /*
         20091129 v75 - IRM - http://forum.thegamecreators.com/?m=forum_view&t=108603&b=15
@@ -1956,13 +1948,13 @@ DARKSDK void WriteFileBlockCore( char* FilenameString, int f, int mode )
 		RunTimeWarning(RUNTIMEERROR_FILENUMBERINVALID);
 }
 
-DARKSDK void WriteFileBlock( int f, DWORD pFilename )
+DARKSDK void WriteFileBlock( int f, DWORD_PTR pFilename )
 {
 	char* FilenameString = (LPSTR)pFilename;
 	WriteFileBlockCore(FilenameString, f, 0);
 }
 
-DARKSDK void WriteFileBlock( int f, DWORD pFilename, int iFlag )
+DARKSDK void WriteFileBlock( int f, DWORD_PTR pFilename, int iFlag )
 {
 	char* FilenameString = (LPSTR)pFilename;
 	WriteFileBlockCore(FilenameString, f, 1);
@@ -2029,7 +2021,7 @@ DARKSDK void WriteDirContents(int f, char* newdir, bool bMode, DWORD* pCount, ch
 	chdir(olddir);
 }
 
-DARKSDK void WriteDirBlock( int f, DWORD pFilename )
+DARKSDK void WriteDirBlock( int f, DWORD_PTR pFilename )
 {
 	if(f>=1 && f<=MAX_FILES)
 	{
@@ -2276,20 +2268,18 @@ DARKSDK DWORD_PTR GetFileCreation( DWORD_PTR pDestStr )
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK int FileExist( DWORD pFilename )
+DARKSDK int FileExist( DWORD_PTR pFilename )
 {
-	if(DB_FileExist((LPSTR)pFilename))
-		return 1;
-	else
-		return 0;
+	int exist = DB_FileExist((LPSTR)pFilename) ? 1 : 0;
+	return exist;
 }
 
-DARKSDK int FileSize( DWORD pFilename )
+DARKSDK int FileSize( DWORD_PTR pFilename )
 {
 	return DB_FileSize((LPSTR)pFilename);
 }
 
-DARKSDK int PathExist( DWORD pFilename )
+DARKSDK int PathExist( DWORD_PTR pFilename )
 {
 	if(DB_PathExist((LPSTR)pFilename))
 		return 1;
@@ -2518,7 +2508,7 @@ char* dbReadFilemapString ( char* pFilemapname )
 	return szReturn;
 }
 
-DWORD_PTR dbReadFilemapString( DWORD_PTR pDestStr, DWORD pFilemapname )
+DWORD_PTR dbReadFilemapString( DWORD_PTR pDestStr, DWORD_PTR pFilemapname )
 {
 	return ReadFilemapString ( (DWORD_PTR)pDestStr, (DWORD_PTR)pFilemapname );
 }

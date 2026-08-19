@@ -187,8 +187,8 @@ DARKSDK_DLL void ConstructorD3D ( HINSTANCE hSetup, HINSTANCE hImage, HINSTANCE 
 		g_Image_Constructor         = ( IMAGE_RetVoidParamHINSTANCEPFN )		GetProcAddress ( hImage, "?Constructor@@YAXPAUHINSTANCE__@@@Z" );
 		g_Image_Destructor          = ( IMAGE_RetVoidParamVoidPFN )				GetProcAddress ( hImage, "?Destructor@@YAXXZ" );
 
-		g_Image_InternalLoad        = ( IMAGE_LoadInternalTexturePFN )			GetProcAddress ( hImage, "?LoadInternal@@YAHPAD@Z" );
-		g_Image_InternalLoadEx      = ( IMAGE_LoadInternalTextureDividePFN )	GetProcAddress ( hImage, "?LoadInternal@@YAHPADH@Z" );
+		g_Image_InternalLoad        = ( IMAGE_LoadInternalTexturePFN )			GetProcAddress ( hImage, "?LoadInternal@@YAHPEBD@Z" );
+		g_Image_InternalLoadEx      = ( IMAGE_LoadInternalTextureDividePFN )	GetProcAddress ( hImage, "?LoadInternal@@YAHPEBDH@Z" );
 
 		g_Image_Load	            = ( IMAGE_RetBoolParamIntPCharPFN )			GetProcAddress ( hImage, "?Load@@YA_NHPAD@Z" );
 		g_Image_Save	            = ( IMAGE_RetBoolParamIntPCharPFN )			GetProcAddress ( hImage, "?Save@@YA_NHPAD@Z" );
@@ -713,7 +713,7 @@ DARKSDK_DLL LPSTR GetReturnStringFromWorkString(void)
 	// leeadd - 180606 - u62 - uses actual or virtual file
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, pFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	// open File To See If Exist
 	HANDLE hfile = CreateFile(VirtualFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);

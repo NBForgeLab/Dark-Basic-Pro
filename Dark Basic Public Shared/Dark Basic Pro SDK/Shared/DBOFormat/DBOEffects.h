@@ -206,10 +206,10 @@ class cReflectionMapping : public cSpecialEffect
 	public:
 
 		// constructors
-		cReflectionMapping::cReflectionMapping ( )
+		cReflectionMapping ( )
 		{
 		};
-		cReflectionMapping::~cReflectionMapping ( )
+		~cReflectionMapping ( )
 		{
 		};
 

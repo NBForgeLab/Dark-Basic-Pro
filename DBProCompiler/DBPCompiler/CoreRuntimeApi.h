@@ -18,7 +18,11 @@ using CoreDword = DWORD (*)();
 using CoreDwordParameter = DWORD (*)(DWORD);
 // Space factories return a pointer-sized address (DWORD_PTR in the runtime)
 using CoreCreateSpace = void* (*)(DWORD);
-using CoreVoidDwordPointer = void (*)(DWORD*);
+// Frees the pointer-sized handle stored in a variable slot; takes the slot
+// ADDRESS (the runtime dereferences it to read the 8-byte handle).
+using CoreSlotFree = void (*)(DWORD_PTR*);
+// Frees an array by its pointer-sized handle VALUE (UnDimDD signature).
+using CoreArrayFree = DWORD_PTR (*)(DWORD_PTR);
 using CoreInitializeDisplay = DWORD (*)(
     DWORD, DWORD, DWORD, DWORD, HINSTANCE, char*);
 using CoreGetGlob = void* (*)();
@@ -40,8 +44,8 @@ struct CoreRuntimeApi {
     CoreVoid deleteVariableSpace = nullptr;
     CoreCreateSpace createDataSpace = nullptr;
     CoreVoid deleteDataSpace = nullptr;
-    CoreVoidDwordPointer deleteVariableItem = nullptr;
-    CoreVoidDwordPointer unDim = nullptr;
+    CoreSlotFree deleteVariableItem = nullptr;
+    CoreArrayFree unDim = nullptr;
     CoreVoid sync = nullptr;
 };
 

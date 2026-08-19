@@ -4,6 +4,7 @@
 
 // Includes
 #include <stdio.h>
+#include "StringUtils.h"
 #include <iostream>
 #include "direct.h"
 #include "macros.h"
@@ -58,7 +59,7 @@ bool				g_bLocalTempFolder	= false;
 bool				g_bExternaliseDLLS	= false;
 
 // External Values
-extern DWORD g_dwEscapeValueMem;
+extern DWORD_PTR g_dwEscapeValueMem;
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -747,7 +748,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 							{
 								if(pCheckConst->GetString() && pCheckConst->GetString()->GetStr())
 								{
-									if(_stricmp(pConstantName, pCheckConst->GetString()->GetStr())==0)
+									if(dbp::iequals(pConstantName, pCheckConst->GetString()->GetStr()))
 									{
 										bConstantNameWithinAnother = true;
 										break;
@@ -1445,7 +1446,7 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 
 	// Check for .DBPRO Extension
 	bool bFilenameIsProjectFile=false;
-	if(_stricmp(pStrExt, ".dbpro")==0) bFilenameIsProjectFile=true;
+	if(dbp::iequals(pStrExt, ".dbpro")) bFilenameIsProjectFile=true;
 	//SAFE_DELETE(pStrExt);
 
 	// Resolve the project directory once; downstream outputs and media must not
@@ -1654,7 +1655,7 @@ bool CDBPCompiler::GetProjectState(LPCSTR pFieldName, bool bDefault)
 	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
 	if(pState)
 	{
-		if(_stricmp(pState.get(),"yes")==0)
+		if(dbp::iequals(pState.get(),"yes"))
 			bState=true;
 		else
 			bState=false;
@@ -1673,7 +1674,7 @@ bool CDBPCompiler::GetProjectStateMatch(LPCSTR pFieldName, LPCSTR pCompareStr)
 	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
 	if(pState)
 	{
-		if(_stricmp(pState.get(),pCompareStr)==0)
+		if(dbp::iequals(pState.get(),pCompareStr))
 			bState=true;
 		else
 			bState=false;
@@ -1715,8 +1716,8 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPCSTR pFieldName, DWORD dwDisplayItem
 				sscanf_s(pState, "%lu,%lu,%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
 			else
 				sscanf_s(pState, "%lux%lux%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
-			if(_stricmp(depth, "16")==0) dwDisplayData=16;
-			if(_stricmp(depth, "16M")==0) dwDisplayData=32;
+			if(dbp::iequals(depth, "16")) dwDisplayData=16;
+			if(dbp::iequals(depth, "16M")) dwDisplayData=32;
 		}
 	}
 	if(dwDisplayData==0)
@@ -2003,17 +2004,17 @@ bool CDBPCompiler::EstablishRequiredBaseFiles(void)
 	g_bLocalTempFolder = false;
 	g_bExternaliseDLLS = false;
 	GetPrivateProfileString("DIRECTIVES", "RemoveSafetyCode", "no", textfiles, 256, setupIniPath.c_str());
-	if ( _stricmp ( textfiles, "yes" )==0 ) m_bRemoveSafetyCode = true;
+	if ( dbp::iequals( textfiles, "yes" ) ) m_bRemoveSafetyCode = true;
 	GetPrivateProfileString("DIRECTIVES", "SafeArrays", "yes", textfiles, 256, setupIniPath.c_str());
-	if ( _stricmp ( textfiles, "yes" )==0 ) m_bSafeArrays = true;
+	if ( dbp::iequals( textfiles, "yes" ) ) m_bSafeArrays = true;
 
 	// lee - 050406 - u6rc6 - new diretive
 	GetPrivateProfileString("DIRECTIVES", "LocalTempFolder", "no", textfiles, 256, setupIniPath.c_str());
-	if ( _stricmp ( textfiles, "yes" )==0 ) g_bLocalTempFolder = true;
+	if ( dbp::iequals( textfiles, "yes" ) ) g_bLocalTempFolder = true;
 	
 	// lee - 270308 - u67 - can externalise all DLLs to make exe smaller and rely on outside DLLs being dropped in
 	GetPrivateProfileString("DIRECTIVES", "ExternaliseDLLS", "no", textfiles, 256, setupIniPath.c_str());
-	if ( _stricmp ( textfiles, "yes" )==0 ) g_bExternaliseDLLS = true;
+	if ( dbp::iequals( textfiles, "yes" ) ) g_bExternaliseDLLS = true;
 
 	// Get Path to Debugger Program
 	SetInternalFile(

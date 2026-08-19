@@ -78,7 +78,7 @@ if(MSVC)
         icons/ICONS.C
         PROPERTIES 
         COMPILE_FLAGS "/TC"
-        COMPILE_DEFINITIONS "WIN32;_WINDOWS;NOGETDXVERSIONCODE"
+        COMPILE_DEFINITIONS "_WINDOWS;NOGETDXVERSIONCODE"
     )
 endif()
 
@@ -86,7 +86,7 @@ endif()
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
 set_target_properties(dbp_compiler_lib PROPERTIES UNITY_BUILD ON)
 dbp_apply_legacy_cpp_options(dbp_compiler_lib)
-target_compile_definitions(dbp_compiler_lib PRIVATE WIN32 _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
+target_compile_definitions(dbp_compiler_lib PRIVATE _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
 target_link_libraries(dbp_compiler_lib PUBLIC
     dbp_package
     winmm
@@ -150,13 +150,16 @@ add_executable(
 )
 add_dependencies(DBPCompiler DarkEXE)
 dbp_apply_legacy_cpp_options(DBPCompiler)
-target_compile_definitions(DBPCompiler PRIVATE WIN32 _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
+target_compile_definitions(DBPCompiler PRIVATE _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
 
 # A compiler build is only usable when its host command database, localized
-# diagnostics, and legacy product plug-ins are deployed beside it. The
-# debugger is built from source (DBPDebugger target) into the same output
-# directory, so it must not be overwritten by a prebuilt copy here.
+# diagnostics, and legacy product plug-ins are deployed beside it. Plug-in
+# targets build from source into the same plugins directory, so the committed
+# prebuilts must only fill gaps for binaries the current build does not
+# produce — a prebuilt copy may never shadow a fresh build. The debugger is
+# built from source (DBPDebugger target) into the same output directory for
+# the same reason.
 set(DBP_COMPILER_HOST_ROOT "${CMAKE_SOURCE_DIR}/Install/Compiler")
 add_custom_command(
     TARGET DBPCompiler
@@ -172,15 +175,18 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${DBP_COMPILER_HOST_ROOT}/effects"
         "$<TARGET_FILE_DIR:DBPCompiler>/effects"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${DBP_COMPILER_HOST_ROOT}/plugins"
-        "$<TARGET_FILE_DIR:DBPCompiler>/plugins"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${DBP_COMPILER_HOST_ROOT}/plugins-user"
-        "$<TARGET_FILE_DIR:DBPCompiler>/plugins-user"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${DBP_COMPILER_HOST_ROOT}/plugins-licensed"
-        "$<TARGET_FILE_DIR:DBPCompiler>/plugins-licensed"
+    COMMAND ${CMAKE_COMMAND}
+        "-DDBP_COPY_SOURCE_DIR=${DBP_COMPILER_HOST_ROOT}/plugins"
+        "-DDBP_COPY_DEST_DIR=$<TARGET_FILE_DIR:DBPCompiler>/plugins"
+        -P "${CMAKE_SOURCE_DIR}/cmake/copy_directory_if_missing.cmake"
+    COMMAND ${CMAKE_COMMAND}
+        "-DDBP_COPY_SOURCE_DIR=${DBP_COMPILER_HOST_ROOT}/plugins-user"
+        "-DDBP_COPY_DEST_DIR=$<TARGET_FILE_DIR:DBPCompiler>/plugins-user"
+        -P "${CMAKE_SOURCE_DIR}/cmake/copy_directory_if_missing.cmake"
+    COMMAND ${CMAKE_COMMAND}
+        "-DDBP_COPY_SOURCE_DIR=${DBP_COMPILER_HOST_ROOT}/plugins-licensed"
+        "-DDBP_COPY_DEST_DIR=$<TARGET_FILE_DIR:DBPCompiler>/plugins-licensed"
+        -P "${CMAKE_SOURCE_DIR}/cmake/copy_directory_if_missing.cmake"
     VERBATIM
     COMMENT "Deploying the DBPro compiler host runtime"
 )

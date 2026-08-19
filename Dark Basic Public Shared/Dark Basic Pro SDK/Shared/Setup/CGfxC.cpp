@@ -265,7 +265,6 @@ namespace DisplayLibrary
 //////////////////////////////////////////////////////////////////////////////////
 
 
-
 DARKSDK GlobStruct* GetGlobalData ( void )
 {
 	return g_pGlob;
@@ -551,7 +550,6 @@ DARKSDK bool Constructor ( void )
 	#endif
 
 	// Success
-
 	return true;
 }
 
@@ -3289,7 +3287,6 @@ DARKSDK void SetRenderState ( int iState, int iValue )
 {
 	m_pD3DDevice->SetRenderState ( ( D3DRENDERSTATETYPE ) iState, iValue );
 }
-
 
 
 DARKSDK IDirect3D9* GetDirect3D ( void )

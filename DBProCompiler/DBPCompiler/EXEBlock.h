@@ -24,7 +24,11 @@ typedef DWORD				( *GDI_RetDWORDParamPASSDLLS )			( HINSTANCE, HINSTANCE, HINSTA
 typedef void*				( *GDI_RetLPVOIDParamVoidPFN )			( void );
 typedef DWORD				( *GDI_RetDWORDParamVoidPFN )			( void );
 typedef void*				( *GDI_CreateSpacePFN )					( DWORD );
-typedef void				( *GDI_RetVoidParamDWORDPTRPFN )		( DWORD* );
+// Teardown helpers receive pointer-sized addresses/handles. DeleteVarItem is
+// given the ADDRESS of a variable slot (it frees the 8-byte handle stored
+// there); UnDim is given the array HANDLE value itself and returns it zeroed.
+typedef void				( *GDI_RetVoidParamDWORDPTRPFN )		( DWORD_PTR* );
+typedef DWORD_PTR			( *GDI_RetDWORDPTRParamDWORDPTRPFN )	( DWORD_PTR );
 typedef int					( *GDI_RetIntParamVoidPFN )				( void );
 
 // DLL Function Typdefs
@@ -128,10 +132,13 @@ class CEXEBlock
 		DWORD*			m_pRefWidthArray;
 		DWORD*			m_pRefRelEndArray;
 
-		// Runtime Error and Escape Value DWORDs
-		DWORD			m_dwRuntimeErrorDWORD;
-		DWORD			m_dwRuntimeErrorLineDWORD;
-		DWORD			m_dwEscapeValueDWORD;
+		// Runtime Error and Escape Value cells. The generated x86-64 code
+		// accesses these with full 64-bit (REX.W) operand size, so the cells
+		// must be native 64-bit - adjacent 32-bit cells would be spanned by a
+		// single 8-byte access and corrupt each other.
+		DWORD_PTR		m_dwRuntimeErrorDWORD;
+		DWORD_PTR		m_dwRuntimeErrorLineDWORD;
+		DWORD_PTR		m_dwEscapeValueDWORD;
 
 		// Runtime Error String Database
 		DWORD			m_dwNumberOfRuntimeErrorStrings;

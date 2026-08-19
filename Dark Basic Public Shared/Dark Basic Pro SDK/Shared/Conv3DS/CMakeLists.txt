@@ -12,8 +12,8 @@ dbp_apply_legacy_cpp_options(dbp_plugin_conv3ds)
 
 set_target_properties(dbp_plugin_conv3ds PROPERTIES
     OUTPUT_NAME "Conv3DS"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/plugins"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/plugins"
 )
 
 target_include_directories(dbp_plugin_conv3ds PUBLIC

@@ -13,8 +13,8 @@ dbp_apply_legacy_cpp_options(dbp_plugin_animation)
 
 set_target_properties(dbp_plugin_animation PROPERTIES
     OUTPUT_NAME "DBProAnimationDebug"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/plugins"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/plugins"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/plugins"
 )
 
 target_include_directories(dbp_plugin_animation PUBLIC

@@ -2,6 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
+#include "StringUtils.h"
 
 // Common Includes
 #include "Declaration.h"
@@ -44,7 +45,7 @@ CDeclaration* CDeclaration::Find(LPCSTR pName, DWORD dwArrFlag)
 	CDeclaration* pCurrent = this;
 	while(pCurrent)
 	{
-		if(pCurrent->GetName() && _stricmp(pName, pCurrent->GetName()->GetStr())==0
+		if(pCurrent->GetName() && dbp::iequals(pName, pCurrent->GetName()->GetStr())
 		&& pCurrent->GetArrFlag()==dwArrFlag)
 			return pCurrent;
 

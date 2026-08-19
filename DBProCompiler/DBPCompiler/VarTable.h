@@ -9,6 +9,7 @@
 #include "PerfMacros.h"
 
 #include <string>
+#include <vector>
 
 #ifdef __AARON_VARTABLEPERF__
 # include <unordered_map>
@@ -27,10 +28,26 @@ class CVarTable
 		void AddInOrder(LPCSTR pName, CVarTable* pNew);
 		CVarTable* Advance(DWORD dwCountdown);
 		CVarTable* Subtract(DWORD dwCountdown);
-		[[nodiscard]] CVarTable* GetNext(void) noexcept { return m_pNext; }
-		[[nodiscard]] const CVarTable* GetNext(void) const noexcept { return m_pNext; }
-		[[nodiscard]] CVarTable* GetPrev(void) noexcept { return m_pPrev; }
-		[[nodiscard]] const CVarTable* GetPrev(void) const noexcept { return m_pPrev; }
+		[[nodiscard]] CVarTable* GetNext(void) noexcept
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex+1>=g_Order.size() ) return nullptr;
+			return g_Order[m_orderIndex+1];
+		}
+		[[nodiscard]] const CVarTable* GetNext(void) const noexcept
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex+1>=g_Order.size() ) return nullptr;
+			return g_Order[m_orderIndex+1];
+		}
+		[[nodiscard]] CVarTable* GetPrev(void) noexcept
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex==0 ) return nullptr;
+			return g_Order[m_orderIndex-1];
+		}
+		[[nodiscard]] const CVarTable* GetPrev(void) const noexcept
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex==0 ) return nullptr;
+			return g_Order[m_orderIndex-1];
+		}
 		void SetVarDefaults(void);
 
 		bool			AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal);
@@ -103,14 +120,14 @@ class CVarTable
 		// Mini-CLI Program Support
 		bool			m_bOffsetAssigned;
 
-		// Hierarchy Data
-		CVarTable*		m_pNext;
-		CVarTable*		m_pPrev;
+		// Position in the global declaration-order index (replaces legacy linked list)
+		size_t			m_orderIndex;
 
 		// Dictionary
 #ifdef __AARON_VARTABLEPERF__
 		static std::unordered_map<std::string, CVarTable*> g_Table;
 #endif
+		static std::vector<CVarTable*> g_Order;
 };
 
 #endif // !defined(AFX_VARTABLE_H__4910A987_6F89_44BE_BCB7_3DE3DEDD217B__INCLUDED_)

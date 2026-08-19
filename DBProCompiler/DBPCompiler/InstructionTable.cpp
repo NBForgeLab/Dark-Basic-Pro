@@ -5,6 +5,7 @@
 
 // Includes
 #include "macros.h"
+#include "StringUtils.h"
 #include "InstructionTable.h"
 #include "VarTable.h"
 #include "direct.h"
@@ -183,12 +184,12 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 
 	// Internal Commands (generated internally)
 	AddCommandCore("+exitfunction", "", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::UserFunctionExit), static_cast<DWORD>(BuildTask::UserFunctionExit));
-	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YAKKKKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
-	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YAKK@Z", "D", 7, 1, static_cast<DWORD>(InternalInstruction::Free), 0);
+	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YA_K_KKKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
+	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YA_K_K@Z", "D", 7, 1, static_cast<DWORD>(InternalInstruction::Free), 0);
 	AddCommandCore("+assign", "", "MOVLL", "LL", 0, 0, static_cast<DWORD>(InternalInstruction::AssignLL), 0);
 	AddCommandCore("+assign", "", "MOVFF", "FF", 0, 0, static_cast<DWORD>(InternalInstruction::AssignFF), 0);
-	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YAKKK@Z", "S", 3, 2, static_cast<DWORD>(InternalInstruction::AssignSS), 0);
-	AddCommandCore("+free", "dbprocore.dll", "?FreeSS@@YAKK@Z", "S", 3, 1, static_cast<DWORD>(InternalInstruction::StrFree), 0);
+	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YA_K_K0@Z", "S", 3, 2, static_cast<DWORD>(InternalInstruction::AssignSS), 0);
+	AddCommandCore("+free", "dbprocore.dll", "?FreeSS@@YA_K_K@Z", "S", 3, 1, static_cast<DWORD>(InternalInstruction::StrFree), 0);
 	
 	// Internal Assignments Commands
 	AddCommandCore("+assign", "", "MOVBB", "BB", 0, 0, static_cast<DWORD>(InternalInstruction::AssignBB), 0);
@@ -247,20 +248,20 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 	AddCommandCore("+mathfloat", "dbprocore.dll", "?LessEqualLFF@@YAKMM@Z", "FF", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualLFF), 0);
 
 	// Internal Math Commands
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::EqualSS), 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::GreaterLSS), 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::LessLSS), 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::NotEqualLSS), 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLSS), 0);
-//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YAKKKK@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::EqualSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessLSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLSS), 0);
-	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAKKK@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YA_K_K00@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAK_K0@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::EqualSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAK_K0@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::GreaterLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAK_K0@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::LessLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAK_K0@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::NotEqualLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAK_K0@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLSS), 0);
+//	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAK_K0@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?AddSSS@@YA_K_K00@Z", "SS", 3, 2, static_cast<DWORD>(InternalInstruction::AddSSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?EqualLSS@@YAK_K0@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::EqualSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterLSS@@YAK_K0@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?LessLSS@@YAK_K0@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?NotEqualLSS@@YAK_K0@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::NotEqualLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?GreaterEqualLSS@@YAK_K0@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::GreaterEqualLSS), 0);
+	AddCommandCore("+mathstr", "dbprocore.dll", "?LessEqualLSS@@YAK_K0@Z", "SS", 1, 2, static_cast<DWORD>(InternalInstruction::LessEqualSS), 0);
 
 	// Internal Math Commands
 	AddCommandCore("+mathdoublef", "dbprocore.dll", "?PowerOOO@@YANNN@Z", "OO", 8, 2, static_cast<DWORD>(InternalInstruction::PowerOOO), 0);
@@ -363,7 +364,7 @@ void CInstructionTable::ScanPluginDirectory(const std::filesystem::path& dirPath
 		if (entry.is_regular_file(ec))
 		{
 			auto ext = entry.path().extension().string();
-			if (_stricmp(ext.c_str(), ".dll") == 0)
+			if (dbp::iequals(ext.c_str(), ".dll"))
 			{
 				std::string name = entry.path().stem().string();
 				std::string filename = entry.path().filename().string();
@@ -525,9 +526,9 @@ bool CInstructionTable::AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecor
 				{
 					if(pEntry->GetDecoratedName() && pLastFriendEntry->GetDecoratedName() && pEntry->GetDecoratedName()->Length()>0 && pLastFriendEntry->GetDecoratedName()->Length()>0)
 					{
-						if(pLastFriendEntry->GetName() && pEntry->GetName() && _stricmp(pLastFriendEntry->GetName()->GetStr(), pEntry->GetName()->GetStr())==0)
+						if(pLastFriendEntry->GetName() && pEntry->GetName() && dbp::iequals(pLastFriendEntry->GetName()->GetStr(), pEntry->GetName()->GetStr()))
 						{
-							if(pLastFriendEntry->GetParamTypes() && pEntry->GetParamTypes() && _stricmp(pLastFriendEntry->GetParamTypes()->GetStr(), pEntry->GetParamTypes()->GetStr())==0)
+							if(pLastFriendEntry->GetParamTypes() && pEntry->GetParamTypes() && dbp::iequals(pLastFriendEntry->GetParamTypes()->GetStr(), pEntry->GetParamTypes()->GetStr()))
 							{
 								// if return string valid, fill with conflicting DLL/name
 								if ( plpretStr )
@@ -1062,7 +1063,7 @@ bool CInstructionTable::FindInstructionParams(DWORD dwInstructionValue, DWORD dw
 				CInstructionTableEntry* pPrimary = pEntry;
 
 				// Found Instruction - now find params that match
-				while(pEntry && pPrimary->GetName() && pEntry->GetName() && _stricmp(pPrimary->GetName()->GetStr(), pEntry->GetName()->GetStr())==0)
+				while(pEntry && pPrimary->GetName() && pEntry->GetName() && dbp::iequals(pPrimary->GetName()->GetStr(), pEntry->GetName()->GetStr()))
 				{
 					// Match Param to exit with valid instruction (or Type A repeated instruction like PRINT/INPUT/READ)
 					if(pEntry->GetParamMax()==dwParamMax || (pEntry->GetParamTypes() && pEntry->GetParamTypes()->CheckChars(0, 1, "A")))
@@ -1114,7 +1115,7 @@ bool CInstructionTable::FindUserFunctionParams(DWORD dwInstructionValue, DWORD d
 				CInstructionTableEntry* pPrimary = pEntry;
 
 				// Found Instruction - now find params that match
-				while(pEntry && pPrimary->GetName() && pEntry->GetName() && _stricmp(pPrimary->GetName()->GetStr(), pEntry->GetName()->GetStr())==0)
+				while(pEntry && pPrimary->GetName() && pEntry->GetName() && dbp::iequals(pPrimary->GetName()->GetStr(), pEntry->GetName()->GetStr()))
 				{
 					// Match Param to exit with valid instruction
 					if(pEntry->GetParamMax()==dwParamMax)
@@ -1144,7 +1145,7 @@ bool CInstructionTable::CompareInstructionNames(CInstructionTableEntry* pRefEntr
 	if(pRefEntryA && pRefEntryB && pRefEntryA->GetName() && pRefEntryB->GetName()
 	&& pRefEntryA->GetName()->GetStr() && pRefEntryB->GetName()->GetStr())
 	{
-		if(_stricmp(pRefEntryA->GetName()->GetStr(), pRefEntryB->GetName()->GetStr())==0)
+		if(dbp::iequals(pRefEntryA->GetName()->GetStr(), pRefEntryB->GetName()->GetStr()))
 			return true;
 	}
 
@@ -1165,7 +1166,7 @@ CInstructionTableEntry* CInstructionTable::FindUserFunction(LPCSTR pUserFunction
 	CInstructionTableEntry* pEntry = m_pFirstUserFunctionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pUserFunctionName && _stricmp(pEntry->GetName()->GetStr(), pUserFunctionName)==0)
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pUserFunctionName && dbp::iequals(pEntry->GetName()->GetStr(), pUserFunctionName))
 			return pEntry;
 
 		pEntry=pEntry->GetNext();
@@ -1189,7 +1190,7 @@ CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPCSTR pFunction
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFunctionName && _stricmp(pEntry->GetName()->GetStr(), pFunctionName)==0)
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFunctionName && dbp::iequals(pEntry->GetName()->GetStr(), pFunctionName))
 			return pEntry;
 
 		pEntry=pEntry->GetNext();
@@ -1211,7 +1212,7 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pP
 
 	while(item)
 	{
-		if (item->GetParamTypes() && item->GetParamTypes()->GetStr() && pParams && _stricmp(item->GetParamTypes()->GetStr(), pParams)==0)
+		if (item->GetParamTypes() && item->GetParamTypes()->GetStr() && pParams && dbp::iequals(item->GetParamTypes()->GetStr(), pParams))
 			return true;
 
 		item = item->GetNext();
@@ -1225,8 +1226,8 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pP
 	{
 		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pName
 		&& pEntry->GetParamTypes() && pEntry->GetParamTypes()->GetStr() && pParams
-		&& _stricmp(pEntry->GetName()->GetStr(), pName)==0
-		&& _stricmp(pEntry->GetParamTypes()->GetStr(), pParams)==0)
+		&& dbp::iequals(pEntry->GetName()->GetStr(), pName)
+		&& dbp::iequals(pEntry->GetParamTypes()->GetStr(), pParams))
 		{
 			// Found same instruction
 			return true;
@@ -1263,7 +1264,7 @@ CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPCSTR pFriendNa
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFriendName && _stricmp(pEntry->GetName()->GetStr(), pFriendName)==0)
+		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFriendName && dbp::iequals(pEntry->GetName()->GetStr(), pFriendName))
 			pMatch=pEntry;
 
 		pEntry=pEntry->GetNext();
@@ -1913,12 +1914,12 @@ bool CInstructionTable::CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, L
 {
 	bool bNotAnyTrouble=true;
 
-	if(_stricmp(pCommandName,"print")==0)
+	if(dbp::iequals(pCommandName,"print"))
 	{
 		sTXTThisSyntax = "PRINT Print Statements";
 		bNotAnyTrouble=false;
 	}
-	if(_stricmp(pCommandName,"input")==0)
+	if(dbp::iequals(pCommandName,"input"))
 	{
 		sTXTThisSyntax = "INPUT Print Statements, Input Variable";
 		bNotAnyTrouble=false;

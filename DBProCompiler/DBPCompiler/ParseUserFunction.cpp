@@ -4,6 +4,7 @@
 
 // Common Includes
 #include "VarTable.h"
+#include "StringUtils.h"
 #include "StructTable.h"
 #include "InstructionTable.h"
 #include "ParseUserFunction.h"
@@ -67,7 +68,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull2, 7);
 
 				// CALL EQUATE to create a NEW STRING from CURRENT STRING
-				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YA_K_K0@Z");
 
 				// Put RAX overwrites DEST
 				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, nullptr, 7);
@@ -84,7 +85,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 			// Free func-mem (except 'any' return string)
 			bool bValidFree=true;
 			if(pDoNotFree)
-				if(_stricmp(pDoNotFree->GetStr(), pData.GetStr())==0)
+				if(dbp::iequals(pDoNotFree->GetStr(), pData.GetStr()))
 					bValidFree=false;
 
 			// Only the return string is not freed here
@@ -311,7 +312,7 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 				// Put new string address in RAX for return passing
-				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+				g_pASMWriter->WriteASMCall(GetEndLineNumber(), "dbprocore.dll", "?EquateSS@@YA_K_K0@Z");
 			}
 			else
 			{

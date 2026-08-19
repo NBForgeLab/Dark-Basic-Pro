@@ -2,6 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
+#include "StringUtils.h"
 
 // Custom Includes
 #include "VarTable.h"
@@ -869,7 +870,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 									if ( pParamData )
 									{
 										CStr* pParamTypeName = pParamData->m_pStruct->GetTypeName();
-										if ( _stricmp ( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() )!=0 )
+										if ( !dbp::iequals( pFunctionTypeName->GetStr(), pParamTypeName->GetStr() ) )
 										{
 											iInvalidParamReason=2;
 											pValidEntryStr.reset(new char [ strlen(pValidEntryRef->GetName()->GetStr())+1 ]);
@@ -2010,11 +2011,11 @@ bool CMathOp::ProduceNewTempToken(CStr* pTempVarToken, DWORD dwTypeMode)
 bool CMathOp::IsReserved ( CStr* pString )
 {
 	// If any of these match, trying to use a sole reserved word in the expression
-	if(_stricmp(pString->GetStr(), "AND")==0)	return true;
-	if(_stricmp(pString->GetStr(), "OR")==0)	return true;
-	if(_stricmp(pString->GetStr(), "NOT")==0)	return true;
-	if(_stricmp(pString->GetStr(), "DIV")==0)	return true;
-	if(_stricmp(pString->GetStr(), "MOD")==0)	return true;
+	if(dbp::iequals(pString->GetStr(), "AND"))	return true;
+	if(dbp::iequals(pString->GetStr(), "OR"))	return true;
+	if(dbp::iequals(pString->GetStr(), "NOT"))	return true;
+	if(dbp::iequals(pString->GetStr(), "DIV"))	return true;
+	if(dbp::iequals(pString->GetStr(), "MOD"))	return true;
 
 	// not matched
 	return false;

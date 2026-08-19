@@ -9,6 +9,8 @@
 
 #include "PerfMacros.h"
 
+#include <vector>
+
 #ifdef __AARON_LBLTBLPERF__
 # include <unordered_map>
 # include <string>
@@ -27,8 +29,16 @@ class CLabelTable
 		void AddInOrder(LPCSTR pName, CLabelTable* pNew);
 		CLabelTable* Advance(DWORD dwCountdown);
 		CLabelTable* Subtract(DWORD dwCountdown);
-		CLabelTable* GetNext(void) { return m_pNext; }
-		CLabelTable* GetPrev(void) { return m_pPrev; }
+		CLabelTable* GetNext(void)
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex+1>=g_Order.size() ) return nullptr;
+			return g_Order[m_orderIndex+1];
+		}
+		CLabelTable* GetPrev(void)
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex==0 ) return nullptr;
+			return g_Order[m_orderIndex-1];
+		}
 
 		bool			AddLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef);
 		CLabelTable*	FindLabel(LPCSTR pLabelName);
@@ -60,9 +70,8 @@ class CLabelTable
 		DWORD					m_dwBytePos;
 		CStatement*				m_pSRef;
 
-		// Hierarchy Data
-		CLabelTable*			m_pNext;
-		CLabelTable*			m_pPrev;
+		// Position in the global declaration-order index (replaces legacy linked list)
+		size_t					m_orderIndex;
 
 		// Safe Access
 		db3::CLock				m_Lock;
@@ -70,6 +79,7 @@ class CLabelTable
 #ifdef __AARON_LBLTBLPERF__
 		static std::unordered_map<std::string, CLabelTable*> g_Table;
 #endif
+		static std::vector<CLabelTable*> g_Order;
 };
 
 #endif // !defined(AFX_LABELTABLE_H__9DE5F86C_7DE6_4787_B7A5_696E44DC3260__INCLUDED_)

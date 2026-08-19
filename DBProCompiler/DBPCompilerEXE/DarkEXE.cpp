@@ -189,8 +189,8 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 	bResult=CEXE.Run(bResult);
 
 	// Report Any Runtime Errors
-	DWORD dwRTError=CEXE.m_dwRuntimeErrorDWORD;
-	DWORD dwRTErrorLine=CEXE.m_dwRuntimeErrorLineDWORD;
+	DWORD dwRTError=static_cast<DWORD>(CEXE.m_dwRuntimeErrorDWORD);
+	DWORD dwRTErrorLine=static_cast<DWORD>(CEXE.m_dwRuntimeErrorLineDWORD);
 	if(dwRTError>0)
 	{
 		// create report string and store
@@ -434,10 +434,10 @@ void DumpDebugReport (
 	else
 	{
 		// regular runtime error
-		sprintf_s ( pLineToReport, _MAX_PATH, "%d", CEXE.m_dwRuntimeErrorDWORD );
+		sprintf_s ( pLineToReport, _MAX_PATH, "%d", static_cast<DWORD>(CEXE.m_dwRuntimeErrorDWORD) );
 	}
 	WritePrivateProfileStringA ( "CEXE", "m_dwRuntimeErrorDWORD", pLineToReport, pReportFile );
-	sprintf_s ( pLineToReport, _MAX_PATH, "%d", CEXE.m_dwRuntimeErrorLineDWORD );
+	sprintf_s ( pLineToReport, _MAX_PATH, "%d", static_cast<DWORD>(CEXE.m_dwRuntimeErrorLineDWORD) );
 	WritePrivateProfileStringA ( "CEXE", "m_dwRuntimeErrorLineDWORD", pLineToReport, pReportFile );			
 	WritePrivateProfileStringA(
 		"RUNTIME",

@@ -393,12 +393,12 @@ void Make ( int iID, SDK_LPSTR szHeightMap )
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)szHeightMap);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	MakeTerrainCore ( iID, (SDK_LPSTR)VirtualFilename, 4 * 1000, 2.1f, 0.25f );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 void Delete ( int iID )

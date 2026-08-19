@@ -1,4 +1,5 @@
 #include "ParserHeader.h"
+#include "StringUtils.h"
 #include "Tokenizer.h"
 #include "Statement.h"
 #include <cctype>
@@ -123,66 +124,66 @@ DWORD CTokenizer::DetermineKeywordToken(const char* pToken) const noexcept
     if (pToken == nullptr || pToken[0] == '\0') return 0;
 
     // Loop keywords
-    if (_stricmp(pToken, "DO") == 0) return static_cast<DWORD>(Token::Do);
-    if (_stricmp(pToken, "LOOP") == 0) return static_cast<DWORD>(Token::Loop);
-    if (_stricmp(pToken, "WHILE") == 0) return static_cast<DWORD>(Token::While);
-    if (_stricmp(pToken, "ENDWHILE") == 0) return static_cast<DWORD>(Token::EndWhile);
-    if (_stricmp(pToken, "REPEAT") == 0) return static_cast<DWORD>(Token::Repeat);
-    if (_stricmp(pToken, "UNTIL") == 0) return static_cast<DWORD>(Token::Until);
+    if (dbp::iequals(pToken, "DO")) return static_cast<DWORD>(Token::Do);
+    if (dbp::iequals(pToken, "LOOP")) return static_cast<DWORD>(Token::Loop);
+    if (dbp::iequals(pToken, "WHILE")) return static_cast<DWORD>(Token::While);
+    if (dbp::iequals(pToken, "ENDWHILE")) return static_cast<DWORD>(Token::EndWhile);
+    if (dbp::iequals(pToken, "REPEAT")) return static_cast<DWORD>(Token::Repeat);
+    if (dbp::iequals(pToken, "UNTIL")) return static_cast<DWORD>(Token::Until);
 
     // For Next
-    if (_stricmp(pToken, "FOR") == 0) return static_cast<DWORD>(Token::For);
-    if (_stricmp(pToken, "NEXT") == 0) return static_cast<DWORD>(Token::Next);
+    if (dbp::iequals(pToken, "FOR")) return static_cast<DWORD>(Token::For);
+    if (dbp::iequals(pToken, "NEXT")) return static_cast<DWORD>(Token::Next);
 
     // Function
-    if (_stricmp(pToken, "FUNCTION") == 0) return static_cast<DWORD>(Token::UserFunction);
-    if (_stricmp(pToken, "EXITFUNCTION") == 0) return static_cast<DWORD>(Token::ExitUserFunction);
-    if (_stricmp(pToken, "ENDFUNCTION") == 0) return static_cast<DWORD>(Token::EndUserFunction);
+    if (dbp::iequals(pToken, "FUNCTION")) return static_cast<DWORD>(Token::UserFunction);
+    if (dbp::iequals(pToken, "EXITFUNCTION")) return static_cast<DWORD>(Token::ExitUserFunction);
+    if (dbp::iequals(pToken, "ENDFUNCTION")) return static_cast<DWORD>(Token::EndUserFunction);
 
     // Jump & Control
-    if (_stricmp(pToken, "EXIT") == 0) return static_cast<DWORD>(Token::Exit);
-    if (_stricmp(pToken, "IF") == 0) return static_cast<DWORD>(Token::If);
-    if (_stricmp(pToken, "ELSE") == 0) return static_cast<DWORD>(Token::Else);
-    if (_stricmp(pToken, "ENDIF") == 0) return static_cast<DWORD>(Token::EndIf);
-    if (_stricmp(pToken, "GOTO") == 0) return static_cast<DWORD>(Token::Goto);
-    if (_stricmp(pToken, "GOSUB") == 0) return static_cast<DWORD>(Token::Gosub);
-    if (_stricmp(pToken, "SELECT") == 0) return static_cast<DWORD>(Token::Select);
-    if (_stricmp(pToken, "ENDSELECT") == 0) return static_cast<DWORD>(Token::EndSelect);
-    if (_stricmp(pToken, "CASE") == 0) return static_cast<DWORD>(Token::Case);
-    if (_stricmp(pToken, "ENDCASE") == 0) return static_cast<DWORD>(Token::EndCase);
-    if (_stricmp(pToken, "END") == 0) return static_cast<DWORD>(Token::End);
+    if (dbp::iequals(pToken, "EXIT")) return static_cast<DWORD>(Token::Exit);
+    if (dbp::iequals(pToken, "IF")) return static_cast<DWORD>(Token::If);
+    if (dbp::iequals(pToken, "ELSE")) return static_cast<DWORD>(Token::Else);
+    if (dbp::iequals(pToken, "ENDIF")) return static_cast<DWORD>(Token::EndIf);
+    if (dbp::iequals(pToken, "GOTO")) return static_cast<DWORD>(Token::Goto);
+    if (dbp::iequals(pToken, "GOSUB")) return static_cast<DWORD>(Token::Gosub);
+    if (dbp::iequals(pToken, "SELECT")) return static_cast<DWORD>(Token::Select);
+    if (dbp::iequals(pToken, "ENDSELECT")) return static_cast<DWORD>(Token::EndSelect);
+    if (dbp::iequals(pToken, "CASE")) return static_cast<DWORD>(Token::Case);
+    if (dbp::iequals(pToken, "ENDCASE")) return static_cast<DWORD>(Token::EndCase);
+    if (dbp::iequals(pToken, "END")) return static_cast<DWORD>(Token::End);
 
     // Declaration & Types
-    if (_stricmp(pToken, "TYPE") == 0) return static_cast<DWORD>(Token::Type);
-    if (_stricmp(pToken, "ENDTYPE") == 0) return static_cast<DWORD>(Token::EndType);
-    if (_stricmp(pToken, "GLOBAL") == 0) return static_cast<DWORD>(Token::Global);
-    if (_stricmp(pToken, "LOCAL") == 0) return static_cast<DWORD>(Token::Local);
-    if (_stricmp(pToken, "DIM") == 0) return static_cast<DWORD>(Token::Dim);
-    if (_stricmp(pToken, "UNDIM") == 0) return static_cast<DWORD>(Token::Undim);
-    if (_stricmp(pToken, "AS") == 0) return static_cast<DWORD>(Token::Asterisk);
+    if (dbp::iequals(pToken, "TYPE")) return static_cast<DWORD>(Token::Type);
+    if (dbp::iequals(pToken, "ENDTYPE")) return static_cast<DWORD>(Token::EndType);
+    if (dbp::iequals(pToken, "GLOBAL")) return static_cast<DWORD>(Token::Global);
+    if (dbp::iequals(pToken, "LOCAL")) return static_cast<DWORD>(Token::Local);
+    if (dbp::iequals(pToken, "DIM")) return static_cast<DWORD>(Token::Dim);
+    if (dbp::iequals(pToken, "UNDIM")) return static_cast<DWORD>(Token::Undim);
+    if (dbp::iequals(pToken, "AS")) return static_cast<DWORD>(Token::Asterisk);
 
     // Data types
-    if (_stricmp(pToken, "BOOLEAN") == 0) return static_cast<DWORD>(Token::Boolean);
-    if (_stricmp(pToken, "BYTE") == 0) return static_cast<DWORD>(Token::Byte);
-    if (_stricmp(pToken, "WORD") == 0) return static_cast<DWORD>(Token::Word);
-    if (_stricmp(pToken, "DWORD") == 0) return static_cast<DWORD>(Token::Dword);
-    if (_stricmp(pToken, "INTEGER") == 0) return static_cast<DWORD>(Token::Integer);
-    if (_stricmp(pToken, "FLOAT") == 0) return static_cast<DWORD>(Token::Float);
-    if (_stricmp(pToken, "STRING") == 0) return static_cast<DWORD>(Token::String);
-    if (_stricmp(pToken, "DOUBLE") == 0) return static_cast<DWORD>(Token::Double);
+    if (dbp::iequals(pToken, "BOOLEAN")) return static_cast<DWORD>(Token::Boolean);
+    if (dbp::iequals(pToken, "BYTE")) return static_cast<DWORD>(Token::Byte);
+    if (dbp::iequals(pToken, "WORD")) return static_cast<DWORD>(Token::Word);
+    if (dbp::iequals(pToken, "DWORD")) return static_cast<DWORD>(Token::Dword);
+    if (dbp::iequals(pToken, "INTEGER")) return static_cast<DWORD>(Token::Integer);
+    if (dbp::iequals(pToken, "FLOAT")) return static_cast<DWORD>(Token::Float);
+    if (dbp::iequals(pToken, "STRING")) return static_cast<DWORD>(Token::String);
+    if (dbp::iequals(pToken, "DOUBLE")) return static_cast<DWORD>(Token::Double);
 
     // Comments
-    if (_stricmp(pToken, "REMSTART") == 0) return static_cast<DWORD>(Token::RemStart);
-    if (_stricmp(pToken, "REM") == 0) return static_cast<DWORD>(Token::RemLine);
-    if (_stricmp(pToken, "//") == 0) return static_cast<DWORD>(Token::RemLine);
-    if (_stricmp(pToken, "`") == 0) return static_cast<DWORD>(Token::RemLine);
-    if (_stricmp(pToken, "'") == 0) return static_cast<DWORD>(Token::RemLine);
-    if (_stricmp(pToken, "REMEND") == 0) return static_cast<DWORD>(Token::RemEnd);
-    if (_stricmp(pToken, "HIDESTART") == 0) return static_cast<DWORD>(Token::RemLine);
-    if (_stricmp(pToken, "HIDEEND") == 0) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(pToken, "REMSTART")) return static_cast<DWORD>(Token::RemStart);
+    if (dbp::iequals(pToken, "REM")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(pToken, "//")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(pToken, "`")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(pToken, "'")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(pToken, "REMEND")) return static_cast<DWORD>(Token::RemEnd);
+    if (dbp::iequals(pToken, "HIDESTART")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(pToken, "HIDEEND")) return static_cast<DWORD>(Token::RemLine);
 
     // Data
-    if (_stricmp(pToken, "DATA") == 0) return static_cast<DWORD>(Token::Data);
+    if (dbp::iequals(pToken, "DATA")) return static_cast<DWORD>(Token::Data);
 
     return 0;
 }
@@ -199,7 +200,7 @@ bool CTokenizer::DetermineIfReservedWord(const char* pToken) const noexcept
 
     for (const char* kw : reservedKeywords)
     {
-        if (_stricmp(pToken, kw) == 0)
+        if (dbp::iequals(pToken, kw))
         {
             return true;
         }

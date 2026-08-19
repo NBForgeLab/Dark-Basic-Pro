@@ -215,15 +215,15 @@ class cSpecialEffect
 		// virtual functions
 		cSpecialEffect ( );
 		virtual ~cSpecialEffect ( );
-		virtual bool	Load					( LPSTR pEffectFile, bool bUseXFile, bool bUseTextures );
+		virtual bool	Load					( LPCSTR pEffectFile, bool bUseXFile, bool bUseTextures );
 		virtual bool	Setup					( sMesh* pMesh );
 		virtual void	Mesh					( sMesh* pMesh );
 		virtual DWORD	Start					( sMesh* pMesh, D3DXMATRIX matObject );
 		virtual void	End						( void );
 
 		// base functions
-		bool			AssignValueHookCore		( LPSTR pName, D3DXHANDLE hParam, DWORD dwClass, bool bRemove );
-		bool			AssignValueHook			( LPSTR pName, D3DXHANDLE hParam );
+		bool			AssignValueHookCore		( LPCSTR pName, D3DXHANDLE hParam, DWORD dwClass, bool bRemove );
+		bool			AssignValueHook			( LPCSTR pName, D3DXHANDLE hParam );
 		bool			CorrectFXFile			( LPSTR pFile, LPSTR pModifiedFile );
 		bool			ParseEffect				( bool bUseEffectXFile, bool bUseEffectTextures );
 		void			ApplyEffect				( sMesh* pMesh );

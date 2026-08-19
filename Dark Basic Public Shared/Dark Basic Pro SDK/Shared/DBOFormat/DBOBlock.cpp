@@ -304,7 +304,7 @@ DARKSDK_DLL bool WriteMEMORY ( BYTE* pData, DWORD dwBytes, LPSTR* ppBlock, DWORD
 	return true;
 }
 
-DARKSDK_DLL bool WriteString ( LPSTR pString, LPSTR* ppBlock, DWORD* pdwSize )
+DARKSDK_DLL bool WriteString ( LPCSTR pString, LPSTR* ppBlock, DWORD* pdwSize )
 {
 	DWORD dwLen = strlen(pString);
 	if ( g_bWriteAsText )

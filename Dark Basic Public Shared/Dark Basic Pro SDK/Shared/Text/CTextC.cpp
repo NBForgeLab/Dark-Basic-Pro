@@ -1009,7 +1009,7 @@ DARKSDK int GetTextHeight ( char* szString )
 // General String Command Functions
 //
 
-DARKSDK int	  Asc	( DWORD dwSrcStr )
+DARKSDK int	  Asc	( DWORD_PTR dwSrcStr )
 {
 	if(dwSrcStr)
 		return (int)*(unsigned char*)dwSrcStr;
@@ -1062,7 +1062,7 @@ DARKSDK DWORD_PTR Hex( DWORD_PTR pDestStr, int iValue )
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD szText, int iValue )
+DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
 	// lee - 290306 - u6rc3 - index must be greater than zero
 	// leeremove - 290506 - u62 - unpopular negative-value runtime error removed
@@ -1092,7 +1092,7 @@ DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD szText, int iValue )
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK int	  Len	( DWORD dwSrcStr )
+DARKSDK int	  Len	( DWORD_PTR dwSrcStr )
 {
 	if(dwSrcStr)
 		return strlen((LPSTR)dwSrcStr);
@@ -1100,7 +1100,7 @@ DARKSDK int	  Len	( DWORD dwSrcStr )
 		return 0;
 }
 
-DARKSDK DWORD_PTR Lower( DWORD_PTR pDestStr, DWORD szText )
+DARKSDK DWORD_PTR Lower( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
 	// Work string
 	ValidateWorkString ( (LPSTR)szText );
@@ -1117,7 +1117,7 @@ DARKSDK DWORD_PTR Lower( DWORD_PTR pDestStr, DWORD szText )
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD szText, int iValue )
+DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
 	// lee - 290306 - u6rc3 - index must be greater than zero
 	// leeremove - 290506 - u62 - unpopular negative-value runtime error removed
@@ -1152,7 +1152,7 @@ DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD szText, int iValue )
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD_PTR Right( DWORD_PTR pDestStr, DWORD szText, int iValue )
+DARKSDK DWORD_PTR Right( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
 	// lee - 290306 - u6rc3 - index must be greater than zero
 	// leeremove - 290506 - u62 - unpopular negative-value runtime error removed
@@ -1224,7 +1224,7 @@ DARKSDK DWORD_PTR Str( DWORD_PTR pDestStr, int iValue )
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD_PTR Upper( DWORD_PTR pDestStr, DWORD szText )
+DARKSDK DWORD_PTR Upper( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
 	// Work string
 	ValidateWorkString ( (LPSTR)szText );
@@ -1251,7 +1251,7 @@ int	  ValL	( DWORD dwSrcStr )
 }
 */
 
-DARKSDK DWORD ValF	( DWORD dwSrcStr )
+DARKSDK DWORD ValF	( DWORD_PTR dwSrcStr )
 {
 	float fValue = 0.0f;
 	if(dwSrcStr) fValue = (float)atof((LPSTR)dwSrcStr);

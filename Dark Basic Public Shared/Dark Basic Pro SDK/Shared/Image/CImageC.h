@@ -132,10 +132,10 @@ DARKSDK void 				SetMipmapNum  				( int iNum );		// set num of mip maps when im
 DARKSDK void 				SetTranslucency 			( int iID, int iPercent );			// set translucency
 
 DARKSDK bool 				Load						( char* szFilename, int iID );							// load an image specifying the filename
-DARKSDK bool 				LoadRetainName				( char* szRealName, char* szFilename, int iID, int TextureFlag, bool bIgnoreNegLimit, int iDivideTextureSize );	
+DARKSDK bool 				LoadRetainName				( const char* szRealName, const char* szFilename, int iID, int TextureFlag, bool bIgnoreNegLimit, int iDivideTextureSize );	
 DARKSDK bool 				Load						( char* szFilename, int iID, int TextureFlag, bool bIgnoreNegLimit, int iDivideTextureSize );			// load an image specifying the filename
 DARKSDK bool 				Load						( char* szFilename, LPDIRECT3DTEXTURE9* pImage );		// loads an image direct to texture
-DARKSDK bool 				LoadFullTex					( char* szFilename, LPDIRECT3DTEXTURE9* pImage, int iFullTexMode, int iDivideTextureSize );		// loads an image direct to texture
+DARKSDK bool 				LoadFullTex					( const char* szFilename, LPDIRECT3DTEXTURE9* pImage, int iFullTexMode, int iDivideTextureSize );		// loads an image direct to texture
 DARKSDK bool 				Save						( char* szFilename, int iID );							// saves the image to disk
 DARKSDK bool 				Save						( char* szFilename, int iID, int iCompressionMode );							// saves the image to disk
 DARKSDK bool 				GrabImage 					( int iID, int iX1, int iY1, int iX2, int iY2 );		// grab image

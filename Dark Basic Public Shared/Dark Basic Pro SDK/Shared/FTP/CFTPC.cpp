@@ -116,12 +116,12 @@ DARKSDK void PutFile( DWORD dwString )
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)dwString);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	PutFileCore( (DWORD)VirtualFilename );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 DARKSDK void DeleteFile( DWORD dwString )
@@ -249,9 +249,9 @@ DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObj
 
 	// 20120418 IanM - Don't care about these so much, just as long as they are non-NULL
 	if (!lpObjectName)
-		lpObjectName = "";
+		lpObjectName = const_cast<char*>("");
 	if (!lpPostData)
-		lpPostData = "";
+		lpPostData = const_cast<char*>("");
 
 	// default HTTP comm strings
 	DWORD dwPostDataSize = strlen ( lpPostData );

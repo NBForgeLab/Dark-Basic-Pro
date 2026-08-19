@@ -8,66 +8,42 @@
 
 namespace {
 
-bool HasExport(const PeImageInfo& image, const char* name1, const char* name2 = nullptr) {
-    if (image.exports.count(name1) != 0) return true;
-    if (name2 && image.exports.count(name2) != 0) return true;
-    return false;
-}
-
-bool HasExportAny(const PeImageInfo& image, std::initializer_list<const char*> names) {
-    for (const auto* name : names) {
-        if (image.exports.count(name) != 0) return true;
-    }
-    return false;
+bool HasExport(const PeImageInfo& image, const char* name) {
+    return image.exports.count(name) != 0;
 }
 
 RuntimeCapabilities DeriveCapabilities(const PeImageInfo& image) {
     RuntimeCapabilities capabilities;
 
-    const bool hasPassCommandLine = HasExport(image, "?PassCmdLineHandlerPtr@@YAXPEAX@Z", "?PassCmdLineHandlerPtr@@YAXPAX@Z");
-    const bool hasPassError = HasExport(image, "?PassErrorHandlerPtr@@YAXPEAX@Z", "?PassErrorHandlerPtr@@YAXPAX@Z");
-    const bool hasPassEscape = HasExport(image, "?PassEscapePtr@@YAXPEAX@Z", "?PassEscapePtr@@YAXPAX@Z");
-    const bool hasPassBreakout = HasExport(image, "?PassBreakOutPtr@@YAXPEAX@Z", "?PassBreakOutPtr@@YAXPAX@Z");
-    const bool hasPassData = HasExport(image, "?PassDataStatementPtr@@YAXPEAD0@Z", "?PassDataStatementPtr@@YAXPAD0@Z");
-    const bool hasPassStructurePatterns = HasExport(image, "?PassStructurePatterns@@YAXPEAXK@Z", "?PassStructurePatterns@@YAXPAXK@Z");
+    // The SDK runtime is native x64: every core export exists in exactly one
+    // canonical x64-mangled form, so capability derivation checks those names
+    // directly - no legacy spellings, no fallback chains.
+    const bool hasPassCommandLine = HasExport(image, "?PassCmdLineHandlerPtr@@YAXPEAX@Z");
+    const bool hasPassError = HasExport(image, "?PassErrorHandlerPtr@@YAXPEAX@Z");
+    const bool hasPassEscape = HasExport(image, "?PassEscapePtr@@YAXPEAX@Z");
+    const bool hasPassBreakout = HasExport(image, "?PassBreakOutPtr@@YAXPEAX@Z");
+    const bool hasPassData = HasExport(image, "?PassDataStatementPtr@@YAXPEAD0@Z");
+    const bool hasPassStructurePatterns = HasExport(image, "?PassStructurePatterns@@YAXPEAXK@Z");
 
-    const bool hasInitDisplay = HasExport(image, "?InitDisplay@@YAKKKKKPEAUHINSTANCE__@@PEAD@Z", "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z");
-    // The parameter was modernized from DWORD* to DWORD_PTR* (PEA_K on x64),
-    // so accept all three spellings of DeleteSingleVariableAllocation.
-    const bool hasDeleteVarItem = HasExportAny(image, {
-        "?DeleteSingleVariableAllocation@@YAXPEAK@Z",
-        "?DeleteSingleVariableAllocation@@YAXPAK@Z",
-        "?DeleteSingleVariableAllocation@@YAXPEA_K@Z"});
+    const bool hasInitDisplay = HasExport(image, "?InitDisplay@@YAKKKKKPEAUHINSTANCE__@@PEAD@Z");
+    const bool hasDeleteVarItem = HasExport(image, "?DeleteSingleVariableAllocation@@YAXPEA_K@Z");
 
-    // The space factories and GetGlobPtr were historically declared with
-    // 32-bit return types (DWORD) even on x64 builds of the legacy runtime.
-    // The modernized SDK core exports the 64-bit-clean variants instead.
-    // Accept both spellings so either runtime generation satisfies the
-    // bootstrap contract; the app-side resolver (CoreRuntimeApi) mirrors
-    // this fallback chain at load time.
-    const std::array<const char*, 7> basicLifecycleExports{
+    const std::array<const char*, 10> basicLifecycleExports{
         "?PassDLLs@@YAXXZ",
         "?ConstructDLLs@@YAXXZ",
         "?CloseDisplay@@YAKXZ",
         "?DeleteVariableSpace@@YAXXZ",
         "?DeleteDataSpace@@YAXXZ",
-        "?UnDimDD@@YAKK@Z",
-        "?Sync@@YAXXZ"};
+        "?UnDimDD@@YA_K_K@Z",
+        "?Sync@@YAXXZ",
+        "?GetGlobPtr@@YAPEAUGlobStruct@@XZ",
+        "?CreateVariableSpace@@YA_KK@Z",
+        "?CreateDataSpace@@YA_KK@Z"};
 
     const bool hasBasicLifecycle =
         std::all_of(
             basicLifecycleExports.begin(), basicLifecycleExports.end(),
-            [&image](const char* name) { return HasExport(image, name); }) &&
-        HasExportAny(image, {
-            "?GetGlobPtr@@YAPEAUGlobStruct@@XZ",
-            "?GetGlobPtr@@YAPEAXXZ",
-            "?GetGlobPtr@@YAKXZ"}) &&
-        HasExportAny(image, {
-            "?CreateVariableSpace@@YA_KK@Z",
-            "?CreateVariableSpace@@YAKK@Z"}) &&
-        HasExportAny(image, {
-            "?CreateDataSpace@@YA_KK@Z",
-            "?CreateDataSpace@@YAKK@Z"});
+            [&image](const char* name) { return HasExport(image, name); });
 
     const bool hasLifecycle = hasBasicLifecycle && hasInitDisplay && hasDeleteVarItem;
 
@@ -158,23 +134,16 @@ RuntimeResult<ResolvedRuntimeBundle> RuntimeBundleResolver::Resolve(
             bundle.corePath);
     }
 
-#if defined(_WIN64)
-    if (inspection.value().machine != PeMachine::X64 && inspection.value().machine != PeMachine::X86) {
+    // The SDK is native x64: DBProCore.dll must be a 64-bit PE image.
+    if (inspection.value().machine != PeMachine::X64) {
         return Failure(
             RuntimeErrorCode::IncompatibleArchitecture,
-            "DBProCore.dll must be a valid PE image.",
+            inspection.value().machine == PeMachine::X86
+                ? "DBProCore.dll is a 32-bit (x86) image; the SDK requires a native x64 runtime."
+                : "DBProCore.dll must be a native x64 PE image.",
             root,
             bundle.corePath);
     }
-#else
-    if (inspection.value().machine != PeMachine::X86) {
-        return Failure(
-            RuntimeErrorCode::IncompatibleArchitecture,
-            "DBProCore.dll must be a Win32 x86 image.",
-            root,
-            bundle.corePath);
-    }
-#endif
 
     bundle.capabilities = DeriveCapabilities(inspection.value());
     for (const auto required : requirements) {

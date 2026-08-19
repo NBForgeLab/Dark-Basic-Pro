@@ -70,7 +70,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iD
 		g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 		// CALL EQUATE to create a NEW STRING from CURRENT STRING
-		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YA_K_K0@Z");
 
 		// Put RAX overwrites DEST
 		g_pASMWriter->WriteASMRAXtoX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
@@ -772,7 +772,7 @@ bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CRes
 					g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::Push), &pNull, 7);
 
 					// Put new string address in RAX for return passing
-					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YAKKK@Z");
+					g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YA_K_K0@Z");
 				}
 				else
 				{

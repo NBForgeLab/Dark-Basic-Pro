@@ -4,6 +4,7 @@
 
 // Common Includes
 #include "StructTable.h"
+#include "StringUtils.h"
 
 // Special access to global pointer to struct table (so can do full scan)
 extern CStructTable* g_pStructTable;
@@ -14,6 +15,7 @@ extern CStructTable* g_pStructTable;
 #include <unordered_map>
 
 std::unordered_map<std::string, CStructTable*> CStructTable::g_Table;
+std::vector<CStructTable*> CStructTable::g_Order;
 
 namespace {
 static std::string struct_to_lower(std::string_view s)
@@ -43,7 +45,7 @@ CStructTable::CStructTable()
 	m_pDecChain=nullptr;
 	m_pDecBlock=nullptr;
 
-	m_pNext=nullptr;
+	m_orderIndex=static_cast<size_t>(-1);
 }
 
 CStructTable::~CStructTable()
@@ -68,23 +70,22 @@ void CStructTable::Free(void)
 #ifdef __AARON_STRUCPERF__
 	g_Table.clear();
 #endif
-	CStructTable* pCurrent = this;
-	while(pCurrent)
-	{
-		CStructTable* pNext = pCurrent->GetNext();
-		delete pCurrent;
-		pCurrent = pNext;
-	}
+	// delete every node tracked in the declaration-order index
+	for ( CStructTable* pNode : g_Order )
+		delete pNode;
+	g_Order.clear();
 }
 
 void CStructTable::Add(CStructTable* pNew)
 {
-	CStructTable* pCurrent = this;
-	while(pCurrent->m_pNext)
+	// register the head of the list (this) on first use
+	if ( g_Order.empty() )
 	{
-		pCurrent=pCurrent->GetNext();
+		g_Order.push_back(this);
+		this->m_orderIndex=0;
 	}
-	pCurrent->m_pNext=pNew;
+	g_Order.push_back(pNew);
+	pNew->m_orderIndex=g_Order.size()-1;
 }
 
 void CStructTable::SetStructDefaults(void)
@@ -377,7 +378,7 @@ CStructTable* CStructTable::DoesTypeEvenExist(LPCSTR pName)
 DWORD CStructTable::GetSizeOfType(LPSTR pName)
 {
 	if(GetTypeName())
-		if(_stricmp(pName, GetTypeName()->GetStr())==0)
+		if(dbp::iequals(pName, GetTypeName()->GetStr()))
 			return GetTypeSize();
 
 	if(GetNext())
@@ -398,7 +399,7 @@ CDeclaration* CStructTable::FindDecInType(LPSTR pTypename, LPSTR pFieldname)
 
 	CStructTable *struc = it->second;
 	for(CDeclaration *dec = struc->m_pDecChain; dec; dec = dec->GetNext()) {
-		if (dec->GetName() && _stricmp(dec->GetName()->GetStr(), pFieldname) == 0)
+		if (dec->GetName() && dbp::iequals(dec->GetName()->GetStr(), pFieldname))
 			return dec;
 	}
 
@@ -445,7 +446,7 @@ int CStructTable::FindIndex(LPSTR pTypename)
 	while(pCurrent)
 	{
 		// if find type, exit now to retain iIndex
-		if ( _stricmp ( pCurrent->GetTypeName()->GetStr(), pTypename )==0 )
+		if ( dbp::iequals( pCurrent->GetTypeName()->GetStr(), pTypename ) )
 			break;
 
 		// next structure

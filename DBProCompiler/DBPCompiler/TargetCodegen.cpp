@@ -1,5 +1,6 @@
 ﻿#include "TargetCodegen.h"
 #include "VarTable.h"
+#include "StringUtils.h"
 #include "ASMWriter.h"
 #include "ParseUserFunction.h"
 #include "ParserResultData.h"
@@ -37,14 +38,14 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 }
                 
                 std::string decorated;
-                if (pVar && pScope && _stricmp(pScope, "") != 0) {
+                if (pVar && pScope && !dbp::iequals(pScope, "")) {
                     decorated = "FS@" + std::string(pScope) + "@" + inst.operandStr;
                 } else {
                     decorated = "@" + inst.operandStr;
                 }
 
                 CStr varName(const_cast<LPCSTR>(decorated.c_str()));
-                if (pVar && pScope && _stricmp(pScope, "") != 0) {
+                if (pVar && pScope && !dbp::iequals(pScope, "")) {
                     CResultData rd;
                     rd.m_pStringToken.reset(&varName);
                     rd.m_pAdditionalOffset.reset();
@@ -93,14 +94,14 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                 CStructTable* pStruct = pVar->GetVarStruct();
 
                 std::string decorated;
-                if (pScope && _stricmp(pScope, "") != 0) {
+                if (pScope && !dbp::iequals(pScope, "")) {
                     decorated = "FS@" + std::string(pScope) + "@" + inst.operandStr;
                 } else {
                     decorated = "@" + inst.operandStr;
                 }
 
                 CStr varName(const_cast<LPCSTR>(decorated.c_str()));
-                if (pScope && _stricmp(pScope, "") != 0) {
+                if (pScope && !dbp::iequals(pScope, "")) {
                     CResultData rd;
                     rd.m_pStringToken.reset(&varName);
                     rd.m_pAdditionalOffset.reset();

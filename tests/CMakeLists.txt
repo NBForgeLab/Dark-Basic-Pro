@@ -103,16 +103,6 @@ add_executable(dbp_tests
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
 )
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    target_sources(dbp_tests PRIVATE
-        "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
-    )
-    set_source_files_properties(
-        "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/System/dynamic_call.asm"
-        PROPERTIES LANGUAGE ASM_MASM
-    )
-endif()
-
 dbp_apply_modern_cpp_options(dbp_tests)
 
 target_link_libraries(dbp_tests PRIVATE

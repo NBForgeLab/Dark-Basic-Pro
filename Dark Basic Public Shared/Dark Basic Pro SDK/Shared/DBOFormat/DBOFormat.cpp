@@ -221,7 +221,7 @@ bool cSpecialEffect::CorrectFXFile ( LPSTR pFile, LPSTR pModifiedFile )
 	return bResult;
 }
 
-bool cSpecialEffect::Load ( LPSTR pEffectFile, bool bUseXFile, bool bUseTextures )
+bool cSpecialEffect::Load ( LPCSTR pEffectFile, bool bUseXFile, bool bUseTextures )
 {
 	// result
 	HRESULT hr;
@@ -466,7 +466,7 @@ void cSpecialEffect::End ( void )
 	}
 }
 
-bool cSpecialEffect::AssignValueHookCore ( LPSTR pName, D3DXHANDLE hParam, DWORD dwClass, bool bRemove )
+bool cSpecialEffect::AssignValueHookCore ( LPCSTR pName, D3DXHANDLE hParam, DWORD dwClass, bool bRemove )
 {
 	#define ASSIGNNAME(a,b)	if ( bRemove ) { if ( b==hParam ) { b=NULL; return true; } } else { if ( _stricmp ( pName, a )==0 ) { if ( hParam ) { b=hParam; return true; } else { if ( b ) return true;  }; } };
 
@@ -537,7 +537,7 @@ bool cSpecialEffect::AssignValueHookCore ( LPSTR pName, D3DXHANDLE hParam, DWORD
 	return false;
 }
 
-bool cSpecialEffect::AssignValueHook ( LPSTR pName, D3DXHANDLE hParam )
+bool cSpecialEffect::AssignValueHook ( LPCSTR pName, D3DXHANDLE hParam )
 {
 	return AssignValueHookCore ( pName, hParam, 0, false );
 }
@@ -732,7 +732,7 @@ bool cSpecialEffect::ParseEffect ( bool bUseEffectXFile, bool bUseEffectTextures
 					else
 					{
 						// support for internal basic textures
-						int iImageIndex = LoadOrFindTextureAsImage ( (char*)pstrName, "" );
+						int iImageIndex = LoadOrFindTextureAsImage ( pstrName, "" );
 						pTex = g_Image_GetPointer ( iImageIndex );
 					}
 
@@ -5175,9 +5175,10 @@ DARKSDK_DLL bool SetupCastFrustum ( DWORD dwFrustumCount, D3DXVECTOR3* pvecStart
 DARKSDK_DLL bool CheckPoint ( float fX, float fY, float fZ )
 {
 	// make sure point is in frustum
+	const D3DXVECTOR3 vecPoint( fX, fY, fZ );
 	for ( int iPlaneIndex = 0; iPlaneIndex < NUM_CULLPLANES; iPlaneIndex++ ) 
 	{
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX, fY, fZ ) ) < 0.0f )
+		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &vecPoint ) < 0.0f )
 			return false;
 	}
 	return true;
@@ -5198,30 +5199,30 @@ DARKSDK_DLL bool CheckPoint ( D3DXPLANE* pPlanes, D3DXVECTOR3* pvecPoint )
 DARKSDK_DLL bool CheckCube ( float fX, float fY, float fZ, float fSize )
 {
 	// this does not always work when using very long ranges or small plane data
+	const D3DXVECTOR3 vecCorners[ 8 ] =
+	{
+		D3DXVECTOR3( fX - fSize, fY - fSize, fZ - fSize ),
+		D3DXVECTOR3( fX + fSize, fY - fSize, fZ - fSize ),
+		D3DXVECTOR3( fX - fSize, fY + fSize, fZ - fSize ),
+		D3DXVECTOR3( fX + fSize, fY + fSize, fZ - fSize ),
+		D3DXVECTOR3( fX - fSize, fY - fSize, fZ + fSize ),
+		D3DXVECTOR3( fX + fSize, fY - fSize, fZ + fSize ),
+		D3DXVECTOR3( fX - fSize, fY + fSize, fZ + fSize ),
+		D3DXVECTOR3( fX + fSize, fY + fSize, fZ + fSize )
+	};
+
 	for ( int iPlaneIndex = 0; iPlaneIndex < NUM_CULLPLANES; iPlaneIndex++ )
 	{
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fSize, fY - fSize, fZ - fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fSize, fY - fSize, fZ - fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fSize, fY + fSize, fZ - fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fSize, fY + fSize, fZ - fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fSize, fY - fSize, fZ + fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fSize, fY - fSize, fZ + fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fSize, fY + fSize, fZ + fSize ) ) >= 0.0f )
-			continue;
-
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fSize, fY + fSize, fZ + fSize ) ) >= 0.0f )
+		bool bAnyCornerInside = false;
+		for ( const D3DXVECTOR3& vecCorner : vecCorners )
+		{
+			if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &vecCorner ) >= 0.0f )
+			{
+				bAnyCornerInside = true;
+				break;
+			}
+		}
+		if ( bAnyCornerInside )
 			continue;
 
 		return false;
@@ -5239,16 +5240,19 @@ DARKSDK_DLL bool CheckRectangleEx ( DWORD iFrustumIndex, float fX, float fY, flo
 		int iCountPointsOutsidePlane=0;
 
 		// FPGC - 180909 - disregard near plane clip on frustrum zero checks (player camera can get nose right upto a portal)
-		// if ( iFrustumIndex!=0 ) if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fXSize, fY - fYSize, fZ - fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		// 18113 - the above line would NEVER reject a boundbox for camera zero frustum (not intended behaviour!)
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fXSize, fY - fYSize, fZ - fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fXSize, fY - fYSize, fZ - fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fXSize, fY + fYSize, fZ - fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fXSize, fY + fYSize, fZ - fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fXSize, fY - fYSize, fZ + fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fXSize, fY - fYSize, fZ + fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX - fXSize, fY + fYSize, fZ + fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
-		if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX + fXSize, fY + fYSize, fZ + fZSize ) ) < -0.01f ) iCountPointsOutsidePlane++;
+		const D3DXVECTOR3 vecCorners[ 8 ] =
+		{
+			D3DXVECTOR3( fX - fXSize, fY - fYSize, fZ - fZSize ),
+			D3DXVECTOR3( fX + fXSize, fY - fYSize, fZ - fZSize ),
+			D3DXVECTOR3( fX - fXSize, fY + fYSize, fZ - fZSize ),
+			D3DXVECTOR3( fX + fXSize, fY + fYSize, fZ - fZSize ),
+			D3DXVECTOR3( fX - fXSize, fY - fYSize, fZ + fZSize ),
+			D3DXVECTOR3( fX + fXSize, fY - fYSize, fZ + fZSize ),
+			D3DXVECTOR3( fX - fXSize, fY + fYSize, fZ + fZSize ),
+			D3DXVECTOR3( fX + fXSize, fY + fYSize, fZ + fZSize )
+		};
+		for ( const D3DXVECTOR3& vecCorner : vecCorners )
+			if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &vecCorner ) < -0.01f ) iCountPointsOutsidePlane++;
 		if ( iCountPointsOutsidePlane==8 ) 
 		{
 			bBoxOutsideFrustrum=true;
@@ -5283,9 +5287,10 @@ DARKSDK_DLL bool CheckSphere ( float fX, float fY, float fZ, float fRadius )
 {
 	// make sure radius is in frustum
 	fRadius *= 1.25f; // leefix - 190307 - added an epsilon so object does not disappear too early
+	const D3DXVECTOR3 vecCenter( fX, fY, fZ );
 	for ( int iPlaneIndex = 0; iPlaneIndex < NUM_CULLPLANES; iPlaneIndex++ )
 	{
-		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &D3DXVECTOR3 ( fX, fY, fZ ) ) < -fRadius )
+		if ( D3DXPlaneDotCoord ( &g_Planes [ 0 ][ iPlaneIndex ], &vecCenter ) < -fRadius )
 			return false;
 	}
 
@@ -5295,11 +5300,12 @@ DARKSDK_DLL bool CheckSphere ( float fX, float fY, float fZ, float fRadius )
 DARKSDK_DLL bool CheckSphere ( DWORD dwFrustumMax, float fX, float fY, float fZ, float fRadius )
 {
 	// make sure radius is in frustum
+	const D3DXVECTOR3 vecCenter( fX, fY, fZ );
 	for ( int iFrustumIndex = 0; iFrustumIndex <= (int)dwFrustumMax; iFrustumIndex++ )
 	{	
 		for ( int iPlaneIndex = 0; iPlaneIndex < NUM_CULLPLANES; iPlaneIndex++ )
 		{
-			if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &D3DXVECTOR3 ( fX, fY, fZ ) ) < -fRadius )
+			if ( D3DXPlaneDotCoord ( &g_Planes [ iFrustumIndex ][ iPlaneIndex ], &vecCenter ) < -fRadius )
 				return false;
 		}
 	}

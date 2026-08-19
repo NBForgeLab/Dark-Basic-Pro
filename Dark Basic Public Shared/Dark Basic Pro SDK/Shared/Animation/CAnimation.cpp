@@ -670,12 +670,12 @@ DARKSDK BOOL DB_LoadAnimation(int AnimIndex, char* Filename)
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, Filename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	BOOL bRes = DB_LoadAnimationCore(AnimIndex, VirtualFilename);
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 	return bRes;
 }
 

@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "DataTable.h"
+#include "StringUtils.h"
 
 // Includes and external ptr for AssociateDLL scan
 #include "DBPCompiler.h"
@@ -152,7 +153,7 @@ DWORD CDataTable::FindString(LPCSTR pFindString)
 	{
 		// Match list item with search string
 		if(pCurrent->GetString())
-			if(_stricmp(pCurrent->GetString()->GetStr(), pFindString)==0)
+			if(dbp::iequals(pCurrent->GetString()->GetStr(), pFindString))
 				return pCurrent->GetIndex();
 
 		pCurrent=pCurrent->GetNext();
@@ -188,7 +189,7 @@ bool CDataTable::NotExcluded ( LPCSTR pFilename )
 	// false if excluded from compile
 	for ( DWORD i=1; i<g_pDBPCompiler->g_dwExcludeFilesCount; i++)
 		if ( !g_pDBPCompiler->g_ExcludeFiles [ i ].empty() )
-			if ( _stricmp ( g_pDBPCompiler->g_ExcludeFiles [ i ].c_str(), pFilename )==0 )
+			if ( dbp::iequals( g_pDBPCompiler->g_ExcludeFiles [ i ].c_str(), pFilename ) )
 				return false;
 
 	// lee - 270308 - u67 - do not include DLL at all if flagged
@@ -330,42 +331,42 @@ const auto tryDll = [&](LPCSTR dllName)
 						dwIndex = dwTry;
 			};
 			// Add other DLLs Associated With These..
-			if(_stricmp(pDLLName, "DBProSetupDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProSetupDebug.dll"))
 			{
 				// Associate DLLs
 				tryDll("DBProBasic2DDebug.dll");
 				tryDll("DBProTextDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProTextDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProTextDebug.dll"))
 			{
 				// Associate DLLs
 				tryDll("DBProSetupDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProInputDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProInputDebug.dll"))
 			{
 				// Checklist Support
 				tryDll("DBProSystemDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProSpritesDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProSpritesDebug.dll"))
 			{
 				// Image Support
 				tryDll("DBProImageDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProBasic3DDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProBasic3DDebug.dll"))
 			{
 				// Image Support
 				tryDll("DBProImageDebug.dll");
 				// Transforms Support
 				tryDll("DBProTransformsDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProBasic2DDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProBasic2DDebug.dll"))
 			{
 				// Minimal DirectX
 				tryDll("DBProSetupDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProImageDebug.dll")==0
-			|| _stricmp(pDLLName, "DBProAnimationDebug.dll")==0
-			|| _stricmp(pDLLName, "DBProBitmapDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProImageDebug.dll")
+			|| dbp::iequals(pDLLName, "DBProAnimationDebug.dll")
+			|| dbp::iequals(pDLLName, "DBProBitmapDebug.dll"))
 			{
 				// Sprite Support for pasting
 				tryDll("DBProSpritesDebug.dll");
@@ -375,12 +376,12 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("DBProBasic2DDebug.dll");
 				tryDll("DBProTextDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProMultiplayerDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProMultiplayerDebug.dll"))
 			{
 				// Need access to memblock support
 				tryDll("DBProMemblocksDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProMemblocksDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProMemblocksDebug.dll"))
 			{
 				// Memblocks Access to Bitmap, Image, Sound and Mesh
 				tryDll("DBProBitmapDebug.dll");
@@ -388,7 +389,7 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("DBProSoundDebug.dll");
 				tryDll("DBProBasic3DDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProCameraDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProCameraDebug.dll"))
 			{
 				tryDll("DBProSetupDebug.dll");
 				tryDll("DBProImageDebug.dll");
@@ -396,14 +397,14 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("DBProTransformsDebug.dll");
 				tryDll("DBProBasic3DDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProLightDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProLightDebug.dll"))
 			{
 				tryDll("DBProSetupDebug.dll");
 				tryDll("DBProCameraDebug.dll");
 				tryDll("DBProVectorsDebug.dll");
 				tryDll("DBProTransformsDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProMatrixDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProMatrixDebug.dll"))
 			{
 				tryDll("DBProSetupDebug.dll");
 				tryDll("DBProImageDebug.dll");
@@ -411,7 +412,7 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("DBProVectorsDebug.dll");
 				tryDll("DBProTransformsDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProBasic3DDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProBasic3DDebug.dll"))
 			{
 				// Primary Support
 				tryDll("DBProSetupDebug.dll");
@@ -428,7 +429,7 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("ConvMD2.dll");
 				tryDll("ConvMD3.dll");
 			}
-			if(_stricmp(pDLLName, "DBProWorld3DDebug.dll")==0 )
+			if(dbp::iequals(pDLLName, "DBProWorld3DDebug.dll") )
 			{
 				// Primary Support
 				tryDll("DBProLODTerrainDebug.dll");
@@ -438,7 +439,7 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("DBProTransformsDebug.dll");
 				tryDll("DBProOwnBSPDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProLODTerrainDebug.dll")==0 )
+			if(dbp::iequals(pDLLName, "DBProLODTerrainDebug.dll") )
 			{
 				// Primary Support
 				tryDll("DBProSetupDebug.dll");
@@ -446,28 +447,28 @@ const auto tryDll = [&](LPCSTR dllName)
 				tryDll("DBProCameraDebug.dll");
 				tryDll("DBProTransformsDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProCSGDebug.dll")==0 )
+			if(dbp::iequals(pDLLName, "DBProCSGDebug.dll") )
 			{
 				// Primary Support
 				tryDll("DBProSetupDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProParticlesDebug.dll")==0 )
+			if(dbp::iequals(pDLLName, "DBProParticlesDebug.dll") )
 			{
 				// Primary Support
 				tryDll("DBProParticlesDebug.dll");
 				tryDll("DBProVectorsDebug.dll");
 				tryDll("DBProTransformsDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProSystemDebug.dll")==0 )
+			if(dbp::iequals(pDLLName, "DBProSystemDebug.dll") )
 			{
 				// for access to display mem
 				tryDll("DBProSetupDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProVectorsDebug.dll")==0 )
+			if(dbp::iequals(pDLLName, "DBProVectorsDebug.dll") )
 			{
 				tryDll("DBProSetupDebug.dll");
 			}
-			if(_stricmp(pDLLName, "DBProTransformsDebug.dll")==0)
+			if(dbp::iequals(pDLLName, "DBProTransformsDebug.dll"))
 			{
 				tryDll("DBProSetupDebug.dll");
 			}

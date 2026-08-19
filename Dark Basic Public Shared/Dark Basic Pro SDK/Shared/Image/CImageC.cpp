@@ -745,18 +745,18 @@ bool CheckForWorkshopFile ( char* szFilename )
 	return false;
 }
 
-DARKSDK bool LoadFullTex ( char* szFilename, LPDIRECT3DTEXTURE9* pImage, D3DXIMAGE_INFO* info, int iFullTexturePlateMode, int iDivideTextureSize )
+DARKSDK bool LoadFullTex ( const char* szFilename, LPDIRECT3DTEXTURE9* pImage, D3DXIMAGE_INFO* info, int iFullTexturePlateMode, int iDivideTextureSize )
 {
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
 
 	// Decrypt and use media
 	bool bRes = false;
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 
 	// load the media
 	*pImage = GetTextureCore ( VirtualFilename, 0, iFullTexturePlateMode, iDivideTextureSize );
@@ -777,7 +777,7 @@ DARKSDK bool LoadFullTex ( char* szFilename, LPDIRECT3DTEXTURE9* pImage, D3DXIMA
 	if ( hRes==0 || hRes!=D3D_OK ) hRes = D3DXGetImageInfoFromFile( VirtualFilename, info );
 
 	// re-encrypt if applicable
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 
 	// success or no
 	return bRes;
@@ -789,7 +789,7 @@ DARKSDK bool Load ( char* szFilename, LPDIRECT3DTEXTURE9* pImage, D3DXIMAGE_INFO
 	return LoadFullTex ( szFilename, pImage, info, 0, 0 );
 }
 
-DARKSDK bool FindInternalImage ( char* szFilename, int* pImageID )
+DARKSDK bool FindInternalImage ( const char* szFilename, int* pImageID )
 {
 	if ( szFilename && szFilename[0] )
 	{
@@ -869,7 +869,7 @@ DARKSDK void ClearAnyLightMapInternalTextures ( void )
 }
 
 // This load is NOT the main DBPro image loader - it is used here though (Load(x,x,x,x))
-DARKSDK int LoadInternal ( char* szFilename, int iDivideTextureSize )
+DARKSDK int LoadInternal ( const char* szFilename, int iDivideTextureSize )
 {
 	// does image already exist?
 	int iImageID = 0;
@@ -882,7 +882,7 @@ DARKSDK int LoadInternal ( char* szFilename, int iDivideTextureSize )
 		CheckForWorkshopFile ( VirtualFilename );
 
 		// no, use standard loader
-		g_pGlob->Decrypt( (DWORD)VirtualFilename );
+		g_pGlob->Decrypt( VirtualFilename );
 		if ( LoadRetainName ( szFilename, (LPSTR)VirtualFilename, iImageID, 0, true, iDivideTextureSize ) )
 		{
 			// new image returned
@@ -892,29 +892,29 @@ DARKSDK int LoadInternal ( char* szFilename, int iDivideTextureSize )
 			// load failed
 			iImageID=0;
 		}
-		g_pGlob->Encrypt( (DWORD)VirtualFilename );
+		g_pGlob->Encrypt( VirtualFilename );
 	}
 	return iImageID;
 }
 
-DARKSDK int LoadInternal ( char* szFilename )
+DARKSDK int LoadInternal ( const char* szFilename )
 {
 	return LoadInternal ( szFilename, 0 );
 }
 
-DARKSDK LPDIRECT3DTEXTURE9 GetTexture ( char* szFilename, int iOneToOnePixels )
+DARKSDK LPDIRECT3DTEXTURE9 GetTexture ( const char* szFilename, int iOneToOnePixels )
 {
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	LPDIRECT3DTEXTURE9 Res = GetTextureCore ( VirtualFilename, iOneToOnePixels, 0, 0 );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 	return Res;
 }
 
@@ -1323,7 +1323,7 @@ DARKSDK bool GetExist ( int iID )
 }
 
 // This load is the MAIN IMAGE LOADER
-DARKSDK bool LoadRetainName ( char* szRealName, char* szFilename, int iID, int iTextureFlag, bool bIgnoreNegLimit, int iDivideTextureSize )
+DARKSDK bool LoadRetainName ( const char* szRealName, const char* szFilename, int iID, int iTextureFlag, bool bIgnoreNegLimit, int iDivideTextureSize )
 {
 	// iTextureFlag (0-default/1-sectionofplate/2-cube)
 	// iDivideTextureSize (0-leave size,0>divide by)
@@ -1362,7 +1362,7 @@ DARKSDK bool LoadRetainName ( char* szRealName, char* szFilename, int iID, int i
 	memset ( szTest,                0, sizeof ( char ) * 256 );		// clear out test buffer
 
 	// sort which name to use
-	LPSTR pNameForInternalList = szFilename;
+	LPCSTR pNameForInternalList = szFilename;
 	if ( strlen(szRealName)>1 ) pNameForInternalList = szRealName;
 
 	// get length of filename and copy to shortfilename

@@ -10,6 +10,12 @@
 #pragma warning(disable:4800)
 #include "CObjectsNewC.h"
 #include ".\..\Core\SteamCheckForWorkshop.h"
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <string>
 
 // Occlusion object global
 #include "Occlusion\cOcclusion.h"
@@ -268,7 +274,7 @@ DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID )
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	// store current folder
 	char pStoreCurrentDir[_MAX_PATH];
@@ -300,7 +306,7 @@ DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID )
 	}
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 
 	// if encrypting model file (and model MAY load internal textures, ensure current directory is temporarily in model file folder
 	if ( bTempFolderChangeForEncrypt==true )
@@ -320,7 +326,7 @@ DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID )
 	}
 
 	// Re-encrypt
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 
 }
 
@@ -329,14 +335,14 @@ DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID, int iDBProMode )
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile (VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	LoadCore ( (SDK_LPSTR)VirtualFilename, iID, iDBProMode, 0 );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID, int iDBProMode, int iDivideTextureSize )
@@ -344,14 +350,14 @@ DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID, int iDBProMode, int iDivi
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile (VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	LoadCore ( (SDK_LPSTR)VirtualFilename, iID, iDBProMode, iDivideTextureSize );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 DARKSDK_DLL void Save ( SDK_LPSTR szFilename, int iID )
@@ -369,155 +375,127 @@ DARKSDK_DLL void Save ( SDK_LPSTR szFilename, int iID )
 	{
 		// U78 - if OBJ extension detected, switch to OBJ exporter
 		// OBJ is a static format (no transforms, no animation, not much really)
-		if ( strnicmp ( pDBPFilename + strlen(pDBPFilename) - 4, ".obj", 4 )==NULL )
+		const size_t nFilenameLen = strlen ( pDBPFilename );
+		std::string sExtension;
+		if ( nFilenameLen>=4 ) sExtension = std::string ( pDBPFilename + nFilenameLen - 4 );
+		std::transform ( sExtension.begin(), sExtension.end(), sExtension.begin(), [](unsigned char ch){ return (char)tolower(ch); } );
+		if ( sExtension == ".obj" )
 		{
 			// vertex indices are global to the file
 			DWORD dwStartOfVertexBatch = 1;
 
-			// Get just the name
-			char pJustObjName[512];
-			strcpy ( pJustObjName, pDBPFilename );
-			pJustObjName[strlen(pJustObjName)-4]=0;
+			// Get just the name (drop the .obj extension)
+			std::string sJustObjName ( pDBPFilename, nFilenameLen-4 );
 
 			// MTL file
-			char pMTLFilename[512];
-			strcpy ( pMTLFilename, pJustObjName );
-			strcat ( pMTLFilename, ".mtl" );
+			std::string sMTLFilename = sJustObjName + ".mtl";
 
-			// open MTL file for writing
-			HANDLE hMTLfile = CreateFile ( pMTLFilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-			if ( hMTLfile != INVALID_HANDLE_VALUE )
+			// open MTL and OBJ files for writing (RAII - closed automatically)
+			std::ofstream hMTLfile ( sMTLFilename, std::ios::out | std::ios::binary | std::ios::trunc );
+			std::ofstream hfile ( pDBPFilename, std::ios::out | std::ios::binary | std::ios::trunc );
+			if ( hfile.is_open() && hMTLfile.is_open() )
 			{
-				// write OBJ format
-				LPSTR pLine = 0;
-				DWORD byteswritten=0;
-				HANDLE hfile = CreateFile ( pDBPFilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-				if ( hfile != INVALID_HANDLE_VALUE )
+				// match legacy %f output: fixed 6-decimal float formatting
+				hfile    << std::fixed << std::setprecision(6);
+				hMTLfile << std::fixed << std::setprecision(6);
+
+				// header
+				hfile << "# OBJ Model File converted by the mighty Game Creators\n";
+				hfile << "# more tools found at www.thegamecreators.com\n";
+				hfile << "\n";
+
+				// material file name
+				hfile << "# Material library\n";
+				hfile << "mtllib " << sMTLFilename << "\n\n";
+
+				// object name
+				hfile << "# Object\n";
+				hfile << "o " << sJustObjName << "\n";
+				hfile << "\n";
+
+				// only one mesh
+				for ( int iMeshIndex=0; iMeshIndex<pObject->iMeshCount; iMeshIndex++ )
 				{
-					// header
-					pLine = "# OBJ Model File converted by the mighty Game Creators\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-					pLine = "# more tools found at www.thegamecreators.com\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-					pLine = "\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
+					// make a new mesh from the original mesh, and ensure it's verts only
+					sMesh* pVertOnlyMesh = new sMesh;
+					sMesh* pMesh = pObject->ppMeshList[iMeshIndex];
+					MakeMeshFromOtherMesh       ( true, pVertOnlyMesh, pMesh, NULL );
+					ConvertLocalMeshToVertsOnly ( pVertOnlyMesh );
 
-					// material file name
-					pLine = "# Material library\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-					char pDynLine[512];
-					sprintf ( pDynLine, "mtllib %s\n\n", pMTLFilename );
-					WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL );
+					// group name
+					hfile << "# Mesh\n";
+					hfile << "g mesh\n";
+					hfile << "\n";
 
-					// object name
-					pLine = "# Object\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-					sprintf ( pDynLine, "o %s\n", pJustObjName );
-					WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL );
-					pLine = "\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
+					// vertices
+					hfile << "# Vertex list\n";
 
-					// only one mesh
-					for ( int iMeshIndex=0; iMeshIndex<pObject->iMeshCount; iMeshIndex++ )
+					// for each vertex
+					const float* pVertFloats = reinterpret_cast<const float*>(pVertOnlyMesh->pVertexData);
+					for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV++ )
 					{
-						// make a new mesh from the original mesh, and ensure it's verts only
-						sMesh* pVertOnlyMesh = new sMesh;
-						sMesh* pMesh = pObject->ppMeshList[iMeshIndex];
-						MakeMeshFromOtherMesh       ( true, pVertOnlyMesh, pMesh, NULL );
-						ConvertLocalMeshToVertsOnly ( pVertOnlyMesh );
+						hfile << "v " << pVertFloats[0] << " " << pVertFloats[1] << " " << pVertFloats[2] << "\n";
+						pVertFloats += pVertOnlyMesh->dwFVFSize / sizeof(float);
+					}
+					pVertFloats = reinterpret_cast<const float*>(pVertOnlyMesh->pVertexData);
+					for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV++ )
+					{
+						float fReverseVCoordForOBJ = -pVertFloats[7];
+						hfile << "vt " << pVertFloats[6] << " " << fReverseVCoordForOBJ << "\n";
+						pVertFloats += pVertOnlyMesh->dwFVFSize / sizeof(float);
+					}
+					pVertFloats = reinterpret_cast<const float*>(pVertOnlyMesh->pVertexData);
+					for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV++ )
+					{
+						hfile << "vn " << pVertFloats[3] << " " << pVertFloats[4] << " " << pVertFloats[5] << "\n";
+						pVertFloats += pVertOnlyMesh->dwFVFSize / sizeof(float);
+					}
+					hfile << "\n";
 
-						// group name
-						pLine = "# Mesh\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-						pLine = "g mesh\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-						pLine = "\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
+					// faces
+					hfile << "# Face list\n";
 
-						// vertices
-						pLine = "# Vertex list\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-
-						// for each vertex
-						BYTE* pVertData = pVertOnlyMesh->pVertexData;
-						for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV++ )
+					// texture filename
+					// no guarantee its in the X file - but we try first
+					// else we use the name of the model file
+					std::string sFileOnlyNoExt;
+					for ( int iTry=0; iTry<2; iTry++ )
+					{
+						LPSTR pOrigPathAndFile = NULL;
+						if ( iTry==0 ) pOrigPathAndFile = pMesh->pTextures[0].pName;
+						if ( iTry==1 ) pOrigPathAndFile = pDBPFilename;
+						sFileOnlyNoExt.clear();
+						if ( pOrigPathAndFile )
 						{
-							sprintf ( pDynLine, "v %f %f %f\n", (float)*((float*)pVertData+0), (float)*((float*)pVertData+1), (float)*((float*)pVertData+2) );
-							WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL );
-							pVertData+=pVertOnlyMesh->dwFVFSize;
-						}
-						pVertData = pVertOnlyMesh->pVertexData;
-						for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV++ )
-						{
-							float fReverseVCoordForOBJ = -(float)*((float*)pVertData+7);
-							sprintf ( pDynLine, "vt %f %f\n", (float)*((float*)pVertData+6), fReverseVCoordForOBJ );
-							WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL );
-							pVertData+=pVertOnlyMesh->dwFVFSize;
-						}
-						pVertData = pVertOnlyMesh->pVertexData;
-						for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV++ )
-						{
-							sprintf ( pDynLine, "vn %f %f %f\n", (float)*((float*)pVertData+3), (float)*((float*)pVertData+4), (float)*((float*)pVertData+5) );
-							WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL );
-							pVertData+=pVertOnlyMesh->dwFVFSize;
-						}
-						pLine = "\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
+							// trim off any paths first
+							std::string sOrig ( pOrigPathAndFile );
+							std::string::size_type nSlash = sOrig.find_last_of ( "\\/" );
+							sFileOnlyNoExt = ( nSlash==std::string::npos ) ? sOrig : sOrig.substr ( nSlash+1 );
 
-						// faces
-						pLine = "# Face list\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL );
-
-						// texture filename
-						// no guarentee its in the X file - but we try first
-						// else we use the name of the model file
-						char pFileOnlyNoExt[512];
-						for ( int iTry=0; iTry<2; iTry++ )
-						{
-							LPSTR pOrigPathAndFile = NULL;
-							if ( iTry==0 ) pOrigPathAndFile = pMesh->pTextures[0].pName;
-							if ( iTry==1 ) pOrigPathAndFile = pDBPFilename;
-							strcpy ( pFileOnlyNoExt, "" );
-							if ( pOrigPathAndFile )
+							// now we see if any variations of this filename exists
+							if ( sFileOnlyNoExt.size()>4 )
 							{
-								// trim off any paths first
-								strcpy ( pFileOnlyNoExt, pOrigPathAndFile );
-								for ( int n=strlen(pOrigPathAndFile)-1; n>0; n-- )
+								sFileOnlyNoExt.resize ( sFileOnlyNoExt.size()-4 );
+								sFileOnlyNoExt += ".png";
+								if ( std::filesystem::exists ( sFileOnlyNoExt ) )
 								{
-									if ( pOrigPathAndFile[n]=='\\' || pOrigPathAndFile[n]=='/' )
-									{
-										strcpy ( pFileOnlyNoExt, pOrigPathAndFile+n+1 );
-										n=0; break;
-									}
+									// this texture file exists - we have our texture name
+									iTry=99;
 								}
-
-								// now we see if any variations of this filename exists
-								if ( strlen(pFileOnlyNoExt)>4 )
+								else
 								{
-									pFileOnlyNoExt[strlen(pFileOnlyNoExt)-4]=0;
-									strcat ( pFileOnlyNoExt, ".png" );
-									HANDLE hExists = CreateFile( pFileOnlyNoExt, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-									if ( hExists!=INVALID_HANDLE_VALUE )
+									// the PNG of the named texture does not exist, but sometimes
+									// texture names are truncated (chair_a.x) so need to be sliced
+									// up to find which part of the end is the actual texture (up to 32 chars)
+									for ( int n=32; n>5; n-- )
 									{
-										// this texture file exists - we have our texture name
-										CloseHandle( hExists );
-										iTry=99;
-									}
-									else
-									{
-										// the PNG of the named texture does not exist, but sometimes
-										// texture names are truncated (chair_a.x) so need to be sliced
-										// up to find which part of the end is the actual texture (up to 32 chars)
-										char pSlicedVariant[512];
-										for ( int n=32; n>5; n-- )
+										if ( n < (int)sFileOnlyNoExt.size() )
 										{
-											strcpy ( pSlicedVariant, pFileOnlyNoExt+strlen(pFileOnlyNoExt)-n );
-											hExists = CreateFile( pSlicedVariant, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-											if ( hExists!=INVALID_HANDLE_VALUE )
+											std::string sSlicedVariant = sFileOnlyNoExt.substr ( sFileOnlyNoExt.size()-n );
+											if ( std::filesystem::exists ( sSlicedVariant ) )
 											{
 												// this texture file exists - we have our texture name
-												strcpy ( pFileOnlyNoExt, pSlicedVariant);
-												CloseHandle( hExists );
+												sFileOnlyNoExt = sSlicedVariant;
 												iTry=99;
 												n=0;
 											}
@@ -526,64 +504,45 @@ DARKSDK_DLL void Save ( SDK_LPSTR szFilename, int iID )
 								}
 							}
 						}
-
-						// remove spaces from material record
-						char pNoSpacesFile[512];
-						strcpy ( pNoSpacesFile, pFileOnlyNoExt );
-						for ( DWORD n=0; n<strlen(pNoSpacesFile); n++ )
-							if ( pNoSpacesFile[n]==' ' ) pNoSpacesFile[n]='_';
-
-						// write material(texture) for this collecion of faces(mesh)
-						sprintf ( pDynLine, "usemtl %s\n", pNoSpacesFile );
-						WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-
-						// also write this into the MTL file
-						sprintf ( pDynLine, "newmtl %s\n", pNoSpacesFile );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    Ns 20\n" );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    d 1\n" );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    illum 2\n" );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    Kd 1.0 1.0 1.0\n" );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    Ks 0 0 0\n" );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    Ka 0 0 0\n" );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-						sprintf ( pDynLine, "    map_Kd %s\n\n", pNoSpacesFile );
-						WriteFile( hMTLfile, pDynLine, strlen(pDynLine), &byteswritten, NULL ); 
-
-						// for each face
-						for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV+=3 )
-						{
-							int iA = dwV+dwStartOfVertexBatch+0;
-							int iB = dwV+dwStartOfVertexBatch+1;
-							int iC = dwV+dwStartOfVertexBatch+2;
-							sprintf ( pDynLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", iA, iA, iA, iB, iB, iB, iC, iC, iC );
-							WriteFile( hfile, pDynLine, strlen(pDynLine), &byteswritten, NULL );
-						}
-						pLine = "\n";
-						WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-
-						// Advance global start marker for vertice indices
-						dwStartOfVertexBatch+=pVertOnlyMesh->dwVertexCount;
-
-						// free temp mesh
-						SAFE_DELETE ( pVertOnlyMesh );
 					}
 
-					// End of file marker
-					pLine = "# End of file\n";
-					WriteFile( hfile, pLine, strlen(pLine), &byteswritten, NULL ); 
-					
-					// finish file
-					CloseHandle ( hfile );
+					// remove spaces from material record
+					std::string sNoSpacesFile ( sFileOnlyNoExt );
+					for ( char& c : sNoSpacesFile )
+						if ( c==' ' ) c='_';
+
+					// write material(texture) for this collection of faces(mesh)
+					hfile << "usemtl " << sNoSpacesFile << "\n";
+
+					// also write this into the MTL file
+					hMTLfile << "newmtl " << sNoSpacesFile << "\n";
+					hMTLfile << "    Ns 20\n";
+					hMTLfile << "    d 1\n";
+					hMTLfile << "    illum 2\n";
+					hMTLfile << "    Kd 1.0 1.0 1.0\n";
+					hMTLfile << "    Ks 0 0 0\n";
+					hMTLfile << "    Ka 0 0 0\n";
+					hMTLfile << "    map_Kd " << sNoSpacesFile << "\n\n";
+
+					// for each face
+					for ( DWORD dwV=0; dwV<pVertOnlyMesh->dwVertexCount; dwV+=3 )
+					{
+						int iA = dwV+dwStartOfVertexBatch+0;
+						int iB = dwV+dwStartOfVertexBatch+1;
+						int iC = dwV+dwStartOfVertexBatch+2;
+						hfile << "f " << iA << "/" << iA << "/" << iA << " " << iB << "/" << iB << "/" << iB << " " << iC << "/" << iC << "/" << iC << "\n";
+					}
+					hfile << "\n";
+
+					// Advance global start marker for vertice indices
+					dwStartOfVertexBatch+=pVertOnlyMesh->dwVertexCount;
+
+					// free temp mesh
+					SAFE_DELETE ( pVertOnlyMesh );
 				}
 
-				// finish file
-				CloseHandle ( hMTLfile );
+				// End of file marker
+				hfile << "# End of file\n";
 			}
 		}
 		else
@@ -601,7 +560,6 @@ DARKSDK_DLL void Save ( SDK_LPSTR szFilename, int iID )
 		}
 	}
 }
-
 DARKSDK_DLL void SetDeleteCallBack ( int iID, ON_OBJECT_DELETE_CALLBACK pfn, int userData )
 {
 	// mike - 050803 - delete object override
@@ -7700,14 +7658,14 @@ DARKSDK_DLL void LoadMesh ( SDK_LPSTR szFilename, int iMeshID )
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, (LPSTR)szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile (VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	LoadMeshCore ( (SDK_LPSTR)VirtualFilename, iMeshID );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 DARKSDK_DLL void DeleteMesh ( int iMeshID )

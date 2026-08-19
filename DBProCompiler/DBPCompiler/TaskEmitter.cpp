@@ -22,8 +22,8 @@ DWORD CTaskEmitter::DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) 
         case 7:  dwAddressSizeCode = 2; break;  // DWORD (4 bytes)
         case 8:  dwAddressSizeCode = 3; break;  // DOUBLE (8 bytes)
         case 9:  dwAddressSizeCode = 3; break;  // INT64 (8 bytes)
-        case 2:  dwAddressSizeCode = (dbp::abi::ActiveTargetAbi::address_size == 8) ? 2 : 2; break; // STRING handle/ptr
-        case 1001: dwAddressSizeCode = 2; break; // POINTER / REF
+        case 2:  dwAddressSizeCode = 2; break;  // STRING handle/ptr (8-byte pointer)
+        case 1001: dwAddressSizeCode = 2; break; // POINTER / REF (8-byte pointer)
         default: dwAddressSizeCode = 2; break;
     }
 

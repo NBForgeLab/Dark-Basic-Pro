@@ -4,6 +4,7 @@
 
 // Custom Includes
 #include "StatementList.h"
+#include "StringUtils.h"
 #include "StructTable.h"
 #include "VarTable.h"
 #include "DBPLogger.h"
@@ -19,6 +20,7 @@ extern CStatementList* g_pStatementList;
 #include <unordered_map>
 
 std::unordered_map<std::string, CVarTable*> CVarTable::g_Table;
+std::vector<CVarTable*> CVarTable::g_Order;
 
 namespace {
 static std::string var_to_lower(std::string_view s)
@@ -62,8 +64,7 @@ CVarTable::CVarTable()
 	m_bOffsetAssigned=false;
 	m_pAdditionalDataString=nullptr;
 
-	m_pNext=nullptr;
-	m_pPrev=nullptr;
+	m_orderIndex=static_cast<size_t>(-1);
 }
 
 CVarTable::CVarTable(LPCSTR pStr)
@@ -80,8 +81,7 @@ CVarTable::CVarTable(LPCSTR pStr)
 	m_bOffsetAssigned=false;
 	m_pAdditionalDataString=nullptr;
 
-	m_pNext=nullptr;
-	m_pPrev=nullptr;
+	m_orderIndex=static_cast<size_t>(-1);
 
 #ifdef __AARON_VARTABLEPERF__
 	std::string lowerStr = var_to_lower(pStr);
@@ -110,39 +110,43 @@ void CVarTable::Free(void)
 #ifdef __AARON_VARTABLEPERF__
 	g_Table.clear();
 #endif
-	CVarTable* pCurrent = this;
-	while(pCurrent)
-	{
-		CVarTable* pNext = pCurrent->GetNext();
-		delete pCurrent;
-		pCurrent = pNext;
-	}
+	// delete every node tracked in the declaration-order index
+	for ( CVarTable* pNode : g_Order )
+		delete pNode;
+	g_Order.clear();
 }
 
 void CVarTable::Add(CVarTable* pNew)
 {
-	CVarTable* pCurrent = this;
-	while(pCurrent->m_pNext)
+	// register the head of the list (this) on first use
+	if ( g_Order.empty() )
 	{
-		pCurrent=pCurrent->GetNext();
+		g_Order.push_back(this);
+		this->m_orderIndex=0;
 	}
-	pCurrent->m_pNext=pNew;
-	pNew->m_pPrev=pCurrent;
+	g_Order.push_back(pNew);
+	pNew->m_orderIndex=g_Order.size()-1;
 }
 
 void CVarTable::Insert(CVarTable* pNew)
 {
-	// Get neighbors
-	CVarTable* pNeighA = m_pPrev;
-	CVarTable* pNeighB = this;
-
-	// Instruct neighbours to point to me
-	if(pNeighA) pNeighA->m_pNext = pNew;
-	pNeighB->m_pPrev = pNew;
-
-	// Insruct new to point to neighbors
-	pNew->m_pNext = pNeighB;
-	pNew->m_pPrev = pNeighA;
+	// register the head of the list (this) on first use
+	if ( g_Order.empty() )
+	{
+		g_Order.push_back(this);
+		this->m_orderIndex=0;
+	}
+	// defensive: an unregistered node must be the head of the list
+	if ( this->m_orderIndex==static_cast<size_t>(-1) )
+	{
+		g_Order.insert(g_Order.begin(), this);
+		this->m_orderIndex=0;
+	}
+	// insert pNew immediately before this node
+	g_Order.insert( g_Order.begin() + static_cast<std::ptrdiff_t>(this->m_orderIndex), pNew );
+	// refresh indices from the insertion point onwards
+	for ( size_t i=this->m_orderIndex; i<g_Order.size(); i++ )
+		g_Order[i]->m_orderIndex=i;
 }
 
 void CVarTable::SetVarDefaults(void)
@@ -170,7 +174,7 @@ void CVarTable::AddInOrder(LPCSTR pName, CVarTable* pNew)
 	CVarTable* pLocation = this->GetNext();
 	while(pLocation)
 	{
-		if(_stricmp(pName,pLocation->GetVarName()->GetStr())<0) break;
+		if(dbp::icompare(pName,pLocation->GetVarName()->GetStr()) < 0) break;
 		pLocation=pLocation->GetNext();
 	}
 	if(pLocation)
@@ -187,24 +191,20 @@ void CVarTable::AddInOrder(LPCSTR pName, CVarTable* pNew)
 
 CVarTable* CVarTable::Advance(DWORD dwCountdown)
 {
-	if(dwCountdown==0)
+	if ( dwCountdown==0 || m_orderIndex==static_cast<size_t>(-1) )
 		return this;
-	else
-		if(m_pNext)
-			return m_pNext->Advance(dwCountdown-1);
-
-	return nullptr;
+	if ( m_orderIndex + dwCountdown >= g_Order.size() )
+		return nullptr;
+	return g_Order[m_orderIndex + dwCountdown];
 }
 
 CVarTable* CVarTable::Subtract(DWORD dwCountdown)
 {
-	if(dwCountdown==0)
+	if ( dwCountdown==0 || m_orderIndex==static_cast<size_t>(-1) )
 		return this;
-	else
-		if(m_pPrev)
-			return m_pPrev->Subtract(dwCountdown-1);
-
-	return nullptr;
+	if ( m_orderIndex < dwCountdown )
+		return nullptr;
+	return g_Order[m_orderIndex - dwCountdown];
 }
 
 bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal)
@@ -226,7 +226,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 	// If defining var in userfunction, must be added to local dec chain
 	LPSTR pScope=nullptr;
 	LPSTR pUserFunc = g_pStatementList->GetUserFunctionName();
-	if(_stricmp(pUserFunc,"")!=0)
+	if(!dbp::iequals(pUserFunc,""))
 		pScope = g_pStatementList->GetUserFunctionName();
 
 	// leefix - 210703 - added for global var specified in ENDFUNCTION param
@@ -257,7 +257,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 			else
 			{
 				// Cannot duplicate a variable declaration by assignment a different type
-				if(_stricmp(pFoundVar->GetVarType()->GetStr(),pType)==0)
+				if(dbp::iequals(pFoundVar->GetVarType()->GetStr(),pType))
 				{
 					// Same type, so treat as a re-init of variable
 					if(pdwAction) *pdwAction=3;
@@ -277,7 +277,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 		bCheckGloballyFirst=true;
 
 	// Skip global var check if userfunction is declaring its local variables...
-	if(_stricmp(pUserFunc,"")!=0
+	if(!dbp::iequals(pUserFunc,"")
 	&& ( g_pStatementList->GetImplementationParse()==true || bCheckGloballyFirst==true ) )
 	{
 		/* leefix - 230603
@@ -585,7 +585,7 @@ DWORD CVarTable::GetBasicTypeValue(LPCSTR pTypeString)
 	while(pCurrent)
 	{
 		LPCSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
-		if(_stricmp(pCurrentStr, pTypeString)==0)
+		if(dbp::iequals(pCurrentStr, pTypeString))
 		{
 			return pCurrent->GetTypeValue();
 		}
@@ -600,7 +600,7 @@ CStructTable* CVarTable::GetStruct(LPCSTR pTypeString)
 	while(pCurrent)
 	{
 		LPCSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
-		if(_stricmp(pCurrentStr, pTypeString)==0)
+		if(dbp::iequals(pCurrentStr, pTypeString))
 		{
 			return pCurrent;
 		}

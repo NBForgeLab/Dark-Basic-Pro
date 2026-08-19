@@ -55,15 +55,11 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     IMAGE_NT_HEADERS* ntHeaders = (IMAGE_NT_HEADERS*)(data + dosHeader->e_lfanew);
     if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) return nullptr;
     
-#if defined(_WIN64)
+    // Native x64 loader: only 64-bit PE images are mappable. PE32 (x86) images
+    // cannot be relocated or executed in this process and are rejected here.
     if (ntHeaders->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64 || ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
         return nullptr;
     }
-#else
-    if (ntHeaders->FileHeader.Machine != IMAGE_FILE_MACHINE_I386 || ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-        return nullptr;
-    }
-#endif
 
     if (ntHeaders->OptionalHeader.SizeOfHeaders > size) return nullptr;
     if (ntHeaders->OptionalHeader.SizeOfHeaders < sizeof(IMAGE_DOS_HEADER) + sizeof(IMAGE_NT_HEADERS)) return nullptr;

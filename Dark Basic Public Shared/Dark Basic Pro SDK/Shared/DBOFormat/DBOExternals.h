@@ -35,8 +35,8 @@ extern GlobStruct*			g_pGlob;
 // IMAGE TYPEDEFS
 typedef void				( *IMAGE_RetVoidParamHINSTANCEPFN ) ( HINSTANCE );
 typedef void				( *IMAGE_RetVoidParamVoidPFN )      ( void );
-typedef int					( *IMAGE_LoadInternalTexturePFN )	( char* );
-typedef int					( *IMAGE_LoadInternalTextureDividePFN )	( char*, int );
+typedef int					( *IMAGE_LoadInternalTexturePFN )	( const char* );
+typedef int					( *IMAGE_LoadInternalTextureDividePFN )	( const char*, int );
 
 typedef bool				( *IMAGE_RetBoolParamIntPCharPFN )  ( int, char* );
 typedef void				( *IMAGE_RetVoidParamIntPFN )       ( int );

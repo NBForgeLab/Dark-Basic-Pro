@@ -64,6 +64,8 @@ typedef DWORD ( *PTR_ProcessMessages ) ( void );
 typedef void ( *PTR_PrintString ) ( LPSTR, bool );
 typedef void ( *PTR_VOID ) ( void );
 typedef void ( *PTR_DWORD ) ( DWORD );
+typedef void ( *PTR_LPSTR ) ( LPSTR );
+typedef void ( *PTR_LPSTR_DWORD ) ( LPSTR, DWORD );
 
 // Data Structures
 struct GlobChecklistStruct
@@ -86,9 +88,9 @@ struct GlobStruct
 	PTR_FuncCreateStr			CreateDeleteString;
 	PTR_ProcessMessages			ProcessMessageFunction;
 	PTR_PrintString				PrintStringFunction;
-	PTR_DWORD					UpdateFilenameFromVirtualTable;
-	PTR_DWORD					Decrypt;
-	PTR_DWORD					Encrypt;
+	PTR_LPSTR					UpdateFilenameFromVirtualTable;
+	PTR_LPSTR					Decrypt;
+	PTR_LPSTR					Encrypt;
 	PTR_DWORD					ChangeMouseFunction;
 	PTR_DWORD					SpareFunction1;
 	PTR_VOID					SpareFunction2;

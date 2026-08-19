@@ -680,7 +680,8 @@ void InternalUpdate ( int iID )
 			D3DXVec3TransformCoord ( &m_pPos->vecLook, &m_pPos->vecLook,  &matRotation );
 			D3DXVec3TransformCoord ( &m_pPos->vecUp,   &m_pPos->vecUp,    &matRotation );
 
-			D3DXMatrixRotationAxis ( &matRotation, &D3DXVECTOR3 ( 0.0f, 1.0f, 0.0f ), D3DXToRadian ( m_pPos->vecRotate.y ) );
+			const D3DXVECTOR3 vecYAxis( 0.0f, 1.0f, 0.0f );
+			D3DXMatrixRotationAxis ( &matRotation, &vecYAxis, D3DXToRadian ( m_pPos->vecRotate.y ) );
 			D3DXVec3TransformCoord ( &m_pPos->vecLook, &m_pPos->vecLook, &matRotation );
 	// LEEFIX - 051002 - Y rotation changes right, not up which stays the same throughout a Y rotation
 	//		D3DXVec3TransformCoord ( &m_pPos->vecUp,   &m_pPos->vecUp,   &matRotation );

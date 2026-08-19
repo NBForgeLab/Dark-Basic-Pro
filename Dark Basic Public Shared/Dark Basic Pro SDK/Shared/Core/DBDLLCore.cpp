@@ -222,7 +222,7 @@ BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 // WINDOWS FRIENDLY FUNCTIONS
 
-bool IsArraySingleDim ( DWORD dwArrayPtr )
+bool IsArraySingleDim ( DWORD_PTR dwArrayPtr )
 {
 	// Detect if array has single dimension only, false if multi or irregular array
 	DWORD* pOldHeader = (DWORD*)(((LPSTR)dwArrayPtr)-HEADERSIZEINBYTES);
@@ -1069,12 +1069,12 @@ DARKSDK bool DoesFileExist(LPSTR Filename)
 	return bSuccess;
 }
 
-DARKSDK void UpdateFilenameFromVirtualTable( DWORD dwStringAddress )
+DARKSDK void UpdateFilenameFromVirtualTable( LPSTR szStringAddress )
 {
 	// String is input with external filename
-	if(dwStringAddress==0)
+	if ( !szStringAddress )
 		return;
-	
+
 	// If Virtual Table area available
 	if(g_Glob.pEXEUnpackDirectory==NULL)
 		return;
@@ -1083,13 +1083,13 @@ DARKSDK void UpdateFilenameFromVirtualTable( DWORD dwStringAddress )
 	LPSTR pFilename = new char[_MAX_PATH*3];
 	strcpy(pFilename, g_Glob.pEXEUnpackDirectory);
 	strcat(pFilename, "\\media\\");
-	strcat(pFilename, (LPSTR)dwStringAddress);
+	strcat(pFilename, szStringAddress);
 
 	// If File exists, use that instead of external file
 	if(DoesFileExist(pFilename)==true)
 	{
 		// Virtual Table File better than local external file
-		strcpy((LPSTR)dwStringAddress, pFilename);
+		strcpy(szStringAddress, pFilename);
 	}
 
 	// Free usages
@@ -1129,23 +1129,23 @@ DARKSDK void WriteFileData(LPSTR pFilename, LPSTR pData, DWORD dwDataSize)
 	}
 }
 
-DARKSDK void EncryptDecrypt( DWORD dwStringAddress, bool bEncryptIfTrue, bool bDoNotUseTempFolder )
+DARKSDK void EncryptDecrypt( LPSTR szStringAddress, bool bEncryptIfTrue, bool bDoNotUseTempFolder )
 {
 	// Dave - for safety
 	g_Glob.dwEncryptionUniqueKey = 0;
 
 	// String is input with external filename
-	if(dwStringAddress==0)
+	if ( !szStringAddress )
 		return;
 
 	// If re-encrypting, and filename is in temp, just delete it and finish
 	LPSTR pLocalTRemp = g_Glob.pEXEUnpackDirectory;
 	if ( bDoNotUseTempFolder==false && bEncryptIfTrue==true )
 	{
-		if ( strnicmp ( (LPSTR)dwStringAddress, pLocalTRemp, strlen(pLocalTRemp) )==NULL )
+		if ( strnicmp ( szStringAddress, pLocalTRemp, strlen(pLocalTRemp) )==NULL )
 		{
 			// Delete temp decrypted file
-			if(DoesFileExist((LPSTR)dwStringAddress)) DeleteFile((LPSTR)dwStringAddress);
+			if(DoesFileExist(szStringAddress)) DeleteFile(szStringAddress);
 
 			// Finish early
 			return;
@@ -1153,12 +1153,12 @@ DARKSDK void EncryptDecrypt( DWORD dwStringAddress, bool bEncryptIfTrue, bool bD
 	}
 
 	// length of six... e.g. "_e_Z.x" is the min size file (1 letter name)
-	if ( strlen((LPSTR)dwStringAddress) < 6 ) return;
+	if ( strlen(szStringAddress) < 6 ) return;
 
 	char checkForEncryptName[_MAX_PATH];
 	char keyName[10] = "7yFkC3Oa";
 		
-	strcpy( checkForEncryptName , (LPSTR)dwStringAddress );
+	strcpy( checkForEncryptName , szStringAddress );
 
 	// a file that needs decrypting will start with "_e_"
 	bool okayToProceed = false;
@@ -1212,7 +1212,7 @@ DARKSDK void EncryptDecrypt( DWORD dwStringAddress, bool bEncryptIfTrue, bool bD
 
 	// Check if file exists
 	LPSTR pFilename = new char[_MAX_PATH];
-	strcpy(pFilename, (LPSTR)dwStringAddress);
+	strcpy(pFilename, szStringAddress);
 	if(DoesFileExist(pFilename))
 	{
 		// Open File Data
@@ -1253,7 +1253,7 @@ DARKSDK void EncryptDecrypt( DWORD dwStringAddress, bool bEncryptIfTrue, bool bD
 				WriteFileData(pFilename, pData, dwDataSize);
 
 				// And point module using this function to the new filename
-				strcpy ( (LPSTR)dwStringAddress, pFilename );
+				strcpy ( szStringAddress, pFilename );
 			}
 		}
 		else
@@ -1277,38 +1277,38 @@ DARKSDK void EncryptDecrypt( DWORD dwStringAddress, bool bEncryptIfTrue, bool bD
 	g_Glob.dwEncryptionUniqueKey = 0;
 }
 
-DARKSDK void Decrypt( DWORD dwStringAddress )
+DARKSDK void Decrypt( LPSTR szStringAddress )
 {
 	// lee - 230306 - u6b4 - only encrypt/decrypt if from DBPDATA temp folder (should not touch local files!)
 	// Dave - 28/03/2014 - commented this out because we will check if a file needs decrypting from now on
-	//if ( strnicmp ( (LPSTR)dwStringAddress, g_Glob.pEXEUnpackDirectory, strlen(g_Glob.pEXEUnpackDirectory) )==NULL )
-		EncryptDecrypt ( dwStringAddress, false, false );
+	//if ( strnicmp ( szStringAddress, g_Glob.pEXEUnpackDirectory, strlen(g_Glob.pEXEUnpackDirectory) )==NULL )
+		EncryptDecrypt ( szStringAddress, false, false );
 }
 
-DARKSDK void Encrypt( DWORD dwStringAddress )
+DARKSDK void Encrypt( LPSTR szStringAddress )
 {
 	// lee - 230306 - u6b4 - only encrypt/decrypt if from DBPDATA temp folder (should not touch local files!)
 	// Dave - 28/03/2014 - commented this out because we will check if a file needs decrypting from now on
-	//if ( strnicmp ( (LPSTR)dwStringAddress, g_Glob.pEXEUnpackDirectory, strlen(g_Glob.pEXEUnpackDirectory) )==NULL )
-		EncryptDecrypt ( dwStringAddress, true, false );
+	//if ( strnicmp ( szStringAddress, g_Glob.pEXEUnpackDirectory, strlen(g_Glob.pEXEUnpackDirectory) )==NULL )
+		EncryptDecrypt ( szStringAddress, true, false );
 }
 
 //Dave added 28/03/2014 so we can encrypt from dbpro
-DARKSDK void EncryptDBPro ( DWORD dwStringAddress )
+DARKSDK void EncryptDBPro ( const char* szStringAddress )
 {
 
 	LPSTR pFilename = new char[_MAX_PATH];
-	strcpy(pFilename, (LPSTR)dwStringAddress);
+	strcpy(pFilename, szStringAddress);
 	if(!DoesFileExist(pFilename))
 		return;
 
 	char newFileName[_MAX_PATH];
-	sprintf ( newFileName , "_e_%s" , (LPSTR)dwStringAddress );
+	sprintf ( newFileName , "_e_%s" , szStringAddress );
 
 	char buf[BUFSIZ];
 	size_t size;
 
-	FILE* source = fopen( (LPSTR)dwStringAddress , "rb");
+	FILE* source = fopen( szStringAddress , "rb");
 	FILE* dest = fopen(newFileName, "wb");
 
 	// clean and more secure
@@ -1322,15 +1322,15 @@ DARKSDK void EncryptDBPro ( DWORD dwStringAddress )
 	fclose(source);
 	fclose(dest);
 
-	EncryptDecrypt ( (DWORD)newFileName, true, true );
+	EncryptDecrypt ( newFileName, true, true );
 }
 
 //Dave used for workshop encryption
-DARKSDK void EncryptWorkshopDBPro ( DWORD dwStringAddress )
+DARKSDK void EncryptWorkshopDBPro ( const char* szStringAddress )
 {
 
 	LPSTR pFilename = new char[_MAX_PATH];
-	strcpy(pFilename, (LPSTR)dwStringAddress);
+	strcpy(pFilename, szStringAddress);
 	if(!DoesFileExist(pFilename))
 		return;
 
@@ -1369,16 +1369,16 @@ DARKSDK void EncryptWorkshopDBPro ( DWORD dwStringAddress )
 	fclose(source);
 	fclose(dest);
 
-	EncryptDecrypt ( (DWORD)newFileName, true, true );
+	EncryptDecrypt ( newFileName, true, true );
 
 	SetCurrentDirectory(originalPath);
 }
 
-DARKSDK bool EncryptNewFile ( DWORD dwStringAddress )
+DARKSDK bool EncryptNewFile ( const char* szStringAddress )
 {
 	// do not encrypt any sky models (as they use internal image loads which are also encrypted 
 	// and I cannot load encryped files from within the temp folder where the decrypted.x is)
-	LPSTR pScanFilename = (LPSTR)dwStringAddress;
+	const char* pScanFilename = szStringAddress;
 	char pThisDirAndFile[MAX_PATH];
 	GetCurrentDirectory ( MAX_PATH, pThisDirAndFile );
 	strcat ( pThisDirAndFile, "\\" );
@@ -1403,12 +1403,12 @@ DARKSDK bool EncryptNewFile ( DWORD dwStringAddress )
 	}
 
 	char newFileName[_MAX_PATH];
-	sprintf ( newFileName , "_e_%s" , (LPSTR)dwStringAddress );
+	sprintf ( newFileName , "_e_%s" , szStringAddress );
 
 	char buf[BUFSIZ];
 	size_t size;
 
-	FILE* source = fopen( (LPSTR)dwStringAddress , "rb");
+	FILE* source = fopen( szStringAddress , "rb");
 	FILE* dest = fopen(newFileName, "wb");
 
 	// clean and more secure
@@ -1422,17 +1422,17 @@ DARKSDK bool EncryptNewFile ( DWORD dwStringAddress )
 	fclose(source);
 	fclose(dest);
 
-	EncryptDecrypt ( (DWORD)newFileName, true, true );
+	EncryptDecrypt ( newFileName, true, true );
 
 	return true;
 }
 
 // Delete any empty folders
-DARKSDK void EncryptAllFiles(DWORD dwStringAddress)
+DARKSDK void EncryptAllFiles(const char* szStringAddress)
 {
 
 	LPSTR pFilename = new char[_MAX_PATH];
-	strcpy(pFilename, (LPSTR)dwStringAddress);
+	strcpy(pFilename, szStringAddress);
 	//if(!DoesFileExist(pFilename))
 		//return;
 
@@ -1500,7 +1500,7 @@ DARKSDK void EncryptAllFiles(DWORD dwStringAddress)
 							char originalFolder[MAX_PATH];
 							GetCurrentDirectory ( MAX_PATH, originalFolder );						
 							SetCurrentDirectory ( szCurrentDirectory );
-							bool bEncryptedOkay = EncryptNewFile( (DWORD)f );
+							bool bEncryptedOkay = EncryptNewFile( f );
 							SetCurrentDirectory ( originalFolder );
 							UpdateWindow ( NULL );
 							sprintf ( p, "%s\\%s", szCurrentDirectory , f );
@@ -2481,16 +2481,19 @@ DARKSDK DWORD_PTR InputS(DWORD_PTR pDestStr)
 
 DARKSDK DWORD_PTR CreateVariableSpace(DWORD VariableSpaceSize)
 {
-	// Create Variable Space
-	g_pVarSpace = (LPSTR)GlobalAlloc(GMEM_FIXED, VariableSpaceSize);
+	// Create Variable Space. Zero-initialize so every stored handle/pointer
+	// (string, UDT, array) starts as NULL; generated code frees the previous
+	// value on reassignment, so an uninitialized garbage pointer would be
+	// passed to delete[] and corrupt the heap.
+	g_pVarSpace = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, VariableSpaceSize);
 	g_Glob.g_pVariableSpace = (LPVOID)g_pVarSpace;
 	return (DWORD_PTR)g_pVarSpace;
 }
 
 DARKSDK DWORD_PTR CreateDataSpace(DWORD DataSpaceSize)
 {
-	// Create Data Space
-	g_pDataSpace = (LPSTR)GlobalAlloc(GMEM_FIXED, DataSpaceSize);
+	// Create Data Space (same zero-init rationale as the variable space).
+	g_pDataSpace = (LPSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, DataSpaceSize);
 	return (DWORD_PTR)g_pDataSpace;
 }
 
@@ -2508,10 +2511,13 @@ DARKSDK void DeleteDataSpace(void)
 
 DARKSDK void DeleteSingleVariableAllocation(DWORD_PTR* dwVariableSpaceAddress)
 {
-	// Delete Actual Allocation within Variable Space (no need to clear)
-	if(dwVariableSpaceAddress)
+	// Delete Actual Allocation within Variable Space. Runtime variable
+	// allocations (strings, UDT blocks) are created with new char[], so they
+	// must be released with delete[] - a scalar delete corrupts the heap.
+	if(dwVariableSpaceAddress && *dwVariableSpaceAddress)
 	{
-		delete (void*)*dwVariableSpaceAddress;
+		delete[] (char*)*dwVariableSpaceAddress;
+		*dwVariableSpaceAddress = 0;
 	}
 }
 
@@ -2752,13 +2758,8 @@ DARKSDK void ClearDataBlock(DWORD_PTR dwArrayPtr, DWORD dwIndex, DWORD dwQuantit
 
 // ARRAY COMMANDS
 
-DARKSDK DWORD DimCore(DWORD dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD dwD1, DWORD dwD2, DWORD dwD3, DWORD dwD4, DWORD dwD5, DWORD dwD6, DWORD dwD7, DWORD dwD8, DWORD dwD9)
+DARKSDK DWORD_PTR DimCore(DWORD_PTR dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD dwD1, DWORD dwD2, DWORD dwD3, DWORD dwD4, DWORD dwD5, DWORD dwD6, DWORD dwD7, DWORD dwD8, DWORD dwD9)
 {
-	if ( dwD1 > 1024 )
-	{
-		int leehmm=42;
-	}
-
 	// Increment all DBPro dimensions (+1 based)
 	dwD1+=1;
 	if(dwD2>0) dwD2+=1;
@@ -2796,7 +2797,8 @@ DARKSDK DWORD DimCore(DWORD dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD d
 	DWORD dwTypeValueOfOneDataItem = dwTypeAndSizeOfElement-(dwSizeOfOneDataItem*4096);
 
 	// Create New Array
-	DWORD dwArrayPtr =  CreateArray(dwSizeOfArray, dwSizeOfOneDataItem, dwTypeValueOfOneDataItem);
+	DWORD_PTR dwArrayPtr = CreateArray(dwSizeOfArray, dwSizeOfOneDataItem, dwTypeValueOfOneDataItem);
+	if(!dwArrayPtr) return 0;
 
 	// Fill array with dimension size data (D1-D9)
 	DWORD* pHeader = (DWORD*)(((LPSTR)dwArrayPtr)-HEADERSIZEINBYTES);
@@ -2820,7 +2822,7 @@ DARKSDK DWORD DimCore(DWORD dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD d
 
 // ADDED DUE TO POPULAR DEMAND ON 040304
 
-DARKSDK DWORD ReDimCore(DWORD dwOldArrayPtr, DWORD dwNewTypeAndSizeOfElement, DWORD dwOD1, DWORD dwOD2, DWORD dwOD3, DWORD dwOD4, DWORD dwOD5, DWORD dwOD6, DWORD dwOD7, DWORD dwOD8, DWORD dwOD9)
+DARKSDK DWORD_PTR ReDimCore(DWORD_PTR dwOldArrayPtr, DWORD dwNewTypeAndSizeOfElement, DWORD dwOD1, DWORD dwOD2, DWORD dwOD3, DWORD dwOD4, DWORD dwOD5, DWORD dwOD6, DWORD dwOD7, DWORD dwOD8, DWORD dwOD9)
 {
 	// Increment all DBPro dimensions (+1 based) (as done is DimCore)
 	DWORD dwD1=dwOD1, dwD2=dwOD2, dwD3=dwOD3, dwD4=dwOD4, dwD5=dwOD5, dwD6=dwOD6, dwD7=dwOD7, dwD8=dwOD8, dwD9=dwOD9;
@@ -2862,7 +2864,8 @@ DARKSDK DWORD ReDimCore(DWORD dwOldArrayPtr, DWORD dwNewTypeAndSizeOfElement, DW
 		return dwOldArrayPtr;
 
 	// Create a New Array of new size
-	DWORD dwNewArrayPtr = DimCore ( dwOldArrayPtr, dwNewTypeAndSizeOfElement, dwOD1, dwOD2, dwOD3, dwOD4, dwOD5, dwOD6, dwOD7, dwOD8, dwOD9 );
+	DWORD_PTR dwNewArrayPtr = DimCore ( dwOldArrayPtr, dwNewTypeAndSizeOfElement, dwOD1, dwOD2, dwOD3, dwOD4, dwOD5, dwOD6, dwOD7, dwOD8, dwOD9 );
+	if(!dwNewArrayPtr) return 0;
 	DWORD* pNewHeader = (DWORD*)(((LPSTR)dwNewArrayPtr)-HEADERSIZEINBYTES);
 
 	// Old Array Offsets
@@ -2873,9 +2876,11 @@ DARKSDK DWORD ReDimCore(DWORD dwOldArrayPtr, DWORD dwNewTypeAndSizeOfElement, DW
 	//DWORD dwNew[9];	for ( i=0; i<9; i++ ) dwNew[i] = pNewHeader[i];
 	DWORD dwNew[9];	for ( int i=0; i<9; i++ ) dwNew[i] = pNewHeader[i];
 
-	// Find old and new ptrs to reference tables of the arrays
-	DWORD* pOldRef = (DWORD*)dwOldArrayPtr;
-	DWORD* pNewRef = (DWORD*)dwNewArrayPtr;
+	// Find old and new ptrs to reference tables of the arrays. Reference
+	// table entries are pointer-sized addresses, so they must be indexed as
+	// uintptr_t on x64 (a DWORD index would truncate every second entry).
+	uintptr_t* pOldRef = (uintptr_t*)dwOldArrayPtr;
+	uintptr_t* pNewRef = (uintptr_t*)dwNewArrayPtr;
 
 	// Work out old dim values from data chunk sizes
 	DWORD dwOldDims [ 9 ];
@@ -2936,7 +2941,7 @@ DARKSDK DWORD ReDimCore(DWORD dwOldArrayPtr, DWORD dwNewTypeAndSizeOfElement, DW
 	return dwNewArrayPtr;
 }
 
-DARKSDK DWORD DimDDD(DWORD dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD dwD1, DWORD dwD2, DWORD dwD3, DWORD dwD4, DWORD dwD5, DWORD dwD6, DWORD dwD7, DWORD dwD8, DWORD dwD9)
+DARKSDK DWORD_PTR DimDDD(DWORD_PTR dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD dwD1, DWORD dwD2, DWORD dwD3, DWORD dwD4, DWORD dwD5, DWORD dwD6, DWORD dwD7, DWORD dwD8, DWORD dwD9)
 {
 	try
 	{
@@ -2944,7 +2949,7 @@ DARKSDK DWORD DimDDD(DWORD dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD dw
 		if ( dwOldArrayPtr )
 		{
 			// Change Size Of Array (and retain contents)
-			DWORD dwNewArrPtr = ReDimCore ( dwOldArrayPtr, dwTypeAndSizeOfElement, dwD1, dwD2, dwD3, dwD4, dwD5, dwD6, dwD7, dwD8, dwD9 );
+			DWORD_PTR dwNewArrPtr = ReDimCore ( dwOldArrayPtr, dwTypeAndSizeOfElement, dwD1, dwD2, dwD3, dwD4, dwD5, dwD6, dwD7, dwD8, dwD9 );
 
 			// If corruption detected, can resort to a new array as follows..
 			if ( dwNewArrPtr!=NULL ) return dwNewArrPtr;
@@ -2960,28 +2965,28 @@ DARKSDK DWORD DimDDD(DWORD dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, DWORD dw
 	}
 }
 
-DARKSDK DWORD UnDimDD(DWORD dwAllocation)
+DARKSDK DWORD_PTR UnDimDD(DWORD_PTR dwAllocation)
 {
 	// leefix - 070308 - U6.7 - will free strings if string array (fixes string leak)
 	FreeStringsFromArray(dwAllocation);
 
 	DeleteArray(dwAllocation);
-	return NULL;
+	return 0;
 }
 
 // ADVANCED UNIFIED ARRAY HANLDING
 
-DARKSDK void ArrayIndexToBottom(DWORD dwArrayPtr)
+DARKSDK void ArrayIndexToBottom(DWORD_PTR dwArrayPtr)
 {
 	// set index to last item in array
 	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4)-1;
 }
-DARKSDK void ArrayIndexToTop(DWORD dwArrayPtr)
+DARKSDK void ArrayIndexToTop(DWORD_PTR dwArrayPtr)
 {
 	// set index to first item in array
 	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = 0;
 }
-DARKSDK void NextArrayIndex(DWORD dwArrayPtr)
+DARKSDK void NextArrayIndex(DWORD_PTR dwArrayPtr)
 {
 	// inc array index
 	if(dwArrayPtr)
@@ -2994,7 +2999,7 @@ DARKSDK void NextArrayIndex(DWORD dwArrayPtr)
 		}
 	}
 }
-DARKSDK void PreviousArrayIndex(DWORD dwArrayPtr)
+DARKSDK void PreviousArrayIndex(DWORD_PTR dwArrayPtr)
 {
 	// dec array index
 	if(dwArrayPtr)
@@ -3010,7 +3015,7 @@ DARKSDK void PreviousArrayIndex(DWORD dwArrayPtr)
 		}
 	}
 }
-DARKSDK DWORD ArrayIndexValid(DWORD dwArrayPtr)
+DARKSDK DWORD ArrayIndexValid(DWORD_PTR dwArrayPtr)
 {
 	// check if index is valid (pointing to valid item)
 	if(dwArrayPtr)
@@ -3023,15 +3028,15 @@ DARKSDK DWORD ArrayIndexValid(DWORD dwArrayPtr)
 	else
 		return 0;
 }
-DARKSDK DWORD ArrayCount(DWORD dwArrayPtr)
+DARKSDK DWORD ArrayCount(DWORD_PTR dwArrayPtr)
 {
 	// return array size
-	if(dwArrayPtr) 
+	if(dwArrayPtr)
 		return (*((DWORD*)dwArrayPtr-4))-1;
 	else
 		return -1;
 }
-DARKSDK DWORD ArrayInsertAtBottom(DWORD dwArrayPtr)
+DARKSDK DWORD_PTR ArrayInsertAtBottom(DWORD_PTR dwArrayPtr)
 {
 	try
 	{
@@ -3046,7 +3051,7 @@ DARKSDK DWORD ArrayInsertAtBottom(DWORD dwArrayPtr)
 		}
 
 		// Adjust Size Of Entire Array
-		DWORD dwAllocation = ExpandArray(dwArrayPtr, 1);
+		DWORD_PTR dwAllocation = ExpandArray(dwArrayPtr, 1);
 
 		// Determine index
 		int iIndex = (*((DWORD*)dwAllocation-4)) - 1;
@@ -3064,7 +3069,7 @@ DARKSDK DWORD ArrayInsertAtBottom(DWORD dwArrayPtr)
 		return dwArrayPtr;
 	}
 }
-DARKSDK DWORD ArrayInsertAtBottom(DWORD dwArrayPtr, int iQuantity)
+DARKSDK DWORD_PTR ArrayInsertAtBottom(DWORD_PTR dwArrayPtr, int iQuantity)
 {
 	try
 	{
@@ -3078,7 +3083,7 @@ DARKSDK DWORD ArrayInsertAtBottom(DWORD dwArrayPtr, int iQuantity)
 		if(iQuantity<1) iQuantity=1;
 
 		// Adjust Size Of Entire Array
-		DWORD dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
+		DWORD_PTR dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
 
 		// Determine index
 		int iIndex = (*((DWORD*)dwAllocation-4)) - iQuantity;
@@ -3097,7 +3102,7 @@ DARKSDK DWORD ArrayInsertAtBottom(DWORD dwArrayPtr, int iQuantity)
 	}
 }
 
-DARKSDK DWORD ArrayInsertAtTop(DWORD dwArrayPtr)
+DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr)
 {
 	try
 	{
@@ -3108,16 +3113,16 @@ DARKSDK DWORD ArrayInsertAtTop(DWORD dwArrayPtr)
 		if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
 		// Adjust Size Of Entire Array
-		DWORD dwAllocation = ExpandArray(dwArrayPtr, 1);
+		DWORD_PTR dwAllocation = ExpandArray(dwArrayPtr, 1);
 
 		// Store Ref located at end of list
 		DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
 		DWORD dwIndex = dwSizeOfTable - 1;
-		DWORD* pRef = (DWORD*)dwAllocation;
-		DWORD dwRefItem = pRef[dwIndex];
+		uintptr_t* pRef = (uintptr_t*)dwAllocation;
+		uintptr_t dwRefItem = pRef[dwIndex];
 
 		// Shuffle ref table to make space at top
-		if(dwSizeOfTable>0) memcpy(pRef+1, pRef, (dwSizeOfTable-1)*4);
+		if(dwSizeOfTable>0) memmove(pRef+1, pRef, (dwSizeOfTable-1)*sizeof(uintptr_t));
 
 		// Copy refitem to top position
 		pRef[0] = dwRefItem;
@@ -3135,7 +3140,7 @@ DARKSDK DWORD ArrayInsertAtTop(DWORD dwArrayPtr)
 	}
 }
 
-DARKSDK DWORD ArrayInsertAtTop(DWORD dwArrayPtr, int iQuantity)
+DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr, int iQuantity)
 {
 	try
 	{
@@ -3149,22 +3154,23 @@ DARKSDK DWORD ArrayInsertAtTop(DWORD dwArrayPtr, int iQuantity)
 		if(iQuantity<1) iQuantity=1;
 
 		// Adjust Size Of Entire Array
-		DWORD dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
+		DWORD_PTR dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
 
 		// Store RefItems(iQuantity) located at end of list
-		DWORD* pStoreRefs = (DWORD*)new DWORD[iQuantity];
+		uintptr_t* pStoreRefs = new uintptr_t[iQuantity];
 		DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
 		DWORD dwIndexOfFirstRef = dwSizeOfTable-iQuantity;
-		DWORD* pRef = (DWORD*)dwAllocation;
-		memcpy(pStoreRefs, (DWORD*)pRef + dwIndexOfFirstRef, iQuantity*4);
+		uintptr_t* pRef = (uintptr_t*)dwAllocation;
+		memcpy(pStoreRefs, pRef + dwIndexOfFirstRef, iQuantity*sizeof(uintptr_t));
 
 		// Shuffle ref table to make space at top
-		DWORD dwAmountToShuffle = 0;
-		if(dwSizeOfTable>(DWORD)iQuantity) dwAmountToShuffle=(dwSizeOfTable-iQuantity)*4;
-		if(dwAmountToShuffle>0) memcpy(pRef+iQuantity, pRef, dwAmountToShuffle);
+		size_t dwAmountToShuffle = 0;
+		if(dwSizeOfTable>(DWORD)iQuantity) dwAmountToShuffle=(dwSizeOfTable-iQuantity)*sizeof(uintptr_t);
+		if(dwAmountToShuffle>0) memmove(pRef+iQuantity, pRef, dwAmountToShuffle);
 
 		// Copy refitem to top position
-		memcpy(pRef, pStoreRefs, iQuantity*4);
+		memcpy(pRef, pStoreRefs, iQuantity*sizeof(uintptr_t));
+		delete[] pStoreRefs;
 
 		// Update array index to new item
 		*((DWORD*)dwAllocation-1) = 0;
@@ -3178,7 +3184,7 @@ DARKSDK DWORD ArrayInsertAtTop(DWORD dwArrayPtr, int iQuantity)
 		return dwArrayPtr;
 	}
 }
-DARKSDK DWORD ArrayInsertAtElement(DWORD dwArrayPtr, int iIndex)
+DARKSDK DWORD_PTR ArrayInsertAtElement(DWORD_PTR dwArrayPtr, int iIndex)
 {
 	try
 	{
@@ -3194,26 +3200,26 @@ DARKSDK DWORD ArrayInsertAtElement(DWORD dwArrayPtr, int iIndex)
 			RunTimeError(RUNTIMEERROR_ARRAYINDEXINVALID);
 			return dwArrayPtr;
 		}
-		
+
 		// Size of insert
 		int iQuantity=1;
 
 		// Adjust Size Of Entire Array
-		DWORD dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
+		DWORD_PTR dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
 
 		// Store RefItems(iQuantity) located at end of list
-		DWORD* pStoreRefs = (DWORD*)new DWORD[iQuantity];
+		uintptr_t* pStoreRefs = new uintptr_t[iQuantity];
 		DWORD dwIndexOfFirstRef = dwSizeOfTable-(iQuantity-1);  //leefix-230603-corrected ptr to new item-ref in expanded array
-		DWORD* pRef = (DWORD*)dwAllocation;
-		memcpy(pStoreRefs, (DWORD*)pRef + dwIndexOfFirstRef, iQuantity*4);
+		uintptr_t* pRef = (uintptr_t*)dwAllocation;
+		memcpy(pStoreRefs, pRef + dwIndexOfFirstRef, iQuantity*sizeof(uintptr_t));
 
 		// Shuffle iIndex to End onwards
-		DWORD dwSizeOfLaterChunk = 0;
+		size_t dwSizeOfLaterChunk = 0;
 		if(dwSizeOfTable>(DWORD)iIndex) dwSizeOfLaterChunk = dwSizeOfTable-iIndex;
-		if(dwSizeOfLaterChunk>0) memcpy(pRef+iIndex+iQuantity, pRef+iIndex, dwSizeOfLaterChunk*4);
+		if(dwSizeOfLaterChunk>0) memmove(pRef+iIndex+iQuantity, pRef+iIndex, dwSizeOfLaterChunk*sizeof(uintptr_t));
 
 		// Copy RefItems into space created inside table
-		memcpy(pRef+iIndex, pStoreRefs, iQuantity*4);
+		memcpy(pRef+iIndex, pStoreRefs, iQuantity*sizeof(uintptr_t));
 		delete[] pStoreRefs;    // Remove memory leak
 
 		// Update array index to new item
@@ -3228,7 +3234,7 @@ DARKSDK DWORD ArrayInsertAtElement(DWORD dwArrayPtr, int iIndex)
 		return dwArrayPtr;
 	}
 }
-DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
+DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr, int iIndex)
 {
 	// If no array, leave now
 	if(dwArrayPtr==NULL) return;
@@ -3250,12 +3256,12 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
 
 	// Prepare pointers
 	DWORD dwDataItemSize = *((DWORD*)dwArrayPtr-3);
-	DWORD dwRefSizeInBytes = dwSizeOfTable * 4;
-	DWORD dwFlagSizeInBytes = dwSizeOfTable * 1;
-	DWORD* pRef = (DWORD*)dwArrayPtr;
+	size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+	size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
+	uintptr_t* pRef = (uintptr_t*)dwArrayPtr;
 	LPSTR pFlag = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes);
 	LPSTR pData = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
-	DWORD dwOffset = ((DWORD_PTR)pRef[iIndex] - (DWORD_PTR)pData);// / dwDataItemSize;
+	DWORD dwOffset = (DWORD)(pRef[iIndex] - (uintptr_t)pData);
 
 	// leeadd - 211008 - u71 - check for strings before remove this element
 	DWORD dwInternalTypeIndex = *((DWORD*)dwArrayPtr-2);
@@ -3270,7 +3276,6 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
 			if ( pPattern[n]=='S' )
 			{
 				// U74 - 050509 - delete CORRECT part of block!
-				//LPSTR* pStringData = (LPSTR*)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes+(dwLocationWithinBlock*dwDataItemSize)+dwTypeInternalOffset);
 				LPSTR* pStringData = (LPSTR*)(pData+dwOffset+dwTypeInternalOffset);
 				if ( *pStringData )
 				{
@@ -3296,28 +3301,28 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
 		delete[] pPattern;
 	}
 
-	// Shuffle to remove item from ref table
-	DWORD dwAmountToShuffle = 0;
-	if((dwSizeOfTable-iIndex-1)>0) dwAmountToShuffle = (dwSizeOfTable-iIndex-1)*4;
-	if(dwAmountToShuffle>0) memcpy(pRef+iIndex, pRef+iIndex+1, dwAmountToShuffle);
+	// Shuffle to remove the deleted item from the ref table, then store the
+	// surviving refs before the tables shift
+	size_t dwAmountToShuffle = 0;
+	if((int)(dwSizeOfTable-iIndex-1)>0) dwAmountToShuffle = (dwSizeOfTable-iIndex-1)*sizeof(uintptr_t);
+	if(dwAmountToShuffle>0) memmove(pRef+iIndex, pRef+iIndex+1, dwAmountToShuffle);
 
-	// Store ref data
-	DWORD** pStoreRef = new DWORD* [ dwSizeOfTable ];
-	memcpy ( pStoreRef, pRef, dwSizeOfTable * sizeof(DWORD*) );
+	uintptr_t* pStoreRef = new uintptr_t [ dwSizeOfTable ];
+	memcpy ( pStoreRef, pRef, dwSizeOfTable * sizeof(uintptr_t) );
 
 	// First shuffle out deleted data
 	dwAmountToShuffle = 0;
-	DWORD dwTotalSizeOfData = dwSizeOfTable * dwDataItemSize;
-	if((dwTotalSizeOfData-dwOffset-dwDataItemSize)>0) dwAmountToShuffle = (dwTotalSizeOfData-dwOffset-dwDataItemSize);
-	if(dwAmountToShuffle>0) memcpy(pData+dwOffset, pData+dwOffset+dwDataItemSize, dwAmountToShuffle);
+	size_t dwTotalSizeOfData = (size_t)dwSizeOfTable * dwDataItemSize;
+	if(dwTotalSizeOfData > dwOffset+dwDataItemSize) dwAmountToShuffle = (dwTotalSizeOfData-dwOffset-dwDataItemSize);
+	if(dwAmountToShuffle>0) memmove(pData+dwOffset, pData+dwOffset+dwDataItemSize, dwAmountToShuffle);
 
 	// Reduce size of array
 	dwSizeOfTable = dwSizeOfTable - 1;
 	*((DWORD*)dwArrayPtr-4) = dwSizeOfTable;
 
 	// Get new sizes and pointers
-	DWORD dwNewRefSizeInBytes = dwSizeOfTable * 4;
-	DWORD dwNewFlagSizeInBytes = dwSizeOfTable * 1;
+	size_t dwNewRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+	size_t dwNewFlagSizeInBytes = dwSizeOfTable * 1;
 	LPSTR pNewFlag = (LPSTR)(((LPSTR)dwArrayPtr)+dwNewRefSizeInBytes);
 	LPSTR pNewData = (LPSTR)(((LPSTR)dwArrayPtr)+dwNewRefSizeInBytes+dwNewFlagSizeInBytes);
 
@@ -3325,9 +3330,9 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
 	for(DWORD i=0; i<dwSizeOfTable; i++)
 	{
 		// leefix - 210604 - retain pattern of ref data / 260604-u54-dwDataItemSize not 1
-		DWORD dwRedirectOffset = (DWORD_PTR)pStoreRef[i] - (DWORD_PTR)pData;
+		uintptr_t dwRedirectOffset = pStoreRef[i] - (uintptr_t)pData;
 		if ( dwRedirectOffset >= dwOffset ) dwRedirectOffset-=dwDataItemSize;
-		pRef[i] = (DWORD)(pNewData + dwRedirectOffset);
+		pRef[i] = (uintptr_t)(pNewData + dwRedirectOffset);
 	}
 
 	// free stored ref data
@@ -3337,58 +3342,22 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr, int iIndex)
 	memset(pNewFlag, 1, dwNewFlagSizeInBytes);
 
 	// Then shuffle all data to new position
-	DWORD dwNewTotalSizeOfData = dwSizeOfTable * dwDataItemSize;
-	memcpy(pNewData, pData, dwNewTotalSizeOfData);
+	size_t dwNewTotalSizeOfData = (size_t)dwSizeOfTable * dwDataItemSize;
+	memmove(pNewData, pData, dwNewTotalSizeOfData);
 
 	// LEEFIX - 021202 - The delete shuffled the ref, blanked a flag and left the
 	// data alone. When another insert occured, the size of the array made the old
-	// data reader read the wrong flag and data blocks as the ref was 4 bytes smaller
+	// data reader read the wrong flag and data blocks as the ref was smaller
 	// solution was to write it so that the data is shuffled and ref/flag recalculated
 	// LEEADD - 210604 - IN ADDITION, simply shuffling the data out is not an option
 	// because all the insert functions ADD to the size of the array meaning correct
 	// reconstruction is the only option here..
 
-	/*
-	// Get Ref Table Info
-	DWORD* pRef = (DWORD*)dwArrayPtr;
-
-	// Clear flag
-	DWORD dwDataItemSize = *((DWORD*)dwArrayPtr-3);
-	DWORD dwRefSizeInBytes = dwSizeOfTable * 4;
-	DWORD dwFlagSizeInBytes = dwSizeOfTable * 1;
-	LPSTR pFlag = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes);
-	LPSTR pData = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
-	DWORD dwOffset = ((DWORD_PTR)pRef[iIndex] - (DWORD_PTR)pData) / dwDataItemSize;
-
-	// Blank flag in list (redundant but shows what I'm doing)
-	pFlag[dwOffset]=0;
-
-	// Shuffle to remove item from ref table
-	DWORD dwAmountToShuffle = 0;
-	if((dwSizeOfTable-dwOffset-1)>0) dwAmountToShuffle = (dwSizeOfTable-dwOffset-1);
-	if(dwAmountToShuffle>0) memcpy(pFlag+dwOffset, pFlag+dwOffset+1, dwAmountToShuffle);
-
-	// Blank ref in list (redundant but shows what I'm doing)
-	memset(pRef+iIndex, 0, 4);
-
-	// Shuffle to remove item from ref table
-	dwAmountToShuffle = 0;
-	if((dwSizeOfTable-iIndex-1)>0) dwAmountToShuffle = (dwSizeOfTable-iIndex-1)*4;
-	if(dwAmountToShuffle>0) memcpy(pRef+iIndex, pRef+iIndex+1, dwAmountToShuffle);
-
-	// Clear end of list
-	memset(pRef+(dwSizeOfTable-1), 0, 4);
-
-	// Reduce size of array
-	dwSizeOfTable = dwSizeOfTable - 1;
-	*((DWORD*)dwArrayPtr-4) = dwSizeOfTable;
-	*/
-
 	// Ensure internal index is still valid
 	if( *((DWORD*)dwArrayPtr-1) >= dwSizeOfTable )
 		*((DWORD*)dwArrayPtr-1) = dwSizeOfTable - 1;
 }
-DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr)
+DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr)
 {
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
@@ -3403,7 +3372,7 @@ DARKSDK void ArrayDeleteElement(DWORD dwArrayPtr)
 	int iCurrentIndex = *((DWORD*)dwArrayPtr-1);
 	ArrayDeleteElement ( dwArrayPtr, iCurrentIndex );
 }
-DARKSDK void EmptyArray(DWORD dwAllocation)
+DARKSDK void EmptyArray(DWORD_PTR dwAllocation)
 {
 	// If no array, leave now
 	if(dwAllocation==NULL) return;
@@ -3419,15 +3388,14 @@ DARKSDK void EmptyArray(DWORD dwAllocation)
 	LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
 	DWORD* pHeader	= (DWORD*)(pArrayPtr);
 	DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
-	// should this not be 10,11,12,13??  - 140104
-	DWORD dwSizeOfArray = pHeader[0];
-	DWORD dwSizeOfOneDataItem = pHeader[1];
-	DWORD dwTypeValueOfOneDataItem = pHeader[2];
-	DWORD dwInternalIndex = pHeader[3];
-	DWORD dwRefSizeInBytes = dwSizeOfArray * 4;
+	// CreateArray/ExpandArray store the allocation dimensions at header
+	// slots 10..13; slots 0..3 are the dimension-size block for data.
+	DWORD dwSizeOfArray = pHeader[10];
+	DWORD dwSizeOfOneDataItem = pHeader[11];
+	DWORD dwRefSizeInBytes = dwSizeOfArray * sizeof(uintptr_t);
 	DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
 	DWORD dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
-	DWORD* pRef = (DWORD*)(pArrayPtr+dwHeaderSizeInBytes);
+	uintptr_t* pRef = (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
 	LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
 	LPSTR pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
@@ -3441,7 +3409,7 @@ DARKSDK void EmptyArray(DWORD dwAllocation)
 	*((DWORD*)dwAllocation-4) = 0;
 	*((DWORD*)dwAllocation-1) = 0;
 }
-DARKSDK DWORD PushToStack(DWORD dwArrayPtr)
+DARKSDK DWORD_PTR PushToStack(DWORD_PTR dwArrayPtr)
 {
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
@@ -3456,7 +3424,7 @@ DARKSDK DWORD PushToStack(DWORD dwArrayPtr)
 	// return array ptr
 	return dwArrayPtr;
 }
-DARKSDK void PopFromStack(DWORD dwArrayPtr)
+DARKSDK void PopFromStack(DWORD_PTR dwArrayPtr)
 {
 	if(dwArrayPtr==NULL) return;
 
@@ -3474,7 +3442,7 @@ DARKSDK void PopFromStack(DWORD dwArrayPtr)
 	iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
 	*((DWORD*)dwArrayPtr-1) = (DWORD)iIndexAtEnd;
 }
-DARKSDK DWORD AddToQueue(DWORD dwArrayPtr)
+DARKSDK DWORD_PTR AddToQueue(DWORD_PTR dwArrayPtr)
 {
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
@@ -3489,7 +3457,7 @@ DARKSDK DWORD AddToQueue(DWORD dwArrayPtr)
 	// return array ptr
 	return dwArrayPtr;
 }
-DARKSDK void RemoveFromQueue(DWORD dwArrayPtr)
+DARKSDK void RemoveFromQueue(DWORD_PTR dwArrayPtr)
 {
 	if(dwArrayPtr==NULL) return;
 
@@ -3505,12 +3473,12 @@ DARKSDK void RemoveFromQueue(DWORD dwArrayPtr)
 	else
 		*((DWORD*)dwArrayPtr-1) = 0;
 }
-DARKSDK void ArrayIndexToStack(DWORD dwArrayPtr)
+DARKSDK void ArrayIndexToStack(DWORD_PTR dwArrayPtr)
 {
 	// set index to last item in array
 	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4)-1;
 }
-DARKSDK void ArrayIndexToQueue(DWORD dwArrayPtr)
+DARKSDK void ArrayIndexToQueue(DWORD_PTR dwArrayPtr)
 {
 	// set index to first item in array
 	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = 0;
@@ -3963,7 +3931,7 @@ DARKSDK DWORD LessEqualLFF(float fValueA, float fValueB)
 
 // STRING COMPARE MATHS
 
-DARKSDK DWORD EqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
+DARKSDK DWORD EqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 {
 	if(dwSrcStr && dwDestStr)
 	{
@@ -3998,7 +3966,7 @@ DARKSDK DWORD EqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
 		}
 	}
 }
-DARKSDK DWORD GreaterLSS(DWORD dwSrcStr,DWORD dwDestStr)
+DARKSDK DWORD GreaterLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 {
 	if(dwSrcStr && dwDestStr)
 	{
@@ -4015,7 +3983,7 @@ DARKSDK DWORD GreaterLSS(DWORD dwSrcStr,DWORD dwDestStr)
 			return 0;
 	}
 }
-DARKSDK DWORD LessLSS(DWORD dwSrcStr,DWORD dwDestStr)
+DARKSDK DWORD LessLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 {
 	if(dwSrcStr && dwDestStr)
 	{
@@ -4032,7 +4000,7 @@ DARKSDK DWORD LessLSS(DWORD dwSrcStr,DWORD dwDestStr)
 			return 0;
 	}
 }
-DARKSDK DWORD NotEqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
+DARKSDK DWORD NotEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 {
 	if(dwSrcStr && dwDestStr)
 	{
@@ -4073,7 +4041,7 @@ DARKSDK DWORD NotEqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
 		//	return 0;
 	}
 }
-DARKSDK DWORD GreaterEqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
+DARKSDK DWORD GreaterEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 {
 	if(dwSrcStr && dwDestStr)
 	{
@@ -4090,7 +4058,7 @@ DARKSDK DWORD GreaterEqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
 			return 0;
 	}
 }
-DARKSDK DWORD LessEqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
+DARKSDK DWORD LessEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 {
 	if(dwSrcStr && dwDestStr)
 	{
@@ -4111,39 +4079,42 @@ DARKSDK DWORD LessEqualLSS(DWORD dwSrcStr,DWORD dwDestStr)
 
 // STRING MATHS
 
-DARKSDK DWORD AddSSS(DWORD dwRetStr, DWORD dwSrcStrA, DWORD dwSrcStrB)
+DARKSDK DWORD_PTR AddSSS(DWORD_PTR dwRetStr, DWORD_PTR dwSrcStrA, DWORD_PTR dwSrcStrB)
 {
-	DWORD length=1;
-	if((DWORD*)dwSrcStrA) length=strlen((LPSTR)(DWORD*)dwSrcStrA);
-	if((DWORD*)dwSrcStrB) length+=strlen((LPSTR)(DWORD*)dwSrcStrB);
+	// String concatenation. All three handles are pointer-sized heap
+	// addresses; the destination's previous allocation is released with
+	// delete[] (it was created with new char[]).
+	size_t length=1;
+	if(dwSrcStrA) length=strlen((LPSTR)dwSrcStrA);
+	if(dwSrcStrB) length+=strlen((LPSTR)dwSrcStrB);
 	LPSTR lpNewStr = new char[length+1];
 	strcpy(lpNewStr,"");
-	if((DWORD*)dwSrcStrA) strcat(lpNewStr, (LPSTR)dwSrcStrA);
-	if((DWORD*)dwSrcStrB) strcat(lpNewStr, (LPSTR)dwSrcStrB);
-	if((DWORD*)dwRetStr) delete[] (DWORD*)dwRetStr;
-	return (DWORD)lpNewStr;
+	if(dwSrcStrA) strcat(lpNewStr, (LPSTR)dwSrcStrA);
+	if(dwSrcStrB) strcat(lpNewStr, (LPSTR)dwSrcStrB);
+	if(dwRetStr) delete[] (LPSTR)dwRetStr;
+	return (DWORD_PTR)lpNewStr;
 }
-DARKSDK DWORD EquateSS(DWORD dwDestStr,DWORD dwSrcStr)
+DARKSDK DWORD_PTR EquateSS(DWORD_PTR dwDestStr,DWORD_PTR dwSrcStr)
 {
-	DWORD length=1;
-	if((DWORD*)dwSrcStr) length=strlen((LPSTR)(DWORD*)dwSrcStr);
+	size_t length=1;
+	if(dwSrcStr) length=strlen((LPSTR)dwSrcStr);
 	LPSTR lpNewStr = NULL;
 	if ( dwSrcStr!=0 )
 	{
 		lpNewStr = new char[length+1];
-		if((DWORD*)dwSrcStr) strcpy(lpNewStr, (LPSTR)dwSrcStr); else strcpy(lpNewStr,"");
+		strcpy(lpNewStr, (LPSTR)dwSrcStr);
 	}
-	if((DWORD*)dwDestStr) delete[] (DWORD*)dwDestStr;
-	return (DWORD)lpNewStr;
+	if(dwDestStr) delete[] (LPSTR)dwDestStr;
+	return (DWORD_PTR)lpNewStr;
 }
-DARKSDK DWORD FreeSS(DWORD dwDestStr)
+DARKSDK DWORD_PTR FreeSS(DWORD_PTR dwDestStr)
 {
-	if(dwDestStr) delete[] (DWORD*)dwDestStr;
+	if(dwDestStr) delete[] (LPSTR)dwDestStr;
 	return 0;
 }
-DARKSDK DWORD FreeStringSS(DWORD dwDestStr)
+DARKSDK DWORD_PTR FreeStringSS(DWORD_PTR dwDestStr)
 {
-	if(dwDestStr) delete[] (DWORD*)dwDestStr;
+	if(dwDestStr) delete[] (LPSTR)dwDestStr;
 	return 0;
 }
 
@@ -4868,7 +4839,7 @@ DARKSDK void WaitForMouse(void)
 	}
 }
 
-DARKSDK DWORD Cl$(DWORD dwDestStr)
+DARKSDK DWORD_PTR Cl$(DWORD_PTR pDestStr)
 {
 	// get command line from main program...
 	LPSTR lpNewStr = NULL;
@@ -4882,51 +4853,32 @@ DARKSDK DWORD Cl$(DWORD dwDestStr)
 		lpNewStr = new char[2];
 		strcpy(lpNewStr, "");
 	}
-	if((DWORD*)dwDestStr) delete[] (LPSTR)(DWORD*)dwDestStr;
-	return (DWORD)lpNewStr;
+	if(pDestStr) delete[] (LPSTR)pDestStr;
+	return (DWORD_PTR)lpNewStr;
 }
 
-DARKSDK DWORD GetDate$(DWORD dwDestStr)
+DARKSDK DWORD_PTR GetDate$(DWORD_PTR pDestStr)
 {
-	/*
-	LPSTR lpNewStr = new char[255];
-	_strdate(lpNewStr);
-	if((DWORD*)dwDestStr) delete[] (LPSTR)(DWORD*)dwDestStr;
-	return (DWORD)lpNewStr;
-	*/
 	char buf[256];
 	_strdate(buf);
-	return reinterpret_cast<DWORD>(dbReturnString(reinterpret_cast<char *>(dwDestStr), buf));
+	return reinterpret_cast<DWORD_PTR>(dbReturnString(reinterpret_cast<char *>(pDestStr), buf));
 }
 
-DARKSDK DWORD GetTime$(DWORD dwDestStr)
+DARKSDK DWORD_PTR GetTime$(DWORD_PTR pDestStr)
 {
-	/*
-	LPSTR lpNewStr = new char[255];
-	_strtime(lpNewStr);
-	if((DWORD*)dwDestStr) delete[] (LPSTR)(DWORD*)dwDestStr;
-	return (DWORD)lpNewStr;
-	*/
 	char buf[256];
 	_strtime(buf);
-	return reinterpret_cast<DWORD>(dbReturnString(reinterpret_cast<char *>(dwDestStr), buf));
+	return reinterpret_cast<DWORD_PTR>(dbReturnString(reinterpret_cast<char *>(pDestStr), buf));
 }
 
-DARKSDK DWORD InkeyS(DWORD dwDestStr)
+DARKSDK DWORD_PTR InkeyS(DWORD_PTR pDestStr)
 {
-	/*
-	LPSTR lpNewStr = new char[2];
-	lpNewStr[0]=g_cInkeyCodeKey;
-	lpNewStr[1]=0;
-	if((DWORD*)dwDestStr) delete[] (LPSTR)(DWORD*)dwDestStr;
-	return (DWORD)lpNewStr;
-	*/
 	char buf[2];
 
 	buf[0] = g_cInkeyCodeKey;
 	buf[1] = '\0';
 
-	return reinterpret_cast<DWORD>(dbReturnString(reinterpret_cast<char *>(dwDestStr), buf));
+	return reinterpret_cast<DWORD_PTR>(dbReturnString(reinterpret_cast<char *>(pDestStr), buf));
 }
 
 DARKSDK void SyncOn(void)
@@ -5321,21 +5273,21 @@ DARKSDK void LoadArray( LPSTR szFilename, DWORD dwAllocation )
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, szFilename);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename );
 
 	CheckForWorkshopFile ( VirtualFilename );
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	LoadArrayCore ( VirtualFilename, dwAllocation );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 //
 // DX Detect Check (from globstruct filled in DarkEXE)
 //
 
-DARKSDK DWORD GetDXVer$(DWORD dwDestStr)
+DARKSDK DWORD_PTR GetDXVer$(DWORD_PTR pDestStr)
 {
 	char buf[256];
 
@@ -5399,7 +5351,7 @@ DARKSDK DWORD GetDXVer$(DWORD dwDestStr)
 	if (!buf[0])
 		strcpy( buf, "DirectX 9.0 not installed" );
 
-	return reinterpret_cast<DWORD>(dbReturnString(reinterpret_cast<char *>(dwDestStr), buf));
+	return reinterpret_cast<DWORD_PTR>(dbReturnString(reinterpret_cast<char *>(pDestStr), buf));
 }
 
 //
@@ -5441,10 +5393,10 @@ DARKSDK void SyncMask ( DWORD dwMask )
 	g_dwSyncMask = dwMask;
 }
 
-DARKSDK DWORD GetArrayType(DWORD dwArrayPtr)
+DARKSDK DWORD GetArrayType(DWORD_PTR dwArrayPtr)
 {
-	// return array size
-	if(dwArrayPtr) 
+	// return array type index
+	if(dwArrayPtr)
 	{
 		DWORD dwTypeIndex = (*((DWORD*)dwArrayPtr-2));
 		return dwTypeIndex;
@@ -5546,9 +5498,9 @@ LPSTR GetTypePatternCore ( LPSTR dwTypeName, DWORD dwTypeIndex )
 	return lpNewStr;
 }
 
-DARKSDK DWORD GetTypePattern$(DWORD dwDestStr,DWORD dwTypeName,DWORD dwTypeIndex)
+DARKSDK DWORD_PTR GetTypePattern$(DWORD_PTR pDestStr,DWORD_PTR dwTypeName,DWORD dwTypeIndex)
 {
-	DWORD r;
+	DWORD_PTR r;
 
 	// determine if type name string passed in has contents
 	LPSTR pTypeName = NULL;
@@ -5559,16 +5511,10 @@ DARKSDK DWORD GetTypePattern$(DWORD dwDestStr,DWORD dwTypeName,DWORD dwTypeIndex
 	// get pattern from type name
 	LPSTR lpNewStr = GetTypePatternCore( pTypeName, dwTypeIndex );
 
-	r = reinterpret_cast<DWORD>(dbReturnString(reinterpret_cast<char *>(dwDestStr), lpNewStr));
+	r = reinterpret_cast<DWORD_PTR>(dbReturnString(reinterpret_cast<char *>(pDestStr), lpNewStr));
 	delete [] lpNewStr;
 
 	return r;
-
-	/*
-	// return pattern from type found
-	if((DWORD*)dwDestStr) delete[] (LPSTR)(DWORD*)dwDestStr;
-	return (DWORD)lpNewStr;
-	*/
 }
 
 

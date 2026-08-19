@@ -16,8 +16,8 @@
 extern CDBPCompiler* g_pDBPCompiler;
 extern CEXEBlock* g_pEXE;
 extern CDebugInfo g_DebugInfo;
-extern DWORD g_dwEscapeValueMem;
-extern DWORD g_dwBreakOutPosition;
+extern DWORD_PTR g_dwEscapeValueMem;
+extern DWORD_PTR g_dwBreakOutPosition;
 extern LPSTR g_pVarSpaceAddressInUse;
 extern DWORD g_dwVarSpaceSizeInUse;
 extern GDI_RetVoidParamVoidPFN g_CORE_SyncRefresh;
@@ -41,14 +41,12 @@ namespace {
 
     const auto base = reinterpret_cast<std::uintptr_t>(
         g_pEXE->m_pMachineCodeBlock);
-    constexpr auto maximum =
-        static_cast<std::uintptr_t>((std::numeric_limits<DWORD>::max)());
-    if (base > maximum || g_dwBreakOutPosition > maximum - base) {
+    const auto maximum = (std::numeric_limits<DWORD_PTR>::max)() - base;
+    if (g_dwBreakOutPosition > maximum) {
         return false;
     }
 
-    g_dwBreakOutPosition =
-        static_cast<DWORD>(base + g_dwBreakOutPosition);
+    g_dwBreakOutPosition = base + g_dwBreakOutPosition;
     return true;
 }
 
@@ -231,7 +229,7 @@ bool ASMWriterDebugRuntime::RunNewCode() noexcept {
         return false;
     }
 
-    const DWORD storedBreakPosition = g_dwBreakOutPosition;
+    const DWORD_PTR storedBreakPosition = g_dwBreakOutPosition;
     g_dwEscapeValueMem = 0U;
     g_dwBreakOutPosition = 0U;
     executionResult_ = g_pEXE->RunFrom(

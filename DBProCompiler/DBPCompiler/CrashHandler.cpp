@@ -87,6 +87,7 @@ static void PrintStackTrace(PCONTEXT contextRecord) {
     CONTEXT context = *contextRecord;
     STACKFRAME64 stackFrame = {};
 #if defined(_M_X64) || defined(__x86_64__)
+    // The SDK builds x64-only; stack unwinding uses the AMD64 context.
     DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
     stackFrame.AddrPC.Offset = context.Rip;
     stackFrame.AddrPC.Mode = AddrModeFlat;
@@ -94,14 +95,8 @@ static void PrintStackTrace(PCONTEXT contextRecord) {
     stackFrame.AddrFrame.Mode = AddrModeFlat;
     stackFrame.AddrStack.Offset = context.Rsp;
     stackFrame.AddrStack.Mode = AddrModeFlat;
-#elif defined(_M_IX86)
-    DWORD machineType = IMAGE_FILE_MACHINE_I386;
-    stackFrame.AddrPC.Offset = context.Eip;
-    stackFrame.AddrPC.Mode = AddrModeFlat;
-    stackFrame.AddrFrame.Offset = context.Ebp;
-    stackFrame.AddrFrame.Mode = AddrModeFlat;
-    stackFrame.AddrStack.Offset = context.Esp;
-    stackFrame.AddrStack.Mode = AddrModeFlat;
+#else
+#error "CrashHandler supports x64 targets only"
 #endif
 
     std::cerr << "[CRITICAL] Stack Trace:" << std::endl;

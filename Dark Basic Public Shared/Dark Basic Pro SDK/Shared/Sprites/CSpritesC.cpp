@@ -1949,14 +1949,14 @@ DARKSDK void CreateAnimatedSprite ( int iID, char* szImage, int iWidth, int iHei
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy(VirtualFilename, szImage);
-	g_pGlob->UpdateFilenameFromVirtualTable( (DWORD)VirtualFilename);
+	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile (VirtualFilename);
 
 	// Decrypt and use media, re-encrypt
-	g_pGlob->Decrypt( (DWORD)VirtualFilename );
+	g_pGlob->Decrypt( VirtualFilename );
 	CreateAnimatedSpriteCore ( iID, VirtualFilename, iWidth, iHeight, iImageID );
-	g_pGlob->Encrypt( (DWORD)VirtualFilename );
+	g_pGlob->Encrypt( VirtualFilename );
 }
 
 DARKSDK void SetPriority ( int iID, int iPriority )

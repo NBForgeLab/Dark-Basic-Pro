@@ -4,6 +4,7 @@
 
 // Includes
 #include "ParserHeader.h"
+#include "StringUtils.h"
 #include "FileBuilder.h"
 #include "ASMWriter.h"
 #include "DataTable.h"
@@ -43,8 +44,8 @@ extern CError* g_pErrorReport;
 extern ICodeGenerator* g_pASMWriter;
 
 // External Global Vars
-extern DWORD g_dwEscapeValueMem;
-extern DWORD g_dwBreakOutPosition;
+extern DWORD_PTR g_dwEscapeValueMem;
+extern DWORD_PTR g_dwBreakOutPosition;
 extern LPSTR g_pVarSpaceAddressInUse;
 extern DWORD g_dwVarSpaceSizeInUse;
 extern GDI_RetVoidParamVoidPFN g_CORE_SyncRefresh;
@@ -938,8 +939,8 @@ void DebugHookReturnFunctionCall(void)
 
 bool CASMWriter::ReportAnyErrorsToCLI(void)
 {
-	DWORD dwRTError=g_pEXE->m_dwRuntimeErrorDWORD;
-	DWORD dwRTErrorLine=g_pEXE->m_dwRuntimeErrorLineDWORD;
+	const DWORD dwRTError=static_cast<DWORD>(g_pEXE->m_dwRuntimeErrorDWORD);
+	const DWORD dwRTErrorLine=static_cast<DWORD>(g_pEXE->m_dwRuntimeErrorLineDWORD);
 	if(dwRTError>0)
 	{
 		// Report error
@@ -1074,7 +1075,7 @@ bool CASMWriter::UpdateMCBRefData(void)
 		}
 
 		std::uint64_t bytePosition = label->GetBytePosition();
-		if (_stricmp(label->GetName()->GetStr(), "$labelend") != 0)
+		if (!dbp::iequals(label->GetName()->GetStr(), "$labelend"))
 		{
 			bytePosition += g_pEXE->m_dwStartOfMiniMC;
 		}
@@ -1414,11 +1415,14 @@ bool CASMWriter::EmitCommandCallAbiSetup()
 
 	// Arguments 5+ must sit at [rsp+32+8i] for the callee. Their sources and
 	// destinations never overlap, so copy from the deepest argument upward.
+	// R12 points at the top of the pushed argument block, so an argument's
+	// displacement from R12 is the bytes pushed after it, not before.
+	const DWORD dwTotalSlots = m_pendingCallSlotCount;
 	for (DWORD i = 5; i <= nArgs; i++)
 	{
 		const DWORD argIndex = nArgs - i;
 		const PendingCallArg& arg = m_pendingCallArgs[argIndex];
-		const int dispSource = static_cast<int>(static_cast<std::int8_t>(8 * static_cast<int>(arg.slotIndex)));
+		const int dispSource = static_cast<int>(static_cast<std::int8_t>(8 * static_cast<int>(dwTotalSlots - arg.slotIndex - arg.slotCount)));
 		const int dispDest = static_cast<int>(static_cast<std::int8_t>(32 + 8 * static_cast<int>(i - 5)));
 		// mov r11, [r12+disp8]
 		m_machineCodeBuffer.WriteByte(0x4D);
@@ -1445,7 +1449,9 @@ bool CASMWriter::EmitCommandCallAbiSetup()
 	for (DWORD i = 1; i <= nArgs && i <= 4; i++)
 	{
 		const PendingCallArg& arg = m_pendingCallArgs[nArgs - i];
-		const int disp = static_cast<int>(static_cast<std::int8_t>(8 * static_cast<int>(arg.slotIndex)));
+		// R12 points at the top of the pushed argument block; the argument's
+		// distance from it is the slots pushed after it, not before.
+		const int disp = static_cast<int>(static_cast<std::int8_t>(8 * static_cast<int>(dwTotalSlots - arg.slotIndex - arg.slotCount)));
 		if (arg.kind == PendingCallArg::Kind::Integer)
 		{
 			const auto& enc = kRegLoad[i - 1];

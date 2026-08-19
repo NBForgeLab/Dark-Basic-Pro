@@ -1,5 +1,6 @@
 ﻿#include "PEBuilder.h"
 #include "ASMWriter.h"
+#include "StringUtils.h"
 #include "DBPCompiler.h"
 #include "DB3Time.h"
 #include "ParserHeader.h"
@@ -106,7 +107,7 @@ bool CPEBuilder::UpdateDLLData() const
 		{
 			const auto* existing = reinterpret_cast<const char*>(
 				g_pEXE->m_pDLLFilenameArray[index]);
-			if (existing != nullptr && _stricmp(existing, filename) == 0)
+			if (existing != nullptr && dbp::iequals(existing, filename))
 			{
 				alreadyPresent = true;
 				break;
@@ -132,7 +133,7 @@ bool CPEBuilder::UpdateDLLData() const
 		pendingEntries.begin(),
 		pendingEntries.end(),
 		[](CDataTable* entry) {
-			return _stricmp(entry->GetString()->GetStr(), "dbprocore.dll") == 0;
+			return dbp::iequals(entry->GetString()->GetStr(), "dbprocore.dll");
 		});
 
 	const DWORD newSize = oldSize + static_cast<DWORD>(pendingEntries.size());
@@ -427,15 +428,15 @@ static void UpdateStructurePatternDataRec(std::string& pattern, CDeclaration* pD
 	{
 		LPCSTR pTypeLetter = "-";
 		LPSTR pFullString = pDecMain->GetType()->GetStr();
-		if ( _stricmp ( "integer", pFullString )==0 )			pTypeLetter = "L";
-		if ( _stricmp ( "float", pFullString )==0 )			pTypeLetter = "F";
-		if ( _stricmp ( "string", pFullString )==0 )			pTypeLetter = "S";
-		if ( _stricmp ( "boolean", pFullString )==0 )			pTypeLetter = "B";
-		if ( _stricmp ( "byte", pFullString )==0 )			pTypeLetter = "Y";
-		if ( _stricmp ( "word", pFullString )==0 )			pTypeLetter = "W";
-		if ( _stricmp ( "dword", pFullString )==0 )			pTypeLetter = "D";
-		if ( _stricmp ( "double float", pFullString )==0 )	pTypeLetter = "O";
-		if ( _stricmp ( "double integer", pFullString )==0 )	pTypeLetter = "R";
+		if ( dbp::iequals( "integer", pFullString ) )			pTypeLetter = "L";
+		if ( dbp::iequals( "float", pFullString ) )			pTypeLetter = "F";
+		if ( dbp::iequals( "string", pFullString ) )			pTypeLetter = "S";
+		if ( dbp::iequals( "boolean", pFullString ) )			pTypeLetter = "B";
+		if ( dbp::iequals( "byte", pFullString ) )			pTypeLetter = "Y";
+		if ( dbp::iequals( "word", pFullString ) )			pTypeLetter = "W";
+		if ( dbp::iequals( "dword", pFullString ) )			pTypeLetter = "D";
+		if ( dbp::iequals( "double float", pFullString ) )	pTypeLetter = "O";
+		if ( dbp::iequals( "double integer", pFullString ) )	pTypeLetter = "R";
 
 		CStructTable* pStruct = g_pStructTable->DoesTypeEvenExist(pDecMain->GetType()->GetStr());
 		if(pStruct)

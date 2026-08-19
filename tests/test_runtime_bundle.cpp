@@ -18,46 +18,49 @@
 namespace {
 
 void WriteCoreFixture(const std::filesystem::path& path,
-                      const bool modern,
+                      const bool withStructurePatterns,
                       const bool completeLifecycle = true) {
+    // The SDK runtime is native x64, so the fixture emits a PE32+ image whose
+    // exports use the canonical x64 mangled names - no legacy 32-bit spellings.
     std::vector<std::string> exports{
-        "?PassCmdLineHandlerPtr@@YAXPAX@Z",
-        "?PassErrorHandlerPtr@@YAXPAX@Z",
-        "?PassEscapePtr@@YAXPAX@Z",
-        "?PassBreakOutPtr@@YAXPAX@Z",
-        "?PassDataStatementPtr@@YAXPAD0@Z"};
+        "?PassCmdLineHandlerPtr@@YAXPEAX@Z",
+        "?PassErrorHandlerPtr@@YAXPEAX@Z",
+        "?PassEscapePtr@@YAXPEAX@Z",
+        "?PassBreakOutPtr@@YAXPEAX@Z",
+        "?PassDataStatementPtr@@YAXPEAD0@Z"};
     if (completeLifecycle) {
         const std::vector<std::string> lifecycle{
-            "?PassDLLs@@YAXXZ", "?ConstructDLLs@@YAXXZ", "?GetGlobPtr@@YAKXZ",
-            "?InitDisplay@@YAKKKKKPAUHINSTANCE__@@PAD@Z", "?CloseDisplay@@YAKXZ",
-            "?CreateVariableSpace@@YAKK@Z", "?DeleteVariableSpace@@YAXXZ",
-            "?CreateDataSpace@@YAKK@Z", "?DeleteDataSpace@@YAXXZ",
-            "?DeleteSingleVariableAllocation@@YAXPAK@Z", "?UnDimDD@@YAKK@Z",
+            "?PassDLLs@@YAXXZ", "?ConstructDLLs@@YAXXZ",
+            "?GetGlobPtr@@YAPEAUGlobStruct@@XZ",
+            "?InitDisplay@@YAKKKKKPEAUHINSTANCE__@@PEAD@Z", "?CloseDisplay@@YAKXZ",
+            "?CreateVariableSpace@@YA_KK@Z", "?DeleteVariableSpace@@YAXXZ",
+            "?CreateDataSpace@@YA_KK@Z", "?DeleteDataSpace@@YAXXZ",
+            "?DeleteSingleVariableAllocation@@YAXPEA_K@Z", "?UnDimDD@@YA_K_K@Z",
             "?Sync@@YAXXZ"};
         exports.insert(exports.end(), lifecycle.begin(), lifecycle.end());
     }
-    if (modern) {
-        exports.push_back("?PassStructurePatterns@@YAXPAXK@Z");
+    if (withStructurePatterns) {
+        exports.push_back("?PassStructurePatterns@@YAXPEAXK@Z");
     }
 
-    std::vector<unsigned char> bytes(0x1000, 0);
+    std::vector<unsigned char> bytes(0x2000, 0);
     auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(bytes.data());
     dos->e_magic = IMAGE_DOS_SIGNATURE;
     dos->e_lfanew = 0x80;
-    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(bytes.data() + 0x80);
+    auto* nt = reinterpret_cast<IMAGE_NT_HEADERS64*>(bytes.data() + 0x80);
     nt->Signature = IMAGE_NT_SIGNATURE;
-    nt->FileHeader.Machine = IMAGE_FILE_MACHINE_I386;
+    nt->FileHeader.Machine = IMAGE_FILE_MACHINE_AMD64;
     nt->FileHeader.NumberOfSections = 1;
-    nt->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER32);
-    nt->OptionalHeader.Magic = IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+    nt->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
+    nt->OptionalHeader.Magic = IMAGE_NT_OPTIONAL_HDR64_MAGIC;
     nt->OptionalHeader.NumberOfRvaAndSizes = IMAGE_NUMBEROF_DIRECTORY_ENTRIES;
     nt->OptionalHeader.SizeOfHeaders = 0x200;
     nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT] = {0x1000, 0x400};
     auto* section = IMAGE_FIRST_SECTION(nt);
     section->VirtualAddress = 0x1000;
-    section->Misc.VirtualSize = 0x700;
+    section->Misc.VirtualSize = 0x1000;
     section->PointerToRawData = 0x200;
-    section->SizeOfRawData = 0x700;
+    section->SizeOfRawData = 0x1000;
     auto* directory = reinterpret_cast<IMAGE_EXPORT_DIRECTORY*>(bytes.data() + 0x200);
     directory->Base = 1;
     directory->NumberOfFunctions = static_cast<DWORD>(exports.size());
@@ -86,12 +89,12 @@ void WriteCoreFixture(const std::filesystem::path& path,
 class TemporaryRuntimeBundle {
 public:
     explicit TemporaryRuntimeBundle(
-        const bool modern, const bool completeLifecycle = true) {
+        const bool withStructurePatterns, const bool completeLifecycle = true) {
         const auto suffix = std::to_string(
             std::chrono::steady_clock::now().time_since_epoch().count());
         root_ = std::filesystem::temp_directory_path() /
             ("dbpro_runtime_bundle_" + suffix);
-        WriteCoreFixture(root_ / "plugins" / "DBProCore.dll", modern,
+        WriteCoreFixture(root_ / "plugins" / "DBProCore.dll", withStructurePatterns,
                          completeLifecycle);
         std::filesystem::create_directories(root_ / "plugins-user");
         std::filesystem::create_directories(root_ / "plugins-licensed");
@@ -220,7 +223,7 @@ TEST(RuntimeBundleResolverTest, ExplicitRootWinsAndIsCanonical) {
     EXPECT_EQ(result.value().classification, RuntimeBundleClassification::LegacyUnversioned);
 }
 
-TEST(RuntimeBundleResolverTest, RejectsLegacyCoreWhenStructurePatternsRequired) {
+TEST(RuntimeBundleResolverTest, RejectsCoreWithoutStructurePatternsWhenRequired) {
     TemporaryRuntimeBundle bundle(false);
 
     const auto result = RuntimeBundleResolver::Resolve(
@@ -233,7 +236,7 @@ TEST(RuntimeBundleResolverTest, RejectsLegacyCoreWhenStructurePatternsRequired) 
               RuntimeCapability::CoreStructurePatternsV1);
 }
 
-TEST(RuntimeBundleResolverTest, AcceptsLegacyCoreWhenStructurePatternsUnused) {
+TEST(RuntimeBundleResolverTest, AcceptsCoreWithoutStructurePatternsWhenUnused) {
     TemporaryRuntimeBundle bundle(false);
 
     const auto result = RuntimeBundleResolver::Resolve(
@@ -245,12 +248,29 @@ TEST(RuntimeBundleResolverTest, AcceptsLegacyCoreWhenStructurePatternsUnused) {
                   RuntimeCapability::CoreStructurePatternsV1), 0u);
 }
 
-TEST(RuntimeBundleResolverTest, RejectsNonX86Core) {
+TEST(RuntimeBundleResolverTest, RejectsNonX64Core) {
     TemporaryRuntimeBundle bundle(true);
     auto corePath = bundle.root() / "plugins" / "DBProCore.dll";
     std::fstream stream(corePath, std::ios::binary | std::ios::in | std::ios::out);
     stream.seekp(0x84);
     const WORD machine = IMAGE_FILE_MACHINE_ARM64;
+    stream.write(reinterpret_cast<const char*>(&machine), sizeof(machine));
+    stream.close();
+
+    const auto result = RuntimeBundleResolver::Resolve(
+        RuntimeSelection{bundle.root(), "C:/unused/compiler/bin"},
+        DeriveProgramRuntimeRequirements(0));
+
+    ASSERT_FALSE(result.has_value());
+    EXPECT_EQ(result.error().code, RuntimeErrorCode::IncompatibleArchitecture);
+}
+
+TEST(RuntimeBundleResolverTest, Rejects32BitCoreImage) {
+    TemporaryRuntimeBundle bundle(true);
+    auto corePath = bundle.root() / "plugins" / "DBProCore.dll";
+    std::fstream stream(corePath, std::ios::binary | std::ios::in | std::ios::out);
+    stream.seekp(0x84);
+    const WORD machine = IMAGE_FILE_MACHINE_I386;
     stream.write(reinterpret_cast<const char*>(&machine), sizeof(machine));
     stream.close();
 

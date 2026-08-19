@@ -14,10 +14,10 @@ set(SOURCES
     dbproexe.rc
 )
 
-# Compile as a Win32 GUI Application
+# Compile as a Windows GUI subsystem application (no console window)
 add_executable(DarkEXE WIN32 ${SOURCES})
 dbp_apply_legacy_cpp_options(DarkEXE)
-target_compile_definitions(DarkEXE PRIVATE WIN32 _WINDOWS DARKEXE UNICODE _UNICODE)
+target_compile_definitions(DarkEXE PRIVATE _WINDOWS DARKEXE UNICODE _UNICODE)
 target_include_directories(DarkEXE PRIVATE
     ${CMAKE_SOURCE_DIR}/DBProCompiler/DBPCompiler
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"

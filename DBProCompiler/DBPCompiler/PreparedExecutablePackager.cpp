@@ -1,4 +1,5 @@
 #include "PreparedExecutablePackager.h"
+#include "StringUtils.h"
 
 #include "DBPCompiler.h"
 #include "DebuggerInterface.h"
@@ -271,7 +272,7 @@ bool ASMWriterStandalonePackagingServices::AddRuntimeLibraries() noexcept {
                 return false;
             }
 
-            const bool isCore = _stricmp(name, "dbprocore.dll") == 0;
+            const bool isCore = dbp::iequals(name, "dbprocore.dll");
             std::filesystem::path source = isCore
                 ? runtimeBundle_->corePath
                 : runtimeBundle_->pluginsDirectory / namePath;
@@ -300,7 +301,7 @@ bool ASMWriterStandalonePackagingServices::AddRuntimeLibraries() noexcept {
             if (!AddFile(builder_, source, name)) {
                 return false;
             }
-            if (_stricmp(name, "dbprobasic3ddebug.dll") == 0) {
+            if (dbp::iequals(name, "dbprobasic3ddebug.dll")) {
                 effectsRequired_ = true;
             }
         }
@@ -354,7 +355,7 @@ bool ASMWriterStandalonePackagingServices::AddProjectMedia() noexcept {
                         builder_, source, ToUtf8(placementPath))) {
                     return false;
                 }
-                if (_stricmp(mediaName.get(), "icon.ico") == 0) {
+                if (dbp::iequals(mediaName.get(), "icon.ico")) {
                     replacementIcon_ = source;
                 }
             }

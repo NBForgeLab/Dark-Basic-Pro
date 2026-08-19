@@ -9,6 +9,8 @@
 
 #include "PerfMacros.h"
 
+#include <vector>
+
 #ifdef __AARON_STRUCPERF__
 # include <unordered_map>
 # include <string>
@@ -22,16 +24,24 @@ class CStructTable
 		void Free(void);
 
 		void Add(CStructTable* pNew);
-		[[nodiscard]] CStructTable* GetNext(void) noexcept { return m_pNext; }
-		[[nodiscard]] const CStructTable* GetNext(void) const noexcept { return m_pNext; }
+		[[nodiscard]] CStructTable* GetNext(void) noexcept
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex+1>=g_Order.size() ) return nullptr;
+			return g_Order[m_orderIndex+1];
+		}
+		[[nodiscard]] const CStructTable* GetNext(void) const noexcept
+		{
+			if ( m_orderIndex==static_cast<size_t>(-1) || m_orderIndex+1>=g_Order.size() ) return nullptr;
+			return g_Order[m_orderIndex+1];
+		}
 
 		void			SetStructDefaults(void);
 		template <typename TargetAbi>
 		void			SetStructDefaultsFor(void)
 		{
 			static_assert(
-				TargetAbi::address_size == 4 || TargetAbi::address_size == 8,
-				"Only PE32 and PE32+ target address widths are supported.");
+				TargetAbi::address_size == 8,
+				"The SDK targets a native x64 address width.");
 			SetStructDefaults(static_cast<DWORD>(TargetAbi::address_size));
 		}
 		[[nodiscard]] DWORD GetTargetAddressSize(void) const noexcept
@@ -96,12 +106,13 @@ class CStructTable
 		// Stores Link to Type Object
 		CStatement*		m_pDecBlock;
 
-		// Hierarchy Data
-		CStructTable*	m_pNext;
+		// Position in the global declaration-order index (replaces legacy linked list)
+		size_t			m_orderIndex;
 
 #ifdef __AARON_STRUCPERF__
 		static std::unordered_map<std::string, CStructTable*> g_Table;
 #endif
+		static std::vector<CStructTable*> g_Order;
 };
 
 #endif // !defined(AFX_STRUCTTABLE_H__0EDF6884_E537_492E_806D_71DD644FE9B4__INCLUDED_)
