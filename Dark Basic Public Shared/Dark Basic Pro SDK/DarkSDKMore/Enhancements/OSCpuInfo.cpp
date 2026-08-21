@@ -33,7 +33,7 @@ char* CPUInfo::GetVendorString ( void )
 	return ChipID.Vendor;
 }
 
-char* CPUInfo::GetVendorID ( void )
+const char* CPUInfo::GetVendorID ( void )
 {
 	switch ( ChipManufacturer )
 	{
@@ -728,8 +728,8 @@ bool _cdecl CPUInfo::RetrieveClassicalCPUIdentity ()
 						case 3: STORE_CLASSICAL_NAME ("P24T OverDrive"); break;
 						case 4: STORE_CLASSICAL_NAME ("P55C"); break;
 						case 7: STORE_CLASSICAL_NAME ("P54C"); break;
-						case 8: STORE_CLASSICAL_NAME ("P55C (0.25µm)"); break;
-						default: STORE_CLASSICAL_NAME ("Unknown Pentium® family"); return false;
+						case 8: STORE_CLASSICAL_NAME ("P55C (0.25ï¿½m)"); break;
+						default: STORE_CLASSICAL_NAME ("Unknown Pentiumï¿½ family"); return false;
 					}
 					
 					break;
@@ -740,25 +740,25 @@ bool _cdecl CPUInfo::RetrieveClassicalCPUIdentity ()
 						/*
 						case 0: STORE_CLASSICAL_NAME ("P6 A-Step"); break;
 						case 1: STORE_CLASSICAL_NAME ("P6"); break;
-						case 3: STORE_CLASSICAL_NAME ("Pentium® II (0.28 µm)"); break;
-						case 5: STORE_CLASSICAL_NAME ("Pentium® II (0.25 µm)"); break;
-						case 6: STORE_CLASSICAL_NAME ("Pentium® II With On-Die L2 Cache"); break;
-						case 7: STORE_CLASSICAL_NAME ("Pentium® III (0.25 µm)"); break;
-						case 8: STORE_CLASSICAL_NAME ("Pentium® III (0.18 µm) With 256 KB On-Die L2 Cache "); break;
-						case 0xa: STORE_CLASSICAL_NAME ("Pentium® III (0.18 µm) With 1 Or 2 MB On-Die L2 Cache "); break;
-						case 0xb: STORE_CLASSICAL_NAME ("Pentium® III (0.13 µm) With 256 Or 512 KB On-Die L2 Cache "); break;
+						case 3: STORE_CLASSICAL_NAME ("Pentiumï¿½ II (0.28 ï¿½m)"); break;
+						case 5: STORE_CLASSICAL_NAME ("Pentiumï¿½ II (0.25 ï¿½m)"); break;
+						case 6: STORE_CLASSICAL_NAME ("Pentiumï¿½ II With On-Die L2 Cache"); break;
+						case 7: STORE_CLASSICAL_NAME ("Pentiumï¿½ III (0.25 ï¿½m)"); break;
+						case 8: STORE_CLASSICAL_NAME ("Pentiumï¿½ III (0.18 ï¿½m) With 256 KB On-Die L2 Cache "); break;
+						case 0xa: STORE_CLASSICAL_NAME ("Pentiumï¿½ III (0.18 ï¿½m) With 1 Or 2 MB On-Die L2 Cache "); break;
+						case 0xb: STORE_CLASSICAL_NAME ("Pentiumï¿½ III (0.13 ï¿½m) With 256 Or 512 KB On-Die L2 Cache "); break;
 						default: STORE_CLASSICAL_NAME ("Unknown P6 family"); return false;
 						*/
 
 						case 0: STORE_CLASSICAL_NAME ("P6"); break;
 						//case 1: STORE_CLASSICAL_NAME ("P6"); break;
-						case 3: STORE_CLASSICAL_NAME ("Pentium® II"); break;
-						case 5: STORE_CLASSICAL_NAME ("Pentium® II"); break;
-						case 6: STORE_CLASSICAL_NAME ("Pentium® II"); break;
-						case 7: STORE_CLASSICAL_NAME ("Pentium® III"); break;
-						case 8: STORE_CLASSICAL_NAME ("Pentium® III"); break;
-						case 0xa: STORE_CLASSICAL_NAME ("Pentium® III"); break;
-						case 0xb: STORE_CLASSICAL_NAME ("Pentium® III"); break;
+						case 3: STORE_CLASSICAL_NAME ("Pentiumï¿½ II"); break;
+						case 5: STORE_CLASSICAL_NAME ("Pentiumï¿½ II"); break;
+						case 6: STORE_CLASSICAL_NAME ("Pentiumï¿½ II"); break;
+						case 7: STORE_CLASSICAL_NAME ("Pentiumï¿½ III"); break;
+						case 8: STORE_CLASSICAL_NAME ("Pentiumï¿½ III"); break;
+						case 0xa: STORE_CLASSICAL_NAME ("Pentiumï¿½ III"); break;
+						case 0xb: STORE_CLASSICAL_NAME ("Pentiumï¿½ III"); break;
 						default: STORE_CLASSICAL_NAME ("Unknown Pentium 3 family"); return false;
 					}
 					break;
@@ -772,9 +772,9 @@ bool _cdecl CPUInfo::RetrieveClassicalCPUIdentity ()
 					switch (ChipID.ExtendedFamily) {
 						case 0:
 							switch (ChipID.Model) {
-								case 0: STORE_CLASSICAL_NAME ("Pentium® IV"); break;
-								case 1: STORE_CLASSICAL_NAME ("Pentium® IV"); break;
-								case 2: STORE_CLASSICAL_NAME ("Pentium® IV"); break;
+								case 0: STORE_CLASSICAL_NAME ("Pentiumï¿½ IV"); break;
+								case 1: STORE_CLASSICAL_NAME ("Pentiumï¿½ IV"); break;
+								case 2: STORE_CLASSICAL_NAME ("Pentiumï¿½ IV"); break;
 								default: STORE_CLASSICAL_NAME ("Unknown Pentium 4 family"); return false;
 							}
 							break;
@@ -862,8 +862,8 @@ bool _cdecl CPUInfo::RetrieveClassicalCPUIdentity ()
 			switch (ChipID.Family) {	
 				case 5:
 					switch (ChipID.Model) {
-						case 0: STORE_CLASSICAL_NAME ("mP6 (0.25 µm)"); break;
-						case 2: STORE_CLASSICAL_NAME ("mP6 (0.18 µm)"); break;
+						case 0: STORE_CLASSICAL_NAME ("mP6 (0.25 ï¿½m)"); break;
+						case 2: STORE_CLASSICAL_NAME ("mP6 (0.18 ï¿½m)"); break;
 						default: STORE_CLASSICAL_NAME ("Unknown Rise family"); return false;
 					}
 					break;

@@ -1,1014 +1,685 @@
 #include "loader.h"
-#include <io.h>
+#include "unzip.h"
 
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
+#include <unordered_map>
 
-struct _externfiles externfiles;
+namespace fs = std::filesystem;
+
+extern char* unzip_file ( const char* p, int& size );
+
 files_found files_cache;
-
-
 files_found Q3A_Resources;
 files_found Q2_Resources;
 
-BOOL strcpy2 ( LPSTR* dest, LPSTR src )
-{
-	
-	if ( src == NULL )
-		return FALSE;
+_externfiles externfiles;
 
-	if(dest) SAFE_DELETE(*dest);
-	*dest = new char [ strlen ( src ) + 1 ];
-	
-	strcpy ( *dest, src );
-	
-	return TRUE;
+namespace
+{
+
+[[nodiscard]] bool ICaseEqual ( std::string_view a, std::string_view b )
+{
+	if ( a.size ( ) != b.size ( ) )
+		return false;
+
+	for ( std::size_t i = 0; i < a.size ( ); ++i )
+	{
+		if ( std::tolower ( static_cast <unsigned char> ( a [ i ] ) ) != std::tolower ( static_cast <unsigned char> ( b [ i ] ) ) )
+			return false;
+	}
+
+	return true;
 }
 
-BOOL file_loader::GetRelativePath ( LPSTR fullpath, LPSTR start, LPSTR* out )
+[[nodiscard]] bool ICaseSuffix ( std::string_view text, std::string_view suffix )
 {
-	for ( int x = 0; x != ( int ) strlen ( fullpath ); x++ )
-	{
-		if ( fullpath [ x ] == '\\' )
-			fullpath [ x ] = '/';
-	}
-	
-	if ( fullpath [ strlen ( fullpath ) - 1 ] == '/' )
-		fullpath [ strlen ( fullpath ) - 1 ] = '\0';
-
-	for ( x = 0; x != ( int ) strlen ( start ); x++ )
-	{
-		if ( start [ x ] == '\\' )
-			start [ x ] = '/';
-	}
-	
-	if ( start [ strlen ( start ) - 1 ] == '/' )
-		start [ strlen ( start ) - 1 ] = '\0';
-
-	if ( _stricmp ( fullpath, start ) == 0 )
-	{
-		*out       = new char [ 1 ];
-		*out [ 0 ] = '\0';
-
-		return TRUE;
-	}
-
-	for ( x = 0; x != ( int ) strlen ( start ); x++ )
-	{
-		if ( start [ x ] != fullpath [ x ] )
-			return FALSE;
-	}
-
-	char temp [ 1024 ];
-	strncpy ( temp, fullpath + x + 1, strlen ( fullpath ) -x );
-
-	*out = new char [ strlen ( temp ) + 1 ];
-	
-	strcpy ( *out, temp );
-
-	return TRUE;
+	return text.size ( ) >= suffix.size ( ) && ICaseEqual ( text.substr ( text.size ( ) - suffix.size ( ) ), suffix );
 }
 
-typedef struct
+[[nodiscard]] int ICaseCompare ( std::string_view a, std::string_view b )
 {
-	char	name [ 56 ];
-	int		filepos, 
-			filelen;
-} dpackfile_t;
+	const std::size_t count = ( std::min ) ( a.size ( ), b.size ( ) );
 
-typedef struct
-{
-	char id [ 4 ];
-	int  dirofs;
-	int  dirlen;
-} dpackheader_t;
-
-#define MAX_FILES_IN_PACK 32768  // 2048 is default for "Quake I", but that's not enough for others (e.g. Half-Life)
-
-
-dpackheader_t  packheader;
-dpackfile_t    info [ MAX_FILES_IN_PACK ];
-
-BOOL file_loader::Load::From_PAK ( LPSTR pakname, LPSTR filename, byte** data, int* length )
-{
-	if ( data != NULL )
-		*data = NULL;
-
-	FILE* file = fopen ( pakname, "rb" );
-	
-	if ( !file )
+	for ( std::size_t i = 0; i < count; ++i )
 	{
-		return FALSE;
+		const int ca = std::tolower ( static_cast <unsigned char> ( a [ i ] ) );
+		const int cb = std::tolower ( static_cast <unsigned char> ( b [ i ] ) );
+
+		if ( ca != cb )
+			return ca < cb ? -1 : 1;
 	}
 
-	if ( fread ( &packheader, 1, sizeof ( packheader ), file ) != sizeof ( packheader ) )
-	{
-		fclose ( file );
-		return FALSE;
-	}
-	
-	if ( packheader.id [ 0 ] != 'P' || packheader.id [ 1 ] != 'A' || packheader.id [ 2 ] != 'C' || packheader.id [ 3 ] != 'K' )
-	{
-		fclose ( file );
-		return FALSE;
-	}
-	
-	int numpackfiles = packheader.dirlen / sizeof ( dpackfile_t );
+	if ( a.size ( ) == b.size ( ) )
+		return 0;
 
-	if ( numpackfiles > MAX_FILES_IN_PACK )
-	{
-		numpackfiles = MAX_FILES_IN_PACK;
-	}
-
-	fseek ( file, packheader.dirofs, SEEK_SET );
-	fread ( &info, 1, packheader.dirlen, file );
-
-	for ( int x = 0; x < numpackfiles; x++ )
-	{
-		if ( strlen ( info [ x ].name ) < strlen ( filename ) )
-			continue;
-
-		/*
-		// Check if file is a BSP file
-		fseek ( file, info [ x ].filepos, SEEK_SET );
-		byte* pSeeData = ( byte* )malloc ( info [ x ].filelen );
-		if ( fread ( pSeeData, 1, info [ x ].filelen, file ) == info [ x ].filelen )
-		{
-			if ( pSeeData[0] == 'I' && pSeeData[1] == 'B' && pSeeData[2] == 'S' && pSeeData[3] == 'P' )
-			{
-				pSeeData=pSeeData;
-			}
-		}
-		free(pSeeData);
-		*/
-
-		if ( _strnicmp ( filename, info [ x ].name + ( strlen ( info [ x ].name ) - strlen ( filename ) ), strlen ( filename ) ) == 0 )
-		{
-			if ( length != NULL )
-				*length = info [ x ].filelen;
-
-			if ( data != NULL )
-			{
-				fseek ( file, info [ x ].filepos, SEEK_SET );
-
-				*data = ( byte* ) malloc ( info [ x ].filelen );
-
-				if ( fread ( *data, 1, info [ x ].filelen, file ) != info [ x ].filelen )
-				{
-					fclose ( file );
-					SAFE_DELETE ( *data );
-					return FALSE;
-				}
-			}
-
-			fclose ( file );
-			return TRUE;
-		}
-	}
-	
-	fclose ( file );
-
-	if ( data != NULL )
-		SAFE_DELETE ( *data );
-
-	return FALSE;
+	return a.size ( ) < b.size ( ) ? -1 : 1;
 }
 
-BOOL file_loader::Load::Direct ( LPSTR filename, byte** data, int* length )
+[[nodiscard]] bool WildcardMatch ( std::string_view text, std::string_view pattern )
 {
-	FILE* file;
+	std::size_t t = 0;
+	std::size_t p = 0;
+	std::size_t starP = std::string_view::npos;
+	std::size_t starT = 0;
 
-	file = fopen ( filename, "rb" );
+	while ( t < text.size ( ) )
+	{
+		if ( p < pattern.size ( ) && ( pattern [ p ] == '?' || std::tolower ( static_cast <unsigned char> ( pattern [ p ] ) ) == std::tolower ( static_cast <unsigned char> ( text [ t ] ) ) ) )
+		{
+			++p;
+			++t;
+		}
+		else if ( p < pattern.size ( ) && pattern [ p ] == '*' )
+		{
+			starP = p++;
+			starT = t;
+		}
+		else if ( starP != std::string_view::npos )
+		{
+			p   = starP + 1;
+			t   = ++starT;
+		}
+		else
+		{
+			return false;
+		}
+	}
 
-	if ( file == NULL )
-		return FALSE;
+	while ( p < pattern.size ( ) && pattern [ p ] == '*' )
+		++p;
 
-	*length = file_loader::GetLength::File ( file );
-	
-	if ( *length == -1 )
-		return FALSE;
-
-	*data = new byte [ *length ];
-
-	int count = fread ( *data, 1, *length, file );
-		
-	if ( count != *length )
-		return FALSE;
-		
-	fclose ( file );
-
-	return TRUE;
+	return p == pattern.size ( );
 }
 
-BOOL file_loader::Find::File ( LPSTR filename, LPSTR path, LPSTR* fullname )
+void ReadAll ( std::istream& stream, std::streamoff offset, int length, byte** data, int* lengthOut )
 {
-	char dir_save [ _MAX_PATH ];
+	auto buffer = std::make_unique <byte[]> ( length );
 
-	GetCurrentDirectory ( _MAX_PATH, dir_save );
+	stream.clear ( );
+	stream.seekg ( offset, std::ios::beg );
 
-	_chdir ( path );
+	if ( !stream.read ( reinterpret_cast <char*> ( buffer.get ( ) ), length ) )
+		throw std::runtime_error ( "short read" );
 
-	struct _finddata_t c_files;
-	long	hFile;
-	struct _finddata_t c_dirs [ 100 ];
-    long	hDir [ 100 ];
-
-	int x = 0;
-
-	next:
-		// search new directory
-		if ( ( hDir [ x ] = _findfirst ( "*.*", &c_dirs[x] ) ) != -1 )
-		{
-			if ( c_dirs [ x ].attrib & _A_SUBDIR )
-			{
-				if ( strcmp ( c_dirs [ x ].name, "." ) == 0 || strcmp ( c_dirs [ x ].name,".." ) == 0 ) 
-					goto last;
-
-				_chdir ( c_dirs [ x ].name );
-				
-				x++;
-
-				goto next;
-			}
-		}
-	
-	last:
-		while ( ( _findnext ( hDir [ x ], &c_dirs [ x ] ) ) != -1 )
-		{
-			if ( c_dirs [ x ].attrib & _A_SUBDIR )
-			{
-				if ( strcmp ( c_dirs [ x ].name, "." ) == 0 || strcmp ( c_dirs [ x ].name, ".." ) == 0 )
-					goto last;
-
-				_chdir ( c_dirs [ x ].name );
-				
-				if ( ( hFile = _findfirst ( filename, &c_files ) ) != -1L )
-				{
-					char dir [ 1024 ];
-
-					GetCurrentDirectory ( _MAX_PATH, dir );
-
-					strcat ( dir, "/" );
-					strcat ( dir, c_files.name );
-
-					*fullname = new char [ strlen ( dir ) + 1 ];
-					strcpy ( *fullname, dir );
-
-					_chdir ( dir_save );
-
-					_findclose ( hFile );
-
-					for ( int y = 0; y <= x; y++ )
-						_findclose ( hDir [ y ] );
-
-					return TRUE;
-				}
-
-				_findclose ( hFile );
-				
-				x++;
-				goto next;
-			}
-		}
-
-		_findclose ( hDir [ x ] );
-
-		if ( x == 0 )
-		{
-			_chdir ( dir_save );
-			return FALSE;
-		}
-
-		_chdir ( ".." );
-		x--;
-		goto last;
-
-	return TRUE;
+	*data     = buffer.release ( );
+	*lengthOut = length;
 }
-
-BOOL file_loader::Find::Files ( LPSTR common, LPSTR path, files_found* files )
-{
-	char dir_save [ _MAX_PATH ];
-
-	GetCurrentDirectory ( _MAX_PATH, dir_save );
-
-	_chdir ( path );
-
-	( *files ).Init ( );
-
-	struct _finddata_t c_files;
-	long	hFile;
-	struct	_finddata_t c_dirs [ 256 ];
-    long	hDir [ 100 ];
-	int		n = 0;
-	int		x = -1;
-	goto	start;
-	
-	next:
-		if ( ( hDir [ x ] = _findfirst ( "*.*", &c_dirs [ x ] ) ) != -1 )
-		{
-			if ( c_dirs [ x ].attrib & _A_SUBDIR )
-			{
-				if ( strcmp ( c_dirs [ x ].name, "." ) == 0 || strcmp ( c_dirs [ x ].name, ".." ) == 0 ) 
-					goto last;
-
-				_chdir ( c_dirs [ x ].name );
-
-				goto start;
-			}
-		}
-
-	last:
-		while ( ( _findnext ( hDir [ x ], &c_dirs [ x ] ) ) != -1 )
-		{
-			if ( c_dirs [ x ].attrib & _A_SUBDIR )
-			{
-				if ( strcmp ( c_dirs [ x ].name, "." ) == 0 || strcmp ( c_dirs [ x ].name, ".." ) == 0 )
-					goto last;
-
-				_chdir ( c_dirs [ x ].name );
-
-				start:
-					if ( ( hFile = _findfirst ( common, &c_files ) ) != -1L )
-					{
-						if ( c_files.attrib & _A_SUBDIR )
-							goto jump;
-
-						char dir  [ _MAX_PATH ];
-						char name [ _MAX_PATH ];
-		
-						GetCurrentDirectory ( _MAX_PATH, dir );
-
-						( *files ).Resize ( n + 1);
-
-						strcpy2 ( &( *files ).files [ n ].filename, c_files.name );
-						strcpy2 ( &( *files ).files [ n ].path, dir);
-						sprintf ( name, "%s/%s", dir, c_files.name );
-						strcpy2 ( &( *files ).files [ n ].fullname, name );
-
-						( *files ).num_files++;
-						n++;
-						
-					jump:
-						while ( ( _findnext ( hFile, &c_files ) ) != -1 )
-						{
-							if ( c_files.attrib & _A_SUBDIR )
-								continue;
-
-							( *files ).Resize ( n + 1 );
-
-							strcpy2 ( &( *files ).files [ n ].filename, c_files.name );
-							strcpy2 ( &( *files ).files [ n ].path, dir );
-							sprintf ( name, "%s/%s", dir, c_files.name );
-							strcpy2 ( &( *files ).files [ n ].fullname, name );
-
-							( *files ).num_files++;
-							n++;
-						}
-					}
-
-					_findclose ( hFile );
-					x++;
-					goto next;
-			}
-		}
-
-		_findclose ( hDir [ x ] );
-		
-		if ( x == 0 )
-		{
-			_chdir ( dir_save );
-
-			if ( ( *files ).num_files > 0 )
-				return TRUE;
-
-			return FALSE;
-		}
-
-		_chdir ( ".." );
-		x--;
-		goto last;			
-}
-
 
 #pragma pack(push)
 #pragma pack(1)
 
-struct zip_dir_t{
-    unsigned long   signature;
-    unsigned short  disk;
-    unsigned short  cdisk;
-    unsigned short  count;
-    unsigned short  total;
-    unsigned long   size;
-    unsigned long   offset;
-    unsigned short  comment_len;
+struct zip_dir_t
+{
+	unsigned long   signature;
+	unsigned short  disk;
+	unsigned short  cdisk;
+	unsigned short  count;
+	unsigned short  total;
+	unsigned long   size;
+	unsigned long   offset;
+	unsigned short  comment_len;
 };
 
-struct zip_file_t{
-    unsigned long   signature;  // signature (0x02014b50)
-	unsigned short  made,       // version made by
-					extract,    // vers needed to extract
-					flag,       // general purpose flag
-					method,     // compression method
-					time,       // file time
-					date;       // ..and file date
-	unsigned long   crc,        // CRC-32 for file
-					csize,      // compressed size
-					size;       // uncompressed size
-	unsigned short  name_len,   // file name length
-					extra_len,  // extra field length
-					comment_len,// file comment length
-					disk,       // disk number
-					attr;       // internal file attrib
-	unsigned long   eattr,      // external file attrib
-					offset;     // offset of local header
+struct zip_file_t
+{
+	unsigned long   signature;
+	unsigned short  made,
+					extract,
+					flag,
+					method,
+					time,
+					date;
+	unsigned long   crc,
+					csize,
+					size;
+	unsigned short  name_len,
+					extra_len,
+					comment_len,
+					disk,
+					attr;
+	unsigned long   eattr,
+					offset;
 };
 
-struct zfile_entry_t{
-    char name[256];
-    unsigned long   offset;
-    unsigned long   csize;
-    unsigned long   size;
+struct zfile_entry_t
+{
+	char          name [ 256 ];
+	unsigned long offset;
+	unsigned long csize;
+	unsigned long size;
 };
 
 #pragma pack(pop)
 
-
-#define MAX_ZIPS 1024
-struct _zip_optimize{
-	LPSTR zipname[MAX_ZIPS];
-	FILE* file[MAX_ZIPS];
-	zip_dir_t dir[MAX_ZIPS];
-	zfile_entry_t *files[MAX_ZIPS];
-	int count;
-}zip_optimize;
-
-
-BOOL file_loader::Load::From_ZIP ( LPSTR zipname, LPSTR filename, byte** data, int* length )
+struct ZipCacheEntry
 {
-	int current_zip;
+	fs::path                  archive;
+	std::vector <zfile_entry_t> files;
+};
 
-	for ( int x = 0; x != zip_optimize.count; x++ )
-	{
-		if ( strcmp ( zip_optimize.zipname [ x ], zipname ) == 0 )
-		{
-			current_zip = x;
-			goto jump;
-		}
-	}
-
-	back:
-		zip_optimize.zipname [ zip_optimize.count ] = new char [ strlen ( zipname ) + 1 ];
-		
-		strcpy ( zip_optimize.zipname [ zip_optimize.count ], zipname );
-
-		current_zip = zip_optimize.count;
-		
-		if ( zip_optimize.count == MAX_ZIPS )
-		{
-			zip_optimize.count--;
-			delete zip_optimize.files [ zip_optimize.count ];
-			goto back;
-		}
-
-		zip_optimize.count++;		
-		
-		zip_optimize.file [ current_zip ] = fopen ( zipname, "rb" );
-
-		if ( zip_optimize.file [ current_zip ] == NULL )
-			return FALSE;
-
-		// read header
-		fseek ( zip_optimize.file [ current_zip ], 0 - sizeof ( zip_dir_t ), SEEK_END );
-
-		if ( fread ( &zip_optimize.dir [ current_zip ], 1, sizeof ( zip_dir_t ), zip_optimize.file [ current_zip ] ) != sizeof ( zip_dir_t ) )
-			return FALSE;
-
-		zip_optimize.files [ current_zip ] = new zfile_entry_t [ zip_optimize.dir [ current_zip ].count ];
-		
-		// navigate to file entries
-		fseek ( zip_optimize.file [ current_zip ], zip_optimize.dir [ current_zip ].offset,SEEK_SET );
-
-		int i;
-		
-		for ( i = 0; i < zip_optimize.dir [ current_zip ].count; i++ )
-		{
-			// read header followed by file name
-			zip_file_t h;
-
-			if ( fread ( &h, 1, sizeof ( zip_file_t ), zip_optimize.file [ current_zip ] ) != sizeof ( zip_file_t ) )
-				return false;
-			
-			char name [ 256 ];
-			memset ( name, 0, sizeof ( name ) );
-
-			if ( fread ( name, 1, h.name_len, zip_optimize.file [ current_zip ] ) != h.name_len )
-				return false;
-			
-			fseek ( zip_optimize.file [ current_zip ], h.extra_len + h.comment_len, SEEK_CUR );
-					
-			strcpy(zip_optimize.files [ current_zip ] [ i ].name, _strlwr ( name ) );
-
-			zip_optimize.files [ current_zip ] [ i ].offset = h.offset;
-			zip_optimize.files [ current_zip ] [ i ].size   = h.size;
-			zip_optimize.files [ current_zip ] [ i ].csize  = h.csize;
-		}
-
-
-	jump:
-		for ( i = 0; i < zip_optimize.dir [ current_zip ].count; i++ )
-		{
-			if ( strlen ( zip_optimize.files [ current_zip ] [ i ].name ) < strlen ( filename ) )
-				continue;
-
-			if ( _strnicmp (
-							filename,
-							zip_optimize.files [ current_zip ] [ i ].name + ( strlen ( zip_optimize.files [ current_zip ] [ i ].name ) - strlen ( filename ) ),
-							strlen ( filename ) ) == 0
-						  )
-			{
-				goto found;
-			}
-		}
-
-		return FALSE;
-
-	found:
-
-		int idx = i;
-
-		const zfile_entry_t& f = zip_optimize.files [ current_zip ] [ idx ];
-
-		extern char* unzip_file ( const char* p, int& size );
-
-		if ( f.size == 0 || f.csize == 0 )
-			return FALSE;
-		
-		LF lf;
-		fseek ( zip_optimize.file [ current_zip ], f.offset, SEEK_SET );
-
-		if ( fread ( &lf, 1, sizeof ( LF ), zip_optimize.file [ current_zip ] ) != sizeof ( LF ) )
-		{
-			return false;
-		}
-
-		// compute the complete file size
-		int size = f.csize + sizeof ( LF ) + lf.lf_fn_len + lf.lf_ef_len;
-
-		// get temp buffer
-		char* tmp = new char [ size ];
-		
-		if ( !tmp )
-		{
-			return false;
-		}
-
-		// back up a little and read the whole file
-		fseek ( zip_optimize.file [ current_zip ], 0 - sizeof ( LF ), SEEK_CUR );
-
-		if ( fread ( tmp, 1, size, zip_optimize.file [ current_zip ] ) != ( unsigned ) size )
-		{
-			// return false;
-		}
-
-		// unzip
-		size = 0;
-		char* unzippeddata = unzip_file ( tmp, size );
-		delete tmp;
-
-		if ( !unzippeddata || ( unsigned ) size != f.size )
-		{
-			// mismatch
-			if ( unzippeddata )
-			{
-				
-			}
-
-			return false;
-		}
-
-
-		if ( data != NULL )
-			*data = ( byte* ) unzippeddata;
-
-		if ( length != NULL) 
-			*length = size;
-
-		return TRUE;
+std::unordered_map <std::string, ZipCacheEntry>& ZipCache ( )
+{
+	static std::unordered_map <std::string, ZipCacheEntry> cache;
+	return cache;
 }
 
+[[nodiscard]] const ZipCacheEntry* OpenZipForRead ( std::string_view zipname )
+{
+	const std::string key ( zipname );
 
-BOOL file_loader::Load::From_PK3 ( LPSTR pk3name, LPSTR filename, byte** data, int* length )
+	if ( auto found = ZipCache ( ).find ( key ); found != ZipCache ( ).end ( ) )
+		return &found->second;
+
+	std::ifstream stream ( fs::path ( zipname ), std::ios::binary );
+
+	if ( !stream )
+		return nullptr;
+
+	zip_dir_t dir {};
+
+	stream.seekg ( -static_cast <std::streamoff> ( sizeof ( dir ) ), std::ios::end );
+
+	if ( !stream.read ( reinterpret_cast <char*> ( &dir ), sizeof ( dir ) ) )
+		return nullptr;
+
+	std::vector <zfile_entry_t> files ( dir.count );
+	zip_file_t header {};
+
+	stream.seekg ( dir.offset, std::ios::beg );
+
+	for ( unsigned short i = 0; i < dir.count; ++i )
+	{
+		if ( !stream.read ( reinterpret_cast <char*> ( &header ), sizeof ( header ) ) )
+			return nullptr;
+
+		char name [ 256 ] { };
+		const int nameLen = header.name_len < 255 ? header.name_len : 255;
+
+		if ( nameLen > 0 && !stream.read ( name, nameLen ) )
+			return nullptr;
+
+		stream.seekg ( header.extra_len + header.comment_len, std::ios::cur );
+
+		zfile_entry_t entry {};
+		strncpy_s ( entry.name, ToLowerAscii ( name ).c_str ( ), _TRUNCATE );
+
+		entry.offset = header.offset;
+		entry.size   = header.size;
+		entry.csize  = header.csize;
+
+		files [ i ] = entry;
+	}
+
+	return &( ZipCache ( ).emplace ( key, ZipCacheEntry { fs::path ( zipname ), std::move ( files ) } ).first->second );
+}
+
+bool LoadFromZipEntry ( const ZipCacheEntry& cache, const zfile_entry_t& entry, byte** data, int* length )
+{
+	if ( entry.size == 0 || entry.csize == 0 )
+		return false;
+
+	std::ifstream stream ( cache.archive, std::ios::binary );
+
+	if ( !stream )
+		return false;
+
+	LF lf;
+
+	stream.seekg ( entry.offset, std::ios::beg );
+
+	if ( !stream.read ( reinterpret_cast <char*> ( &lf ), sizeof ( lf ) ) )
+		return false;
+
+	const int compressedSize = entry.csize + sizeof ( LF ) + lf.lf_fn_len + lf.lf_ef_len;
+
+	auto raw = std::make_unique <char[]> ( compressedSize );
+
+	stream.seekg ( -static_cast <std::streamoff> ( sizeof ( LF ) ), std::ios::cur );
+
+	if ( !stream.read ( raw.get ( ), compressedSize ) )
+		return false;
+
+	int unzippedSize = 0;
+	char* unzipped = unzip_file ( raw.get ( ), unzippedSize );
+
+	if ( !unzipped || unzippedSize != static_cast <int> ( entry.size ) )
+	{
+		delete[] unzipped;
+		return false;
+	}
+
+	if ( data )
+		*data = reinterpret_cast <byte*> ( unzipped );
+
+	if ( length )
+		*length = unzippedSize;
+
+	return true;
+}
+
+template <typename T>
+bool ReadTrivial ( std::ifstream& stream, T& value )
+{
+	return static_cast <bool> ( stream.read ( reinterpret_cast <char*> ( &value ), sizeof ( value ) ) );
+}
+
+}
+
+bool files_found::ContainsFileCaseInsensitive ( std::string_view filename ) const
+{
+	return std::any_of ( entries.begin ( ), entries.end ( ), [ & ] ( const Entry& entry )
+	{
+		return ICaseEqual ( entry.filename, filename );
+	} );
+}
+
+bool files_found::AddFile ( std::string_view fullname )
+{
+	if ( fullname.empty ( ) )
+		return false;
+
+	Entry added;
+	SplitPath ( fullname, &added.filename, &added.path );
+
+	if ( ContainsFileCaseInsensitive ( added.filename ) )
+		return false;
+
+	added.fullname = fullname;
+	entries.push_back ( std::move ( added ) );
+
+	return true;
+}
+
+bool files_found::AddFile ( std::string_view fullname, std::string_view filename, std::string_view path )
+{
+	if ( filename.empty ( ) || ContainsFileCaseInsensitive ( filename ) )
+		return false;
+
+	Entry& added = Add ( );
+
+	added.fullname = fullname;
+	added.filename = filename;
+	added.path     = path;
+
+	return true;
+}
+
+void SplitPath ( std::string_view full, std::string* filename, std::string* path )
+{
+	const fs::path parsed ( full );
+
+	if ( filename )
+		*filename = parsed.filename ( ).string ( );
+
+	if ( path )
+		*path = parsed.parent_path ( ).string ( );
+}
+
+bool IsDirectoryPath ( std::string_view path )
+{
+	return fs::is_directory ( fs::path ( path ) );
+}
+
+bool file_loader::Load::Direct ( std::string_view filename, byte** data, int* length )
+{
+	std::ifstream stream ( fs::path ( filename ), std::ios::binary );
+
+	if ( !stream )
+		return false;
+
+	stream.seekg ( 0, std::ios::end );
+
+	const std::streamoff size = stream.tellg ( );
+
+	if ( size <= 0 )
+		return false;
+
+	try
+	{
+		ReadAll ( stream, 0, static_cast <int> ( size ), data, length );
+	}
+	catch ( ... )
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool file_loader::Load::From_PAK ( std::string_view pakname, std::string_view filename, byte** data, int* length )
+{
+	if ( data )
+		*data = nullptr;
+
+	std::ifstream stream ( fs::path ( pakname ), std::ios::binary );
+
+	if ( !stream )
+		return false;
+
+	struct PackHeader
+	{
+		char id [ 4 ];
+		int  dirofs;
+		int  dirlen;
+	};
+
+	struct PackFile
+	{
+		char name [ 56 ];
+		int  filepos;
+		int  filelen;
+	};
+
+	PackHeader header;
+
+	if ( !ReadTrivial ( stream, header ) )
+		return false;
+
+	constexpr char packId [ 4 ] = { 'P', 'A', 'C', 'K' };
+
+	if ( !std::equal ( std::begin ( header.id ), std::end ( header.id ), packId ) )
+		return false;
+
+	constexpr int maxFilesInPack = 32768;
+
+	const int entryCount = ( std::min ) ( header.dirlen / static_cast <int> ( sizeof ( PackFile ) ), maxFilesInPack );
+
+	std::vector <PackFile> entries ( entryCount );
+
+	stream.seekg ( header.dirofs, std::ios::beg );
+
+	if ( !stream.read ( reinterpret_cast <char*> ( entries.data ( ) ), static_cast <std::streamsize> ( entries.size ( ) * sizeof ( PackFile ) ) ) )
+		return false;
+
+	for ( const PackFile& entry : entries )
+	{
+		const std::string_view storedName ( entry.name );
+
+		if ( storedName.size ( ) < filename.size ( ) )
+			continue;
+
+		if ( !ICaseSuffix ( storedName, filename ) )
+			continue;
+
+		if ( length )
+			*length = entry.filelen;
+
+		if ( data )
+		{
+			try
+			{
+				ReadAll ( stream, entry.filepos, entry.filelen, data, length );
+			}
+			catch ( ... )
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool file_loader::Load::From_ZIP ( std::string_view zipname, std::string_view filename, byte** data, int* length )
+{
+	const ZipCacheEntry* cache = OpenZipForRead ( zipname );
+
+	if ( !cache )
+		return false;
+
+	const std::string lowerName = ToLowerAscii ( filename );
+
+	for ( const zfile_entry_t& entry : cache->files )
+	{
+		if ( ICaseSuffix ( entry.name, filename ) )
+			return LoadFromZipEntry ( *cache, entry, data, length );
+	}
+
+	return false;
+}
+
+bool file_loader::Load::From_PK3 ( std::string_view pk3name, std::string_view filename, byte** data, int* length )
 {
 	return From_ZIP ( pk3name, filename, data, length );
 }
 
-
-BOOL IsDirectory ( LPSTR str )
+bool file_loader::Load::From_WAD ( std::string_view wadname, std::string_view filename, byte** data, int* length )
 {
-	BOOL dir = TRUE;
+	if ( data )
+		*data = nullptr;
 
-	for ( int x = strlen ( str ) - 1; x >= 0; x-- )
+	std::ifstream stream ( fs::path ( wadname ), std::ios::binary );
+
+	if ( !stream )
+		return false;
+
+	struct WadInfo
 	{
-		if ( str [ x ] == '.' )
-			dir = FALSE;
+		char id [ 4 ];
+		int  numlumps;
+		int  infotableofs;
+	};
 
-		if ( str [ x ] == '/' || str [ x ] == '\\' )
-			break;
-	}
-
-	return dir;
-}
-
-BOOL file_loader::Q3A::Add_PK3 ( LPSTR filename )
-{
-	// search in existing entries
-	for ( int x = 0; x < Q3A_Resources.num_files; x++ )
+	struct LumpInfo
 	{
-		if ( _stricmp ( Q3A_Resources.files [ x ].fullname, filename ) == 0 )
-			return TRUE;
-	}
+		int  filepos;
+		int  disksize;
+		int  size;
+		char type;
+		char compression;
+		char pad1;
+		char pad2;
+		char name [ 16 ];
+	};
 
-	FILE* file = fopen ( filename, "r" );
+	WadInfo info;
 
-	if ( file == NULL )
-		return FALSE;
+	if ( !ReadTrivial ( stream, info ) )
+		return false;
 
-	fclose ( file );
+	const bool knownFormat =
+		ICaseSuffix ( std::string_view ( info.id, 4 ), "WAD3" ) ||
+		ICaseSuffix ( std::string_view ( info.id, 4 ), "WAD2" ) ||
+		ICaseSuffix ( std::string_view ( info.id, 4 ), "2DAW" );
 
-	int n = Q3A_Resources.num_files;
+	if ( !knownFormat )
+		return false;
 
-	Q3A_Resources.Resize ( n + 1 );
+	std::vector <LumpInfo> lumps ( info.numlumps );
 
-	strcpy2 ( &Q3A_Resources.files [ n ].fullname, filename );
+	stream.seekg ( info.infotableofs, std::ios::beg );
 
-	SolveFullName ( Q3A_Resources.files [ n ].fullname, &Q3A_Resources.files [ n ].filename, &Q3A_Resources.files [ n ].path );
+	if ( !stream.read ( reinterpret_cast <char*> ( lumps.data ( ) ), static_cast <std::streamsize> ( lumps.size ( ) * sizeof ( LumpInfo ) ) ) )
+		return false;
 
-	Q3A_Resources.num_files++;
-	
-	return TRUE;
-}
+	std::string lumpName ( filename );
 
-BOOL file_loader::Q2::Add_WAD ( LPSTR filename )
-{
-	// search in existing entries
-	for ( int x = 0; x < Q2_Resources.num_files; x++ )
+	if ( ICaseSuffix ( lumpName, ".wadtex" ) )
+		lumpName.resize ( lumpName.size ( ) - 7 );
+
+	for ( const LumpInfo& lump : lumps )
 	{
-		if ( _stricmp ( Q2_Resources.files [ x ].fullname, filename ) == 0 )
-			return TRUE;
-	}
+		if ( !ICaseEqual ( lump.name, lumpName ) )
+			continue;
 
-	FILE* file = fopen ( filename, "r" );
+		if ( length )
+			*length = lump.disksize;
 
-	if ( file == NULL )
-		return FALSE;
-	
-	fclose ( file );
-
-	int n = Q2_Resources.num_files;
-
-	Q2_Resources.Resize ( n + 1 );
-
-	strcpy2 ( &Q2_Resources.files [ n ].fullname, filename );
-
-	SolveFullName ( Q2_Resources.files [ n ].fullname, &Q2_Resources.files [ n ].filename, &Q2_Resources.files [ n ].path );
-	
-	Q2_Resources.num_files++;
-	
-	return TRUE;
-}
-
-
-BOOL file_loader::Find::Files_in_ZIP ( LPSTR zipname, LPSTR common, files_found_in_ZIP* files_found )
-{
-	FILE* file = fopen ( zipname, "rb" );
-
-    if ( file == NULL )
-		return FALSE;
-
-	// read header
-	fseek ( file, 0 - sizeof ( zip_dir_t ), SEEK_END );
-
-	zip_dir_t dir;
-
-	if ( fread ( &dir, 1, sizeof ( zip_dir_t ), file ) != sizeof ( zip_dir_t ) )
-		return FALSE;
-
-	zfile_entry_t* files = new zfile_entry_t [ dir.count ];
-	
-    // navigate to file entries
-    fseek ( file, dir.offset, SEEK_SET );
-
-    int i;
-	
-	for ( i = 0; i < dir.count; i++ )
-	{
-        // read header followed by file name
-        zip_file_t h;
-
-        if ( fread ( &h, 1, sizeof ( zip_file_t ), file ) != sizeof ( zip_file_t ) )
-			return false;
-
-        char name[256];
-		memset ( name, 0, sizeof ( name ) );
-
-        if ( fread ( name, 1, h.name_len, file ) != h.name_len )
-			return false;
-
-        fseek ( file, h.extra_len+h.comment_len, SEEK_CUR );
-				
-		strcpy ( files [ i ].name, _strlwr ( name ) );
-
-        files [ i ].offset = h.offset;
-        files [ i ].size   = h.size;
-        files [ i ].csize  = h.csize;
-    }
-
-	fclose ( file );
-
-	// search requested files
-	( *files_found ).Init ( );
-
-	// save zipname
-	strcpy2 ( &( *files_found ).zipname, zipname );
-
-	// convert to lowercase
-	char fcommon [ 256 ];
-	
-	strcpy ( fcommon, common );
-	strcpy ( fcommon, _strlwr ( fcommon ) );
-
-	for ( i = 0; i < dir.count; i++ )
-	{
-		if ( strstr ( files [ i ].name, fcommon ) != NULL )
+		if ( data )
 		{
-			int n = ( *files_found ).num_files;
-
-			( *files_found ).Resize ( n + 1 );
-
-			strcpy2 ( &( *files_found ).files [ n ].fullname, files [ i ].name );
-
-			SolveFullName ( ( *files_found ).files [ n ].fullname, &( *files_found ).files [ n ].filename, &( *files_found ).files [ n ].path );
-
-			( *files_found ).num_files++;
+			try
+			{
+				ReadAll ( stream, lump.filepos, lump.disksize, data, length );
+			}
+			catch ( ... )
+			{
+				return false;
+			}
 		}
+
+		return true;
 	}
 
-	SAFE_DELETE ( files );
-
-	return TRUE;
+	return false;
 }
 
-BOOL file_loader::Find::Files_in_PK3 ( LPSTR zipname, LPSTR common, files_found_in_PK3* files_found )
+bool file_loader::Find::File ( std::string_view filename, std::string_view path, std::string* fullname )
 {
-	return file_loader::Find::Files_in_ZIP ( zipname, common, files_found );
-}
+	const fs::path root = path.empty ( ) ? fs::current_path ( ) : fs::path ( path );
 
-BOOL SolveFullName ( LPSTR fullname, LPSTR* filename, LPSTR* path )
-{
-	char tmp1 [ MAX_PATH ],
-		 tmp2 [ _MAX_DIR ],
-		 tmp3 [ MAX_PATH ],
-		 tmp4 [ _MAX_EXT ];
+	std::error_code ec;
 
-	_splitpath ( fullname, tmp1, tmp2, tmp3, tmp4 );
-
-	if ( filename != NULL )
+	for ( const fs::directory_entry& item : fs::recursive_directory_iterator ( root, fs::directory_options::skip_permission_denied, ec ) )
 	{
-		strcat ( tmp3, tmp4 );
-		strcpy2 ( filename, tmp3 );
+		if ( ec )
+			break;
+
+		if ( !item.is_regular_file ( ec ) || ec )
+			continue;
+
+		if ( !ICaseEqual ( item.path ( ).filename ( ).string ( ), filename ) )
+			continue;
+
+		if ( fullname )
+			*fullname = fs::absolute ( item.path ( ) ).string ( );
+
+		return true;
 	}
 
-	if ( path != NULL )
-	{
-		strcat ( tmp1, tmp2 );
-		if ( strlen ( tmp1 ) > 0 )
-			if ( tmp1 [ strlen ( tmp1 ) - 1 ] == '\\' || tmp1 [ strlen ( tmp1 ) - 1 ] == '/' ) 
-				tmp1 [ strlen ( tmp1 ) - 1 ] = '\0';
-
-		strcpy2 ( path, tmp1 );
-	}
-
-	return TRUE;
+	return false;
 }
 
-
-BOOL file_loader::GetLength::File ( LPSTR filename, int* length )
+bool file_loader::Find::Files ( std::string_view wildcard, std::string_view path, files_found* files )
 {
-	if ( filename == NULL || strlen ( filename ) < 1 )
-		return FALSE;
+	const fs::path root = path.empty ( ) ? fs::current_path ( ) : fs::path ( path );
 
-	FILE* f = fopen ( filename, "r" );
+	files->Clear ( );
 
-	if ( f == NULL )
-		return FALSE;
+	std::error_code ec;
 
-	fseek ( f, 0, SEEK_END );
+	for ( const fs::directory_entry& item : fs::recursive_directory_iterator ( root, fs::directory_options::skip_permission_denied, ec ) )
+	{
+		if ( ec )
+			break;
 
-	*length = ftell ( f );
+		if ( !item.is_regular_file ( ec ) || ec )
+			continue;
 
-	fclose ( f );
+		const std::string leaf = item.path ( ).filename ( ).string ( );
 
-	return TRUE;
+		if ( !WildcardMatch ( leaf, wildcard ) )
+			continue;
+
+		files_found::Entry& added = files->Add ( );
+
+		added.filename = leaf;
+		added.path     = item.path ( ).parent_path ( ).string ( );
+		added.fullname = added.path + "/" + leaf;
+	}
+
+	return !files->entries.empty ( );
+}
+
+bool file_loader::Find::Files_in_PK3 ( std::string_view pk3name, std::string_view extension, files_found* files )
+{
+	const ZipCacheEntry* cache = OpenZipForRead ( pk3name );
+
+	if ( !cache )
+		return false;
+
+	files->Clear ( );
+
+	const std::string needle = ToLowerAscii ( extension );
+
+	for ( const zfile_entry_t& entry : cache->files )
+	{
+		if ( std::string_view ( entry.name ).find ( needle ) == std::string_view::npos )
+			continue;
+
+		files_found::Entry& added = files->Add ( );
+
+		SplitPath ( entry.name, &added.filename, &added.path );
+
+		added.fullname = entry.name;
+	}
+
+	return true;
+}
+
+bool file_loader::GetLength::File ( std::string_view filename, int* length )
+{
+	std::ifstream stream ( fs::path ( filename ), std::ios::binary );
+
+	if ( !stream )
+		return false;
+
+	stream.seekg ( 0, std::ios::end );
+
+	*length = static_cast <int> ( stream.tellg ( ) );
+
+	return true;
 }
 
 int file_loader::GetLength::File ( FILE* f )
 {
-	if ( f == NULL )
+	if ( !f )
 		return -1;
 
-	int	pos = ftell ( f );
+	const long previous = ftell ( f );
 
 	fseek ( f, 0, SEEK_END );
 
-	int length = ftell ( f );
+	const long size = ftell ( f );
 
-	fseek ( f, pos, SEEK_SET );
+	fseek ( f, previous, SEEK_SET );
 
-	return length;
+	return static_cast <int> ( size );
 }
 
-BOOL file_loader::GetLength::File_in_ZIP ( LPSTR zipname, LPSTR filename, int* length )
+bool file_loader::Q3A::Add_PK3 ( std::string_view filename )
 {
-	FILE* file = fopen ( zipname, "rb" );
-
-    if ( file == NULL )
-		return FALSE;
-
-	// read header
-	fseek ( file, 0 - sizeof ( zip_dir_t ), SEEK_END );
-
-	zip_dir_t dir;
-
-    if ( fread ( &dir, 1, sizeof ( zip_dir_t ), file ) != sizeof ( zip_dir_t ) )
-		return FALSE;
-
-	zfile_entry_t* files = new zfile_entry_t [ dir.count ];
-	
-    // navigate to file entries
-    fseek ( file, dir.offset, SEEK_SET );
-
-    int i;
-	
-	for ( i = 0; i < dir.count; i++ )
+	for ( const files_found::Entry& entry : Q3A_Resources.entries )
 	{
-        // read header followed by file name
-        zip_file_t h;
-
-        if ( fread ( &h, 1, sizeof ( zip_file_t ), file ) != sizeof ( zip_file_t ) )
-			return false;
-
-        char name [ 256 ]; 
-		
-		memset ( name, 0, sizeof ( name ) );
-
-        if ( fread ( name, 1, h.name_len, file ) != h.name_len )
-			return false;
-
-        fseek ( file, h.extra_len + h.comment_len, SEEK_CUR );
-				
-		strcpy ( files [ i ].name, _strlwr ( name ) );
-
-        files [ i ].offset = h.offset;
-        files [ i ].size   = h.size;
-        files [ i ].csize  = h.csize;
-    }
-
-	fclose ( file );
-
-	// search requested files
-	for ( i = 0; i < dir.count; i++ )
-	{
-		if ( strstr ( _strlwr ( files [ i ].name ), _strlwr ( filename ) ) != 0 )
-		{
-			*length = files [ i ].size;
-
-			SAFE_DELETE ( files );
-			return TRUE;
-		}
+		if ( ICaseEqual ( entry.fullname, filename ) )
+			return true;
 	}
 
-	*length = 0;
+	const fs::path candidate ( filename );
 
-	SAFE_DELETE ( files );
-	
-	return FALSE;
+	if ( !fs::exists ( candidate ) )
+		return false;
+
+	files_found::Entry& added = Q3A_Resources.Add ( );
+
+	SplitPath ( filename, &added.filename, &added.path );
+
+	added.fullname = candidate.string ( );
+
+	return true;
 }
 
-BOOL file_loader::GetLength::File_in_PK3 ( LPSTR pk3name, LPSTR filename, int* length )
+bool file_loader::Q2::Add_WAD ( std::string_view filename )
 {
-	return File_in_ZIP ( pk3name, filename, length );
-}
-
-typedef struct
-{
-	char id [ 4 ];  // should be WAD2 or 2DAW
-	int  numlumps;
-	int  infotableofs;
-} wadinfo_t;
-
-typedef struct
-{
-	int  filepos;
-	int  disksize;
-	int  size;
-	char type;
-	char compression;
-	char pad1,
-		 pad2;
-	char name [ 16 ];
-} lumpinfo_t;
-
-BOOL file_loader::Load::From_WAD ( LPSTR wadname, LPSTR filename, byte** data, int* length )
-{
-	if ( data != NULL )
-		*data = NULL;
-
-	FILE* file = fopen ( wadname, "rb" );
-
-	if ( !file )
+	for ( const files_found::Entry& entry : Q2_Resources.entries )
 	{
-		return FALSE;
+		if ( ICaseEqual ( entry.fullname, filename ) )
+			return true;
 	}
 
-	wadinfo_t w;
+	const fs::path candidate ( filename );
 
-	if ( fread ( &w, 1, sizeof ( w ), file ) != sizeof ( w ) )
-	{
-		fclose ( file );
-		return FALSE;
-	}
+	if ( !fs::exists ( candidate ) )
+		return false;
 
-	if ( w.id [ 0 ] != 'W' || w.id [ 1 ] != 'A' || w.id [ 2 ] != 'D' || w.id [ 3 ] != '3' )
-	{
-		if ( w.id [ 0 ] != 'W' || w.id [ 1 ] != 'A' || w.id [ 2 ] != 'D' || w.id [ 3 ] != '2' )
-		{
-			if ( w.id [ 0 ] != '2' || w.id [ 1 ] != 'D' || w.id [ 2 ] != 'A' || w.id [ 3 ] != 'W' )
-			{
-				fclose ( file );
-				return FALSE;
-			}
-		}
-	}
+	files_found::Entry& added = Q2_Resources.Add ( );
 
-	int			lump_count; 
-	lumpinfo_t* lumps = NULL;
-	
-	fseek ( file, w.infotableofs, SEEK_SET );
+	SplitPath ( filename, &added.filename, &added.path );
 
-	lump_count = w.numlumps;
-	lumps      = new lumpinfo_t [ w.numlumps ];
+	added.fullname = candidate.string ( );
 
-	if ( fread ( lumps, sizeof ( lumpinfo_t ), w.numlumps, file ) != w.numlumps )
-	{
-		fclose ( file );
-		SAFE_DELETE ( lumps );
-		return FALSE;
-	}
-	
-	char fn [ MAX_PATH ];
-	
-	strcpy ( fn, filename );
-
-	if ( _strnicmp ( fn + strlen ( fn ) - 7, ".wadtex", 7 ) == 0 )
-	{
-		fn [ strlen ( fn ) - 7 ] = '\0';
-	}
-
-	for ( int i = 0; i < lump_count; i++ )
-	{
-		if ( _strcmpi ( lumps [ i ].name, fn ) == 0 )
-		{
-			if ( length != NULL )
-			{
-				*length = lumps [ i ].disksize;
-			}
-
-			if ( data != NULL )
-			{
-				fseek ( file, lumps [ i ].filepos, SEEK_SET );
-				
-				*data = ( byte* ) malloc ( lumps [ i ].disksize );
-
-				if ( fread ( *data, 1, lumps [ i ].disksize, file ) != lumps [ i ].disksize )
-				{
-					fclose ( file );
-					SAFE_DELETE ( *data );
-					return FALSE;
-				}
-			}
-
-			fclose ( file );
-			SAFE_DELETE ( lumps );
-			return TRUE;
-		}
-	}
-
-	fclose ( file );
-
-	if ( data != NULL )
-		SAFE_DELETE ( *data );
-
-	SAFE_DELETE ( lumps );
-
-	return FALSE;
+	return true;
 }

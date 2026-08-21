@@ -722,7 +722,7 @@ DLLEXPORT void LMSetAmbientOcclusionOff( )
 	LMPolyGroup::SetAmbientOcclusionOff( );
 }
 
-DLLEXPORT void LMSetLightMapName ( DWORD pInString )
+DLLEXPORT void LMSetLightMapName ( DWORD_PTR pInString )
 {
 	CheckLMInit( );
 

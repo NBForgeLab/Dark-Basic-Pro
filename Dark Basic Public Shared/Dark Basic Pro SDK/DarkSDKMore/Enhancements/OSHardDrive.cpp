@@ -292,7 +292,7 @@ int GetDriveFileLengthSupport ( int iID )
 	return -1;
 }
 
-bool ReadFromRegistry ( LPSTR PerfmonNamesKey, LPSTR key, LPSTR* pReturnString )
+bool ReadFromRegistry ( LPCSTR PerfmonNamesKey, LPCSTR key, LPSTR* pReturnString )
 {
 	HKEY hKeyNames = 0;
 	DWORD Status;
@@ -335,7 +335,7 @@ DWORD GetDriveSerial ( DWORD dwReturn, int iID, int iUniqueCode )
 	{
 		// scan registry for processor information
 		LPSTR pProcessorIdentifier, pProcessorNameString, pProcessorVendorIdentifier;
-		LPSTR pPRKey = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
+		LPCSTR pPRKey = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
 		ReadFromRegistry ( pPRKey, "Identifier", &pProcessorIdentifier );
 		ReadFromRegistry ( pPRKey, "ProcessorNameString", &pProcessorNameString );
 		ReadFromRegistry ( pPRKey, "VendorIdentifier", &pProcessorVendorIdentifier );

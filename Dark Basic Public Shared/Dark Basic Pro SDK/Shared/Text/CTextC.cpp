@@ -1659,9 +1659,21 @@ DARKSDK char* SetupString ( const char* szInput )
 //	strcat ( ( char* ) dwA, ( char* ) dwB );
 //}
 
-DARKSDK void Reverse ( DWORD_PTR dwA )
+DARKSDK DWORD_PTR Reverse ( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
-	strrev ( ( char* ) dwA );
+	// Work string
+	ValidateWorkString ( (LPSTR)szText );
+	if(szText)
+		strcpy(m_pWorkString, (LPSTR)szText);
+	else
+		strcpy(m_pWorkString, "");
+
+	_strrev(m_pWorkString);
+
+	// Create and return string
+	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
+	LPSTR pReturnString=GetReturnStringFromWorkString();
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK int FindFirstChar ( DWORD_PTR dwSource, DWORD_PTR dwChar )
@@ -2059,9 +2071,14 @@ void dbAppend ( char* dwA, char* dwB )
 //	Append ( ( DWORD ) dwA, ( DWORD ) dwB );
 }
 
-void dbReverse ( char* dwA )
+char* dbReverse ( char* szText )
 {
-	Reverse ( ( DWORD ) dwA );
+	static char* szReturn = NULL;
+	DWORD_PTR dwReturn = Reverse ( NULL, (DWORD_PTR)szText );
+
+	szReturn = ( char* ) dwReturn;
+
+	return szReturn;
 }
 
 int dbFindFirstChar ( char* dwSource, char* dwChar )

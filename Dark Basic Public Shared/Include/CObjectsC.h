@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 // INCLUDES / LIBS ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
+#include "directx-macros.h"
 #include ".\..\Dark Basic Pro SDK\Shared\Objects\CommonC.h"
 
 struct IntersectRay
@@ -46,7 +47,7 @@ DARKSDK void LoadObject				( LPSTR szFilename, int iID, int iDBProMode, int iDiv
 DARKSDK void EnsureObjectDBOIsFVF	( int iID, LPSTR pFileToLoad, DWORD dwRequiredFVF );
 DARKSDK void SaveObjectEx			( LPSTR szFilename, int iID, bool bCompactOBJ);
 DARKSDK void SaveObject				( LPSTR szFilename, int iID );
-DARKSDK void DeleteObject			( int iID );
+DARKSDK bool DeleteObject			( int iID );
 DARKSDK bool DeleteObjectSpecial	( int iID );
 DARKSDK void SetObject				( int iID, SDK_BOOL bWireframe, SDK_BOOL bTransparency, SDK_BOOL bCull );
 DARKSDK void SetObject				( int iID, SDK_BOOL bWireframe, SDK_BOOL bTransparency, SDK_BOOL bCull, int iFilter );

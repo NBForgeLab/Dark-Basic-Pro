@@ -1212,7 +1212,7 @@ DARKSDK_DLL bool RemoveAnimationFrameChildRec ( sObject* pObject, sFrame* pFrame
 
 // Frame Hierarchy Construction Functions
 
-DARKSDK_DLL bool AddNewFrame ( sObject* pObject, sMesh* pMesh, LPSTR pName )
+DARKSDK_DLL bool AddNewFrame ( sObject* pObject, sMesh* pMesh, LPCSTR pName )
 {
 	// seek end of frame hierarchy
 	sFrame* pLastRootFrame = pObject->pFrame;

@@ -10,8 +10,8 @@ struct input_format
 	int id_data_len;
 	int  ( *open_func ) ( FILE* in, oe_enc_opt* opt, unsigned char * buf, int buflen );
 	void ( *close_func ) ( void* );
-	char* format;
-	char* description;
+	const char* format;
+	const char* description;
 };
 
 struct wav_fmt

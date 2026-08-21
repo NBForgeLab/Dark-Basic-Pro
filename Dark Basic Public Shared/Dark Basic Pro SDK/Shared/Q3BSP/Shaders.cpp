@@ -73,10 +73,10 @@ BOOL InitShaders ( )
 
 	shaders.Init ( );
 
-	for ( int x = 0; x != Q3A_Resources.num_files; x++ )
+	for ( const auto& resource : Q3A_Resources.entries )
 	{
-		LPSTR pk3_file = Q3A_Resources.files [ x ].fullname;
-		
+		const std::string& pk3_file = resource.fullname;
+
 		files_found shader_files;
 
 		file_loader::Find::Files_in_PK3 ( pk3_file, ".shader", &shader_files );
@@ -84,11 +84,11 @@ BOOL InitShaders ( )
 		byte* data;
 		int length;
 
-		for ( int y = 0; y != shader_files.num_files; y++ )
+		for ( const auto& shaderEntry : shader_files.entries )
 		{
-			if ( file_loader::Load::From_PK3 ( pk3_file, shader_files.files [ y ].filename, &data, &length ) )
+			if ( file_loader::Load::From_PK3 ( pk3_file, shaderEntry.filename, &data, &length ) )
 			{
-				AddShaderFile ( data, length, pk3_file, shader_files.files [ y ].filename );
+				AddShaderFile ( data, length, pk3_file.data ( ), shaderEntry.filename.data ( ) );
 				SAFE_DELETE ( data );
 			}
 		}
@@ -254,7 +254,7 @@ struct _dat
 	}
 } dat;
 
-void AddShaders ( LPSTR pk3name )
+void AddShaders ( const std::string& pk3name )
 {
 	files_found shader_files;
 	file_loader::Find::Files_in_PK3 ( pk3name, ".shader", &shader_files );
@@ -262,11 +262,11 @@ void AddShaders ( LPSTR pk3name )
 	byte* data = NULL;
 	int length;
 
-	for ( int y = 0; y < shader_files.num_files; y++ )
+	for ( const auto& shaderEntry : shader_files.entries )
 	{
-		if ( file_loader::Load::From_PK3 ( pk3name, shader_files.files [ y ].filename, &data, &length ) )
+		if ( file_loader::Load::From_PK3 ( pk3name, shaderEntry.filename, &data, &length ) )
 		{
-			AddShaderFile ( data, length, pk3name, shader_files.files [ y ].fullname );
+			AddShaderFile ( data, length, pk3name.data ( ), shaderEntry.fullname.data ( ) );
 		}
 
 		free ( data );
@@ -277,7 +277,7 @@ void AddShaders ( LPSTR pk3name )
 
 }
 
-BOOL AddShaderFile ( byte* data, int length, LPSTR pk3name, LPSTR filename )
+BOOL AddShaderFile ( byte* data, int length, LPCSTR pk3name, LPCSTR filename )
 {
 	dat.text   = ( char* ) data;
 	dat.pos    = 0;
@@ -798,7 +798,8 @@ void set_tc ( int face_idx, const shader* s, int st )
 				{
 					D3DXVECTOR3 test = D3DXVECTOR3 ( g_Camera_GetXPosition ( 1 ), g_Camera_GetYPosition ( 1 ), g_Camera_GetZPosition ( 1 ) );
 					D3DXVECTOR3 dir;
-					D3DXVec3Normalize ( &dir, &( test-mesh->verts [ i ].v ) );
+					const D3DXVECTOR3 toVert = test - mesh->verts [ i ].v;
+					D3DXVec3Normalize ( &dir, &toVert );
 
 					mesh->verts [ i ].tu = dir.x+mesh->verts [ i ].v.x;
 					mesh->verts [ i ].tv = dir.x+mesh->verts [ i ].v.y;
@@ -862,7 +863,8 @@ void set_tc ( int face_idx, const shader* s, int st )
 				{
 					D3DXVECTOR3 test = D3DXVECTOR3 ( g_Camera_GetXPosition ( 1 ), g_Camera_GetYPosition ( 1 ), g_Camera_GetZPosition ( 1 ) );
 					D3DXVECTOR3 dir;
-					D3DXVec3Normalize( &dir,&( test-Q3MAP.verts [ f->vert_start + i ].v ) );
+					const D3DXVECTOR3 toVert = test - Q3MAP.verts [ f->vert_start + i ].v;
+					D3DXVec3Normalize( &dir, &toVert );
 
 					Q3MAP.verts [ f->vert_start + i ].tu = dir.x + Q3MAP.verts [ f->vert_start + i ].n.x;
 					Q3MAP.verts [ f->vert_start + i ].tv = dir.y + Q3MAP.verts [ f->vert_start + i ].n.y;

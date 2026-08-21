@@ -1787,10 +1787,19 @@ void CEXEBlock::FreeUptoDisplay(void)
 	{
 		// Scan variables for all dynamic allocations (use dynamicvaroffsetarray).
 		// Each slot stores a pointer-sized handle (heap string / array / UDT
-		// block) at a fixed byte offset within the variable space. DeleteVarItem
-		// expects the ADDRESS of the slot (it reads and frees the 8-byte handle
-		// itself and nulls the slot); UnDim takes the array handle VALUE read
-		// from the slot.
+		// block) at a fixed byte offset within the variable space. On x64 this
+		// handle is a full 8-byte value, so reads and writes must go through
+		// DWORD_PTR (never DWORD) to avoid truncation.
+		//
+		// Two distinct release paths exist depending on the slot type:
+		//   - DeleteVarItem expects the ADDRESS of the slot (it reads and frees
+		//     the pointer-sized handle itself, then nulls the slot). Used for
+		//     string / UDT / general heap entries.
+		//   - UnDim takes the array handle VALUE read from the slot, because the
+		//     array allocator tracks its own indirection. The slot is nulled
+		//     after the call to keep the variable space consistent.
+		//
+		// The DataType::Array branch below preserves both of those contracts.
 		for(DWORD dv=0; dv<m_dwDynamicVarsQuantity; dv++)
 		{
 			const DWORD dwOffset = m_pDynamicVarsArray[dv];

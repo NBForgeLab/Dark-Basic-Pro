@@ -4036,6 +4036,31 @@ DARKSDK_DLL void SetBlendMap ( int iID, int iStage, int iImage, int iTexCoordMod
 	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode, -1, -1, -1, -1 );
 }
 
+DARKSDK_DLL void TextureObject ( int iID, int iImage )
+{
+	SetTexture ( iID, iImage );
+}
+
+DARKSDK_DLL sObject* GetObjectData ( int iID )
+{
+	return GetObject ( iID );
+}
+
+DARKSDK_DLL void SetObjectBlendMap ( int iID, int iLimbNumber, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR )
+{
+	SetBlendMap ( iID, iLimbNumber, iStage, iImage, iTexCoordMode, iMode, iA, iB, iC, iR );
+}
+
+DARKSDK_DLL void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR )
+{
+	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode, iA, iB, iC, iR );
+}
+
+DARKSDK_DLL void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordMode, int iMode )
+{
+	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode );
+}
+
 DARKSDK_DLL void SetBlendMap ( int iID, int iImage, int iMode )
 {
 	SetBlendMap ( iID, 1, iImage, 3, iMode );
@@ -8510,7 +8535,7 @@ DARKSDK_DLL void EnableTNL ( void )
 	// OBSOLETE
 }
 
-DARKSDK_DLL void Convert3DStoX ( DWORD pFilename1, DWORD pFilename2 )
+DARKSDK_DLL void Convert3DStoX ( DWORD_PTR pFilename1, DWORD_PTR pFilename2 )
 {
 	// OBSOLETE
 }
@@ -9620,7 +9645,7 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 			if ( iMaterialIndex < 0 || iMaterialIndex >= (int)pMesh->dwMultiMaterialCount )
 			{
 				// skip
-				pTextureLimbName = "";
+				pTextureLimbName = const_cast<LPSTR>("");
 			}
 			else
 			{
@@ -9635,19 +9660,19 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 			if ( iTextureStage < 0 || iTextureStage >= (int)pMesh->dwTextureCount )
 			{
 				// skip
-				pTextureLimbName = "";
+				pTextureLimbName = const_cast<LPSTR>("");
 			}
 			else
 			{
 				// get name of texture in framemesh
-				pTextureLimbName = "";
+				pTextureLimbName = const_cast<LPSTR>("");
 				if ( pMesh->pTextures )
 					pTextureLimbName = pMesh->pTextures [ iTextureStage ].pName;
 			}
 		}
 	}
 	else
-		pTextureLimbName = "";
+		pTextureLimbName = const_cast<LPSTR>("");
 
 	// Allocate new size
 	LPSTR pString = NULL;
@@ -12577,7 +12602,7 @@ int dbGetTNLAvailable ( void )
 	return GetTNLAvailable ( );
 }
 
-char* dbLimbName ( DWORD pDestStr, int iID, int iLimbID )
+char* dbLimbName ( DWORD_PTR pDestStr, int iID, int iLimbID )
 {
 	return ( char* ) GetLimbName ( pDestStr, iID, iLimbID );
 }

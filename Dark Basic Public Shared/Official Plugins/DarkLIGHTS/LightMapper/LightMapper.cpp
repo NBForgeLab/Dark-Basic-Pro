@@ -814,7 +814,7 @@ DLLEXPORT void LMSetAmbientOcclusionOff( )
 	LMPolyGroup::SetAmbientOcclusionOff( );
 }
 
-DLLEXPORT void LMSetLightMapName ( DWORD pInString )
+DLLEXPORT void LMSetLightMapName ( DWORD_PTR pInString )
 {
 	CheckLMInit( );
 
@@ -832,7 +832,7 @@ DLLEXPORT void LMSetLightMapFileFormat ( int iFormat )
 	g_iLightmapFileFormat = iFormat;
 }
 
-DLLEXPORT void LMSetLightMapFolder ( DWORD pInString )
+DLLEXPORT void LMSetLightMapFolder ( DWORD_PTR pInString )
 {
 	CheckLMInit( );
 

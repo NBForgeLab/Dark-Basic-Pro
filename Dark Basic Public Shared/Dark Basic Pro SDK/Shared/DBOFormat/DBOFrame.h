@@ -27,7 +27,7 @@ DARKSDK_DLL void	Scale						( sFrame* pFrame, float fX, float fY, float fZ );
 
 // Frame Hierarchy Construction Functions
 
-DARKSDK_DLL bool	AddNewFrame					( sObject* pObject, sMesh* pMesh, LPSTR pName );
+	DARKSDK_DLL bool	AddNewFrame					( sObject* pObject, sMesh* pMesh, LPCSTR pName );
 DARKSDK_DLL bool	RemoveFrame					( sObject* pObject, sFrame* pFrame );
 DARKSDK_DLL bool	LinkFrame					( sObject* pObject, sFrame* pFrameToMove, sFrame* pFrameToLinkTo );
 DARKSDK_DLL bool	ReplaceFrameMesh			( sFrame* pFrame, sMesh* pMesh );

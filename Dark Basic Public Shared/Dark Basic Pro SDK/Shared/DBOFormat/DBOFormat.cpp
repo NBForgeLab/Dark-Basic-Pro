@@ -1079,7 +1079,7 @@ void cSpecialEffect::ApplyEffect ( sMesh* pMesh )
     }
 }
 
-DARKSDK_DLL bool CreateMesh ( sObject** pObject, LPSTR pName )
+DARKSDK_DLL bool CreateMesh ( sObject** pObject, LPCSTR pName )
 {
 	// create a new, empty mesh
 

@@ -28,10 +28,10 @@ class cBounds3
 		cVector3        GetCentre            ( void );
 		cPlane3         GetPlane             ( int iSide );
 		cBounds3&       CalculateFromPolygon ( cVector3 pVertices [ ], int iVertexCount, int iVertexStride, bool bReset = true );
-		bool            IntersectedByRay     ( cVector3& RayStart, cVector3& RayDir, cVector3* pIntersection = NULL );
-		bool            IntersectedByRay     ( cVector3& RayStart, cVector3& RayDir, cVector3& Tolerance, cVector3* pIntersection = NULL );
-		bool            IntersectedByBounds  ( cBounds3& Bounds );
-		bool            IntersectedByBounds  ( cBounds3& Bounds, cVector3& Tolerance );
+		bool            IntersectedByRay     ( const cVector3& RayStart, const cVector3& RayDir, cVector3* pIntersection = NULL );
+		bool            IntersectedByRay     ( const cVector3& RayStart, const cVector3& RayDir, const cVector3& Tolerance, cVector3* pIntersection = NULL );
+bool            IntersectedByBounds  ( const cBounds3& Bounds );
+bool            IntersectedByBounds  ( const cBounds3& Bounds, const cVector3& Tolerance );
 		bool            PointInBounds        ( cVector3& Point );
 		bool            PointInBounds        ( cVector3& Point, cVector3& Tolerance );
 		void            Validate             ( void );

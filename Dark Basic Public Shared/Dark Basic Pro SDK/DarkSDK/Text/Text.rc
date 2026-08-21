@@ -45,7 +45,7 @@ BEGIN
     32                  "STR$[%SO%?StrDouble@@YA_K_KN@Z%Double Float"
     33                  "STR$[%SR%?StrDoubleInt@@YA_K_K_J@Z%Double Integer"
     34                  "VAL[%RS%?ValR@@YA_J_K@Z%String"
-    35                  "REVERSE$[%SS%?Reverse@@YAX_K@Z%String"
+    35                  "REVERSE$[%SS%?Reverse@@YA_K_K0@Z%String"
     49                  "SPACES$[%SL%?Spaces@@YA_K_KH@Z%Spaces"
     50                  "FIND FIRST CHAR[%LSS%?FindFirstChar@@YAH_K0@Z%String, Char"
     51                  "FIND LAST CHAR[%LSS%?FindLastChar@@YAH_K0@Z%String, Char"

@@ -69,7 +69,8 @@ void CalcNormal ( sCollisionVertex* v, D3DXVECTOR3 *out )
 
 BOOL CheckPointInSphere ( D3DXVECTOR3 point, D3DXVECTOR3 sO, double sR )
 {
-	float d = D3DXVec3Length ( &( point - sO ) );
+	const D3DXVECTOR3 offset = point - sO;
+	float d = D3DXVec3Length ( &offset );
 	
 	if ( d <= sR )
 		return TRUE;
@@ -180,7 +181,8 @@ bool intersect_plane ( const D3DXVECTOR3& start, const D3DXVECTOR3& dir,  const 
 
 	if ( denom <= -EPSILON || denom >= EPSILON )
 	{
-		float numer = D3DXVec3Dot ( &n, &( pt - start ) );
+		const D3DXVECTOR3 delta = pt - start;
+		float numer = D3DXVec3Dot ( &n, &delta );
 		float u = numer / denom;
 
 		if ( u > 0 && u <= 1.0f )
@@ -212,9 +214,10 @@ bool check_collision ( collision_data& coldat, float radius )
 	D3DXVECTOR3*	pn			= &g_pCurrentPoly->normal;
 	D3DXVECTOR3		s			= coldat.src - *pn * radius;
     D3DXVECTOR3		r;
+	const D3DXVECTOR3 toPlane = s - *ppt;
 
 	// calculate distance from closest point of old-sphere-pos (s) to plane of polygon
-	float t = D3DXVec3Dot ( &( s - *ppt ), pn );
+	float t = D3DXVec3Dot ( &toPlane, pn );
 
 	// no collision if sphere not near enough to plane
     if ( t > coldat.dir_len )

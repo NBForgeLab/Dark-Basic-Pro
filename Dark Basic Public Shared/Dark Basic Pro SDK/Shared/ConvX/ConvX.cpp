@@ -149,7 +149,7 @@ DARKSDK bool	Load ( char* szFilename );
 DARKSDK bool	LoadModelData ( char* szFilename, sFrame* pFrame, bool bAnim );
 DARKSDK bool	Delete ( void );
 
-DARKSDK bool    ParseXFileData ( IDirectXFileData* pDataObj, sFrame* pParentFrame, char* szTexturePath, sAnimationSet *pParentAnim, sAnimation *pCurrentAnim, bool bAnim );
+DARKSDK bool    ParseXFileData ( IDirectXFileData* pDataObj, sFrame* pParentFrame, LPCSTR szTexturePath, sAnimationSet *pParentAnim, sAnimation *pCurrentAnim, bool bAnim );
 DARKSDK bool    MapFramesToBones ( sMesh** pMesh, sFrame *Frame, int iCount );
 DARKSDK bool    MapFramesToAnimations ( sObject* pObject );
 DARKSDK void    SetupTextures ( sMesh* pMesh, D3DXMATERIAL* pMaterials, DWORD dwCount, DWORD* pAttribute, DWORD dwIndexCount );
@@ -442,7 +442,7 @@ DARKSDK bool LoadModelData ( char* szFilename, sFrame* pFrame, bool bAnim )
 	IDirectXFile*			pDXFile       = NULL;	// file interface
 	IDirectXFileEnumObject* pDXEnum       = NULL;	// object interface
 	IDirectXFileData*		pDXData       = NULL;	// data interface
-	char*					szTexturePath = "";		// default texture path
+	LPCSTR					szTexturePath = "";		// default texture path
 	// create the file object
 	typedef HRESULT (WINAPI *pfnDXFileCreate)(LPDIRECTXFILE*);
 	static pfnDXFileCreate pDXFileCreate = NULL;
@@ -547,7 +547,7 @@ DARKSDK bool Delete ( void )
 
 #ifdef DARKSDK_COMPILE
 
-bool	Convert		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+bool	Convert		( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize );
 void	Free		( LPSTR );
 
 bool ConvertX ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
@@ -572,7 +572,7 @@ DARKSDK void SetLegacyModeOff ( void )
 	g_iLegacyModeIgnoresFVFDATA = 0;
 }
 
-DARKSDK bool Convert ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+DARKSDK bool Convert ( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize )
 {
 	// obtain D3D
 	GetD3DFromModule ( NULL );
@@ -2409,7 +2409,7 @@ DARKSDK bool XFILE_GetAnimationData ( IDirectXFileData* pDataObj, sAnimation* pA
 	return true;
 }
 
-DARKSDK bool ParseXFileData ( IDirectXFileData* pDataObj, sFrame* pParentFrame, char* szTexturePath, sAnimationSet* pParentAnim, sAnimation* pCurrentAnim, bool bAnim )
+DARKSDK bool ParseXFileData ( IDirectXFileData* pDataObj, sFrame* pParentFrame, LPCSTR szTexturePath, sAnimationSet* pParentAnim, sAnimation* pCurrentAnim, bool bAnim )
 {
 	// parse the X file data, this is a fairly complex function that runs through all
 	// of the data in an X file

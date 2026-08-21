@@ -1878,7 +1878,7 @@ DARKSDK_DLL bool DBOConvertObjectToBlock ( sObject* pObject, DWORD* ppBlock, DWO
 	return true;
 }
 
-DARKSDK_DLL bool DBOConvertBlockToObject ( DWORD pBlock, DWORD dwBlockSize, sObject** ppObject )
+DARKSDK_DLL bool DBOConvertBlockToObject ( DWORD_PTR pBlock, DWORD dwBlockSize, sObject** ppObject )
 {
 	// U74 - used to track DBO sizes (to find bugs)
 	g_pBlockStart = (LPSTR)pBlock;
@@ -1916,7 +1916,7 @@ DARKSDK_DLL bool DBOLoadBlockFile ( LPSTR pFilename, DWORD* ppBlock, DWORD* pdwS
 	return true;
 }
 
-DARKSDK_DLL bool DBOSaveBlockFile ( LPSTR pFilename, DWORD pBlock, DWORD dwSize )
+DARKSDK_DLL bool DBOSaveBlockFile ( LPSTR pFilename, DWORD_PTR pBlock, DWORD dwSize )
 {
 	// save new file
 	DeleteFile ( pFilename );

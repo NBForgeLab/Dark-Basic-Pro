@@ -23,8 +23,8 @@ public:
 	float squaredLength();
 	void SetLength(float c);
 	void normalize();
-	float dot(VECTOR& V);    
-	VECTOR cross(VECTOR& V);    
+	float dot(const VECTOR& V);    
+	VECTOR cross(const VECTOR& V);    
 };
 
 class PLANE 

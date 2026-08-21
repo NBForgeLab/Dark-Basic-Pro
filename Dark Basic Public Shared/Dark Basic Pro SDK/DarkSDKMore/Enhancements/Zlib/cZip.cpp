@@ -144,7 +144,7 @@ BYTE* cZip::Extract ( char* szFilename, char* szOutputFile, int* piSize )
 	return pData;
 }
 
-bool cZip::Open ( char* szFile, char* szPassword )
+bool cZip::Open ( LPCSTR szFile, LPCSTR szPassword )
 {
 	// open zip file
 

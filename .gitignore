@@ -54,6 +54,16 @@ boot_trace.txt
 dbp_error.txt
 CrashOn_*.txt
 tests/_*.cpp
+debug_*.txt
+output.jsonl
+_Temp.dbsource
+*trace*.txt
+
+# Local developer helper scripts (kept out of version control until
+# promoted into tools/release/ with tests)
+_*.py
+*_diff.txt
+settings.ini
 
 # Visual C++ browser and incremental build databases
 *.sbr
@@ -62,3 +72,7 @@ tests/_*.cpp
 *.ipdb
 *.iobj
 
+
+# Python bytecode caches
+__pycache__/
+*.pyc

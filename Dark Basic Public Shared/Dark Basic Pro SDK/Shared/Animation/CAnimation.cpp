@@ -1250,7 +1250,7 @@ DARKSDK BOOL DB_SetAnimationSpeed(int AnimIndex, int iRate)
 // Commands Functions
 //
 
-DARKSDK void LoadAnimation( DWORD pFilename, int animindex )
+DARKSDK void LoadAnimation( DWORD_PTR pFilename, int animindex )
 {
 	if(animindex>=1 && animindex<ANIMATIONMAX)
 	{

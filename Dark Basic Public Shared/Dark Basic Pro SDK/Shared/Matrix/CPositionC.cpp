@@ -681,7 +681,8 @@ void MatrixInternalUpdate ( int iID )
 			D3DXVec3TransformCoord ( &m_pMatrixPos->vecLook, &m_pMatrixPos->vecLook,  &matRotation );
 			D3DXVec3TransformCoord ( &m_pMatrixPos->vecUp,   &m_pMatrixPos->vecUp,    &matRotation );
 
-			D3DXMatrixRotationAxis ( &matRotation, &D3DXVECTOR3 ( 0.0f, 1.0f, 0.0f ), D3DXToRadian ( m_pMatrixPos->vecRotate.y ) );
+			const D3DXVECTOR3 vecWorldUp = D3DXVECTOR3 ( 0.0f, 1.0f, 0.0f );
+			D3DXMatrixRotationAxis ( &matRotation, &vecWorldUp, D3DXToRadian ( m_pMatrixPos->vecRotate.y ) );
 			D3DXVec3TransformCoord ( &m_pMatrixPos->vecLook, &m_pMatrixPos->vecLook, &matRotation );
 	// LEEFIX - 051002 - Y rotation changes right, not up which stays the same throughout a Y rotation
 	//		D3DXVec3TransformCoord ( &m_pMatrixPos->vecUp,   &m_pMatrixPos->vecUp,   &matRotation );

@@ -39,7 +39,7 @@ public:
 
 public:
     HRESULT GetDisplayInfo( vector<DisplayInfo*>& vDisplayInfo );
-    HRESULT GetStringValue( IDxDiagContainer* pObject, WCHAR* wstrName, TCHAR* strValue, int nStrLen );
+    HRESULT GetStringValue( IDxDiagContainer* pObject, const WCHAR* wstrName, TCHAR* strValue, int nStrLen );
     VOID DestroyDisplayInfo( vector<DisplayInfo*>& vDisplayInfo );
 
     IDxDiagProvider*  m_pDxDiagProvider;

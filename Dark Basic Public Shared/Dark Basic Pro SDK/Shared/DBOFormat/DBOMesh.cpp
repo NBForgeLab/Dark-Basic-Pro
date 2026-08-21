@@ -1785,7 +1785,7 @@ DARKSDK_DLL int LoadOrFindTextureAsImage ( LPCSTR pTextureName, LPCSTR TexturePa
 	return LoadOrFindTextureAsImage ( pTextureName, TexturePath, 0 );
 }
 
-DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPSTR TexturePath, int iDBProMode, int iDivideTextureSize, LPSTR pOptionalLightmapNoReduce )
+DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPCSTR TexturePath, int iDBProMode, int iDivideTextureSize, LPCSTR pOptionalLightmapNoReduce )
 {
 	// iDBProMode : 0-DBV1 / 1-DBPro defaults / 2-leave all states alone (for internal textureloaduse)
 	// 0-DBV1 legacy behaviour
@@ -1943,12 +1943,12 @@ DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPSTR TexturePath, int iDB
 	}
 }
 
-DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPSTR TexturePath, int iDBProMode, int iDivideTextureSize )
+DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPCSTR TexturePath, int iDBProMode, int iDivideTextureSize )
 {
 	LoadInternalTextures ( pMesh, TexturePath, iDBProMode, iDivideTextureSize, 0 );
 }
 
-DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPSTR TexturePath, int iDBProMode )
+DARKSDK_DLL void LoadInternalTextures ( sMesh* pMesh, LPCSTR TexturePath, int iDBProMode )
 {
 	LoadInternalTextures ( pMesh, TexturePath, iDBProMode, 0 );
 }

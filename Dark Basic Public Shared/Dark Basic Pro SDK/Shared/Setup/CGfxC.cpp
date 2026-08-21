@@ -4093,7 +4093,7 @@ DARKSDK void SetEmulationOff   ( void )
 	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
 }
 
-DARKSDK void SetGraphicsCard ( DWORD dwCardname )
+DARKSDK void SetGraphicsCard ( DWORD_PTR dwCardname )
 {
 	// lee 100206 - Not Implemented in DBPRO U6 RELEASE (was never implemented)
 	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
@@ -4306,7 +4306,7 @@ DARKSDK void RestoreWindow(void)
 	DB_UpdateEntireWindow(false,true);
 }
 
-DARKSDK void SetWindowTitle( DWORD pTitleString )
+DARKSDK void SetWindowTitle( DWORD_PTR pTitleString )
 {
 	strcpy(gWindowName, (char*)pTitleString);
 
@@ -4320,7 +4320,7 @@ DARKSDK void SetWindowTitle( DWORD pTitleString )
 	//DB_UpdateEntireWindow(true,false);
 }
 
-DARKSDK int WindowExist( DWORD pTitleString )
+DARKSDK int WindowExist( DWORD_PTR pTitleString )
 {
 	if ( FindWindow ( NULL, (LPSTR)pTitleString )!=NULL )
 		return 1;
@@ -4340,7 +4340,7 @@ DARKSDK void WindowToFront(void)
 	SetForegroundWindow(m_hWnd);
 }
 
-DARKSDK void WindowToFront(DWORD pTitleString)
+DARKSDK void WindowToFront(DWORD_PTR pTitleString)
 {
 	LPSTR lpstrTitle = (LPSTR)pTitleString;
 	if ( strnicmp ( lpstrTitle, "__topmost__", 11 )==NULL )
@@ -4385,7 +4385,7 @@ DARKSDK void WindowToFront(DWORD pTitleString)
 	}
 }
 
-DARKSDK void WindowToBack(DWORD pTitleString)
+DARKSDK void WindowToBack(DWORD_PTR pTitleString)
 {
 	HWND hWnd = FindWindow ( NULL, (LPSTR)pTitleString );
 	SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -4497,12 +4497,12 @@ DARKSDK void				ForceAdapterOrdinal ( int iForceOrdinal )
 	m_iForceAdapterOrdinal = iForceOrdinal;
 }
 
-DARKSDK void				SetCaptureName						( DWORD pFilename )
+DARKSDK void				SetCaptureName						( DWORD_PTR pFilename )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void				SetCaptureCodec						( DWORD pFilename )
+DARKSDK void				SetCaptureCodec						( DWORD_PTR pFilename )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
@@ -4517,12 +4517,12 @@ DARKSDK void				SetCaptureMode						( int iRecordVideo )
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void				SaveScreenshot						( DWORD pFilename )
+DARKSDK void				SaveScreenshot						( DWORD_PTR pFilename )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void				StartPlayback						( DWORD pFilename, float fSpeed )
+DARKSDK void				StartPlayback						( DWORD_PTR pFilename, float fSpeed )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }

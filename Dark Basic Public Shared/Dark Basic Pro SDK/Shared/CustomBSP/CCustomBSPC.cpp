@@ -980,14 +980,17 @@ BOOL CollideSphere ( D3DXVECTOR3* SphereCenter, float SphereRadius, long Node )
 
 		Get_Intersect ( SphereCenter, &SphereRadiusEnd, &Plane->PointOnPlane, &Plane->Normal, &intersection, &temp );
 
+		const D3DXVECTOR3 toCenter = intersection - *SphereCenter;
+		const D3DXVECTOR3 toEnd = intersection - SphereRadiusEnd;
+
 		if ( CurrNode->IsLeaf == 0 )
 		{
 			return CollideSphere
 								(
 									SphereCenter,
-									D3DXVec3Length (&( intersection-*SphereCenter ) ), CurrNode->Front ) || CollideSphere ( &SphereRadiusEnd, D3DXVec3Length (&( intersection-SphereRadiusEnd ) ), CurrNode->Back );
-		} else 
-			return CollideSphere ( &SphereRadiusEnd, D3DXVec3Length (& ( intersection-SphereRadiusEnd ) ), CurrNode->Back );
+									D3DXVec3Length (&toCenter), CurrNode->Front ) || CollideSphere ( &SphereRadiusEnd, D3DXVec3Length (&toEnd ), CurrNode->Back );
+		} else
+			return CollideSphere ( &SphereRadiusEnd, D3DXVec3Length (&toEnd ), CurrNode->Back );
 	}
 
 	// spanning back to front
@@ -997,11 +1000,14 @@ BOOL CollideSphere ( D3DXVECTOR3* SphereCenter, float SphereRadius, long Node )
 			return TRUE;
 			
 		Get_Intersect ( &SphereRadiusEnd, SphereCenter, &Plane->PointOnPlane, &Plane->Normal, &intersection, &temp );
+
+		const D3DXVECTOR3 toFrontEnd = intersection - SphereRadiusEnd;
+		const D3DXVECTOR3 toBackCenter = intersection - *SphereCenter;
  
 		if ( CurrNode->IsLeaf == 0 )
-			return CollideSphere ( &SphereRadiusEnd, D3DXVec3Length ( &( intersection-SphereRadiusEnd ) ), CurrNode->Front ) || CollideSphere ( SphereCenter, D3DXVec3Length ( &( intersection -* SphereCenter ) ), CurrNode->Back );
+			return CollideSphere ( &SphereRadiusEnd, D3DXVec3Length ( &toFrontEnd ), CurrNode->Front ) || CollideSphere ( SphereCenter, D3DXVec3Length ( &toBackCenter ), CurrNode->Back );
 		else 
-			return CollideSphere ( SphereCenter, D3DXVec3Length ( &( intersection -* SphereCenter ) ), CurrNode->Back );
+			return CollideSphere ( SphereCenter, D3DXVec3Length ( &toBackCenter ), CurrNode->Back );
 	}
 
 	// if we get here one of the points is on the plane

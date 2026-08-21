@@ -1405,7 +1405,7 @@ DARKSDK_DLL bool SetNewObjectFinalProperties ( int iID, float fRadius )
 	return true;
 }
 
-DARKSDK_DLL bool CreateNewObject ( int iID, LPSTR pName )
+DARKSDK_DLL bool CreateNewObject ( int iID, LPCSTR pName )
 {
 	// create a new object
 
@@ -1504,7 +1504,7 @@ DARKSDK_DLL bool DeleteObject ( int iID )
 	return true;
 }
 
-DARKSDK_DLL bool CreateNewObject ( int iID, LPSTR pName, int iFrame )
+DARKSDK_DLL bool CreateNewObject ( int iID, LPCSTR pName, int iFrame )
 {
 	// ensure the object is okay to use
 	if ( !ConfirmNewObject ( iID ) )

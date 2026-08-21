@@ -21,7 +21,7 @@ float ValF					( char* dwSrcStr );
 char* StrDouble				( char* pDestStr, double dValue );
 char* StrDoubleInt			( char* pDestStr, long long lValue );
 long long ValR				( char* dwSrcStr );
-void  Reverse				( char* dwA );
+char* Reverse				( char* szText );
 char* Spaces				( int iSpaces );
 char* Spaces2				( int iSpaces );
 

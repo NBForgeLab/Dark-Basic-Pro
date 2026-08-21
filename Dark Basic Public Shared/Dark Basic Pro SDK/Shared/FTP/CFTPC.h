@@ -61,16 +61,16 @@ DARKSDK void	PassCoreData		( LPVOID pGlobPtr );
 
 // FTP
 
-DARKSDK void	ConnectEx			( DWORD dwString, DWORD dwString2, DWORD dwString3, int iUseWindow );
-DARKSDK void	Connect				( DWORD dwString, DWORD dwString2, DWORD dwString3 );
+DARKSDK void	ConnectEx			( DWORD_PTR dwString, DWORD_PTR dwString2, DWORD_PTR dwString3, int iUseWindow );
+DARKSDK void	Connect				( DWORD_PTR dwString, DWORD_PTR dwString2, DWORD_PTR dwString3 );
 DARKSDK void	Disconnect			( void );
 DARKSDK void	DisconnectEx		( int iFlag );
 
-DARKSDK void	SetDir				( DWORD dwString );
-DARKSDK void	PutFile				( DWORD dwString );
-DARKSDK void	GetFile				( DWORD dwString, DWORD dwString2 );
-DARKSDK void	GetFile				( DWORD dwString, DWORD dwString2, int iFlag );
-DARKSDK void	DeleteFile			( DWORD dwString );
+DARKSDK void	SetDir				( DWORD_PTR dwString );
+DARKSDK void	PutFile				( DWORD_PTR dwString );
+DARKSDK void	GetFile				( DWORD_PTR dwString, DWORD_PTR dwString2 );
+DARKSDK void	GetFile				( DWORD_PTR dwString, DWORD_PTR dwString2, int iFlag );
+DARKSDK void	DeleteFile			( DWORD_PTR dwString );
 DARKSDK void	FindFirst			( void );
 DARKSDK void	FindNext			( void );
 DARKSDK void	Terminate			( void );
@@ -85,8 +85,11 @@ DARKSDK int		GetProgress			( void );
 DARKSDK int		GetStatus			( void );
 DARKSDK int		GetFailure			( void );
 
-DARKSDK void	HTTPConnect			( DWORD dwUrl );
-DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData );
+DARKSDK void	HTTPConnect			( DWORD_PTR dwUrl );
+DARKSDK void	HTTPConnect			( DWORD_PTR dwUrl, DWORD port );
+DARKSDK void	HTTPConnect			( DWORD_PTR dwUrl, DWORD port, int secure );
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_PTR dwObjectName, DWORD_PTR dwPostData );
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_PTR dwObjectName, DWORD_PTR dwPostData, DWORD dwAccessFlag );
 DARKSDK void	HTTPDisconnect		( void );
 
 #ifdef DARKSDK_COMPILE

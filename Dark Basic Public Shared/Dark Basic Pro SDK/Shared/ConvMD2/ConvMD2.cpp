@@ -449,7 +449,7 @@ DARKSDK bool SetupFrame ( sFrame* pFrame, int iFrame )
 
 #ifdef DARKSDK_COMPILE
 
-bool	Convert		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+bool	Convert		( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize );
 void	Free		( LPSTR );
 
 bool ConvertMD2 ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
@@ -464,7 +464,7 @@ void FreeMD2 ( LPSTR pBlock )
 
 #endif
 
-DARKSDK bool Convert ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+DARKSDK bool Convert ( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize )
 {
 	// obtain D3D
 	GetD3DFromModule ( NULL );

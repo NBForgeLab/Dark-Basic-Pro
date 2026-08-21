@@ -8,7 +8,7 @@ typedef long ( *audio_read_func ) ( void* src, float** buffer, int samples );
 
 struct oe_options
 {
-	char*	encoding;
+	const char*	encoding;
 
 	char**	title;
 	int		title_count;
@@ -32,9 +32,9 @@ struct oe_options
 	int		raw_samplerate;
 	int		raw_channels;
 
-	char*	namefmt;
-    char*	namefmt_remove;
-    char*	namefmt_replace;
+const char*	namefmt;
+const char*	namefmt_remove;
+const char*	namefmt_replace;
 	char*	outfile;
 
 	int		min_bitrate;

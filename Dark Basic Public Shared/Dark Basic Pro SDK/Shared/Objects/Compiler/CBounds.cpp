@@ -1,6 +1,8 @@
 #include "CBounds.h"
 #include "CPlane.h"
 
+#include <bit>
+
 cBounds3::cBounds3 ( ) 
 {
 	Reset ( );
@@ -110,12 +112,12 @@ void cBounds3::Validate ( void )
 }
 
 #ifndef __GNUC__
-bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3* pIntersection )
+bool cBounds3::IntersectedByRay ( const cVector3& RayStart, const cVector3& RayDir, cVector3* pIntersection )
 {
     return IntersectedByRay ( RayStart, RayDir, cVector3 ( 0, 0, 0 ), pIntersection );
 }
 
-bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3& Tolerance, cVector3* pIntersection )
+bool cBounds3::IntersectedByRay ( const cVector3& RayStart, const cVector3& RayDir, const cVector3& Tolerance, cVector3* pIntersection )
 {
     bool bInside = true;
     cVector3 MaxT = cVector3 ( -1, -1, -1 );
@@ -125,8 +127,8 @@ bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3
 	{
         Intersection.x  = Min.x;
         bInside         = false;
-        
-		if ( ( int& ) RayDir.x )
+
+		if ( std::bit_cast <int> ( RayDir.x ) != 0 )
 			MaxT.x = ( Min.x - RayStart.x ) / RayDir.x;
 
     }
@@ -134,8 +136,8 @@ bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3
 	{
 		Intersection.x  = Max.x;
 		bInside		    = false;
-		
-		if ( ( int& ) RayDir.x )
+
+		if ( std::bit_cast <int> ( RayDir.x ) != 0 )
 			MaxT.x = ( Max.x - RayStart.x ) / RayDir.x;
     }
 
@@ -143,16 +145,16 @@ bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3
 	{
         Intersection.y  = Min.y;
         bInside         = false;
-        
-        if ( ( int& ) RayDir.y )
+
+        if ( std::bit_cast <int> ( RayDir.y ) != 0 )
 			MaxT.y = ( Min.y - RayStart.y ) / RayDir.y;
     }
 	else if ( RayStart.y > Max.y )
 	{
 		Intersection.y  = Max.y;
 		bInside		    = false;
-		
-        if ( ( int& ) RayDir.y )
+
+        if ( std::bit_cast <int> ( RayDir.y ) != 0 )
 			MaxT.y = ( Max.y - RayStart.y ) / RayDir.y;
     }
 
@@ -160,16 +162,16 @@ bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3
 	{
         Intersection.z = Min.z;
         bInside        = false;
-        
-		if ( ( int& ) RayDir.z )
+
+		if ( std::bit_cast <int> ( RayDir.z ) != 0 )
 			MaxT.z = ( Min.z - RayStart.z ) / RayDir.z;
     }
 	else if ( RayStart.z > Max.z )
 	{
 		Intersection.z = Max.z;
 		bInside		   = false;
-		
-        if ( ( int& ) RayDir.z )
+
+        if ( std::bit_cast <int> ( RayDir.z ) != 0 )
 			MaxT.z = ( Max.z - RayStart.z ) / RayDir.z;
     }
 	
@@ -223,14 +225,14 @@ bool cBounds3::IntersectedByRay ( cVector3& RayStart, cVector3& RayDir, cVector3
 }
 #endif
 
-bool cBounds3::IntersectedByBounds ( cBounds3& Bounds )
+bool cBounds3::IntersectedByBounds ( const cBounds3& Bounds )
 {
     return ( Min.x <= Bounds.Max.x ) && ( Min.y <= Bounds.Max.y ) &&
            ( Min.z <= Bounds.Max.z ) && ( Max.x >= Bounds.Min.x ) &&
            ( Max.y >= Bounds.Min.y ) && ( Max.z >= Bounds.Min.z );
 }
 
-bool cBounds3::IntersectedByBounds ( cBounds3& Bounds, cVector3& Tolerance )
+bool cBounds3::IntersectedByBounds ( const cBounds3& Bounds, const cVector3& Tolerance )
 {
 	return ( ( Min.x - Tolerance.x ) <= ( Bounds.Max.x + Tolerance.x ) ) &&
            ( ( Min.y - Tolerance.y ) <= ( Bounds.Max.y + Tolerance.y ) ) &&

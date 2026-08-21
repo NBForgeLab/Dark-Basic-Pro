@@ -33,7 +33,7 @@ class cZip
 		 cZip ( );
 		~cZip ( );
 
-		bool			Open         ( char* szFile, char* szPassword );
+		bool            Open         ( LPCSTR szFile, LPCSTR szPassword );
 		bool			Add          ( char* szFilename, char* szFile, BYTE* pData = NULL, int iSize = 0 );
 		BYTE*			Extract      ( char* szFilename, char* szOutputFile, int* piSize = NULL );
 		unsigned int	GetFileCount ( void );

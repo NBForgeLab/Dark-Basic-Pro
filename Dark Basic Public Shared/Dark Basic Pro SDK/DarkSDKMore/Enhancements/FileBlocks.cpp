@@ -8,6 +8,8 @@
 #include "Enchancements.h"
 #include "CFileC.h"
 
+void OpenFileBlock ( char* szFile, int iID, LPCSTR szKey );
+
 const long	MAX_VOLUME_SIZE_BYTES	= 100000000;	// maximum size of the zip
 const int	ZIP_COMPRESS_LEVEL		= 9;			// maximum compression level
 
@@ -496,13 +498,13 @@ void OpenFileBlock ( char* szFile, int iID )
 
 	// set the key to default
 	//char* szKey = "default";
-	char* szKey = ZIP_PASSWORD;
+	LPCSTR szKey = ZIP_PASSWORD;
 
 	// open the block
 	OpenFileBlock ( szFile, iID, szKey );
 }
 
-void OpenFileBlock ( char* szFile, int iID, char* szKey )
+void OpenFileBlock ( char* szFile, int iID, LPCSTR szKey )
 {
 	// open a file block from disk
 

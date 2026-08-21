@@ -916,7 +916,7 @@ BOOL LoadQ3AMap ( LPSTR filename )
 	return LoadQ3AMap ( filename, "", TRUE );
 }
 
-BOOL LoadQ3AMap ( LPSTR filename, char* szMap, BOOL reset )
+BOOL LoadQ3AMap ( LPSTR filename, LPCSTR szMap, BOOL reset )
 {
 	byte* data;
 	int length;
@@ -968,20 +968,19 @@ BOOL LoadQ3AMap ( LPSTR filename, char* szMap, BOOL reset )
 	}
 	*/
 	
-	LPSTR path;
-	path = NULL;
-	SolveFullName ( filename, NULL, &path );
+	std::string path;
+	SplitPath ( filename, nullptr, &path );
 
 	files_found ff;
 
 	file_loader::Find::Files ( "*.pk3", path, &ff );
 
-	for ( int x = 0; x < ff.num_files; x++ )
-		file_loader::Q3A::Add_PK3 ( ff.files [ x ].fullname );
-	
-	for ( int x = 0; x < ff.num_files; x++ )
+	for ( const auto& entry : ff.entries )
+		file_loader::Q3A::Add_PK3 ( entry.fullname );
+
+	for ( const auto& entry : ff.entries )
 	{
-		AddShaders ( ff.files [ x ].fullname );
+		AddShaders ( entry.fullname );
 	}
 
 	ff.Release ( );
@@ -1702,7 +1701,10 @@ void Q3ARender ( )
 
 							if ( cull != D3DCULL_NONE )
 							{
-								float d = D3DXVec3Dot ( &( pos - ( D3DXVECTOR3 ) vertices3 [ f->vert_start ].point ), &( D3DXVECTOR3 ) f->normal );
+								const D3DXVECTOR3 faceOrigin = ( D3DXVECTOR3 ) vertices3 [ f->vert_start ].point;
+								const D3DXVECTOR3 faceNormal = ( D3DXVECTOR3 ) f->normal;
+								const D3DXVECTOR3 toFace = pos - faceOrigin;
+								float d = D3DXVec3Dot ( &toFace, &faceNormal );
 
 								// front culling
 								if ( cull == D3DCULL_CW && d > 0 ) 

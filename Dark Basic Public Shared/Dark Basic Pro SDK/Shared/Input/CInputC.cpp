@@ -1953,7 +1953,7 @@ void dbClearDataInput ( void )
 
 // lee - 300706 - GDK fixes
 char* dbEntry ( void ) { return dbGetEntry(); }
-void dbWriteStringToRegistry ( LPSTR pfolder, LPSTR valuekey, DWORD pString ) { WriteToRegistryS ( pfolder, valuekey, pString ); }
+void dbWriteStringToRegistry ( LPSTR pfolder, LPSTR valuekey, DWORD_PTR pString ) { WriteToRegistryS ( pfolder, valuekey, pString ); }
 char* dbGetRegistryString ( LPSTR pfolder, LPSTR valuekey ) { return dbGetRegistryS ( pfolder, valuekey ); }
 int dbJoystickFireX ( int iButton ) { return dbJoystickFireXL ( iButton ); }
 

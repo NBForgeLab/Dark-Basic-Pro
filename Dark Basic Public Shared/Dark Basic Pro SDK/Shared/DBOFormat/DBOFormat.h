@@ -72,7 +72,7 @@ DARKSDK bool		SetupObjectsGenericProperties		( sObject* pObject );
 DARKSDK bool		SetDefaultRenderSettings			( sObject* pObject );
 DARKSDK bool		CalculateMeshBounds					( sMesh* pMesh );
 DARKSDK bool		CalculateAllBounds					( sObject* pObject, bool bUpdateFramesOnly );
-DARKSDK bool		CreateMesh							( sObject** ppObject, LPSTR pName );
+	DARKSDK bool		CreateMesh							( sObject** ppObject, LPCSTR pName );
 DARKSDK bool		DeleteMesh							( sObject** ppObject );
 
 DARKSDK void		UpdateEulerRotation					( sObject* pObject );

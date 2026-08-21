@@ -610,13 +610,15 @@ BOOL InitMapQ3A            ( byte* data );
 int  find_node3            ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, float BoundingSphere );
 int  create_patch          ( int face_idx );
 BOOL InitShaders           ( );
-void AddShaders            ( LPSTR pk3name);
-BOOL AddShaderFile         ( byte* data, int length, LPSTR pk3name, LPSTR filename );
+#include < string >
+
+void AddShaders            ( const std::string& pk3name);
+BOOL AddShaderFile         ( byte* data, int length, LPCSTR pk3name, LPCSTR filename );
 BOOL Q3ARenderTextureFaces ( int stex );
 
 void LoadQ3Map  ( LPSTR filename );
 BOOL LoadQ3AMap ( LPSTR filename );
-BOOL LoadQ3AMap ( LPSTR filename, char* szMap, BOOL reset );
+BOOL LoadQ3AMap ( LPSTR filename, LPCSTR szMap, BOOL reset );
 
 //
 // Internals

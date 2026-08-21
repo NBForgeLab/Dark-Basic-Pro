@@ -85,9 +85,9 @@ class CCollisionManager
 
 		VECTOR3 collisionDetection ( VECTOR3& origin, VECTOR3& velocityVector, float fdeltaTime );
 		
-		__inline void setGravity       ( VECTOR3& g )          { m_gravity                  = g;      }
+		__inline void setGravity       ( const VECTOR3& g )    { m_gravity                  = g;      }
 		__inline void setFriction      ( VECTOR3& f )          { m_friction                 = f;      }
-		__inline void setEllipsoid     ( VECTOR3& radius )     { m_ellipRadius              = radius; }
+		__inline void setEllipsoid     ( const VECTOR3& radius ) { m_ellipRadius            = radius; }
 		__inline void setEyePoint      ( VECTOR3& eye )        { m_eyePoint                 = eye;    }
 		__inline void setCollisionType ( COLLISION_TYPE type ) { m_collisionType            = type;   }
 		__inline void enableCollisions ( bool enable = true )  { m_enableCollisionDetection = enable; }

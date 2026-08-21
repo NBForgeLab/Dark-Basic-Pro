@@ -174,7 +174,7 @@ DARKSDK DWORD_PTR Spaces	( DWORD_PTR dwSrcStr, int iSpaces );
 
 // u74b7 - removed append statement as not fixable
 //DARKSDK void  Append        ( DWORD_PTR dwA, DWORD_PTR dwB );
-DARKSDK void  Reverse       ( DWORD_PTR dwA );
+DARKSDK DWORD_PTR Reverse       ( DWORD_PTR pDestStr, DWORD_PTR szText );
 DARKSDK int   FindFirstChar ( DWORD_PTR dwSource, DWORD_PTR dwChar );
 DARKSDK int   FindLastChar  ( DWORD_PTR dwSource, DWORD_PTR dwChar );
 DARKSDK int   FindSubString ( DWORD_PTR dwSource, DWORD_PTR dwString );
@@ -224,7 +224,7 @@ DARKSDK DWORD_PTR NextToken     ( DWORD_PTR dwReturn, DWORD_PTR dwDelim );
 		char*		dbSpaces					( int iSpaces );
 
 		void		dbAppend        			( char* dwA, char* dwB );
-		void		dbReverse       			( char* dwA );
+		char*		dbReverse       			( char* szText );
 		int			dbFindFirstChar 			( char* dwSource, char* dwChar );
 		int			dbFindLastChar  			( char* dwSource, char* dwChar );
 		int			dbFindSubString 			( char* dwSource, char* dwString );

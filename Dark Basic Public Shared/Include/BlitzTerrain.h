@@ -33,7 +33,7 @@ float BT_GetGroundHeight(unsigned long terrainid,float x,float z,bool Round);
 float BT_GetTerrainSize(unsigned long terrainid);
 unsigned long BT_GetPointExcluded(unsigned long terrainid,float x,float z);
 unsigned long BT_GetPointEnvironment(unsigned long terrainid,float x,float z);
-DWORD BT_GetVersion();
+DWORD_PTR BT_GetVersion();
 void BT_SetBuildStep(unsigned long step);
 void BT_SetATMode(bool ATMode);
 void BT_EnableAutoRender(bool AutoRender);

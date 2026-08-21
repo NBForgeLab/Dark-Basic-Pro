@@ -110,12 +110,12 @@ STRINGTABLE
 BEGIN
     IDS_STRING1             "SCANCODE[%L%?ScanCode@@YAHXZ"
     IDS_STRING2             "KEYSTATE[%LL%?KeyState@@YAHH@Z%Scancode"
-    IDS_STRING3             "WRITE TO CLIPBOARD%S%?WriteToClipboard@@YAXPAD@Z%String"
-    IDS_STRING4             "GET CLIPBOARD$[%S%?GetClipboard@@YAKK@Z"
-    IDS_STRING5             "WRITE TO REGISTRY%SSL%?WriteToRegistry@@YAXPAD0H@Z%Folder Name, Key Name, Value"
-    IDS_STRING6             "GET REGISTRY[%LSS%?GetRegistry@@YAHPAD0@Z%Folder Name, Key Name"
+    IDS_STRING3             "WRITE TO CLIPBOARD%S%?WriteToClipboard@@YAXPEAD@Z%String"
+    IDS_STRING4             "GET CLIPBOARD$[%S%?GetClipboard@@YA_K_K@Z"
+    IDS_STRING5             "WRITE TO REGISTRY%SSL%?WriteToRegistry@@YAXPEAD0H@Z%Folder Name, Key Name, Value"
+    IDS_STRING6             "GET REGISTRY[%LSS%?GetRegistry@@YAHPEAD0@Z%Folder Name, Key Name"
     IDS_STRING7             "CLEAR ENTRY BUFFER%0%?ClearEntryBuffer@@YAXXZ"
-    IDS_STRING8             "ENTRY$[%S%?GetEntry@@YAKK@Z"
+    IDS_STRING8             "ENTRY$[%S%?GetEntry@@YA_K_K@Z"
     IDS_STRING9             "MOUSECLICK[%L%?GetMouseClick@@YAHXZ"
     IDS_STRING10            "MOUSEMOVEX[%L%?GetMouseMoveX@@YAHXZ"
     IDS_STRING11            "MOUSEMOVEY[%L%?GetMouseMoveY@@YAHXZ"
@@ -180,8 +180,8 @@ BEGIN
     IDS_STRING58            "FORCE AUTO CENTER ON%0%?ForceAutoCenterOn@@YAXXZ"
     IDS_STRING59            "FORCE AUTO CENTER OFF%0%?ForceAutoCenterOff@@YAXXZ"
     IDS_STRING60            "PERFORM CHECKLIST FOR CONTROL DEVICES%0%?PerformChecklistControlDevices@@YAXXZ"
-    IDS_STRING61            "SET CONTROL DEVICE%S%?SetControlDevice@@YAXK@Z%Device Name$"
-    IDS_STRING62            "CONTROL DEVICE NAME$[%S%?GetControlDevice@@YAKK@Z"
+    IDS_STRING61            "SET CONTROL DEVICE%S%?SetControlDevice@@YAX_K@Z%Device Name$"
+    IDS_STRING62            "CONTROL DEVICE NAME$[%S%?GetControlDevice@@YA_K_K@Z"
     IDS_STRING63            "CONTROL DEVICE X[%L%?ControlDeviceX@@YAHXZ"
 END
 
@@ -190,10 +190,10 @@ BEGIN
     IDS_STRING64            "CONTROL DEVICE Y[%L%?ControlDeviceY@@YAHXZ"
     IDS_STRING65            "CONTROL DEVICE Z[%L%?ControlDeviceZ@@YAHXZ"
     IDS_STRING66            "CHANGE MOUSE%L%?ChangeMouse@@YAXH@Z%Cursor Number"
-    IDS_STRING67            "WRITE STRING TO REGISTRY%SSS%?WriteToRegistryS@@YAXPAD0K@Z%Folder Name, Key Name, String"
-    IDS_STRING68            "GET REGISTRY$[%SSS%?GetRegistryS@@YAKKPAD0@Z%Folder Name, Key Name"
-    IDS_STRING69            "ENTRY$[%SL%?GetEntryEx@@YAKKH@Z%Auto Backspace Mode"
-    IDS_STRING70            "SET CONTROL DEVICE%SL%?SetControlDeviceEx@@YAXKH@Z%Device Name$, Device Index"
+    IDS_STRING67            "WRITE STRING TO REGISTRY%SSS%?WriteToRegistryS@@YAXPEAD0_K@Z%Folder Name, Key Name, String"
+    IDS_STRING68            "GET REGISTRY$[%SSS%?GetRegistryS@@YA_K_KPEAD0@Z%Folder Name, Key Name"
+    IDS_STRING69            "ENTRY$[%SL%?GetEntryEx@@YA_K_KH@Z%Auto Backspace Mode"
+    IDS_STRING70            "SET CONTROL DEVICE%SL%?SetControlDeviceEx@@YAX_KH@Z%Device Name$, Device Index"
     IDS_STRING71            "GET KEY STATE[%LL%?GetKeyStateEx@@YAHH@Z%Virtual key"
     IDS_STRING72            "SET KEY STATE TOGGLE%LL%?SetKeyStateEx@@YAXHH@Z%Virtual key, Toggle flag"
     IDS_STRING73            "SET CONTROL DEVICE INDEX%L%?SetControlDeviceIndex@@YAXH@Z%Zero-based Index Of Device"
@@ -202,12 +202,12 @@ BEGIN
     IDS_STRING76            "SET JOYSTICK DEADZONE%L%?SetJoystickDeadzone@@YAXH@Z%Percentage deadzone"
     IDS_STRING77            "CHANGE MOUSE%LL%?ChangeMouse@@YAXHH@Z%Cursor Number, Touch Friendly"
     IDS_STRING78            "SET REGISTRY HKEY%L%?SetRegistryHKEY@@YAXH@Z%Current User Mode"
-    IDS_STRING79            "WRITE STRING TO REGISTRY%SSSL%?WriteToRegistrySL@@YAXPAD0KH@Z%Folder Name, Key Name, String, Current User Mode"
+    IDS_STRING79            "WRITE STRING TO REGISTRY%SSSL%?WriteToRegistrySL@@YAXPEAD0_KH@Z%Folder Name, Key Name, String, Current User Mode"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING80            "GET REGISTRY$[%SSSL%?GetRegistrySL@@YAKKPAD0H@Z%Folder Name, Key Name, Current User Mode"
+    IDS_STRING80            "GET REGISTRY$[%SSSL%?GetRegistrySL@@YA_K_KPEAD0H@Z%Folder Name, Key Name, Current User Mode"
 END
 
 #endif    // English (U.K.) resources

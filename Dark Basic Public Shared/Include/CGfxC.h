@@ -113,7 +113,9 @@ DARKSDK ID3DX11Effect*		SETUPLoadShader ( LPSTR szFile, LPSTR szBlobFile, int iS
 
 DARKSDK bool				GetBackBufferAndDepthBuffer			( void );
 DARKSDK bool				Setup                       		( void );
+#ifdef DX11
 DARKSDK void				SetupSetViewport					( int iCameraID, D3D11_VIEWPORT* vp, LPGGSURFACE pSurface );
+#endif
 DARKSDK void				GetValidBackBufferFormat    		( void );
 DARKSDK void				GetStencilDepth						( void );
 DARKSDK int					CreateDX9                      		( HWND hWnd, GGPRESENT_PARAMETERS* d3dpp );

@@ -262,12 +262,12 @@ extern struct _Textures
 	int Load_By_RAW_Data      ( byte* data, int length, LPSTR FileName, TexOptions options );
 	int Load_By_RAW_Data      ( byte* data, int length, LPSTR FileName, TexOptions options, BOOL forceload );
 	int Get_ID_For_FileName   ( LPSTR FileName, BOOL forceload );
-	LPSTR Get_FileName_For_ID ( int id );
+	const char* Get_FileName_For_ID ( int id );
 	TexOptions GetTexOptions  ( LPSTR FileName );
 	
 	int   Load_LightMap_By_FileName    ( LPSTR FileName );
 	int   Get_LightMap_ID_For_FileName ( LPSTR FileName );
-	LPSTR Get_LightMap_FileName_For_ID ( int id );
+	const char* Get_LightMap_FileName_For_ID ( int id );
 
 	LPDIRECT3DTEXTURE9 Create_From_RAW_Data ( byte* data, UINT width, UINT height, int bpp );
 	LPDIRECT3DTEXTURE9 Create_From_WAD_Data ( byte* data, int length, UINT* w, UINT* h );

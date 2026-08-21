@@ -2727,6 +2727,34 @@ int GetImageFileExist ( LPSTR pFilename )
 
 
 
+////////////////////////////////////////////////////////////////////////////////////
+// STANDARD IMAGE COMMAND WRAPPERS
+////////////////////////////////////////////////////////////////////////////////////
+
+// Returns the width in pixels of an existing image (0 when it does not exist).
+DARKSDK int ImageWidth ( int iID )
+{
+	if ( !UpdatePtrImage ( iID ) )
+		return 0;
+
+	return GetWidth ( iID );
+}
+
+// Returns the height in pixels of an existing image (0 when it does not exist).
+DARKSDK int ImageHeight ( int iID )
+{
+	if ( !UpdatePtrImage ( iID ) )
+		return 0;
+
+	return GetHeight ( iID );
+}
+
+// Returns 1 when the image exists, otherwise 0.
+DARKSDK int GetImageExistEx ( int iID )
+{
+	return UpdatePtrImage ( iID ) ? 1 : 0;
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 // DARK SDK SECTION //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -2872,6 +2900,10 @@ LPDIRECT3DTEXTURE9 dbMakeImageRenderTarget ( int iID, int iWidth, int iHeight, D
 {
 	return MakeRenderTarget	( iID, iWidth, iHeight, Format );
 }
+
+////////////////////////////////////////////////////////////////////////////////////
+// STANDARD IMAGE COMMAND WRAPPERS
+////////////////////////////////////////////////////////////////////////////////////
 
 LPDIRECT3DTEXTURE9 dbGetImagePointer ( int iID )
 {

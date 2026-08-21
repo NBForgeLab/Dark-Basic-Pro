@@ -19,12 +19,18 @@
 // DEFINES ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DARKSDK_COMPILE
+#if defined(DBP_PLUGIN_CONSUMER)
+	#undef DARKSDK
+	#define DARKSDK extern
+	#ifndef DBPRO_GLOBAL
+		#define DBPRO_GLOBAL
+	#endif
+#elif !defined(DARKSDK_COMPILE)
 	#define DARKSDK __declspec ( dllexport )
-	#define DBPRO_GLOBAL 
+	#define DBPRO_GLOBAL
 #else
-	#undef DARKSDK 
-	#undef DBPRO_GLOBAL 
+	#undef DARKSDK
+	#undef DBPRO_GLOBAL
 	#define DARKSDK static
 	#define DBPRO_GLOBAL static
 #endif

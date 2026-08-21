@@ -75,7 +75,7 @@ class CPUInfo
 		~CPUInfo ( );
 
 		char* GetVendorString                 ( void );
-		char* GetVendorID                     ( void );
+		const char* GetVendorID               ( void );
 		char* GetTypeID                       ( void );
 		char* GetFamilyID                     ( void );
 		char* GetModelID                      ( void );

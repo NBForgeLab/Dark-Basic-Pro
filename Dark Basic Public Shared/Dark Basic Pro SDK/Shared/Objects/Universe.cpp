@@ -211,7 +211,7 @@ void cUniverse::Load ( LPSTR pFilename, int iDivideTextureSize )
 		CalculateMeshBounds ( m_pMasterMeshList [ iMesh ] );
 
 	// if divide texture flag used, need to seperate lightmaps from process
-	LPSTR pLightMapString = "levelbank\\testlevel\\lightmaps";
+	LPCSTR pLightMapString = "levelbank\\testlevel\\lightmaps";
 
 	// prepare textures for all master meshes (load them)
 	// FPSCV104RC8 - scifilevel1 - 14secs (6sec with DDS)

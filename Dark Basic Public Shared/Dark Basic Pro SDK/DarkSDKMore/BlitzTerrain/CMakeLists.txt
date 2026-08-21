@@ -26,6 +26,7 @@ target_compile_definitions(dbp_plugin_advancedterrain PRIVATE
     _WINDOWS
     _USRDLL
     BLITZTERRAIN_EXPORTS
+    DBP_PLUGIN_CONSUMER
     _MBCS
     _CRT_SECURE_NO_WARNINGS
 )
@@ -34,6 +35,7 @@ target_include_directories(dbp_plugin_advancedterrain PUBLIC
     .
     "${CMAKE_SOURCE_DIR}/SDK/BaseClasses"
     "${CMAKE_SOURCE_DIR}/SDK/DB3"
+    "${CMAKE_SOURCE_DIR}/SDK/NVAPI"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Include"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"
@@ -48,6 +50,11 @@ if(DXSDK_LIBRARY_DIR)
 endif()
 
 target_link_libraries(dbp_plugin_advancedterrain PRIVATE
+    dbp_plugin_core
+    dbp_plugin_objects
+    dbp_plugin_memblocks
+    dbp_plugin_camera
+    dbp_plugin_image
     winmm
     d3d9
     d3dx9

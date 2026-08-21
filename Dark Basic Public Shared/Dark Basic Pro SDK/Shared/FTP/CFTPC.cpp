@@ -77,19 +77,19 @@ DARKSDK LPSTR GetReturnStringFromWorkString(void)
 	return pReturnString;
 }
 
-DARKSDK void ConnectEx( DWORD dwString, DWORD dwString2, DWORD dwString3, int iUseWindow )
+DARKSDK void ConnectEx( DWORD_PTR dwString, DWORD_PTR dwString2, DWORD_PTR dwString3, int iUseWindow )
 {
 	if(!FTP_ConnectEx((char*)dwString, (char*)dwString2, (char*)dwString3, iUseWindow))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPCONNECTIONFAILED);
 }
 
-DARKSDK void Connect( DWORD dwString, DWORD dwString2, DWORD dwString3 )
+DARKSDK void Connect( DWORD_PTR dwString, DWORD_PTR dwString2, DWORD_PTR dwString3 )
 {
 	if(!FTP_Connect((char*)dwString, (char*)dwString2, (char*)dwString3))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPCONNECTIONFAILED);
 }
 
-DARKSDK void SetDir( DWORD dwString )
+DARKSDK void SetDir( DWORD_PTR dwString )
 {
 	if(!FTP_SetDir((char*)dwString))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPPATHCANNOTBEFOUND);
@@ -105,13 +105,13 @@ DARKSDK void FindNext(void)
 	FTP_FindNext();
 }
 
-DARKSDK void PutFileCore( DWORD dwString )
+DARKSDK void PutFileCore( DWORD_PTR dwString )
 {
 	if(!FTP_PutFile((char*)dwString))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPCANNOTPUTFILE);
 }
 
-DARKSDK void PutFile( DWORD dwString )
+DARKSDK void PutFile( DWORD_PTR dwString )
 {
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
@@ -120,23 +120,23 @@ DARKSDK void PutFile( DWORD dwString )
 
 	// Decrypt and use media, re-encrypt
 	g_pGlob->Decrypt( VirtualFilename );
-	PutFileCore( (DWORD)VirtualFilename );
+	PutFileCore( (DWORD_PTR)VirtualFilename );
 	g_pGlob->Encrypt( VirtualFilename );
 }
 
-DARKSDK void DeleteFile( DWORD dwString )
+DARKSDK void DeleteFile( DWORD_PTR dwString )
 {
 	if(!FTP_DeleteFile((char*)dwString))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPCANNOTDELETEFILE);
 }
 
-DARKSDK void GetFile( DWORD dwString, DWORD dwString2 )
+DARKSDK void GetFile( DWORD_PTR dwString, DWORD_PTR dwString2 )
 {
 	if(!FTP_GetFile((char*)dwString, (char*)dwString2, 0, 0))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPCANNOTGETFILE);
 }
 
-DARKSDK void GetFile( DWORD dwString, DWORD dwString2, int iFlag )
+DARKSDK void GetFile( DWORD_PTR dwString, DWORD_PTR dwString2, int iFlag )
 {
 	if(!FTP_GetFile((char*)dwString, (char*)dwString2, iFlag, 1))
 		RunTimeSoftWarning(RUNTIMEERROR_FTPCANNOTGETFILE);
@@ -213,28 +213,28 @@ DARKSDK int GetProgress(void)
 
 // HTTP Implementations
 
-DARKSDK void HTTPConnect ( DWORD dwUrl )
+DARKSDK void HTTPConnect ( DWORD_PTR dwUrl )
 {
 	char* lpUrl = (char*)dwUrl;
 	if (lpUrl && *lpUrl)
 		HTTP_Connect ( lpUrl );
 }
 
-DARKSDK void HTTPConnect ( DWORD dwUrl, DWORD port )
+DARKSDK void HTTPConnect ( DWORD_PTR dwUrl, DWORD port )
 {
 	char* lpUrl = (char*)dwUrl;
 	if (lpUrl && *lpUrl)
 		HTTP_Connect ( lpUrl, port );
 }
 
-DARKSDK void HTTPConnect ( DWORD dwUrl, DWORD port, int secure )
+DARKSDK void HTTPConnect ( DWORD_PTR dwUrl, DWORD port, int secure )
 {
 	char* lpUrl = (char*)dwUrl;
 	if (lpUrl && *lpUrl)
 		HTTP_Connect ( lpUrl, port, secure );
 }
 
-DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData, DWORD dwAccessFlag )
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_PTR dwObjectName, DWORD_PTR dwPostData, DWORD dwAccessFlag )
 {
 	char* lpVerb = (char*)dwVerb;
 	char* lpObjectName = (char*)dwObjectName;
@@ -283,7 +283,7 @@ DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObj
 	return (DWORD_PTR)pReturnString;
 }
 
-DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD dwVerb, DWORD dwObjectName, DWORD dwPostData )
+DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_PTR dwObjectName, DWORD_PTR dwPostData )
 {
 	// 20120416 IanM - Cleared default security type
 	return HTTPRequestData ( pDestStr, dwVerb, dwObjectName, dwPostData, 0 );

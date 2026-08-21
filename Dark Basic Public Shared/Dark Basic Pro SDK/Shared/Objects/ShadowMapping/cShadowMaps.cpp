@@ -639,7 +639,8 @@ HRESULT CascadedShadowsManager::InitFrame ( LPD3DXEFFECT pEffectPtr  )
 	vecAt.z *= 100.0f;
 	vecAt += vecEye;
 	D3DXMATRIX matLightCameraLookAt;
-	D3DXMatrixLookAtLH ( &matLightCameraLookAt, &vecEye, &vecAt, &D3DXVECTOR3(0,1,0) );
+	const D3DXVECTOR3 vecWorldUp = D3DXVECTOR3 ( 0, 1, 0 );
+	D3DXMatrixLookAtLH ( &matLightCameraLookAt, &vecEye, &vecAt, &vecWorldUp );
 	D3DXMATRIX matLightCameraView;
 	matLightCameraView = matLightCameraLookAt;
 	m_pLightCamera->m_mCameraView = matLightCameraView;

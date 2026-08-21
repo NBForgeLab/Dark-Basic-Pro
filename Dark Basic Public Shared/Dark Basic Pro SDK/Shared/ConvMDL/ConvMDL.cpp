@@ -968,7 +968,7 @@ DARKSDK bool UploadTexture ( sMDLTexture* pTexture, BYTE* pbData, BYTE* pbPal )
 #ifdef DARKSDK_COMPILE
 
 void	PassCoreData	( LPVOID pGlobPtr );
-bool	Convert			( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+bool	Convert			( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize );
 void	Free			( LPSTR );
 
 void	PassCoreDataMDL ( LPVOID pGlobPtr )
@@ -989,7 +989,7 @@ void	FreeMDL	( LPSTR pfile )
 #endif
 
 
-DARKSDK bool Convert ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+DARKSDK bool Convert ( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize )
 {
 	// obtain D3D
 	GetD3DFromModule ( NULL );

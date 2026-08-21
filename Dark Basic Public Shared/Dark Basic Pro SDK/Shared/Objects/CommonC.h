@@ -9,6 +9,13 @@
 // Defines
 #pragma warning(disable : 4530)
 
+// Cross-plugin command linkage: consumers declare imported commands instead of
+// promising a local export, so the linker resolves them from the owner plugin.
+#if defined(DBP_PLUGIN_CONSUMER)
+	#undef DARKSDK
+	#define DARKSDK extern
+#endif
+
 //////////////////////////////////////////////////////////////////////////////////
 // INCLUDE DIRECTX ///////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -45,9 +52,12 @@
 //#define DARKSDK			__declspec ( dllexport )
  #define SDK_BOOL			int
  #define SDK_FLOAT			DWORD
- #define SDK_LPSTR			DWORD
+ // 64-bit target: string handles and string destinations are pointer-sized,
+ // so they must ride in DWORD_PTR (never DWORD) to avoid truncation. This is
+ // the x64-only build; the 32-bit path has been removed.
+ #define SDK_LPSTR			DWORD_PTR
  #define SDK_RETFLOAT(f)	*(DWORD*)&f 
- #define SDK_RETSTR			DWORD lpStr, 
+ #define SDK_RETSTR			DWORD_PTR lpStr,
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -387,9 +397,9 @@ void  GetCullDataFromModel				( int iID );
 bool  CreateModelFromCustom				( int iID, void* m_pData );
 
 DARKSDK bool    SetNewObjectFinalProperties		( int iID, float fRadius );
-DARKSDK bool    CreateNewObject					( int iID, LPSTR pName );
+DARKSDK bool    CreateNewObject					( int iID, LPCSTR pName );
 DARKSDK bool    DeleteObject					( int iID );
-DARKSDK bool    CreateNewObject                 ( int iID, LPSTR pName, int iFrame );
+DARKSDK bool    CreateNewObject                 ( int iID, LPCSTR pName, int iFrame );
 DARKSDK sFrame* CreateNewFrame                  ( sObject* pObject, LPSTR pName, bool bNewMesh );
 
 //////////////////////////////////////////////////////////////////////////////////

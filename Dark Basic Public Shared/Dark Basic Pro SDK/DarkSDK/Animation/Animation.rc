@@ -50,7 +50,7 @@ BEGIN
             VALUE "FileDescription", "Dark Basic Professional DLL\0"
             VALUE "FileVersion", "V1.0\0"
             VALUE "InternalName", "Dark Basic Professional DLL\0"
-            VALUE "LegalCopyright", "Copyright © 2002\0"
+            VALUE "LegalCopyright", "Copyright ï¿½ 2002\0"
             VALUE "LegalTrademarks", "DarkBASIC\0"
             VALUE "OriginalFilename", "DBProAnimationDebug.dll\0"
             VALUE "PrivateBuild", "\0"
@@ -113,7 +113,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_STRING1             "LOAD ANIMATION%SL%?LoadAnimation@@YAXKH@Z%Filename,Animation Number"
+    IDS_STRING1             "LOAD ANIMATION%SL%?LoadAnimation@@YAX_KH@Z%Filename,Animation Number"
     IDS_STRING2             "PLAY ANIMATION%L%?PlayAnimation@@YAXH@Z%Animation Number"
     IDS_STRING3             "LOOP ANIMATION%L%?LoopAnimation@@YAXH@Z%Animation Number"
     IDS_STRING4             "DELETE ANIMATION%L%?DeleteAnimation@@YAXH@Z%Animation Number"

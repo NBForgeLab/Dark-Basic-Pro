@@ -1,5 +1,8 @@
 #include "Textures.h"
 
+#include <filesystem>
+#include <string>
+
 extern LPDIRECT3DDEVICE9		m_pD3D;
 
 struct _Textures Textures;
@@ -59,7 +62,9 @@ int _Textures::Load_By_FileName ( LPSTR FileName, BOOL forceload )
 
 	char RootDir [ MAX_PATH ];
 	sprintf ( RootDir, "%s\\Textures", "" );
-	_chdir ( RootDir );
+
+	std::error_code cwdEc;
+	std::filesystem::current_path ( std::filesystem::path ( RootDir ), cwdEc );
 
 	byte* data = NULL; 
 	int length;
@@ -172,7 +177,7 @@ int _Textures::Get_ID_For_FileName ( LPSTR FileName, BOOL forceload )
 	return -2;
 }
 
-LPSTR _Textures::Get_FileName_For_ID ( int id )
+const char* _Textures::Get_FileName_For_ID ( int id )
 {
 	if ( id < 0 || id >= Tex_count )
 		return "";
@@ -283,8 +288,8 @@ int _Textures::Load_LightMap_By_FileName ( LPSTR FileName )
 		
 	byte* data = NULL;
 	int length;
-	LPSTR FullName;
-	
+	std::string FullName;
+
 	if ( file_loader::Find::File ( FileName, "", &FullName ) )
 	{
 		if ( !file_loader::Load::Direct ( FullName, &data, &length ) )
@@ -333,7 +338,7 @@ int _Textures::Get_LightMap_ID_For_FileName ( LPSTR FileName )
 	return -2;
 }
 
-LPSTR _Textures::Get_LightMap_FileName_For_ID ( int id )
+const char* _Textures::Get_LightMap_FileName_For_ID ( int id )
 {
 	if ( id < 0 || id >= LightMap_count )
 		return "";
@@ -635,16 +640,13 @@ int _Textures::Load_By_FileName_Q2 ( LPSTR FileName, BOOL forceload )
 	byte* data = NULL;
 	int length;
 
-	for ( int x = 0; x < Q2_Resources.num_files; x++ )
+	for ( const auto& resource : Q2_Resources.entries )
 	{
 		// convert to lowercase
-		char lname [ _MAX_PATH ];
-		
-		strcpy ( lname, Q2_Resources.files [ x ].fullname );
-		strcpy ( lname, _strlwr ( lname ) );
-		
+		std::string lname = ToLowerAscii ( resource.fullname );
+
 		// is current resource a PAK file?
-		if ( _strnicmp ( lname + strlen ( lname ) - 4, ".pak", 4 ) == 0 )
+		if ( EndsWithIgnoreCase ( lname, ".pak" ) )
 		{
 			// try to load a file with exactly the same name ( should not work )
 			if ( file_loader::Load::From_PAK ( lname, fn, &data, &length ) )
@@ -702,7 +704,7 @@ int _Textures::Load_By_FileName_Q2 ( LPSTR FileName, BOOL forceload )
 		}
 		
 		// is current resource a WAD file?
-		if ( _strnicmp ( lname + strlen ( lname ) - 4, ".wad", 4 ) == 0 )
+		if ( EndsWithIgnoreCase ( lname, ".wad" ) )
 		{
 			if ( file_loader::Load::From_WAD ( lname, fn, &data, &length ) )
 			{
@@ -713,18 +715,18 @@ int _Textures::Load_By_FileName_Q2 ( LPSTR FileName, BOOL forceload )
 
 				texture = Textures.Create_From_WAD_Data ( data, length, &w, &h );
 				break;
-			}			
+			}
 		}
-		
+
 		// it's not a PAK or WAD... maybe it's another format?
 		if (
-				_strnicmp ( lname + strlen ( lname ) - 4, ".tga", 4 ) == 0 ||
-				_strnicmp ( lname + strlen ( lname ) - 4, ".jpg", 4 ) == 0 ||
-				_strnicmp ( lname + strlen ( lname ) - 4, ".bmp", 4 ) == 0
+				EndsWithIgnoreCase ( lname, ".tga" ) ||
+				EndsWithIgnoreCase ( lname, ".jpg" ) ||
+				EndsWithIgnoreCase ( lname, ".bmp" )
 		   )
 		{
 			// check filename
-			if ( strstr ( lname, fn ) != 0 )
+			if ( lname.find ( fn ) != std::string::npos )
 			{
 				if ( file_loader::Load::Direct ( lname, &data, &length ) )
 				{
@@ -751,15 +753,11 @@ int _Textures::Load_By_FileName_Q2 ( LPSTR FileName, BOOL forceload )
 
 					if ( hr == D3D_OK )
 					{
-						LPSTR	fn2 = NULL,
-								p   = NULL;
-						
-						SolveFullName ( lname, &fn2, &p );
+						std::string p;
+
+						SplitPath ( lname, nullptr, &p );
 
 						files_cache.AddFile ( lname, fn, p );
-
-						SAFE_DELETE ( fn2 );
-						SAFE_DELETE ( p );
 						
 						w = info.Width;
 						h = info.Height;
@@ -853,18 +851,21 @@ int _Textures::Load_By_FileName_Q3A ( LPSTR FileName, BOOL forceload )
 	char newname [ 256 ];
 	strcpy ( newname, FileName );
 
-	for ( int x = 0; x < Q3A_Resources.num_files; x++ )
+	bool foundInPk3 = false;
+
+	for ( const auto& resource : Q3A_Resources.entries )
 	{
 		char name [ 256 ];
 		strcpy ( name, FileName );
-		
-		if ( IsDirectory ( name ) )
+
+		if ( IsDirectoryPath ( name ) )
 			strcat ( name, ".tga" );
 
-		if ( file_loader::Load::From_PK3 ( Q3A_Resources.files [ x ].fullname, name, &data, &length ) )
+		if ( file_loader::Load::From_PK3 ( resource.fullname, name, &data, &length ) )
 		{
-			files_cache.AddFile ( name, name, Q3A_Resources.files [ x ].fullname );
+			files_cache.AddFile ( name, name, resource.fullname );
 			strcpy ( newname, name );
+			foundInPk3 = true;
 			break;
 		}
 
@@ -872,17 +873,18 @@ int _Textures::Load_By_FileName_Q3A ( LPSTR FileName, BOOL forceload )
 
 		strncpy ( name + strlen ( name ) - 4, ".jpg", 4 );
 
-		if ( file_loader::Load::From_PK3 ( Q3A_Resources.files [ x ].fullname, name, &data, &length ) )
+		if ( file_loader::Load::From_PK3 ( resource.fullname, name, &data, &length ) )
 		{
-			files_cache.AddFile ( name, name, Q3A_Resources.files [ x ].fullname );
+			files_cache.AddFile ( name, name, resource.fullname );
 			strcpy ( newname, name );
+			foundInPk3 = true;
 			break;
 		}
 
 		SAFE_DELETE ( data );
 	}
 
-	if ( x == Q3A_Resources.num_files )
+	if ( !foundInPk3 )
 	{
 		SAFE_DELETE ( data );
 

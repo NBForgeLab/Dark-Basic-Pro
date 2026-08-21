@@ -1,0 +1,133 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36252.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\GitHub-repo\FPC Creator Repos\Dark-Basic-Pro\build_x64\bin\Debug\plugins\DBProFileDebug.dll
+
+File Type: DLL
+
+  Section contains the following exports for DBProFileDebug.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+         103 number of functions
+         103 number of names
+
+    ordinal hint RVA      name
+
+          1    0 0000100A ?Appname@@YA_K_K@Z = @ILT+5(?Appname@@YA_K_K@Z)
+          2    1 00001140 ?CanMakeFile@@YAH_K@Z = @ILT+315(?CanMakeFile@@YAH_K@Z)
+          3    2 000014E2 ?ChecklistForDrives@@YAXXZ = @ILT+1245(?ChecklistForDrives@@YAXXZ)
+          4    3 000014BA ?ChecklistForFiles@@YAXXZ = @ILT+1205(?ChecklistForFiles@@YAXXZ)
+          5    4 00001541 ?CloseFile@@YAXH@Z = @ILT+1340(?CloseFile@@YAXH@Z)
+          6    5 00001343 ?Constructor@@YAXXZ = @ILT+830(?Constructor@@YAXXZ)
+          7    6 0000155A ?CopyFileA@@YAX_K0@Z = @ILT+1365(?CopyFileA@@YAX_K0@Z)
+          8    7 00001064 ?CopyFileCore@@YAX_K0@Z = @ILT+95(?CopyFileCore@@YAX_K0@Z)
+          9    8 0000104B ?DB_CanMakeFile@@YAHPEAD@Z = @ILT+70(?DB_CanMakeFile@@YAHPEAD@Z)
+         10    9 000012DA ?DB_CloseFile@@YAHH@Z = @ILT+725(?DB_CloseFile@@YAHH@Z)
+         11    A 0000152D ?DB_CopyFile@@YAHPEAD0@Z = @ILT+1320(?DB_CopyFile@@YAHPEAD0@Z)
+         12    B 00001357 ?DB_DeleteDir@@YAHPEAD@Z = @ILT+850(?DB_DeleteDir@@YAHPEAD@Z)
+         13    C 00001208 ?DB_DeleteDirRecursively@@YAHPEAD@Z = @ILT+515(?DB_DeleteDirRecursively@@YAHPEAD@Z)
+         14    D 0000122B ?DB_DeleteFile@@YAHPEAD@Z = @ILT+550(?DB_DeleteFile@@YAHPEAD@Z)
+         15    E 00001618 ?DB_ExecuteFile@@YAHPEAPEAXPEAD111_N@Z = @ILT+1555(?DB_ExecuteFile@@YAHPEAPEAXPEAD111_N@Z)
+         16    F 00001389 ?DB_ExecuteFileIndi@@YAHPEAKPEAD111H@Z = @ILT+900(?DB_ExecuteFileIndi@@YAHPEAKPEAD111H@Z)
+         17   10 0000117C ?DB_FileExist@@YAHPEAD@Z = @ILT+375(?DB_FileExist@@YAHPEAD@Z)
+         18   11 00001154 ?DB_FileSize@@YAKPEAD@Z = @ILT+335(?DB_FileSize@@YAKPEAD@Z)
+         19   12 00001145 ?DB_FileWriteProtected@@YAHPEAD@Z = @ILT+320(?DB_FileWriteProtected@@YAHPEAD@Z)
+         20   13 00001325 ?DB_FindFileInSubPath@@YAHPEAD0@Z = @ILT+800(?DB_FindFileInSubPath@@YAHPEAD0@Z)
+         21   14 0000131B ?DB_MakeDir@@YAHPEAD@Z = @ILT+790(?DB_MakeDir@@YAHPEAD@Z)
+         22   15 00001587 ?DB_MakeFile@@YAHPEAD@Z = @ILT+1410(?DB_MakeFile@@YAHPEAD@Z)
+         23   16 00001280 ?DB_MoveFile@@YAHPEAD0@Z = @ILT+635(?DB_MoveFile@@YAHPEAD0@Z)
+         24   17 0000140B ?DB_OpenToRead@@YAHHPEAD@Z = @ILT+1030(?DB_OpenToRead@@YAHHPEAD@Z)
+         25   18 000015A5 ?DB_OpenToReadCore@@YAHHPEAD@Z = @ILT+1440(?DB_OpenToReadCore@@YAHHPEAD@Z)
+         26   19 000012E9 ?DB_OpenToWrite@@YAHHPEAD@Z = @ILT+740(?DB_OpenToWrite@@YAHHPEAD@Z)
+         27   1A 0000148D ?DB_PathExist@@YAHPEAD@Z = @ILT+1160(?DB_PathExist@@YAHPEAD@Z)
+         28   1B 0000146F ?DB_RenameFile@@YAHPEAD0@Z = @ILT+1130(?DB_RenameFile@@YAHPEAD0@Z)
+         29   1C 0000165E ?DeleteDir@@YAX_K@Z = @ILT+1625(?DeleteDir@@YAX_K@Z)
+         30   1D 0000162C ?DeleteDir@@YAX_KH@Z = @ILT+1575(?DeleteDir@@YAX_KH@Z)
+         31   1E 000015B4 ?DeleteFileA@@YAX_K@Z = @ILT+1455(?DeleteFileA@@YAX_K@Z)
+         32   1F 00001424 ?Destructor@@YAXXZ = @ILT+1055(?Destructor@@YAXXZ)
+         33   20 000012A3 ?Dir@@YAXXZ = @ILT+670(?Dir@@YAXXZ)
+         34   21 00001023 ?DriveList@@YAXXZ = @ILT+30(?DriveList@@YAXXZ)
+         35   22 0000110E ?EmptyThisDirectoryFirst@@YAXPEAD@Z = @ILT+265(?EmptyThisDirectoryFirst@@YAXPEAD@Z)
+         36   23 000013D9 ?EnumWindowsProcForTerminator@@YAHPEAUHWND__@@_J@Z = @ILT+980(?EnumWindowsProcForTerminator@@YAHPEAUHWND__@@_J@Z)
+         37   24 0000115E ?ExecuteFile@@YAX_K00@Z = @ILT+345(?ExecuteFile@@YAX_K00@Z)
+         38   25 0000149C ?ExecuteFileEx@@YAX_K00H@Z = @ILT+1175(?ExecuteFileEx@@YAX_K00H@Z)
+         39   26 0000156E ?ExecuteFileIndi@@YAK_K00@Z = @ILT+1385(?ExecuteFileIndi@@YAK_K00@Z)
+         40   27 00001659 ?ExecuteFileIndi@@YAK_K00H@Z = @ILT+1620(?ExecuteFileIndi@@YAK_K00H@Z)
+         41   28 000015C3 ?FFindCloseFile@@YAXXZ = @ILT+1470(?FFindCloseFile@@YAXXZ)
+         42   29 000013CF ?FFindFirstFile@@YAXXZ = @ILT+970(?FFindFirstFile@@YAXXZ)
+         43   2A 0000126C ?FFindNextFile@@YAXXZ = @ILT+615(?FFindNextFile@@YAXXZ)
+         44   2B 00001537 ?FGetActualTypeValue@@YAHH@Z = @ILT+1330(?FGetActualTypeValue@@YAHH@Z)
+         45   2C 00001267 ?FGetFileReturnValue@@YAHXZ = @ILT+610(?FGetFileReturnValue@@YAHXZ)
+         46   2D 000014D3 ?FileEnd@@YAHH@Z = @ILT+1230(?FileEnd@@YAHH@Z)
+         47   2E 000012E4 ?FileExist@@YAH_K@Z = @ILT+735(?FileExist@@YAH_K@Z)
+         48   2F 0000159B ?FileOpen@@YAHH@Z = @ILT+1430(?FileOpen@@YAHH@Z)
+         49   30 000013E8 ?FileSize@@YAH_K@Z = @ILT+995(?FileSize@@YAH_K@Z)
+         50   31 00001168 ?FindFirst@@YAXXZ = @ILT+355(?FindFirst@@YAXXZ)
+         51   32 0000100F ?FindNext@@YAXXZ = @ILT+10(?FindNext@@YAXXZ)
+         52   33 000014CE ?GetDir@@YA_K_K@Z = @ILT+1225(?GetDir@@YA_K_K@Z)
+         53   34 00001640 ?GetExecutableRunning@@YAHK@Z = @ILT+1595(?GetExecutableRunning@@YAHK@Z)
+         54   35 00001212 ?GetFileCreation@@YA_K_K@Z = @ILT+525(?GetFileCreation@@YA_K_K@Z)
+         55   36 00001082 ?GetFileDate@@YA_K_K@Z = @ILT+125(?GetFileDate@@YA_K_K@Z)
+         56   37 00001046 ?GetFileName@@YA_K_K@Z = @ILT+65(?GetFileName@@YA_K_K@Z)
+         57   38 00001663 ?GetFileType@@YAHXZ = @ILT+1630(?GetFileType@@YAHXZ)
+         58   39 000015C8 ?GetReturnStringFromWorkString@@YAPEADPEAD@Z = @ILT+1475(?GetReturnStringFromWorkString@@YAPEADPEAD@Z)
+         59   3A 0000164F ?MakeDir@@YAX_K@Z = @ILT+1610(?MakeDir@@YAX_K@Z)
+         60   3B 00001645 ?MakeFile@@YAX_K@Z = @ILT+1600(?MakeFile@@YAX_K@Z)
+         61   3C 00001677 ?MakeFileFromMemblock@@YAXHH@Z = @ILT+1650(?MakeFileFromMemblock@@YAXHH@Z)
+         62   3D 0000158C ?MakeMemblockFromFile@@YAXHH@Z = @ILT+1415(?MakeMemblockFromFile@@YAXHH@Z)
+         63   3E 000013F2 ?MakePathToThisFolder@@YAXPEAD@Z = @ILT+1005(?MakePathToThisFolder@@YAXPEAD@Z)
+         64   3F 00001578 ?MoveFileA@@YAX_K0@Z = @ILT+1395(?MoveFileA@@YAX_K0@Z)
+         65   40 0000157D ?Mydocdir@@YA_K_K@Z = @ILT+1400(?Mydocdir@@YA_K_K@Z)
+         66   41 00001320 ?OpenToRead@@YAXH_K@Z = @ILT+795(?OpenToRead@@YAXH_K@Z)
+         67   42 000010CD ?OpenToWrite@@YAXH_K@Z = @ILT+200(?OpenToWrite@@YAXH_K@Z)
+         68   43 0000124E ?PassCoreData@@YAXPEAX@Z = @ILT+585(?PassCoreData@@YAXPEAX@Z)
+         69   44 000015E6 ?PathExist@@YAH_K@Z = @ILT+1505(?PathExist@@YAH_K@Z)
+         70   45 000015EB ?ReadByte@@YAHH@Z = @ILT+1510(?ReadByte@@YAHH@Z)
+         71   46 000010DC ?ReadByteFromFile@@YAH_KH@Z = @ILT+215(?ReadByteFromFile@@YAH_KH@Z)
+         72   47 000010F5 ?ReadDirBlock@@YAXH_K@Z = @ILT+240(?ReadDirBlock@@YAXH_K@Z)
+         73   48 000014E7 ?ReadFileBlock@@YAXH_K@Z = @ILT+1250(?ReadFileBlock@@YAXH_K@Z)
+         74   49 0000106E ?ReadFileBlockCore@@YAXPEADH@Z = @ILT+105(?ReadFileBlockCore@@YAXPEADH@Z)
+         75   4A 000012DF ?ReadFilemapString@@YA_K_K0@Z = @ILT+730(?ReadFilemapString@@YA_K_K0@Z)
+         76   4B 00001131 ?ReadFilemapValue@@YAK_K@Z = @ILT+300(?ReadFilemapValue@@YAK_K@Z)
+         77   4C 000010FF ?ReadFloat@@YAKH@Z = @ILT+250(?ReadFloat@@YAKH@Z)
+         78   4D 000011CC ?ReadLong@@YAHH@Z = @ILT+455(?ReadLong@@YAHH@Z)
+         79   4E 000014F6 ?ReadMemblock@@YAXHH@Z = @ILT+1265(?ReadMemblock@@YAXHH@Z)
+         80   4F 0000116D ?ReadString@@YAKH_K@Z = @ILT+360(?ReadString@@YAKH_K@Z)
+         81   50 0000160E ?ReadWord@@YAHH@Z = @ILT+1545(?ReadWord@@YAHH@Z)
+         82   51 00001032 ?RenameFile@@YAX_K0@Z = @ILT+45(?RenameFile@@YAX_K0@Z)
+         83   52 000012FD ?SetDir@@YAX_K@Z = @ILT+760(?SetDir@@YAX_K@Z)
+         84   53 00001609 ?SetErrorHandler@@YAXPEAX@Z = @ILT+1540(?SetErrorHandler@@YAXPEAX@Z)
+         85   54 000015BE ?SkipBytes@@YAXHH@Z = @ILT+1465(?SkipBytes@@YAXHH@Z)
+         86   55 00001366 ?StopExecutable@@YAXK@Z = @ILT+865(?StopExecutable@@YAXK@Z)
+         87   56 000015B9 ?Windir@@YA_K_K@Z = @ILT+1460(?Windir@@YA_K_K@Z)
+         88   57 000011B8 ?WriteByte@@YAXHH@Z = @ILT+435(?WriteByte@@YAXHH@Z)
+         89   58 000011AE ?WriteByteToFile@@YAX_KHH@Z = @ILT+425(?WriteByteToFile@@YAX_KHH@Z)
+         90   59 000013A7 ?WriteDirBlock@@YAXH_K@Z = @ILT+930(?WriteDirBlock@@YAXH_K@Z)
+         91   5A 000015FA ?WriteDirContents@@YAXHPEAD_NPEAK0@Z = @ILT+1525(?WriteDirContents@@YAXHPEAD_NPEAK0@Z)
+         92   5B 0000114A ?WriteFileBlock@@YAXH_K@Z = @ILT+325(?WriteFileBlock@@YAXH_K@Z)
+         93   5C 00001582 ?WriteFileBlock@@YAXH_KH@Z = @ILT+1405(?WriteFileBlock@@YAXH_KH@Z)
+         94   5D 0000121C ?WriteFileBlockCore@@YAXPEADHH@Z = @ILT+535(?WriteFileBlockCore@@YAXPEADHH@Z)
+         95   5E 00001203 ?WriteFilemap@@YAX_KK0H@Z = @ILT+510(?WriteFilemap@@YAX_KK0H@Z)
+         96   5F 000014FB ?WriteFilemapString@@YAX_K0@Z = @ILT+1270(?WriteFilemapString@@YAX_K0@Z)
+         97   60 00001596 ?WriteFilemapValue@@YAX_KK@Z = @ILT+1425(?WriteFilemapValue@@YAX_KK@Z)
+         98   61 0000153C ?WriteFloat@@YAXHM@Z = @ILT+1335(?WriteFloat@@YAXHM@Z)
+         99   62 00001500 ?WriteLong@@YAXHH@Z = @ILT+1275(?WriteLong@@YAXHH@Z)
+        100   63 0000133E ?WriteMemblock@@YAXHH@Z = @ILT+825(?WriteMemblock@@YAXHH@Z)
+        101   64 0000101E ?WriteString@@YAXH_K@Z = @ILT+25(?WriteString@@YAXH_K@Z)
+        102   65 00001285 ?WriteWord@@YAXHH@Z = @ILT+640(?WriteWord@@YAXHH@Z)
+        103   66 000010EB ?rFindFileInSub@@YA_NPEAD00@Z = @ILT+230(?rFindFileInSub@@YA_NPEAD00@Z)
+
+  Summary
+
+        1000 .00cfg
+        2000 .data
+        2000 .idata
+        2000 .pdata
+        8000 .rdata
+        1000 .reloc
+        3000 .rsrc
+       14000 .text

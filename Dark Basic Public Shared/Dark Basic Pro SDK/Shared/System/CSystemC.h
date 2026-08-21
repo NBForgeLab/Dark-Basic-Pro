@@ -63,7 +63,7 @@ DARKSDK void DisableEscapeKey(void);
 DARKSDK void EnableEscapeKey(void);
 DARKSDK void DisableSystemKeys(void);
 DARKSDK void EnableSystemKeys(void);
-DARKSDK void ExitPrompt(DWORD pString, DWORD pString2);
+DARKSDK void ExitPrompt(DWORD_PTR pString, DWORD_PTR pString2);
 
 // checklist commands
 DARKSDK void EmptyChecklist( void );
@@ -79,10 +79,10 @@ DARKSDK DWORD ChecklistFValueD( int iIndex );
 DARKSDK DWORD_PTR ChecklistString( DWORD_PTR pDestStr, int iIndex );
 
 // dll commands
-DARKSDK void DLLLoad( DWORD pDLLFile, int dllid );
+DARKSDK void DLLLoad( DWORD_PTR pDLLFile, int dllid );
 DARKSDK void DLLDelete( int dllid );
 DARKSDK int DLLExist( int dllid );
-DARKSDK int DLLCallExist( int dllid, DWORD pDLLFunction );
+DARKSDK int DLLCallExist( int dllid, DWORD_PTR pDLLFunction );
 DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction);
 DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1);
 DARKSDK DWORD_PTR CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2);

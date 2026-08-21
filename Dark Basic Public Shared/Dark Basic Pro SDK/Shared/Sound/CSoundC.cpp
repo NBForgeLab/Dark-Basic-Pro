@@ -1280,7 +1280,8 @@ DARKSDK void PositionSound ( int iID, float fX, float fY, float fZ )
 
 	// positions a sound in 3D space
 	m_ptr->vecPosition = D3DXVECTOR3 ( fX, fY, fZ );
-	if ( fabs ( D3DXVec3Length ( &(m_ptr->vecLast - m_ptr->vecPosition) ) ) > 0.09f )
+	const D3DXVECTOR3 vecDelta = m_ptr->vecLast - m_ptr->vecPosition;
+	if ( fabs ( D3DXVec3Length ( &vecDelta ) ) > 0.09f )
 	{
 		m_ptr->pDSBuffer3D->SetPosition ( fX, fY, fZ, DS3D_DEFERRED );
 		m_ptr->vecLast = m_ptr->vecPosition;

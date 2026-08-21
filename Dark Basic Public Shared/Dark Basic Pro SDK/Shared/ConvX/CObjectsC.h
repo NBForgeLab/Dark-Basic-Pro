@@ -387,7 +387,7 @@ DARKSDK void		SetMipmapMode				( int iMode );
 DARKSDK void		FlushVideoMemory			( void );
 DARKSDK void		DisableTNL					( void );
 DARKSDK void		EnableTNL					( void );
-DARKSDK void		Convert3DStoX				( DWORD pFilename1, DWORD pFilename2 );
+DARKSDK void		Convert3DStoX				( DWORD_PTR pFilename1, DWORD_PTR pFilename2 );
 
 // Pick Commands
 DARKSDK int			PickScreenObjectEx			( int iX, int iY, int iObjectStart, int iObjectEnd, int iIgnoreCamera, int iIgnoreNonSelectables );

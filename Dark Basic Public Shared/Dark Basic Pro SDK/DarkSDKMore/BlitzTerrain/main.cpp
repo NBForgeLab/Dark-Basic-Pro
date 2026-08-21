@@ -5,7 +5,12 @@
 #include "CObjectsC.h"
 #include "CMemblocks.h"
 #include "CGfxC.h"
+#include "ccamerac.h"
+#include "CImageC.h"
 #include ".\..\..\Shared\Objects\ShadowMapping\cShadowMaps.h"
+
+GlobStruct* g_pGlob  = nullptr;
+LPGGDEVICE m_pD3D    = nullptr;
 
 bool update_mesh_light(sMesh* pMesh, sObject* pObject, sFrame* pFrame);
 
@@ -737,7 +742,7 @@ void BT_BuildTerrain(unsigned long terrainid,unsigned long ObjectID,bool Generat
 
 		//Make memblock from heightmap
 		CreateMemblockFromImage(Heightmapmemblock,HeightmapImg);
-		unsigned long* HeightmapMemblockPtr=(unsigned long*)GetMemblockPtr(Heightmapmemblock);
+		unsigned long* HeightmapMemblockPtr=(unsigned long*)ExtGetMemblockPtr(Heightmapmemblock);
 
 
 	//Check heightmap size
@@ -1054,7 +1059,7 @@ void BT_BuildTerrain(unsigned long terrainid,unsigned long ObjectID,bool Generat
 			CreateMemblockFromImage(Heightmapmemblock,Terrain->Environmentmap);
 
 		//Create the environment map
-			BT_Intern_CreateEnvironmentMap(Terrain->EnvironmentMap,ImageWidth(Terrain->Environmentmap),ImageHeight(Terrain->Environmentmap),(unsigned long*)(GetMemblockPtr(Heightmapmemblock)+4));
+			BT_Intern_CreateEnvironmentMap(Terrain->EnvironmentMap,ImageWidth(Terrain->Environmentmap),ImageHeight(Terrain->Environmentmap),(unsigned long*)(ExtGetMemblockPtr(Heightmapmemblock)+4));
 
 		//Delete the Memblock
 			DeleteMemblock(Heightmapmemblock);
@@ -1423,15 +1428,15 @@ unsigned long BT_GetPointEnvironment(unsigned long terrainid,float x,float z)
 // ======================
 // === BT GET VERSION ===
 // ======================
-DWORD BT_GetVersion()
+DWORD_PTR BT_GetVersion()
 {
 //Set Current function
 	BT_Main.CurrentFunction=C_BT_FUNCTION_GETVERSION;
 
 //Variables
-	LPSTR Version=BT_VERSION;
+	LPCSTR Version=BT_VERSION;
 
-	return (DWORD)Version;
+	return reinterpret_cast <DWORD_PTR> ( Version );
 }
 
 // =========================
@@ -2160,6 +2165,7 @@ void BT_Intern_Render()
 		// but only if not rendering to a shadow map
 		if (g_bRenderTerrainForShadowMap == false)
 		{
+#ifdef DX11
 			tagCameraData* Camera = (tagCameraData*)GetCameraInternalData(0);
 			D3D11_VIEWPORT vp;
 			GGVIEWPORT* pvp = &Camera->viewPort3D;
@@ -2170,6 +2176,7 @@ void BT_Intern_Render()
 			vp.MinDepth = pvp->MinZ;
 			vp.MaxDepth = pvp->MaxZ;
 			SetupSetViewport(g_pGlob->dwRenderCameraID, &vp, NULL);
+#endif
 		}
 	}
 
@@ -2793,6 +2800,7 @@ static void BT_Intern_RenderTerrain(s_BT_terrain* Terrain)
 }
 // === END FUNCTION ===
 
+#ifdef DX11
 static void BT_Intern_NoRenderTerrain(s_BT_terrain* Terrain)
 {
 	// Variables
@@ -3007,6 +3015,9 @@ static void BT_Intern_NoRenderTerrain(s_BT_terrain* Terrain)
 	// zero current render terrain
 	BT_Main.CurrentRenderTerrain=NULL;
 }
+#else
+static void BT_Intern_NoRenderTerrain ( s_BT_terrain* ) { }
+#endif
 
 
 // ======================================
@@ -3054,7 +3065,6 @@ static void BT_Intern_CalculateLODLevelsRec(s_BT_terrain* Terrain,s_BT_QuadTree*
 	}
 }
 // === END FUNCTION ===
-
 
 
 // ===============================
@@ -3718,10 +3728,10 @@ void BT_Intern_Error(int number)
 // ==================================
 // === BT INTERN GET ERROR STRING ===
 // ==================================
-static char* BT_Intern_GetErrorString(int number)
+static const char* BT_Intern_GetErrorString(int number)
 {
 //Set default error message
-	char* Error="Unknown";
+	const char* Error="Unknown";
 
 //Get error
 	if(number==C_BT_ERROR_MAXTERRAINSEXCEDED){
@@ -3790,10 +3800,10 @@ static char* BT_Intern_GetErrorString(int number)
 // ===================================
 // === BT INTERN GET FUNCTION NAME ===
 // ===================================
-static char* BT_Intern_GetFunctionName(int number)
+static const char* BT_Intern_GetFunctionName(int number)
 {
 //Set default name
-	char* Name="Unknown";
+	const char* Name="Unknown";
 
 //Get name
 	if(number==C_BT_FUNCTION_MAKETERRAIN){

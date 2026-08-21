@@ -139,7 +139,7 @@ class cVertex : public cVector3
 	public:
 		cVertex ( ) { x = y = z = tu = tv = 0.0f; }
 		cVertex ( float _x, float _y, float _z ) { x = _x; y = _y; z = _z; tu = tv = 0.0; }
-		cVertex ( cVector3& vec ) { x = vec.x; y = vec.y; z = vec.z; tu = tv = 0.0f; }
+		cVertex ( const cVector3& vec ) { x = vec.x; y = vec.y; z = vec.z; tu = tv = 0.0f; }
 		cVertex ( float _x, float _y, float _z, float _tu, float _tv ) { x = _x; y = _y; z = _z; tu = _tu; tv = _tv; }
     
 		cVector3    Normal;

@@ -74,8 +74,10 @@ BOOL BoundElipsoidIntersect ( D3DXVECTOR3 mid, D3DXVECTOR3 e, D3DXVECTOR3 o_pos,
 	n_pos.y /= e.y;
 	n_pos.z /= e.z;
 
-	if ( D3DXSphereBoundProbe ( &mid, 1, &o_pos, &( n_pos - o_pos ) ) &&
-		D3DXSphereBoundProbe ( &mid, 1, &n_pos, &( o_pos - n_pos ) ) )
+	const D3DXVECTOR3 forward = n_pos - o_pos;
+	const D3DXVECTOR3 backward = o_pos - n_pos;
+	if ( D3DXSphereBoundProbe ( &mid, 1, &o_pos, &forward ) &&
+		D3DXSphereBoundProbe ( &mid, 1, &n_pos, &backward ) )
 			return TRUE;
 
 	return FALSE;
@@ -83,7 +85,8 @@ BOOL BoundElipsoidIntersect ( D3DXVECTOR3 mid, D3DXVECTOR3 e, D3DXVECTOR3 o_pos,
 
 BOOL CheckPointInSphere ( D3DXVECTOR3 point, D3DXVECTOR3 sO, double sR )
 {
-	float d = D3DXVec3Length ( &( point - sO ) );
+	const D3DXVECTOR3 offset = point - sO;
+	float d = D3DXVec3Length ( &offset );
 	
 	if ( d <= sR )
 		return TRUE;
@@ -231,7 +234,8 @@ bool intersect_plane ( const D3DXVECTOR3& start, const D3DXVECTOR3& dir,  const 
 
 	if ( denom <= -EPSILON || denom >= EPSILON )
 	{
-		float numer = D3DXVec3Dot ( &n,&( pt - start ) );
+		const D3DXVECTOR3 delta = pt - start;
+		float numer = D3DXVec3Dot ( &n, &delta );
 		float u = numer / denom;
 
 		if ( u > 0 && u <= 1.0f )
@@ -286,8 +290,9 @@ static void check_collision ( collision_data& coldat )
     D3DXVECTOR3 pt = cache.vertex [ 0 ];
     D3DXVECTOR3 n  = cache.normal;
     D3DXVECTOR3 s  = coldat.src - n * radius;
-	
-	float t = D3DXVec3Dot ( &( s - pt ), &n );
+    const D3DXVECTOR3 toPlane = s - pt;
+
+	float t = D3DXVec3Dot ( &toPlane, &n );
 
     if ( t > coldat.dir_len )
 	{

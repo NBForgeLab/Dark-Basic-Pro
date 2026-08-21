@@ -1040,7 +1040,7 @@ DARKSDK LRESULT SendDataToDebugger(int iType, LPSTR pData, DWORD dwDataSize)
 	return lResult;
 }
 
-DARKSDK void BreakS(DWORD pString)
+DARKSDK void BreakS(DWORD_PTR pString)
 {
 	// Send String to CLI Debug Console
 	LPSTR lpReturnError = new char[1024];

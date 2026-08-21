@@ -71,7 +71,7 @@ DWORD ReturnAFloat( int iValue )
 	return *(DWORD*)&fValue;
 }
 
-DWORD ReverseString( DWORD pOldString, DWORD pStringIn )
+DWORD_PTR ReverseString( DWORD_PTR pOldString, DWORD_PTR pStringIn )
 {
 	// Delete old string
 	if(pOldString) g_pGlob->CreateDeleteString((DWORD_PTR*)&pOldString, 0 );

@@ -77,9 +77,9 @@ DARKSDK void  SetTextureMode			( sMesh* pMesh, int iStage, int iMode, int iMipMo
 
 int   LoadOrFindTextureAsImage	( LPCSTR pTextureName, LPCSTR TexturePath );
 int   LoadOrFindTextureAsImage	( LPCSTR pTextureName, LPCSTR TexturePath, int iDivideTextureSize );
-void  LoadInternalTextures		( sMesh* pMesh, LPSTR pPath, int iDBProMode, int iDivideTextureSize, LPSTR pOptionalLightmapNoReduce );
-void  LoadInternalTextures		( sMesh* pMesh, LPSTR pPath, int iDBProMode, int iDivideTextureSize );
-void  LoadInternalTextures		( sMesh* pMesh, LPSTR pPath, int iDBProMode );
+void  LoadInternalTextures		( sMesh* pMesh, LPCSTR pPath, int iDBProMode, int iDivideTextureSize, LPCSTR pOptionalLightmapNoReduce );
+void  LoadInternalTextures		( sMesh* pMesh, LPCSTR pPath, int iDBProMode, int iDivideTextureSize );
+void  LoadInternalTextures		( sMesh* pMesh, LPCSTR pPath, int iDBProMode );
 void  FreeInternalTextures      ( sMesh* pMesh );
 void  CloneInternalTextures		( sMesh* pMeshDest, sMesh* pMeshSrc );
 void  CopyMeshSettings			( sMesh* pDestMesh, sMesh* pSrcMesh );

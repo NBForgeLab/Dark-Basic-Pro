@@ -70,12 +70,12 @@ void VECTOR::normalize()
     z *= dist;
 }
 
-float VECTOR::dot(VECTOR& V)
+float VECTOR::dot(const VECTOR& V)
 {
     return V.x*x+V.y*y+V.z*z;
 }
 
-VECTOR VECTOR::cross(VECTOR& V)
+VECTOR VECTOR::cross(const VECTOR& V)
 {
     return VECTOR((y*V.z-z*V.y),(z*V.x-x*V.z),(x*V.y-y*V.x));
 }

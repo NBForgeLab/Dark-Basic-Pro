@@ -487,7 +487,7 @@ DARKSDK void EnableSystemKeys(void)
 	g_pGlob->bSystemKeyEnabled=true;
 }
 
-DARKSDK void ExitPrompt(DWORD pString, DWORD pString2)
+DARKSDK void ExitPrompt(DWORD_PTR pString, DWORD_PTR pString2)
 {
 	LPSTR pReturnString=NULL;
 	if(pString)
@@ -641,7 +641,7 @@ DARKSDK DWORD_PTR ChecklistString( DWORD_PTR pDestStr, int iIndex )
 
 // DLL Commands
 
-DARKSDK void DLLLoadCore( DWORD pDLLFile, int dllid )
+DARKSDK void DLLLoadCore( DWORD_PTR pDLLFile, int dllid )
 {
 	// Load a DLL (LOAD DLL)
 	if(dllid>=1 && dllid<=255)
@@ -661,7 +661,7 @@ DARKSDK void DLLLoadCore( DWORD pDLLFile, int dllid )
 		RunTimeError(RUNTIMEERROR_SYSDLLINDEXINVALID);
 }
 
-DARKSDK void DLLLoad( DWORD pDLLFile, int dllid )
+DARKSDK void DLLLoad( DWORD_PTR pDLLFile, int dllid )
 {
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
@@ -704,7 +704,7 @@ DARKSDK int DLLExist( int dllid )
 	return iRes;
 }
 
-DARKSDK int DLLCallExist( int dllid, DWORD pDLLFunction )
+DARKSDK int DLLCallExist( int dllid, DWORD_PTR pDLLFunction )
 {
 	int iRes=0;
 	if(dllid>=1 && dllid<=255)
@@ -781,51 +781,51 @@ DARKSDK DWORD_PTR CallDLLX( int dllid, DWORD_PTR pDLLFunction, DWORD_PTR pDataPt
 	return CallDLL_Param( dllid, (LPSTR)pDLLFunction, (int)dwNumberOfDWORDS, (DWORD*)pDataPtr );
 }
 
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction )
 {
 	CallDLL( dllid, pDLLFunction );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1 )
 {
 	CallDLL( dllid, pDLLFunction, P1 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4,P5 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4,P5,P6 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4,P5,P6,P7 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4,P5,P6,P7,P8 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4,P5,P6,P7,P8,P9 );
 }
-DARKSDK void _CallDLL( int dllid, DWORD pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9,DWORD P10 )
+DARKSDK void _CallDLL( int dllid, DWORD_PTR pDLLFunction, DWORD P1,DWORD P2,DWORD P3,DWORD P4,DWORD P5,DWORD P6,DWORD P7,DWORD P8,DWORD P9,DWORD P10 )
 {
 	CallDLL( dllid, pDLLFunction, P1,P2,P3,P4,P5,P6,P7,P8,P9,P10 );
 }
-DARKSDK void _CallDLLX( int dllid, DWORD pDLLFunction, DWORD pDataPtr, DWORD dwNumberOfDWORDS )
+DARKSDK void _CallDLLX( int dllid, DWORD_PTR pDLLFunction, DWORD_PTR pDataPtr, DWORD dwNumberOfDWORDS )
 {
 	CallDLLX( dllid, pDLLFunction, pDataPtr, dwNumberOfDWORDS );
 }
@@ -971,7 +971,7 @@ char* dbChecklistString( int iIndex )
 	//return ChecklistString(  pDestStr,  iIndex );
 }
 
-void dbDLLLoad( DWORD pDLLFile, int dllid )
+void dbDLLLoad( DWORD_PTR pDLLFile, int dllid )
 {
 	DLLLoad(  pDLLFile,  dllid );
 }

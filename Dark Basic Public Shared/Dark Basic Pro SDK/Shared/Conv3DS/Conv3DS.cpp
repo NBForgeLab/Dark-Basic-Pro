@@ -120,7 +120,7 @@ DARKSDK bool Delete ( void )
 #ifdef DARKSDK_COMPILE
 
 void	PassCoreData	( LPVOID pGlobPtr );
-bool	Convert			( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+bool	Convert			( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize );
 void	Free			( LPSTR );
 
 void PassCoreData3DS	( LPVOID pGlobPtr )
@@ -140,7 +140,7 @@ void Free3DS	( LPSTR pfile )
 
 #endif
 
-DARKSDK bool Convert ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+DARKSDK bool Convert ( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize )
 {
 	// obtain D3D
 	GetD3DFromModule ( NULL );
@@ -215,8 +215,8 @@ class CConvBuffer
 		void  WriteMeshTextureCoordsEnd   ( void );
 		void  WriteMeshNormalsStart       ( void );
 		void  WriteMeshNormalsEnd         ( void );
-		void  WriteLine                   ( char* szString );
-		void  WriteString                 ( char* szString );
+		void  WriteLine                   ( const char* szString );
+		void  WriteString                 ( const char* szString );
 		void  WriteMaterialItem           ( char* szMaterialName, float diffuse0, float diffuse1, float diffuse2, float diffuse3, float power,
 											float specular0, float specular1, float specular2, float a, float b, float c, float percentage, char* szTextureName );
 };
@@ -308,13 +308,13 @@ void CConvBuffer::WriteMeshStart ( char* szName )
 	strcat ( m_szData, " {\n" );
 }
 
-void CConvBuffer::WriteLine ( char* szString )
+void CConvBuffer::WriteLine ( const char* szString )
 {
 	strcat ( m_szData, szString );
 	strcat ( m_szData, "\n" );
 }
 
-void CConvBuffer::WriteString ( char* szString )
+void CConvBuffer::WriteString ( const char* szString )
 {
 	strcat ( m_szData, szString );
 }
@@ -826,7 +826,7 @@ DBPRO_GLOBAL CConvBuffer* pConvertBuffer = NULL;
 
 //>------ global vars
 
-char *viewports [11]={
+const char *viewports [11]={
                       "Bogus",
                       "Top",
                       "Bottom",

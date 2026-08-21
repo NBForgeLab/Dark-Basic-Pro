@@ -444,16 +444,16 @@ bool Load ( char* szFilename, char* szMap )
 		return false;
 	}
 	
-	LPSTR path = NULL;
-	SolveFullName ( szFilename, NULL, &path );
+	std::string path;
+	SplitPath ( szFilename, nullptr, &path );
 
 	files_found ff;
-	
+
 	////////////////
 	file_loader::Find::Files ( "*.tga", path, &ff );
-	
-	for ( int x = 0; x < ff.num_files; x++ )
-		file_loader::Q2::Add_WAD ( ff.files [ x ].fullname );
+
+	for ( const auto& entry : ff.entries )
+		file_loader::Q2::Add_WAD ( entry.fullname );
 
 	ff.Release ( );
 	////////////////
@@ -461,17 +461,17 @@ bool Load ( char* szFilename, char* szMap )
 	////////////////
 	file_loader::Find::Files ( "*.wad", path, &ff );
 
-	for ( x = 0; x < ff.num_files; x++ )
-		file_loader::Q2::Add_WAD ( ff.files [ x ].fullname );
+	for ( const auto& entry : ff.entries )
+		file_loader::Q2::Add_WAD ( entry.fullname );
 
 	ff.Release ( );
 	////////////////
-	
+
 	////////////////
 	file_loader::Find::Files ( "*.pak", path, &ff );
 
-	for ( x = 0; x < ff.num_files; x++ )
-		file_loader::Q2::Add_WAD ( ff.files [ x ].fullname );
+	for ( const auto& entry : ff.entries )
+		file_loader::Q2::Add_WAD ( entry.fullname );
 
 	ff.Release ( );
 	////////////////
@@ -890,8 +890,10 @@ bool SetupWorld ( byte* data )
 
 			D3DXVECTOR3 vertex = v;
 
-			float s = D3DXVec3Dot ( &vertex, &( D3DXVECTOR3 ) ti->vecs [ 0 ] ) + ti->vecs [ 0 ] [ 3 ];
-			float t = D3DXVec3Dot ( &vertex, &( D3DXVECTOR3 ) ti->vecs [ 1 ] ) + ti->vecs [ 1 ] [ 3 ];
+			const D3DXVECTOR3 axisS = ( D3DXVECTOR3 ) ti->vecs [ 0 ];
+			const D3DXVECTOR3 axisT = ( D3DXVECTOR3 ) ti->vecs [ 1 ];
+			float s = D3DXVec3Dot ( &vertex, &axisS ) + ti->vecs [ 0 ] [ 3 ];
+			float t = D3DXVec3Dot ( &vertex, &axisT ) + ti->vecs [ 1 ] [ 3 ];
 
 			v [ 3 ] = s * is;
 			v [ 4 ] = t * it;

@@ -225,7 +225,7 @@ DARKSDK void  				SetGamma		  					( int   iR, int   iG, int   iB );
 DARKSDK void  				SetDisplayModeEx 					( int iWidth, int iHeight, int iDepth );
 DARKSDK void  				SetEmulationOn   					( void );
 DARKSDK void  				SetEmulationOff   					( void );
-DARKSDK void  				SetGraphicsCard 					( DWORD dwCardname );
+DARKSDK void  				SetGraphicsCard 					( DWORD_PTR dwCardname );
 
 DARKSDK void  				SetWindowModeOn						( void );
 DARKSDK void  				SetWindowModeOff					( void );
@@ -237,12 +237,12 @@ DARKSDK void				ShowWindow							( void );
 DARKSDK void  				MinimiseWindow						( void );
 DARKSDK void  				MaximiseWindow						( void );
 DARKSDK void  				RestoreWindow						( void );
-DARKSDK void  				SetWindowTitle						( DWORD pTitleString );
-DARKSDK int   				WindowExist							( DWORD pTitleString );
+DARKSDK void  				SetWindowTitle						( DWORD_PTR pTitleString );
+DARKSDK int   				WindowExist							( DWORD_PTR pTitleString );
 DARKSDK void  				WindowToBack						( void );
 DARKSDK void  				WindowToFront						( void );
-DARKSDK void  				WindowToFront						( DWORD pTitleString );
-DARKSDK void  				WindowToBack						( DWORD pTitleString );
+DARKSDK void  				WindowToFront						( DWORD_PTR pTitleString );
+DARKSDK void  				WindowToBack						( DWORD_PTR pTitleString );
 
 DARKSDK void  				LockBackbuffer						( void );
 DARKSDK void  				UnlockBackbuffer					( void );

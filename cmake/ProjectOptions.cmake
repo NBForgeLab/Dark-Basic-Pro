@@ -93,7 +93,9 @@ endfunction()
 
 function(dbp_apply_legacy_cpp_options target)
     # All compiler targets build as native x64, standards-conformant C++20
-    # with high warning visibility and strict conformance mode.
+    # with high warning visibility and strict conformance mode (/permissive-).
+    # Legacy SDK sources are held to the same ISO rules as modern code; any
+    # pre-standard constructs must be fixed at the source, not via flags.
     target_compile_features(${target} PRIVATE cxx_std_20)
 
     if(MSVC)
@@ -111,6 +113,8 @@ function(dbp_apply_legacy_cpp_options target)
 endfunction()
 
 function(dbp_apply_modern_cpp_options target)
+    # Strict ISO conformance (/permissive-) is mandatory for modern targets;
+    # several C++20 features (concepts, two-phase lookup) require it.
     target_compile_features(${target} PRIVATE cxx_std_20)
 
     if(MSVC)

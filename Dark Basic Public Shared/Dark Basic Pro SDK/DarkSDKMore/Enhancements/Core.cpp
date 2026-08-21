@@ -114,7 +114,7 @@ void Destructor ( void )
 {
 }
 
-char* ENHANCEMENTSSetupString ( char* szInput )
+char* ENHANCEMENTSSetupString ( const char* szInput )
 {
 	char* pReturn = NULL;
 	DWORD dwSize  = strlen ( szInput );
@@ -129,7 +129,7 @@ char* ENHANCEMENTSSetupString ( char* szInput )
 	return pReturn;
 }
 
-char* SetupString ( char* szInput )
+char* SetupString ( const char* szInput )
 {
 	return ENHANCEMENTSSetupString( szInput );
 }

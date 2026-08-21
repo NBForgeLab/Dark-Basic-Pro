@@ -360,11 +360,7 @@ void DBPRO_ApplyEffect ( sMesh* pMesh, tagCameraData* m_Camera_Ptr )
         if( Effect->m_MatViewInverseEffectHandle != NULL )
         {
             Effect->GGSetEffectMatrix( Effect->m_MatViewInverseEffectHandle, &matViewInv );
-        }		
-        if( Effect->m_MatProjectionInverseEffectHandle != NULL )
-        {
-            Effect->GGSetEffectMatrix( Effect->m_MatProjectionInverseEffectHandle, &matProjInv );
-        }		
+        }
         if( Effect->m_MatWorldViewInverseEffectHandle != NULL )
         {
             Effect->GGSetEffectMatrix( Effect->m_MatWorldViewInverseEffectHandle, &matWorldViewInv );

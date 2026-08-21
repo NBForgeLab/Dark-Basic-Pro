@@ -381,7 +381,8 @@ CObjectManager::sIndexData* CObjectManager::FindIndexBuffer ( DWORD dwIndexCount
 			pIndexData			= m_pIndexDataList;
 
 			// ensure creation okay
-			SAFE_MEMORY ( m_pIndexDataList );
+			if ( !m_pIndexDataList )
+				return nullptr;
 		}
 		else
 		{
@@ -557,7 +558,8 @@ CObjectManager::sVertexData* CObjectManager::FindVertexBuffer ( DWORD dwFVF, LPD
 			// create new list
 			m_pVertexDataList		= new sVertexData;
 			pVertexData				= m_pVertexDataList;
-			SAFE_MEMORY ( m_pVertexDataList );
+			if ( !m_pVertexDataList )
+				return nullptr;
 		}
 		else
 		{
@@ -7595,7 +7597,7 @@ void CObjectManager::CreateScreenQUAD ( int iInitialCameraZeroImage )
 		SetCullCWCCW ( m_pQUAD, 0 );
 
 		// also apply default shader
-		LPSTR pQuadFX = "quad.fx";
+		LPCSTR pQuadFX = "quad.fx";
 		m_pQUADDefaultEffect = new cExternalEffect;
 		m_pQUADDefaultEffect->Load ( pQuadFX, false, false );
 		if ( SetSpecialEffect ( m_pQUAD, m_pQUADDefaultEffect ) )

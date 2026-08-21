@@ -228,7 +228,9 @@ bool GetRayCollision ( sObject* pObject, float fX, float fY, float fZ, float fNe
 							{
 								// direction of polygon
 								D3DXVECTOR3 vNormal;
-								D3DXVec3Cross ( &vNormal, &( *pVec2 - *pVec1 ), &( *pVec1 - *pVec0 ) );
+								const D3DXVECTOR3 edgeA = *pVec2 - *pVec1;
+								const D3DXVECTOR3 edgeB = *pVec1 - *pVec0;
+								D3DXVec3Cross ( &vNormal, &edgeA, &edgeB );
 								D3DXVec3Normalize ( &vNormal, &vNormal );
 								float fDotProduct = D3DXVec3Dot ( &vNormal, &DirVector );
 								if ( fDotProduct < 0.0f )
@@ -281,7 +283,9 @@ bool GetRayCollision ( sObject* pObject, float fX, float fY, float fZ, float fNe
 							{
 								// direction of polygon
 								D3DXVECTOR3 vNormal;
-								D3DXVec3Cross ( &vNormal, &( *pVec2 - *pVec1 ), &( *pVec1 - *pVec0 ) );
+								const D3DXVECTOR3 edgeA = *pVec2 - *pVec1;
+								const D3DXVECTOR3 edgeB = *pVec1 - *pVec0;
+								D3DXVec3Cross ( &vNormal, &edgeA, &edgeB );
 								D3DXVec3Normalize ( &vNormal, &vNormal );
 								float fDotProduct = D3DXVec3Dot ( &vNormal, &DirVector );
 								if ( fDotProduct < 0.0f )

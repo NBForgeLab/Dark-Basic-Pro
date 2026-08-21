@@ -1,5 +1,8 @@
 #include "Textures.h"
 
+#include <filesystem>
+#include <string>
+
 extern LPDIRECT3DDEVICE9		m_pD3D;
 
 struct _Textures Textures;
@@ -47,7 +50,9 @@ int _Textures::Load_By_FileName ( LPSTR FileName, BOOL forceload )
 
 	char RootDir [ MAX_PATH ];
 	sprintf ( RootDir, "%s\\Textures", "" );
-	_chdir ( RootDir );
+
+	std::error_code cwdEc;
+	std::filesystem::current_path ( std::filesystem::path ( RootDir ), cwdEc );
 
 	byte* data = NULL; 
 	int length;
@@ -162,7 +167,7 @@ int _Textures::Get_ID_For_FileName ( LPSTR FileName, BOOL forceload )
 	return -2;
 }
 
-LPSTR _Textures::Get_FileName_For_ID ( int id )
+const char* _Textures::Get_FileName_For_ID ( int id )
 {
 	if ( id < 0 || id >= Tex_count )
 		return "";
@@ -273,8 +278,8 @@ int _Textures::Load_LightMap_By_FileName ( LPSTR FileName )
 		
 	byte* data = NULL;
 	int length;
-	LPSTR FullName;
-	
+	std::string FullName;
+
 	if ( file_loader::Find::File ( FileName, "", &FullName ) )
 	{
 		if ( !file_loader::Load::Direct ( FullName, &data, &length ) )
@@ -323,7 +328,7 @@ int _Textures::Get_LightMap_ID_For_FileName ( LPSTR FileName )
 	return -2;
 }
 
-LPSTR _Textures::Get_LightMap_FileName_For_ID ( int id )
+const char* _Textures::Get_LightMap_FileName_For_ID ( int id )
 {
 	if ( id < 0 || id >= LightMap_count )
 		return "";
@@ -463,20 +468,21 @@ int _Textures::Load_By_FileName_Q3A ( LPSTR FileName, BOOL forceload )
 	char newname [ 256 ];
 	strcpy ( newname, FileName );
 
-	int x = 0;
+	bool foundInPk3 = false;
 
-	for ( x = 0; x < Q3A_Resources.num_files; x++ )
+	for ( const auto& resource : Q3A_Resources.entries )
 	{
 		char name [ 256 ];
 		strcpy ( name, FileName );
-		
-		if ( IsDirectory ( name ) )
+
+		if ( IsDirectoryPath ( name ) )
 			strcat ( name, ".tga" );
 
-		if ( file_loader::Load::From_PK3 ( Q3A_Resources.files [ x ].fullname, name, &data, &length ) )
+		if ( file_loader::Load::From_PK3 ( resource.fullname, name, &data, &length ) )
 		{
-			files_cache.AddFile ( name, name, Q3A_Resources.files [ x ].fullname );
+			files_cache.AddFile ( name, name, resource.fullname );
 			strcpy ( newname, name );
+			foundInPk3 = true;
 			break;
 		}
 
@@ -484,17 +490,18 @@ int _Textures::Load_By_FileName_Q3A ( LPSTR FileName, BOOL forceload )
 
 		strncpy ( name + strlen ( name ) - 4, ".jpg", 4 );
 
-		if ( file_loader::Load::From_PK3 ( Q3A_Resources.files [ x ].fullname, name, &data, &length ) )
+		if ( file_loader::Load::From_PK3 ( resource.fullname, name, &data, &length ) )
 		{
-			files_cache.AddFile ( name, name, Q3A_Resources.files [ x ].fullname );
+			files_cache.AddFile ( name, name, resource.fullname );
 			strcpy ( newname, name );
+			foundInPk3 = true;
 			break;
 		}
 
 		SAFE_DELETE ( data );
 	}
 
-	if ( x == Q3A_Resources.num_files )
+	if ( !foundInPk3 )
 	{
 		SAFE_DELETE ( data );
 

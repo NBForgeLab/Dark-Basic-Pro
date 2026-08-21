@@ -900,7 +900,7 @@ DARKSDK bool GetD3DFromModule ( HINSTANCE hSetup )
 
 #ifdef DARKSDK_COMPILE
 
-bool	Convert		( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize );
+bool	Convert		( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize );
 void	Free		( LPSTR );
 
 bool ConvertMD3 ( LPSTR pFilename, DWORD_PTR *pBlock, DWORD* pdwSize )
@@ -916,7 +916,7 @@ void FreeMD3 ( LPSTR pBlock )
 #endif
 
 
-DARKSDK bool Convert ( LPSTR pFilename, DWORD *pBlock, DWORD* pdwSize )
+DARKSDK bool Convert ( LPSTR pFilename, DWORD_PTR* pBlock, DWORD* pdwSize )
 {
 	// obtain D3D
 	GetD3DFromModule ( NULL );

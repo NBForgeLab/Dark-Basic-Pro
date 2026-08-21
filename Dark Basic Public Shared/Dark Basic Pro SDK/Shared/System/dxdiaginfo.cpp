@@ -237,7 +237,7 @@ VOID CDxDiagInfo::DestroyDisplayInfo( vector<DisplayInfo*>& vDisplayInfo )
 // Name: GetStringValue()
 // Desc: Get a string value from a IDxDiagContainer object
 //-----------------------------------------------------------------------------
-HRESULT CDxDiagInfo::GetStringValue( IDxDiagContainer* pObject, WCHAR* wstrName, TCHAR* strValue, int nStrLen )
+HRESULT CDxDiagInfo::GetStringValue( IDxDiagContainer* pObject, const WCHAR* wstrName, TCHAR* strValue, int nStrLen )
 {
     HRESULT hr;
     VARIANT var;

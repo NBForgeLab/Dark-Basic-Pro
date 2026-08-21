@@ -758,8 +758,7 @@ DARKSDK void GetAngleFromPoint(float x1, float y1, float z1, float x2, float y2,
 	*az = 0.0f;
 }
 
-DARKSDK void SetAutoCam ( float fX, float fY, float fZ, float fRadius )
-{
+DARKSDK void SetAutoCam ( float fX, float fY, float fZ, float fRadius ){
 	// Initial backdrop activator
 	if(m_bActivateBackdrop==true)
 	{
@@ -3765,6 +3764,11 @@ float dbCameraLookZ ( int iID )
 	DWORD dwReturn = GetLookZEx ( iID );
 	
 	return *( float* ) &dwReturn;
+}
+
+DARKSDK void* GetCameraInternalData ( int iID )
+{
+	return GetInternalData ( iID );
 }
 
 void* dbGetCameraInternalData ( int iID )

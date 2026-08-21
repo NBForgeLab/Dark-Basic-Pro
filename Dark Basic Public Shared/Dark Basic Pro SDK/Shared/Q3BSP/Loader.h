@@ -2,209 +2,148 @@
 #ifndef _FILE_LOADER
 #define _FILE_LOADER
 
-#define _CRT_SECURE_NO_WARNINGS
-
 #include <windows.h>
-#include <stdio.h>
-#include "unzip.h"
-#include <direct.h>
 
-//#define DARKSDK __declspec ( dllexport )
-#define SAFE_DELETE( p )       { if ( p ) { delete ( p );       ( p ) = NULL; } }
-#define SAFE_RELEASE( p )      { if ( p ) { ( p )->Release ( ); ( p ) = NULL; } }
-#define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <vector>
 
-
-
-
-BOOL SolveFullName ( LPSTR fullname, LPSTR* filename, LPSTR* path );
-BOOL strcpy2       ( LPSTR*dest, LPSTR src );
-
-struct files_found
+inline bool strcpy2 ( char** dest, std::string_view src )
 {
-	// structure used for "file_loader::Find::Files ( ... )" to save results
+	if ( !dest )
+		return false;
 
-	int num_files;
-	
-	LPSTR zipname;
+	delete [ ] *dest;
 
-	struct _files
+	auto buffer = std::make_unique_for_overwrite <char[]> ( src.size ( ) + 1 );
+	std::memcpy ( buffer.get ( ), src.data ( ), src.size ( ) );
+	buffer [ src.size ( ) ] = '\0';
+
+	*dest = buffer.release ( );
+
+	return true;
+}
+
+inline void strcat2 ( char* dest, size_t destSize, std::string_view src )
+{
+	std::string_view target { dest, strnlen ( dest, destSize ) };
+
+	const size_t copyCount = ( std::min ) ( src.size ( ), destSize - target.size ( ) - 1 );
+
+	std::memcpy ( dest + target.size ( ), src.data ( ), copyCount );
+	dest [ target.size ( ) + copyCount ] = '\0';
+}
+
+inline std::string ToLowerAscii ( std::string_view text )
+{
+	std::string out ( text );
+
+	for ( char& c : out )
+		c = static_cast <char> ( std::tolower ( static_cast <unsigned char> ( c ) ) );
+
+	return out;
+}
+
+[[nodiscard]] inline bool EndsWithIgnoreCase ( std::string_view text, std::string_view suffix )
+{
+	return text.size ( ) >= suffix.size ( ) &&
+		std::equal ( suffix.rbegin ( ), suffix.rend ( ), text.rbegin ( ), [ ] ( char a, char b )
 	{
-		LPSTR filename;
-		LPSTR path;
-		LPSTR fullname;
-	} *files;
+		return std::tolower ( static_cast <unsigned char> ( a ) ) == std::tolower ( static_cast <unsigned char> ( b ) );
+	} );
+}
 
-	void Init ( )
-	{
-		zipname   = NULL;
-		files     = NULL;
-		num_files = 0;
-		size     = 0;
-	}
+bool IsDirectoryPath ( std::string_view path );
 
-	int size;
-
-	void Resize ( int num )
-	{
-		if ( num > size )
-		{
-			num += 100;
-
-			files = ( _files* ) realloc ( files, sizeof ( _files ) * num );
-			size  = num;
-			
-			for ( int x = num_files; x < size; x++ )
-			{
-				files [ x ].filename = NULL;
-				files [ x ].path     = NULL;
-				files [ x ].fullname = NULL;
-			}
-		}
-		else if ( size - num > 100 )
-		{
-			for ( int x = num; x < size; x++ )
-			{
-				SAFE_DELETE ( files [ x ].filename );
-				SAFE_DELETE ( files [ x ].path );
-				SAFE_DELETE ( files [ x ].fullname );
-			}
-
-			files = ( _files* ) realloc ( files, sizeof ( _files ) * num );
-			size  = num;
-		}
-	}
-	
-	void Release ( )
-	{
-		SAFE_DELETE ( zipname );
-		Resize ( 0 );
-		free ( files );
-		files=NULL;
-		num_files = 0;
-	}
-
-	void AddFile ( LPSTR fullname )
-	{
-		if ( fullname == NULL )
-			return;
-
-		LPSTR	filename,
-				path;
-
-		SolveFullName ( fullname, &filename, &path );
-
-		for ( int x = 0; x < num_files; x++ )
-		{
-			if ( _stricmp ( files [ x ].filename, filename ) == 0 )
-			{
-				SAFE_DELETE ( filename );
-				SAFE_DELETE ( path );
-				return;
-			}
-		}
-
-		Resize ( num_files + 1 );
-		strcpy2 ( &files [ num_files ].fullname, fullname );
-
-		files [ num_files ].filename = filename;
-		files [ num_files ].path     = path;
-
-		num_files++;
-	}
-
-	void AddFile ( LPSTR fullname, LPSTR filename, LPSTR path )
-	{
-		if ( filename == NULL )
-			return;
-
-		for ( int x = 0; x < num_files; x++ )
-		{
-			if ( _stricmp ( files [ x ].filename, filename ) == 0 ) 
-				return;
-		}
-
-		Resize ( num_files + 1 );
-
-		if ( fullname != NULL )
-			strcpy2 ( &files [ num_files ].fullname, fullname );
-
-		if ( filename != NULL )
-			strcpy2 ( &files [ num_files ].filename, filename );
-
-		if ( path != NULL )
-			strcpy2 ( &files[num_files].path, path );
-
-		num_files++;
-
-	}
+struct _externfiles
+{
+	int extmap;
+	char extmap_name [ 256 ];
 };
 
-
-#define files_found_in_ZIP files_found
-#define files_found_in_PK3 files_found_in_ZIP
-#define files_found_in_PAK files_found_in_ZIP
-
-class file_loader
-{
-	public:
-		static BOOL GetRelativePath ( LPSTR fullpath, LPSTR start, LPSTR* out );
-
-	class Load
-	{
-		public:
-			static BOOL Direct   ( LPSTR filename, byte** data, int* length );
-			static BOOL From_ZIP ( LPSTR zipname, LPSTR filename, byte** data, int* length );
-			static BOOL From_PK3 ( LPSTR pk3name, LPSTR filename, byte** data, int* length );
-	};
-
-	class Find
-	{
-		public:
-			static BOOL File         ( LPSTR filename, LPSTR path, LPSTR* fullname );
-			static BOOL Files        ( LPSTR common, LPSTR path, files_found* files );
-			static BOOL Files_in_ZIP ( LPSTR zipname, LPSTR common, files_found_in_ZIP* files_found );
-			static BOOL Files_in_PK3 ( LPSTR pk3name, LPSTR common, files_found_in_PK3* files_found );
-			static BOOL Files_in_PAK ( LPSTR pakname, LPSTR common, files_found_in_PAK* files_found );
-	};
-
-	class GetLength
-	{
-		public:
-			static BOOL File        ( LPSTR filename, int* length );
-			static int  File        ( FILE* f );
-			static BOOL File_in_ZIP ( LPSTR zipname, LPSTR filename, int* length );
-			static BOOL File_in_PK3 ( LPSTR pk3name, LPSTR filename, int* length );
-	};
-
-	static BOOL Init_External_Files ( );
-	
-	class Q3A
-	{
-		public:
-			static BOOL Add_PK3 ( LPSTR filename );
-	};
-
-	class Q2
-	{
-		public:
-		static BOOL Add_WAD(LPSTR filename);
-	};
-};
-
-BOOL IsDirectory ( LPSTR str );
-
+extern _externfiles externfiles;
 
 #define EXT_QUAKE12 0x1
 #define EXT_QUAKE3  0x2
 
-extern struct _externfiles
-{
-	int extmap;
-	char extmap_name [ 256 ];
-} externfiles;
+#define SAFE_DELETE( p )       do { delete ( p );       ( p ) = nullptr; } while ( 0 )
+#define SAFE_RELEASE( p )      do { if ( p ) ( p )->Release ( ); ( p ) = nullptr; } while ( 0 )
+#define SAFE_DELETE_ARRAY( p ) do { delete [ ] ( p );   ( p ) = nullptr; } while ( 0 )
 
+struct files_found
+{
+	struct Entry
+	{
+		std::string filename;
+		std::string path;
+		std::string fullname;
+	};
+
+	std::vector<Entry> entries;
+
+	void Clear ( ) { entries.clear ( ); }
+	void Release ( ) { Clear ( ); }
+
+	[[nodiscard]] Entry& Add ( )
+	{
+		return entries.emplace_back ( );
+	}
+
+	bool AddFile ( std::string_view fullname );
+	bool AddFile ( std::string_view fullname, std::string_view filename, std::string_view path );
+
+	[[nodiscard]] bool ContainsFileCaseInsensitive ( std::string_view filename ) const;
+};
+
+class file_loader
+{
+	public:
+		class Load
+		{
+			public:
+				static bool Direct   ( std::string_view filename, byte** data, int* length );
+				static bool From_ZIP ( std::string_view zipname, std::string_view filename, byte** data, int* length );
+				static bool From_PK3 ( std::string_view pk3name, std::string_view filename, byte** data, int* length );
+				static bool From_PAK ( std::string_view pakname, std::string_view filename, byte** data, int* length );
+				static bool From_WAD ( std::string_view wadname, std::string_view filename, byte** data, int* length );
+		};
+
+		class Find
+		{
+			public:
+				static bool File         ( std::string_view filename, std::string_view path, std::string* fullname );
+				static bool Files        ( std::string_view wildcard, std::string_view path, files_found* files );
+				static bool Files_in_PK3 ( std::string_view pk3name, std::string_view extension, files_found* files );
+		};
+
+		class GetLength
+		{
+			public:
+				static bool File ( std::string_view filename, int* length );
+				static int  File ( FILE* f );
+		};
+
+		class Q3A
+		{
+			public:
+				static bool Add_PK3 ( std::string_view filename );
+		};
+
+		class Q2
+		{
+			public:
+				static bool Add_WAD ( std::string_view filename );
+		};
+};
+
+void SplitPath ( std::string_view full, std::string* filename, std::string* path );
 
 extern files_found files_cache;
+extern files_found Q3A_Resources;
+extern files_found Q2_Resources;
 
 #endif

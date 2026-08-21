@@ -17,6 +17,7 @@
 #define DB_PRO 1
 
 // structure to hold items operated on by the thread
+#ifdef DX11
 struct sPreLoadedTexture
 {
 	char pFilename[1024];
@@ -24,6 +25,7 @@ struct sPreLoadedTexture
 	int iMipMaps;
 };
 extern std::vector<sPreLoadedTexture> g_image_outputv;
+#endif
 
 #undef DARKSDK
 #define DARKSDK
@@ -142,7 +144,9 @@ DARKSDK void				LoadImage						( LPSTR szFilename, int iID, int TextureFlag, int
 DARKSDK void				LoadImageSize					( LPSTR szFilename, int iID, int x, int y);
 DARKSDK void 				SaveImage						( LPSTR szFilename, int iID );							// saves the image to disk
 DARKSDK void 				SaveImage						( LPSTR szFilename, int iID, int iCompressionMode );
-DARKSDK void				CreateReplaceImage				( int iID, int iTexSize, ID3D11Texture2D* pTex, ID3D11ShaderResourceView* pView );
+#ifdef DX11
+DARKSDK void 				CreateReplaceImage				( int iID, int iTexSize, ID3D11Texture2D* pTex, ID3D11ShaderResourceView* pView );
+#endif
 DARKSDK void 				GrabImage						( int iID, int iX1, int iY1, int iX2, int iY2 );		// grab image
 DARKSDK void 				GrabImage						( int iID, int iX1, int iY1, int iX2, int iY2, int iTextureFlag );		// grab image
 DARKSDK void 				PasteImage						( int iID, int iX, int iY );								// paste image to backbuffer
@@ -166,9 +170,13 @@ DARKSDK void				ImageCreateSurfaceTextureChannels (LPSTR pSurfaceToSave, LPSTR p
 DARKSDK void				ImageCreateSurfaceTexture	( LPSTR pSurfaceToSave, LPSTR pAO, LPSTR pGloss, LPSTR pMetalness );
 DARKSDK int 				ImageCreateTexturePlate		( LPSTR pDestTerrainTextureFile, int iWhichTextureOver, LPSTR pTexFileToLoad, int iSeamlessMode, int iCompressIt);
 DARKSDK LPGGTEXTURE			ConvertBackBufferToNewFormat( LPGGSURFACE pBackBuffer, GGFORMAT NewFormat );
+#ifdef DX11
 DARKSDK LPGGTEXTURE			CreateCroppedTexture		( LPGGTEXTURE pSourceTexture, D3D11_BOX rc );
+#endif
 
+#ifdef DX11
 DARKSDK ID3D11Resource*		PreloadThreadSafeImage		( LPSTR szFilename , int iMipMaps = -1 );
+#endif
 
 DARKSDK void				image_preload_files_start	( void );
 DARKSDK void				image_preload_files_add		( LPSTR pFilename , int iMipMaps = -1);
@@ -182,6 +190,8 @@ DARKSDK unsigned char*		DecompressImage ( LPGGSURFACE pTexSurface );
 DARKSDK void ImageCreateNormalTextureInvertedGreen(LPSTR pSurfaceToSave, LPSTR pAO, LPSTR pGloss, LPSTR pMetalness, int iO, int iG, int iM, int iA);
 DARKSDK int ImageFormat(int iID);
 
+#ifdef DX11
 DARKSDK int ConvertDDSCompressedFormat(ID3D11Device* device, char* sourceFile, GGFORMAT newFormat, int newWidth, int newHeight, char* outputFile);
+#endif
 
 #endif _CIMAGE_H_
