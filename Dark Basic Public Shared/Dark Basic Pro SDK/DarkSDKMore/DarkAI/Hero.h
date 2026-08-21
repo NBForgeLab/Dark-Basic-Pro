@@ -1,6 +1,7 @@
 #ifndef H_HERO
 #define H_HERO
 
+#include "directx-macros.h"
 #include ".\..\..\Shared\DBOFormat\DBOData.h"
 
 class Team;

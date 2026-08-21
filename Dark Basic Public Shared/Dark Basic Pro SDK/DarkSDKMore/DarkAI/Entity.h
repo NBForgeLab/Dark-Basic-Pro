@@ -1,6 +1,7 @@
 #ifndef H_ENTITY
 #define H_ENTITY
 
+#include "directx-macros.h"
 #include ".\..\..\Shared\DBOFormat\DBOData.h"
 #include "Path.h"
 
@@ -472,7 +473,7 @@ public:
 	float GetSqrDistTo ( GGVECTOR3 vecPoint );
 	float GetSqrDistTo ( float x, float y, float z );
 
-	char* GetStateName ( );
+	const char* GetStateName ( );
 
 	void SetPatrolPath ( Path* pPath, int iPathID );
 	void RemovePatrolPath ( );

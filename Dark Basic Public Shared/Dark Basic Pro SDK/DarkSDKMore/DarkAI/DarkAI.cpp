@@ -7,7 +7,12 @@
 #include ".\..\..\..\Include\DarkAI.h"
 
 #include "globstruct.h"
-extern GlobStruct *g_pGlob;
+GlobStruct *g_pGlob = NULL;
+
+DARKSDK_DLL void ReceiveCoreDataPtr ( LPVOID pCore )
+{
+	g_pGlob = (GlobStruct*)pCore;
+}
 
 #include "Entity.h"
 #include "World.h"
@@ -625,7 +630,15 @@ LPSTR AICoverGetIfUsed ( int iIndex )
 	if ( pCoverPtr )
 		return pCoverPtr->pCoverName;
 	else
-		return "";
+	{
+		LPSTR szReturnString = NULL;
+		if ( g_pGlob )
+		{
+			g_pGlob->CreateDeleteString ( (DWORD_PTR*)&szReturnString, 1 );
+			szReturnString[0] = '\0';
+		}
+		return szReturnString;
+	}
 }
 
 void AIAddContainer ( int iContainerID )
@@ -2575,17 +2588,17 @@ LPSTR AIGetEntityState ( int iObjID )
 	if ( !pEntity )
 	{
 		LPSTR szReturnString = NULL;
-		g_pGlob->CreateDeleteString ( (char**) &szReturnString, 30 );
+		g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, 30 );
 		strcpy_s ( (char*) szReturnString, 30, "Error! Entity Does Not Exist" );
 		return szReturnString;
 	}
 	
-	char* szNewString = pEntity->GetStateName ( );
+	const char* szNewString = pEntity->GetStateName ( );
 	
 	DWORD dwSize = (DWORD) strlen ( (char*) szNewString );
 
 	LPSTR szReturnString = NULL;
-	g_pGlob->CreateDeleteString ( (char**) &szReturnString, dwSize+1 );
+	g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, dwSize+1 );
 	
 	strcpy_s ( (char*) szReturnString, dwSize+1, szNewString);
 
@@ -2656,9 +2669,10 @@ LPSTR AIGetEntityAction ( int iObjID )
 	DWORD dwSize = (DWORD) strlen ( (char*) szNewString );
 
 	LPSTR szReturnString = NULL;
-	g_pGlob->CreateDeleteString ( (char**) &szReturnString, dwSize+1 );
+	g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, dwSize+1 );
 	
 	strcpy_s ( (char*) szReturnString, dwSize+1, szNewString);
+	delete [] szNewString;
 	
 #pragma warning ( default : 4312 )
 	

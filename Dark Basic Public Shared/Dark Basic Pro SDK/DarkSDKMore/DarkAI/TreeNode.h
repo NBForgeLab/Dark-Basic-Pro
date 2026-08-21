@@ -13,7 +13,7 @@ class TreeNode
           
           void BuildTree(TreeFace* faces,unsigned fnum,int facesPerNode);
           
-          bool Intersects( const Point* p, const Vector* vec, const Vector* vecI, int dir, float *dist ) const;
+          bool Intersects( const AIPoint* p, const Vector* vec, const Vector* vecI, int dir, float *dist ) const;
 		  //Box* getBounds() { return &bounds; }
    
       private:     

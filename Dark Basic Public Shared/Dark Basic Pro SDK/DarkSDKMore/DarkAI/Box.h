@@ -12,22 +12,22 @@ class Box
 
     public:
     
-        //Point lastNormal;
+        //AIPoint lastNormal;
         
-        Box(Point* min, Point* max);
+        Box(AIPoint* min, AIPoint* max);
         Box(float x=L,float y=L,float z=L,float x2=S,float y2=S,float z2=S);
         ~Box() {}
         
         void ResetBox();        
-        void Set(Point* min, Point* max);
+        void Set(AIPoint* min, AIPoint* max);
         void Set(float x,float y,float z,float x2,float y2,float z2);
         
         void CorrectBox();        
         
-        bool InBox(Point* p) const;        
-        int IntersectBox(const Point* p, const Vector* vi, float* dist) const;
+        bool InBox(AIPoint* p) const;        
+        int IntersectBox(const AIPoint* p, const Vector* vi, float* dist) const;
 
-		bool CollidesFace(Point* p1, Point* p2, Point* p3);
+		bool CollidesFace(AIPoint* p1, AIPoint* p2, AIPoint* p3);
                 
         float maxbx() const { return maxx; }
         float maxby() const { return maxy; }
@@ -50,7 +50,7 @@ class Box
 
 
 
-inline Box::Box(Point* min, Point* max)
+inline Box::Box(AIPoint* min, AIPoint* max)
 {
     minx = min->x; miny = min->y; minz = min->z;
     maxx = max->x; maxy = max->y; maxz = max->z;
@@ -70,7 +70,7 @@ inline void Box::ResetBox()
     maxx = S; maxy = S; maxz = S;
 }
 
-inline void Box::Set(Point* min, Point* max)
+inline void Box::Set(AIPoint* min, AIPoint* max)
 {
     minx = min->x; miny = min->y; minz = min->z;
     maxx = max->x; maxy = max->y; maxz = max->z;
@@ -88,12 +88,12 @@ inline void Box::CorrectBox()
     maxx=maxx+0.0001f; maxy=maxy+0.0001f; maxz=maxz+0.0001f;
 }
 
-inline bool Box::InBox(Point* p) const { 
+inline bool Box::InBox(AIPoint* p) const { 
     if (p->x<minx || p->x>maxx || p->y<miny || p->y>maxy || p->z<minz || p->z>maxz) return false;         
     return true;
 }
 
-inline int Box::IntersectBox(const Point* p, const Vector* vi, float* dist) const
+inline int Box::IntersectBox(const AIPoint* p, const Vector* vi, float* dist) const
 {        
     float tminx,tmaxx,tminy,tmaxy;
     int side=0;           
@@ -142,7 +142,7 @@ inline int Box::IntersectBox(const Point* p, const Vector* vi, float* dist) cons
     return 1;
 }
 
-inline bool Box::CollidesFace(Point* p1, Point* p2, Point* p3)
+inline bool Box::CollidesFace(AIPoint* p1, AIPoint* p2, AIPoint* p3)
 {
     //check if the polygon is completely on one side of the box
     if (p1->x<minx && p2->x<minx && p3->x<minx) return false;
@@ -209,7 +209,7 @@ inline bool Box::CollidesFace(Point* p1, Point* p2, Point* p3)
     float b3 = minz*normal.z; float b6 = maxz*normal.z;
     
     float d1,d2,d3,d4,d5;
-    Point intersect;
+    AIPoint intersect;
     
     //diagonal 1
     d1 = b1 + b2 + b3 - distv;

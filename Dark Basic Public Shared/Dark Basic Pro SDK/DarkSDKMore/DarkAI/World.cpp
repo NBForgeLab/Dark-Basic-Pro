@@ -198,8 +198,8 @@ void World::SetConsoleOn ( int iObjID )
 	hDebugConsoleOut = GetStdHandle ( STD_OUTPUT_HANDLE );
 	
 	DWORD dwWritten = 0;
-	char* str = "**** AI Debugging Output ****";
-	WriteConsole ( hDebugConsoleOut, str, (DWORD) strlen( str ), &dwWritten, NULL );
+	const char* str = "**** AI Debugging Output ****";
+	WriteConsoleA ( hDebugConsoleOut, str, (DWORD) strlen( str ), &dwWritten, NULL );
 }
 
 void World::ChangeConsoleObject ( int iObjID )
@@ -1097,7 +1097,7 @@ bool World::GlobalVisibilityCheck( float x, float y, float z, float x2, float y2
 	if ( dist ) *dist = -1;
 
 	CollisionObject *pColObject = pVisibilityData;
-	Point p;
+	AIPoint p;
 	Vector v;
 
 	p.set( x,y,z );

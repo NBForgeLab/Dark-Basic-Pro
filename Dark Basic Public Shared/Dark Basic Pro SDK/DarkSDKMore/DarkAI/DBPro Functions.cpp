@@ -29,9 +29,9 @@ int dbMakeEdgeMesh ( )
 	int iTempMesh = dbFreeMesh ( );
 	if ( iTempMesh == 0 ) return 0;
 
-	MakeObjectPlane ( iTempObj, 0.3f, 1.0f, 1 );
-	XRotateObject ( iTempObj, 90.0f );
-	FixObjectPivot ( iTempObj );
+	MakePlane ( iTempObj, 0.3f, 1.0f );
+	XRotate ( iTempObj, 90.0f );
+	FixPivot ( iTempObj );
 	MakeMeshFromObject ( iTempMesh, iTempObj );
 	DeleteObject ( iTempObj );
 
@@ -45,7 +45,7 @@ int dbMakePointMesh ( )
 	int iTempMesh = dbFreeMesh ( );
 	if ( iTempMesh == 0 ) return 0;
 
-	MakeObjectSphere ( iTempObj, 2.0f, 2, 4 );
+	MakeSphere ( iTempObj, 2.0f, 2, 4 );
 	MakeMeshFromObject ( iTempMesh, iTempObj );
 	DeleteObject ( iTempObj );
 
@@ -59,6 +59,6 @@ void dbCombineLimbs ( int iObjID )
 	MakeMeshFromObject ( iTempMesh, iObjID );
 	DeleteObject ( iObjID );
 	MakeObject ( iObjID, iTempMesh, 0 );
-	SetObjectMask ( iObjID, 1 );
+	SetMask ( iObjID, 1 );
 	DeleteMesh ( iTempMesh );
 }

@@ -125,7 +125,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
     float avg;
     float total = 0;
             
-    while (faces>0)
+    while (faces)
     {
         //get the triangles average distance along this axis and compare with the limit
         switch(axis)
@@ -191,7 +191,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
         leftFaces = 0;
         rightFaces = 0;
         
-        while (faces>0)
+        while (faces)
         {
             switch(axis1)
             {
@@ -250,7 +250,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
         leftFaces = 0;
         rightFaces = 0;
         
-        while (faces>0)
+        while (faces)
         {
             switch(axis2)
             {
@@ -303,7 +303,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
         leftFaces = 0;
         rightFaces = 0;
         
-        while (faces>0)
+        while (faces)
         {
             switch(axis)
             {
@@ -356,7 +356,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
         
         int flag = 1;
         
-        while (faces>0)
+        while (faces)
         {
             if (flag)
             {
@@ -394,7 +394,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
     right->BuildTree(rightFaces,fnum2,facesPerNode);
 }
 
-bool TreeNode::Intersects( const Point* p, const Vector* vec, const Vector* vecI, int dir, float *dist ) const
+bool TreeNode::Intersects( const AIPoint* p, const Vector* vec, const Vector* vecI, int dir, float *dist ) const
 {
 	float fNewDist = 0;
 	if ( bounds.IntersectBox( p, vecI, &fNewDist ) == 0 ) return false;

@@ -17,7 +17,7 @@ class CollisionObject
         CollisionObject() { pNextObject = 0; bCollisionOn = true; }
         virtual ~CollisionObject() {}
         
-        virtual bool Intersects( const Point* p, const Vector* v, int dir, float *dist ) const = 0;
+        virtual bool Intersects( const AIPoint* p, const Vector* v, int dir, float *dist ) const = 0;
 		virtual void MakeCollisionObject( sObject* pObject ) = 0;
 
 		CollisionObject *pNextObject;

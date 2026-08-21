@@ -8,7 +8,7 @@
 class TreeFace
 {
     public:    
-        Point vert1,vert2,vert3;
+        AIPoint vert1,vert2,vert3;
         Vector normal;
         float d;
         //bool collisionon;
@@ -18,10 +18,10 @@ class TreeFace
 		TreeFace( ) { };
 		virtual ~TreeFace( ) { };
 
-		bool MakeFace( Point *p1, Point *p2, Point *p3, int id );
+		bool MakeFace( AIPoint *p1, AIPoint *p2, AIPoint *p3, int id );
         
-        virtual bool Intersects( const Point* p, const Vector* v, int dir, float *dist ) const;
-		bool PointInPoly( const Point* p ) const;
+        virtual bool Intersects( const AIPoint* p, const Vector* v, int dir, float *dist ) const;
+		bool PointInPoly( const AIPoint* p ) const;
 		
     private:
 };

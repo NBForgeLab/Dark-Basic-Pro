@@ -1,6 +1,6 @@
 #include "TreeFace.h"
 
-bool TreeFace::MakeFace( Point *p1, Point *p2, Point *p3, int id )
+bool TreeFace::MakeFace( AIPoint *p1, AIPoint *p2, AIPoint *p3, int id )
 {
 	iID = id;
 	
@@ -28,12 +28,12 @@ bool TreeFace::MakeFace( Point *p1, Point *p2, Point *p3, int id )
 	return true;
 }
 
-bool TreeFace::Intersects(const Point* p, const Vector* v, int dir, float *dist ) const
+bool TreeFace::Intersects(const AIPoint* p, const Vector* v, int dir, float *dist ) const
 {
     //if (!collisionon) return false;
 
 	float dist1,dist2;
-    Point intersect;
+    AIPoint intersect;
 	                                
 	dist1 = normal.x*(p->x+v->x) + normal.y*(p->y+v->y) + normal.z*(p->z+v->z) + d;
     dist2 = normal.x*p->x + normal.y*p->y + normal.z*p->z + d;
@@ -68,7 +68,7 @@ bool TreeFace::Intersects(const Point* p, const Vector* v, int dir, float *dist 
     return true;
 }
 
-inline bool TreeFace::PointInPoly( const Point* p) const
+inline bool TreeFace::PointInPoly( const AIPoint* p) const
 {
     //First side
     Vector v3(&vert1,&vert2);

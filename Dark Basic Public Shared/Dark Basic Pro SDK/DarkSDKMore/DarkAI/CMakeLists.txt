@@ -42,8 +42,6 @@ set(DARKAI_SOURCES
     World.cpp
     Zone.cpp
     stringtable.rc
-    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core/globstruct.cpp"
-    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error/CError.cpp"
 )
 
 add_library(dbp_plugin_darkai SHARED ${DARKAI_SOURCES})
@@ -62,6 +60,7 @@ target_compile_definitions(dbp_plugin_darkai PRIVATE
     DARKAI_EXPORTS
     _MBCS
     _CRT_SECURE_NO_WARNINGS
+    DBP_PLUGIN_CONSUMER
 )
 
 target_include_directories(dbp_plugin_darkai PUBLIC
@@ -77,6 +76,7 @@ target_include_directories(dbp_plugin_darkai PUBLIC
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/DBOFormat"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Memblocks"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Camera"
+    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/File"
     ${DXSDK_INCLUDE_DIR}
 )
 
@@ -85,6 +85,12 @@ if(DXSDK_LIBRARY_DIR)
 endif()
 
 target_link_libraries(dbp_plugin_darkai PRIVATE
+    dbp_plugin_core
+    dbp_plugin_objects
+    dbp_plugin_dboformat
+    dbp_plugin_memblocks
+    dbp_plugin_camera
+    dbp_plugin_file
     winmm
     d3d9
     d3dx9

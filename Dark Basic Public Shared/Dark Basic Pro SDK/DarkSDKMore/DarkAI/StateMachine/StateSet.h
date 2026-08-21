@@ -40,7 +40,7 @@ public:
 	//what an entity should do when it is in this state
 	virtual void Execute ( Entity *pEntity ) = 0;
 
-	virtual char* GetName ( ) { return "None"; }
+	virtual const char* GetName ( ) { return "None"; }
 };
 
 
@@ -59,7 +59,7 @@ class StateSet
 		void Enter	 ( Entity *pEntity );
 		void Exit	 ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Manual"; }
+		const char* GetName ( ) { return "Manual"; }
 	};
 	
 	class StateIdle : public State
@@ -73,7 +73,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Idle"; }
+		const char* GetName ( ) { return "Idle"; }
 	};
 
 	class StatePatrol : public State
@@ -87,7 +87,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Patrol"; }
+		const char* GetName ( ) { return "Patrol"; }
 	};
 
 	class StateInvestigate : public State
@@ -101,7 +101,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Investigate"; }
+		const char* GetName ( ) { return "Investigate"; }
 	};
 
 	class StateGoToDest : public State
@@ -115,7 +115,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Go To Destination"; }
+		const char* GetName ( ) { return "Go To Destination"; }
 	};
 
 	class StateSearchArea : public State
@@ -129,7 +129,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Search Area"; }
+		const char* GetName ( ) { return "Search Area"; }
 	};
 
 	class StateAttack : public State
@@ -143,7 +143,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Attack"; }
+		const char* GetName ( ) { return "Attack"; }
 	};
 
 	class StateChaseAttack : public State
@@ -157,7 +157,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Run and Attack"; }
+		const char* GetName ( ) { return "Run and Attack"; }
 	};
 
 	class StateStrafeAttack : public State
@@ -171,7 +171,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Strafe and Attack"; }
+		const char* GetName ( ) { return "Strafe and Attack"; }
 	};
 
 	class StateDefend : public State
@@ -185,7 +185,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Defend"; }
+		const char* GetName ( ) { return "Defend"; }
 	};
 
 	class StateFallBack : public State
@@ -199,7 +199,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Fall Back"; }
+		const char* GetName ( ) { return "Fall Back"; }
 	};
 
 	class StateWaitInCover : public State
@@ -213,7 +213,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Wait In Cover"; }
+		const char* GetName ( ) { return "Wait In Cover"; }
 	};
 
 	class StateRemoveCover : public State
@@ -227,7 +227,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Reveal"; }
+		const char* GetName ( ) { return "Reveal"; }
 	};
 
 	class StatePeekFromCorner : public State
@@ -241,7 +241,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Peeking From Corner"; }
+		const char* GetName ( ) { return "Peeking From Corner"; }
 	};
 
 	class StateDiving : public State
@@ -255,7 +255,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Diving"; }
+		const char* GetName ( ) { return "Diving"; }
 	};
 
 	class StateLeaping : public State
@@ -269,7 +269,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Leeping"; }
+		const char* GetName ( ) { return "Leeping"; }
 	};
 
 	class StateAttackFromCover : public State
@@ -283,7 +283,7 @@ class StateSet
 		void Enter   ( Entity *pEntity );
 		void Exit    ( Entity *pEntity );
 		void Execute ( Entity *pEntity );
-		char* GetName ( ) { return "Attack From Cover"; }
+		const char* GetName ( ) { return "Attack From Cover"; }
 	};
 
 public:

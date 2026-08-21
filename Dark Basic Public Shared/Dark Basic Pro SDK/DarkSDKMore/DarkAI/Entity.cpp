@@ -1274,7 +1274,7 @@ float Entity::GetSqrDistTo ( float x, float y, float z )
 	return fX*fX + fZ*fZ;
 }
 
-char* Entity::GetStateName ( )
+const char* Entity::GetStateName ( )
 {
 	return pCurrentState->GetName ( );
 }

@@ -1,6 +1,7 @@
 #ifndef H_BEACON
 #define H_BEACON
 
+#include "directx-macros.h"
 #include ".\..\..\Shared\DBOFormat\DBOData.h"
 
 class Container;

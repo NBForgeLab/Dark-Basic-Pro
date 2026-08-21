@@ -27,7 +27,7 @@ class CollisionTree : public CollisionObject
 
 		void MakeCollisionObject( sObject* pObject );
         
-        bool Intersects( const Point* p, const Vector* vec, int dir, float* dist ) const;
+        bool Intersects( const AIPoint* p, const Vector* vec, int dir, float* dist ) const;
 
 		int GetCollisionType() { return 0; }
 		              

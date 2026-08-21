@@ -9,10 +9,10 @@ class Vector
     public:
         
         Vector(float nx=0.0, float ny=0.0, float nz=0.0) { x=nx; y=ny; z=nz; }        
-        Vector(const Point* p1, const Point* p2) { x = p2->x-p1->x; y = p2->y-p1->y; z = p2->z-p1->z; }
+        Vector(const AIPoint* p1, const AIPoint* p2) { x = p2->x-p1->x; y = p2->y-p1->y; z = p2->z-p1->z; }
         
         void set(float nx, float ny, float nz) { x=nx; y=ny; z=nz; }        
-        void set(const Point* p1, const Point* p2) { x = p2->x-p1->x; y = p2->y-p1->y; z = p2->z-p1->z; }
+        void set(const AIPoint* p1, const AIPoint* p2) { x = p2->x-p1->x; y = p2->y-p1->y; z = p2->z-p1->z; }
         
         float size() const { return (float)sqrt(x*x + y*y + z*z); }
         float sqrSize() const { return x*x + y*y + z*z; }
@@ -31,8 +31,8 @@ class Vector
         
         void flattenToCrossVector(const Vector* v1, const Vector* v2);
         
-        Point closestPoint(const Point* start, const Point* object) const;        
-        Point closestNormalisedPoint(const Point* start, const Point* finish, const Point* object) const;
+        AIPoint closestPoint(const AIPoint* start, const AIPoint* object) const;        
+        AIPoint closestNormalisedPoint(const AIPoint* start, const AIPoint* finish, const AIPoint* object) const;
 
         float x,y,z,length;
         
@@ -95,7 +95,7 @@ inline void Vector::flattenToCrossVector(const Vector* v1, const Vector* v2)
     z = cross.z*dist;
 }
 
-inline Point Vector::closestPoint(const Point* start, const Point* object) const
+inline AIPoint Vector::closestPoint(const AIPoint* start, const AIPoint* object) const
 {
     Vector v2(object->x-start->x,object->y-start->y,object->z-start->z);
     //Vector v3(x,y,z);
@@ -106,7 +106,7 @@ inline Point Vector::closestPoint(const Point* start, const Point* object) const
     if (sqrLen>0.00001) dist = (x*v2.x + y*v2.y + z*v2.z)/sqrLen;
     else dist = 0;
     
-    Point result;
+    AIPoint result;
     
     if (dist<=0) {
         result = *start;
@@ -126,11 +126,11 @@ inline Point Vector::closestPoint(const Point* start, const Point* object) const
     return result;
 }
 
-inline Point Vector::closestNormalisedPoint(const Point* start, const Point* finish, const Point* object) const
+inline AIPoint Vector::closestNormalisedPoint(const AIPoint* start, const AIPoint* finish, const AIPoint* object) const
 {
     Vector v2(object->x-start->x,object->y-start->y,object->z-start->z);
     float dist = x*v2.x + y*v2.y + z*v2.z;
-    Point result;
+    AIPoint result;
     
     if (dist<=0) {
         result = *start;
