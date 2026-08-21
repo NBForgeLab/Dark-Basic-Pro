@@ -14,8 +14,6 @@ set(LIGHTMAPPER_SOURCES
     SharedData.cpp
     TreeFaceLightmapper.cpp
     LightMapper.rc
-    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core/globstruct.cpp"
-    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error/CError.cpp"
 )
 
 add_library(dbp_plugin_lightmapper SHARED ${LIGHTMAPPER_SOURCES})
@@ -34,6 +32,7 @@ target_compile_definitions(dbp_plugin_lightmapper PRIVATE
     LIGHTMAPPER_EXPORTS
     _MBCS
     _CRT_SECURE_NO_WARNINGS
+    DBP_PLUGIN_CONSUMER
 )
 
 target_include_directories(dbp_plugin_lightmapper PUBLIC
@@ -46,6 +45,8 @@ target_include_directories(dbp_plugin_lightmapper PUBLIC
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/DBOFormat"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Camera"
+    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Objects"
+    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Image"
     ${DXSDK_INCLUDE_DIR}
 )
 
@@ -54,6 +55,11 @@ if(DXSDK_LIBRARY_DIR)
 endif()
 
 target_link_libraries(dbp_plugin_lightmapper PRIVATE
+    dbp_plugin_core
+    dbp_plugin_objects
+    dbp_plugin_dboformat
+    dbp_plugin_camera
+    dbp_plugin_image
     winmm
     d3d9
     d3dx9

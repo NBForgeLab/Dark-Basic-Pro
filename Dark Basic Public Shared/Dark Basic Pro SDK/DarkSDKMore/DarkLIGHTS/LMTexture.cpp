@@ -1,6 +1,3 @@
-#include "DirectXTex.h"
-using namespace DirectX;
-
 #include "LMGlobal.h"
 #include "DBPro Functions.h"
 
@@ -175,7 +172,7 @@ void LMTexture::CalculateLight( Light *pLightList, CollisionTreeLightmapper *pCo
 	float fNormX=0, fNormY=0, fNormZ=0;
 	float fDotP=0, fLength=0;
 	Vector vec, vecN, vecI;
-	Point p;
+	LMPoint p;
 
 	//for each light
 	pCurrLight = pLightList;

@@ -27,8 +27,21 @@ int g_iLightmapFileFormat = 0;	//0=png, 1=dds, 2=bmp
 int g_iLightmapFileNumber = 0;
 HANDLE g_hLMHeap = NULL;
 
-extern LPGGDEVICE m_pD3D;
-extern GlobStruct *g_pGlob;
+LPGGDEVICE m_pD3D = NULL;
+GlobStruct *g_pGlob = NULL;
+
+typedef IDirect3DDevice9* (*GFX_GetDirect3DDevicePFN)(void);
+
+DARKSDK void ReceiveCoreDataPtr ( LPVOID pCore )
+{
+	g_pGlob = (GlobStruct*)pCore;
+	if ( g_pGlob && g_pGlob->g_GFX )
+	{
+		GFX_GetDirect3DDevicePFN pFn = (GFX_GetDirect3DDevicePFN)GetProcAddress( g_pGlob->g_GFX, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
+		if ( pFn )
+			m_pD3D = pFn();
+	}
+}
 
 CollisionTreeLightmapper cColTree;
 TreeFaceLightmapper *pFaceList = 0;
@@ -210,7 +223,7 @@ DLLEXPORT void LMSetBlendMode( int iNewMode )
 //transparent type: 0=opaque, 1=black, 2=alpha
 DLLEXPORT void LMAddCollisionObject( sObject *pObject, int iTransparent )
 {
-	LPSTR pAddStatus = "";
+	LPCSTR pAddStatus = "";
 	try
 	{
 		pAddStatus = "CheckLMInit";
@@ -261,7 +274,7 @@ DLLEXPORT void LMAddCollisionObject( sObject *pObject, int iTransparent )
 
 			pAddStatus = "ConvertLocalMeshToVertsOnly";
 			int iPrimitiveType = pMesh->iPrimitiveType;
-			if ( iPrimitiveType == 5 )  ConvertLocalMeshToVertsOnly( pMesh, false );
+			if ( iPrimitiveType == 5 )  ConvertLocalMeshToVertsOnly( pMesh );
 
 			DWORD dwFVFSize = pMesh->dwFVFSize;
 			int iNumVertices = pMesh->dwVertexCount;
@@ -271,7 +284,7 @@ DLLEXPORT void LMAddCollisionObject( sObject *pObject, int iTransparent )
 			if ( dwFVFSize < 12 ) continue;
 			if ( iNumVertices <= 0 ) continue;
 			int iMax = iNumIndices>0 ? iNumIndices : iNumVertices;
-			Point p1,p2,p3;
+			LMPoint p1,p2,p3;
 			float u1,u2,u3;
 			float v1,v2,v3;
 			int dwIndex;
@@ -1438,7 +1451,7 @@ DLLEXPORT LPSTR LMGetStatus( void )
 	DWORD dwSize = (DWORD) strlen ( (char*) szNewString );
 
 	LPSTR szReturnString = NULL;
-	g_pGlob->CreateDeleteString ( &szReturnString, dwSize+1 );
+	g_pGlob->CreateDeleteString ( (DWORD_PTR*)&szReturnString, dwSize+1 );
 	
 	strcpy_s ( (char*) szReturnString, dwSize+1, szNewString);
 

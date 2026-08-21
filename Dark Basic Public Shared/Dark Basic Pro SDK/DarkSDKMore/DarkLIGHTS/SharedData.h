@@ -22,7 +22,7 @@ public:
 	SharedData( );
 	~SharedData( );
 
-	bool SetStatus( char* pMessage, float percent );
+	bool SetStatus( const char* pMessage, float percent );
 	void SetComplete( bool complete );
 	bool GetStatus( char* pOutStr );
 	float GetPercent( );

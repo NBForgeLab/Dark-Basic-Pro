@@ -35,7 +35,7 @@ LMPoly::~LMPoly( )
 	
 }
 
-void LMPoly::SetVertices( Point *v1, Point *v2, Point *v3 )
+void LMPoly::SetVertices( LMPoint *v1, LMPoint *v2, LMPoint *v3 )
 {
 	vert1[0] = v1->x; vert1[1] = v1->y; vert1[2] = v1->z;
 	vert2[0] = v2->x; vert2[1] = v2->y; vert2[2] = v2->z;
@@ -47,7 +47,7 @@ void LMPoly::SetVertices( Point *v1, Point *v2, Point *v3 )
 	fArea = -1;
 }
 
-void LMPoly::SetDiffuseUV( Point *v1, Point *v2, Point *v3 )
+void LMPoly::SetDiffuseUV( LMPoint *v1, LMPoint *v2, LMPoint *v3 )
 {
 	diffuseuv1[0] = v1->x; diffuseuv1[1] = v1->y;
 	diffuseuv2[0] = v2->x; diffuseuv2[1] = v2->y;
@@ -523,7 +523,7 @@ void LMCurvedPoly::GetNormal( float fPosX, float fPosY, float fPosZ, float *fNor
 	fDist2 = (pVertA[0] - fPosX)*BCNormal.x + (pVertA[1] - fPosY)*BCNormal.y + (pVertA[2] - fPosZ)*BCNormal.z;
 	fDist1 = fDist1 / fDist2;
 
-	Point intersect;
+	LMPoint intersect;
 	intersect.x = pVertA[0] + (fPosX - pVertA[0])*fDist1;
 	intersect.y = pVertA[1] + (fPosY - pVertA[1])*fDist1;
 	intersect.z = pVertA[2] + (fPosZ - pVertA[2])*fDist1;

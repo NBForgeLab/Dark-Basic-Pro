@@ -8,7 +8,7 @@ class Lumel;
 class CollisionTreeLightmapper;
 class Light;
 class LMTexture;
-class Point;
+class LMPoint;
 
 class LMPolyGroup //: public Thread
 {
@@ -16,7 +16,7 @@ class LMPolyGroup //: public Thread
 private:
 
 	static int iPixelBorder;
-	static Point *pRandomPoints;
+	static LMPoint *pRandomPoints;
 	static float *pRandomDist;
 	static int iIterations;
 	static float fAmbientDistance;

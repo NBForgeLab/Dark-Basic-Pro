@@ -58,7 +58,7 @@ public:
 	virtual int GetType( ) { return 0; }
 	virtual bool IsCurved( ) { return false; }
 
-	void SetVertices( Point* v1, Point* v2, Point* v3 );
+	void SetVertices( LMPoint* v1, LMPoint* v2, LMPoint* v3 );
 	void SetNormal( Vector* n );
 	void SetStartPoint( int u, int v );
 
@@ -89,7 +89,7 @@ public:
 	bool Joined( LMPoly* pOtherPoly );
 
 	void CalculateTexUV( int iStartU, int iStartV, float fMinU, float fMinV, int iTexSizeU, int iTexSizeV );
-	void SetDiffuseUV( Point *v1, Point *v2, Point *v3 );
+	void SetDiffuseUV( LMPoint *v1, LMPoint *v2, LMPoint *v3 );
 };
 
 class LMCurvedPoly : public LMPoly

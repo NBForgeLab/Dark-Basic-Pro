@@ -166,7 +166,7 @@ void LMObject::BuildPolyList( bool bFlatShaded )
 	int iNumVertices = pMesh->dwVertexCount;
 	int iNumIndices = pMesh->dwIndexCount;
 	
-	Point p1,p2,p3;
+	LMPoint p1,p2,p3;
 	GGVECTOR3 vecVert;
 
 	fObjCenX = 0; fObjCenY = 0; fObjCenZ = 0;
@@ -177,7 +177,7 @@ void LMObject::BuildPolyList( bool bFlatShaded )
 	float *pU1, *pU2, *pU3;
 	float *pV1, *pV2, *pV3;
 	Vector normV1, normV2, normV3;
-	Point diffuv1, diffuv2, diffuv3;
+	LMPoint diffuv1, diffuv2, diffuv3;
 
 	sOffsetMap cOffsetMap;
 	GetFVFOffsetMap( pMesh, &cOffsetMap );
@@ -688,7 +688,7 @@ void LMObject::CreateTriOnlyAndApplyUVData ( void )
 	}
 
 	// make a tri-only new mesh contents
-	ConvertLocalMeshToVertsOnly ( pMesh, false );
+	ConvertLocalMeshToVertsOnly ( pMesh );
 	ConvertToFVF( pMesh, pMesh->dwFVF );
 	DWORD dwVertexCount = iTotalPolyCount * 3;
 	if ( pMesh->dwVertexCount==dwVertexCount )

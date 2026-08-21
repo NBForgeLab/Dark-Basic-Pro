@@ -11,7 +11,7 @@ extern HANDLE g_hLMHeap;
 int LMPolyGroup::iPixelBorder = 2;
 int LMPolyGroup::iMode = 0;
 float LMPolyGroup::fShadowPower = 1;
-Point* LMPolyGroup::pRandomPoints = 0;
+LMPoint* LMPolyGroup::pRandomPoints = 0;
 float* LMPolyGroup::pRandomDist = 0;
 int LMPolyGroup::iIterations = 256;
 float LMPolyGroup::fAmbientDistance = 50.0f;
@@ -26,7 +26,7 @@ void LMPolyGroup::SetAmbientOcclusionOn( int iterations, float fRayDist, int iPa
 	iIterations = iterations;
 
 	if ( pRandomPoints ) delete [] pRandomPoints;
-	pRandomPoints = new Point [ iIterations ];
+	pRandomPoints = new LMPoint [ iIterations ];
 
 	if ( pRandomDist ) delete [] pRandomDist;
 	pRandomDist = new float [ iIterations ];
@@ -625,7 +625,7 @@ void LMPolyGroup::CalculateLight( const Light *pLightList, const CollisionTreeLi
 	float fNormX=0, fNormY=0, fNormZ=0;
 	float fDotP=0, fLength=1;
 	Vector vec, vecI;
-	Point p;
+	LMPoint p;
 	LMPoly* pInPoly = 0;
 	bool bInPoly = false;
 

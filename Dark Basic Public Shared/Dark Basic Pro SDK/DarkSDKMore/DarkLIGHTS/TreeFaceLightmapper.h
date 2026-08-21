@@ -17,7 +17,7 @@ void TreeFaceFreeUsages(void);
 class TreeFaceLightmapper
 {
     public:    
-        Point vert1,vert2,vert3;
+        LMPoint vert1,vert2,vert3;
         Vector normal;
         float d;
         //bool collisionon;
@@ -29,10 +29,10 @@ class TreeFaceLightmapper
 		TreeFaceLightmapper( ) { };
 		virtual ~TreeFaceLightmapper( ) { };
 
-		bool MakeFace( Point *p1, Point *p2, Point *p3 );
+		bool MakeFace( LMPoint *p1, LMPoint *p2, LMPoint *p3 );
         
-        virtual bool intersects( const Point* p, const Vector* v, Lumel* pColour, float* pShadow ) const;
-		bool pointInPoly(const Point* p) const;
+        virtual bool intersects( const LMPoint* p, const Vector* v, Lumel* pColour, float* pShadow ) const;
+		bool pointInPoly(const LMPoint* p) const;
 		virtual bool IsCurved( ) const { return false; }
         
     private:
@@ -69,11 +69,11 @@ public:
 	TransparentFace( ) { pTexture = 0; };
 	~TransparentFace( ) {  }; // pTexture only a ref, release in pTextureList
 
-	bool MakeTransparentFace( Point *p1, Point *p2, Point *p3, int type, float fU1, float fV1, float fU2, float fV2, float fU3, float fV3, sTexture* pSrcTexture );
+	bool MakeTransparentFace( LMPoint *p1, LMPoint *p2, LMPoint *p3, int type, float fU1, float fV1, float fU2, float fV2, float fU3, float fV3, sTexture* pSrcTexture );
 
-	bool intersects( const Point* p, const Vector* v, Lumel *pColour, float* pShadow ) const;
+	bool intersects( const LMPoint* p, const Vector* v, Lumel *pColour, float* pShadow ) const;
 
-	void InterpolateUV( const Point *p, float *pU, float *pV ) const;
+	void InterpolateUV( const LMPoint *p, float *pU, float *pV ) const;
 	bool IsCurved( ) const { return true; }
 	
 };
@@ -87,7 +87,7 @@ class TreeNodeLightmapper
           
           void buildTree(TreeFaceLightmapper* faces,unsigned fnum,int facesPerNode);
           
-          bool intersects( const Point* p, const Vector* vec, const Vector* vecI, Lumel* pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const;
+          bool intersects( const LMPoint* p, const Vector* vec, const Vector* vecI, Lumel* pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const;
           //Box* getBounds() { return &bounds; }
              
       public:     
@@ -98,13 +98,13 @@ class TreeNodeLightmapper
 };
 
 
-inline bool TreeFaceLightmapper::intersects(const Point* p, const Vector* v, Lumel* pColour, float* pShadow) const
+inline bool TreeFaceLightmapper::intersects(const LMPoint* p, const Vector* v, Lumel* pColour, float* pShadow) const
 {
     //if (!collisionon) return false;
 
 	float dist1,dist2;
-    Point intersect;
-	//Point *p = &(CollisionTreeLightmapper::p);
+    LMPoint intersect;
+	//LMPoint *p = &(CollisionTreeLightmapper::p);
 	//Vector *v = &(CollisionTreeLightmapper::vec);
                                     
 	dist1 = normal.x*(p->x+v->x) + normal.y*(p->y+v->y) + normal.z*(p->z+v->z) + d;
@@ -127,7 +127,7 @@ inline bool TreeFaceLightmapper::intersects(const Point* p, const Vector* v, Lum
     return true;
 }
 
-inline bool TreeFaceLightmapper::pointInPoly( const Point* p) const
+inline bool TreeFaceLightmapper::pointInPoly( const LMPoint* p) const
 {
     //First side
     Vector v3(&vert1,&vert2);

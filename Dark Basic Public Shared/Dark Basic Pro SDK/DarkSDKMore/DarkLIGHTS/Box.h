@@ -12,20 +12,20 @@ class Box
 
     public:
     
-        //Point lastNormal;
+        //LMPoint lastNormal;
         
-        Box(Point* min, Point* max);
+        Box(LMPoint* min, LMPoint* max);
         Box(float x=L,float y=L,float z=L,float x2=S,float y2=S,float z2=S);
         ~Box() {}
         
         void resetBox();        
-        void set(Point* min, Point* max);
+        void set(LMPoint* min, LMPoint* max);
         void set(float x,float y,float z,float x2,float y2,float z2);
         
         void correctBox();        
         
-        bool inBox(Point* p) const;        
-        int intersectBox(const Point* p, const Vector* vi) const;
+        bool inBox(LMPoint* p) const;        
+        int intersectBox(const LMPoint* p, const Vector* vi) const;
                 
         float maxbx() const { return maxx; }
         float maxby() const { return maxy; }
@@ -48,7 +48,7 @@ class Box
 
 
 
-inline Box::Box(Point* min, Point* max)
+inline Box::Box(LMPoint* min, LMPoint* max)
 {
     minx = min->x; miny = min->y; minz = min->z;
     maxx = max->x; maxy = max->y; maxz = max->z;
@@ -68,7 +68,7 @@ inline void Box::resetBox()
     maxx = S; maxy = S; maxz = S;
 }
 
-inline void Box::set(Point* min, Point* max)
+inline void Box::set(LMPoint* min, LMPoint* max)
 {
     minx = min->x; miny = min->y; minz = min->z;
     maxx = max->x; maxy = max->y; maxz = max->z;
@@ -86,12 +86,12 @@ inline void Box::correctBox()
     maxx=maxx+0.0001f; maxy=maxy+0.0001f; maxz=maxz+0.0001f;
 }
 
-inline bool Box::inBox(Point* p) const { 
+inline bool Box::inBox(LMPoint* p) const { 
     if (p->x<minx || p->x>maxx || p->y<miny || p->y>maxy || p->z<minz || p->z>maxz) return false;         
     return true;
 }
 
-inline int Box::intersectBox(const Point* p, const Vector* vi) const
+inline int Box::intersectBox(const LMPoint* p, const Vector* vi) const
 {        
     float tminx,tmaxx,tminy,tmaxy;
     int side=0;           

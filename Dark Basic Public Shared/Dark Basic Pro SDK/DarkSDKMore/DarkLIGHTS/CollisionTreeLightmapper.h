@@ -34,7 +34,7 @@ class CollisionTreeLightmapper
 		//void SetVector( Vector *v );
 		//void SetPoint( float x, float y, float z );
         
-        bool intersects( const Point* p, const Vector* vec, const Vector* vecI, Lumel *pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const;
+        bool intersects( const LMPoint* p, const Vector* vec, const Vector* vecI, Lumel *pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const;
         //TreeNodeLightmapper* getRoot() { return tree; }
               
     private:

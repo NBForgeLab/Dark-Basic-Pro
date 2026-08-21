@@ -16,7 +16,7 @@ SharedData::~SharedData( )
 	CloseHandle( pTextureLockMutex );
 }
 
-bool SharedData::SetStatus( char *pMessage, float percent )
+bool SharedData::SetStatus( const char *pMessage, float percent )
 {
 	DWORD dwResult = WaitForSingleObject( pMutex, 3000 );
 

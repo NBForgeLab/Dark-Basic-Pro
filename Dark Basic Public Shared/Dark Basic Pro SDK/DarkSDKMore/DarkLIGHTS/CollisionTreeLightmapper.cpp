@@ -29,7 +29,7 @@ void CollisionTreeLightmapper::makeCollisionObject(unsigned vnum, float* vertice
     
     int j;
     unsigned fnum = vnum/3;
-    Point p1,p2,p3;
+    LMPoint p1,p2,p3;
     float length;
     TreeFaceLightmapper* faces = 0;
             
@@ -108,7 +108,7 @@ void CollisionTreeLightmapper::SetPoint( float x, float y, float z )
 }
 */
 
-bool CollisionTreeLightmapper::intersects( const Point* p, const Vector* vec, const Vector* vecI, Lumel* pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const
+bool CollisionTreeLightmapper::intersects( const LMPoint* p, const Vector* vec, const Vector* vecI, Lumel* pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const
 {    
 	if ( !tree ) return false;
     return (tree->intersects(p,vec,vecI,pColour,pShadow,ppLastHit));

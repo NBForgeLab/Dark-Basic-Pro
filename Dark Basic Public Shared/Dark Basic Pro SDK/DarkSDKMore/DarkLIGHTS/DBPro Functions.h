@@ -1,6 +1,7 @@
 #ifndef H_DBPRO_FUNC
 #define H_DBPRO_FUNC
 
+#include "directx-macros.h"
 #include ".\..\..\Shared\DBOFormat\DBOData.h"
 
 #include "globstruct.h"

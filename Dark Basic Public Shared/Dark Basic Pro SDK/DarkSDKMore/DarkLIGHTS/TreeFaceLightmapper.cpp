@@ -1,6 +1,3 @@
-#include "DirectXTex.h"
-using namespace DirectX;
-
 #include "DBPro Functions.h"
 #include "TreeFaceLightmapper.h"
 #include <cstdlib>
@@ -27,7 +24,7 @@ void TreeFaceFreeUsages(void)
 	TransparentFace::pTextureList = NULL;
 }
 
-bool TreeFaceLightmapper::MakeFace( Point *p1, Point *p2, Point *p3 )
+bool TreeFaceLightmapper::MakeFace( LMPoint *p1, LMPoint *p2, LMPoint *p3 )
 {
 	vert1 = *p1;
 	vert2 = *p2;
@@ -53,7 +50,7 @@ bool TreeFaceLightmapper::MakeFace( Point *p1, Point *p2, Point *p3 )
 	return true;
 }
 
-bool TransparentFace::MakeTransparentFace(Point *p1, Point *p2, Point *p3, int type, float fU1, float fV1, float fU2, float fV2, float fU3, float fV3, sTexture* pSrcTexture)
+bool TransparentFace::MakeTransparentFace(LMPoint *p1, LMPoint *p2, LMPoint *p3, int type, float fU1, float fV1, float fU2, float fV2, float fU3, float fV3, sTexture* pSrcTexture)
 {
 	// find existing texture class in transparent textures list
 	TextureClass *pPrevTexture = pTextureList;
@@ -251,14 +248,14 @@ bool TransparentFace::MakeTransparentFace(Point *p1, Point *p2, Point *p3, int t
 	return MakeFace( p1, p2, p3 );
 }
 
-bool TransparentFace::intersects( const Point* p, const Vector* v, Lumel *pColour, float *pShadow ) const
+bool TransparentFace::intersects( const LMPoint* p, const Vector* v, Lumel *pColour, float *pShadow ) const
 {
 //	char str[256];
 	//MessageBox( NULL, "Checking Transparent Polygon", "Info", 0 );
 	
 	bool bHit = false;
 	float dist1,dist2;
-    Point intersect;
+    LMPoint intersect;
 	//Point *p = &(CollisionTreeLightmapper::p);
 	//Vector *v = &(CollisionTreeLightmapper::vec);
                                     
@@ -426,7 +423,7 @@ bool TransparentFace::intersects( const Point* p, const Vector* v, Lumel *pColou
 	}
 }
 
-void TransparentFace::InterpolateUV( const Point *p, float *pU, float *pV ) const
+void TransparentFace::InterpolateUV( const LMPoint *p, float *pU, float *pV ) const
 {
 	float fDiffX = vert1.x - p->x;
 	float fDiffY = vert1.y - p->y;
@@ -443,9 +440,9 @@ void TransparentFace::InterpolateUV( const Point *p, float *pU, float *pV ) cons
 	fDiffZ = vert3.z - p->z;
 	float fDist3 = fDiffX*fDiffX + fDiffY*fDiffY + fDiffZ*fDiffZ;
 
-	Point pVertA = vert1;
-	Point pVertB = vert2;
-	Point pVertC = vert3;
+	LMPoint pVertA = vert1;
+	LMPoint pVertB = vert2;
+	LMPoint pVertC = vert3;
 	float fUA = u1;
 	float fVA = v1;
 	float fUB = u2;
@@ -482,7 +479,7 @@ void TransparentFace::InterpolateUV( const Point *p, float *pU, float *pV ) cons
 	fDist2 = (pVertA.x - p->x)*BCNormal.x + (pVertA.y - p->y)*BCNormal.y + (pVertA.z - p->z)*BCNormal.z;
 	fDist1 = fDist1 / fDist2;
 
-	Point intersect;
+	LMPoint intersect;
 	intersect.x = pVertA.x + (p->x - pVertA.x)*fDist1;
 	intersect.y = pVertA.y + (p->y - pVertA.y)*fDist1;
 	intersect.z = pVertA.z + (p->z - pVertA.z)*fDist1;
@@ -628,7 +625,7 @@ void TreeNodeLightmapper::buildTree(TreeFaceLightmapper* faces,unsigned fnum,int
     float avg;
     float total = 0;
             
-    while (faces>0)
+    while (faces)
     {
         //get the triangles average distance along this axis and compare with the limit
         switch(axis)
@@ -694,7 +691,7 @@ void TreeNodeLightmapper::buildTree(TreeFaceLightmapper* faces,unsigned fnum,int
         leftFaces = 0;
         rightFaces = 0;
         
-        while (faces>0)
+        while (faces)
         {
             switch(axis1)
             {
@@ -753,7 +750,7 @@ void TreeNodeLightmapper::buildTree(TreeFaceLightmapper* faces,unsigned fnum,int
         leftFaces = 0;
         rightFaces = 0;
         
-        while (faces>0)
+        while (faces)
         {
             switch(axis2)
             {
@@ -806,7 +803,7 @@ void TreeNodeLightmapper::buildTree(TreeFaceLightmapper* faces,unsigned fnum,int
         leftFaces = 0;
         rightFaces = 0;
         
-        while (faces>0)
+        while (faces)
         {
             switch(axis)
             {
@@ -859,7 +856,7 @@ void TreeNodeLightmapper::buildTree(TreeFaceLightmapper* faces,unsigned fnum,int
         
         int flag = 1;
         
-        while (faces>0)
+        while (faces)
         {
             if (flag)
             {
@@ -890,7 +887,7 @@ void TreeNodeLightmapper::buildTree(TreeFaceLightmapper* faces,unsigned fnum,int
     right->buildTree(rightFaces,fnum2,facesPerNode);
 }
 
-bool TreeNodeLightmapper::intersects( const Point* p, const Vector* vec, const Vector* vecI, Lumel* pColour, float* pShadow, TreeFaceLightmapper** ppLastHit) const
+bool TreeNodeLightmapper::intersects( const LMPoint* p, const Vector* vec, const Vector* vecI, Lumel* pColour, float* pShadow, TreeFaceLightmapper** ppLastHit ) const
 {
 	if (bounds.intersectBox(p,vecI)==0) return false;
     
