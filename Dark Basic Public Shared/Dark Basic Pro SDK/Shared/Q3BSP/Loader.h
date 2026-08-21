@@ -28,16 +28,6 @@ inline bool strcpy2 ( char** dest, std::string_view src )
 	return true;
 }
 
-inline void strcat2 ( char* dest, size_t destSize, std::string_view src )
-{
-	std::string_view target { dest, strnlen ( dest, destSize ) };
-
-	const size_t copyCount = ( std::min ) ( src.size ( ), destSize - target.size ( ) - 1 );
-
-	std::memcpy ( dest + target.size ( ), src.data ( ), copyCount );
-	dest [ target.size ( ) + copyCount ] = '\0';
-}
-
 inline std::string ToLowerAscii ( std::string_view text )
 {
 	std::string out ( text );

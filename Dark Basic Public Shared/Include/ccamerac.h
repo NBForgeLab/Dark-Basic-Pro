@@ -6,6 +6,23 @@
 #include ".\..\Dark Basic Pro SDK\Shared\Camera\CCameraDatac.h"
 #include ".\..\Dark Basic Pro SDK\Shared\Camera\CCameraManagerc.h"
 
+#if defined(DBP_PLUGIN_CONSUMER)
+	#undef DARKSDK
+	#define DARKSDK extern
+	#ifndef DBPRO_GLOBAL
+		#define DBPRO_GLOBAL
+	#endif
+#elif !defined(DARKSDK_COMPILE)
+	#undef DARKSDK
+	#define DARKSDK __declspec ( dllexport )
+	#define DBPRO_GLOBAL
+#else
+	#undef DARKSDK
+	#undef DBPRO_GLOBAL
+	#define DARKSDK static
+	#define DBPRO_GLOBAL static
+#endif
+
 // Externs
 #if defined(ENABLEIMGUI) && !defined(USEOLDIDE) 
 extern float custom_back_color[4];
@@ -30,7 +47,7 @@ float 		GetCameraLookX     					( int iID );
 float 		GetCameraLookY     					( int iID );
 float		GetCameraLookZ						( int iID );
 
-void*		GetCameraInternalData				( int iID );
+DARKSDK void*	GetCameraInternalData			( int iID );
 GGMATRIX	GetCameraMatrix						( int iID );
 
 void		SetAutoCam							( float fX, float fY, float fZ, float fRadius );

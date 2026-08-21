@@ -227,6 +227,7 @@ DARKSDK DWORD		GetZAngleEx    					( int iID );
 DARKSDK DWORD		GetLookXEx 						( int iID );
 DARKSDK DWORD		GetLookYEx 						( int iID );
 DARKSDK DWORD		GetLookZEx 						( int iID );
+DARKSDK void*		GetCameraInternalData			( int iID );
 
 #ifdef DARKSDK_COMPILE
 		void		dbPositionCamera				( float fX, float fY, float fZ );

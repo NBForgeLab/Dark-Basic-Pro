@@ -3260,6 +3260,11 @@ void SetProjectionMatrix ( int iID, D3DXMATRIX* pMatrix )
 
 
 
+DARKSDK void* GetCameraInternalData ( int iID )
+{
+	return GetInternalData ( iID );
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 // DARK SDK SECTION //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -3764,11 +3769,6 @@ float dbCameraLookZ ( int iID )
 	DWORD dwReturn = GetLookZEx ( iID );
 	
 	return *( float* ) &dwReturn;
-}
-
-DARKSDK void* GetCameraInternalData ( int iID )
-{
-	return GetInternalData ( iID );
 }
 
 void* dbGetCameraInternalData ( int iID )

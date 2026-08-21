@@ -18,6 +18,7 @@ DARKSDK void Load				( SDK_LPSTR szFilename, int iID, int iDBProMode );
 DARKSDK void Load				( SDK_LPSTR szFilename, int iID, int iDBProMode, int iDivideTextureSize );
 DARKSDK void Save				( SDK_LPSTR szFilename, int iID );
 DARKSDK void DeleteEx			( int iID );
+DARKSDK void Delete				( int iID );
 DARKSDK void Set				( int iID, SDK_BOOL bWireframe, SDK_BOOL bTransparency, SDK_BOOL bCull );
 DARKSDK void Set				( int iID, SDK_BOOL bWireframe, SDK_BOOL bTransparency, SDK_BOOL bCull, int iFilter );
 DARKSDK void Set				( int iID, SDK_BOOL bWireframe, SDK_BOOL bTransparency, SDK_BOOL bCull, int iFilter, SDK_BOOL bLight );
@@ -418,6 +419,7 @@ DARKSDK void FinishObjectPanel	( int iID, float fWidth, float fHeight );
 //////////////////////////////////////////////////////////////////////////////////
 
 // Object
+DARKSDK int ObjectExist    	  ( int iID );
 DARKSDK int GetExist    	  ( int iID );
 DARKSDK int GetNumberOfFrames ( int iID );
 DARKSDK SDK_FLOAT GetSizeEx  ( int iID, int iAccountForScale );
@@ -581,6 +583,7 @@ DARKSDK D3DXVECTOR3		GetCameraUp       ( void );
 DARKSDK D3DXVECTOR3		GetCameraRight    ( void );
 DARKSDK D3DXMATRIX		GetCameraMatrix   ( void );
 DARKSDK sObject*		GetObject ( int iID );
+DARKSDK sObject*		GetObjectData ( int iID );
 DARKSDK void			GetUniverseMeshList ( vector < sMesh* > *pMeshList );
 
 // mike - 300905 - command to update object bounds

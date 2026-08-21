@@ -119,8 +119,7 @@ TEST(CompilationInputTest, BreakpointScanDoesNotReadBeforeSourceBuffer) {
     std::string compilerPath = (fixture.directory() / "DBPCompiler.exe").string();
     CDBPCompiler compiler(&compilerPath[0]);
     compiler.m_FileDataSize = 3;
-    compiler.m_pFileData = static_cast<LPSTR>(
-        GlobalAlloc(GMEM_FIXED, compiler.m_FileDataSize));
+    compiler.m_pFileData = new char[compiler.m_FileDataSize + 1]();
     ASSERT_NE(compiler.m_pFileData, nullptr);
     memcpy(compiler.m_pFileData, "abc", compiler.m_FileDataSize);
 

@@ -4036,27 +4036,27 @@ DARKSDK_DLL void SetBlendMap ( int iID, int iStage, int iImage, int iTexCoordMod
 	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode, -1, -1, -1, -1 );
 }
 
-DARKSDK_DLL void TextureObject ( int iID, int iImage )
+DARKSDK void TextureObject ( int iID, int iImage )
 {
 	SetTexture ( iID, iImage );
 }
 
-DARKSDK_DLL sObject* GetObjectData ( int iID )
+DARKSDK sObject* GetObjectData ( int iID )
 {
 	return GetObject ( iID );
 }
 
-DARKSDK_DLL void SetObjectBlendMap ( int iID, int iLimbNumber, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR )
+DARKSDK void SetObjectBlendMap ( int iID, int iLimbNumber, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR )
 {
 	SetBlendMap ( iID, iLimbNumber, iStage, iImage, iTexCoordMode, iMode, iA, iB, iC, iR );
 }
 
-DARKSDK_DLL void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR )
+DARKSDK void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR )
 {
 	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode, iA, iB, iC, iR );
 }
 
-DARKSDK_DLL void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordMode, int iMode )
+DARKSDK void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordMode, int iMode )
 {
 	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode );
 }
@@ -8732,6 +8732,11 @@ DARKSDK_DLL int GetExist ( int iID )
 		}
 	}
 	return 0;
+}
+
+DARKSDK_DLL int ObjectExist ( int iID )
+{
+	return GetExist ( iID );
 }
 
 DARKSDK_DLL int GetVisible ( int iID )
