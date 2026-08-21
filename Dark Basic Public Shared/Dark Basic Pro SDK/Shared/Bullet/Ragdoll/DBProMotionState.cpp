@@ -51,7 +51,7 @@ void DBProMotionState::setWorldTransform(const btTransform &worldTrans)
  }
 
 //Called by The DBPro Character Controller
-void DBProMotionState::setWorldTransform(int objectID, const btTransform &worldTrans, btVector3& initialRotation) 
+void DBProMotionState::setWorldTransform(int objectID, const btTransform &worldTrans, const btVector3& initialRotation) 
 {	
 	btScalar scaleFactor = 40.0;///DynamicsWorldArray[0]->m_scaleFactor;
     if(DBPro::ObjectExist(objectID) == false)

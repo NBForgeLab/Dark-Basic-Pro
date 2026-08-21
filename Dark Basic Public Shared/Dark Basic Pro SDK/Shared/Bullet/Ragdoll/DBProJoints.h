@@ -21,9 +21,9 @@ public:
 	static btPoint2PointConstraint* CreatePoint2PointConstraint(btRigidBody *a_body,btRigidBody *b_body, btTransform &localA, btTransform &localB);
 	static btPoint2PointConstraint* CreatePoint2PointConstraint(btRigidBody *a_body,btRigidBody *b_body, btVector3 &pivotPosInA, btVector3 &pivotPosInB);
 	static btSliderConstraint* CreateSliderConstraint(btRigidBody *a_body,btRigidBody *b_body, btTransform &localA, btTransform &localB);
-	static btFixedConstraint* DBProJoints::CreateFixedConstraint(btRigidBody *a_body,btRigidBody *b_body,btTransform &localA, btTransform &localB, btScalar breakThreshold);
-	static btGeneric6DofConstraint* DBProJoints::Create6DofConstraint(btRigidBody *a_body,btRigidBody *b_body,btTransform &localA, btTransform &localB, btScalar breakThreshold);
-	static btGeneric6DofConstraint* DBProJoints::Create6DofConstraint(btRigidBody *b_body, btTransform &localb, bool useLinearReferenceFrameB); 
+	static btFixedConstraint* CreateFixedConstraint(btRigidBody *a_body,btRigidBody *b_body,btTransform &localA, btTransform &localB, btScalar breakThreshold);
+	static btGeneric6DofConstraint* Create6DofConstraint(btRigidBody *a_body,btRigidBody *b_body,btTransform &localA, btTransform &localB, btScalar breakThreshold);
+	static btGeneric6DofConstraint* Create6DofConstraint(btRigidBody *b_body, btTransform &localb, bool useLinearReferenceFrameB); 
 	static int SetBreakingThreshold(btTypedConstraint* constraint,btScalar breakThreshold); 
 }; 
 

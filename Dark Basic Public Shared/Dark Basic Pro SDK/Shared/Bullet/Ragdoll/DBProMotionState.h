@@ -23,7 +23,7 @@ public:
 	virtual void getWorldTransform(btTransform &worldTrans) const ;
 	virtual void setWorldTransform(const btTransform &worldTrans);
 	static void setWorldTransform(int objectID, const btTransform &worldTrans);
-	static void setWorldTransform(int objectID, const btTransform &worldTrans, btVector3& initialRotation);
+	static void setWorldTransform(int objectID, const btTransform &worldTrans, const btVector3& initialRotation);
 protected:
 	int m_objID;
 	btScalar m_maxLinearVelocity;

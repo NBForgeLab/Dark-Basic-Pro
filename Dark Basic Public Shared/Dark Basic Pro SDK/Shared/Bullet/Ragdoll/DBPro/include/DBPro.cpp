@@ -28,9 +28,9 @@ namespace DBPro
 		return iStartMeshOffset;
 	}
 
-	void ReportError ( LPCSTR pErr1, LPSTR pErr2 )
+	void ReportError ( LPCSTR pErr1, LPCSTR pErr2 )
 	{
-		MessageBox ( NULL, pErr1, pErr2, MB_OK );
+		MessageBoxA ( NULL, pErr1, pErr2, MB_OK );
 	}
 
 	int VectorExist ( int iVector )

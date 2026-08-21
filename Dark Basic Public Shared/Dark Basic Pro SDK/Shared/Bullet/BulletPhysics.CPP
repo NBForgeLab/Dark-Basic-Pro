@@ -33,8 +33,37 @@
 #include "BulletCollision/CollisionDispatch/btGhostObject.h"
 //End Dave
 
-//Dave
 void AnglesFromMatrix ( D3DXMATRIX* pmatMatrix, D3DXVECTOR3* pVecAngles );
+
+static inline D3DXQUATERNION MakeEulerRotationQuat(float fXRot, float fYRot, float fZRot)
+{
+	static const D3DXVECTOR3 vAxisX(1.0f, 0.0f, 0.0f);
+	static const D3DXVECTOR3 vAxisY(0.0f, 1.0f, 0.0f);
+	static const D3DXVECTOR3 vAxisZ(0.0f, 0.0f, 1.0f);
+	D3DXQUATERNION qX, qY, qZ;
+	D3DXQuaternionRotationAxis(&qX, &vAxisX, fXRot);
+	D3DXQuaternionRotationAxis(&qY, &vAxisY, fYRot);
+	D3DXQuaternionRotationAxis(&qZ, &vAxisZ, fZRot);
+	return qX * qY * qZ;
+}
+
+int physics_getmaterialindex(float fX, float fZ)
+{
+	(void)fX; (void)fZ;
+	return 0;
+}
+
+namespace GGTerrain
+{
+	void GGTerrain_Physics_ProcessVertices(void* pTerrain, float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float fScale)
+	{
+		(void)pTerrain; (void)minX; (void)minY; (void)minZ; (void)maxX; (void)maxY; (void)maxZ; (void)fScale;
+	}
+	void GGTerrain_Physics_RayCast(void* pTerrain, float fromX, float fromY, float fromZ, float toX, float toY, float toZ, float fScale)
+	{
+		(void)pTerrain; (void)fromX; (void)fromY; (void)fromZ; (void)toX; (void)toY; (void)toZ; (void)fScale;
+	}
+}
 
 btCompoundShape*	pImporterComopundShape;
 int					pImporterMainObjectID;
@@ -438,7 +467,8 @@ D3DXMATRIX BT2DX_MATRIX(const btTransform &ms)
 
  D3DXMATRIX pos, rot, world;
  D3DXMatrixTranslation(&pos, p.x(), p.y(), p.z());
- D3DXMatrixRotationQuaternion(&rot, &BT2DX_QUATERNION(q));
+ D3DXQUATERNION dxq = BT2DX_QUATERNION(q);
+ D3DXMatrixRotationQuaternion(&rot, &dxq);
  D3DXMatrixMultiply(&world, &rot, &pos);
 
  return world;
@@ -863,13 +893,7 @@ void CreateBox ( int iObjectNumber, int isDynamic, int iLimbNumber, int iTipOver
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 
 	// motionstate provides interpolation capabilities and only synchronizes 'active' objects
@@ -971,13 +995,7 @@ void EndStaticObject ( int iObjectNumber, int iTerrainMaterial )
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 
 	// motionstate provides interpolation capabilities and only synchronizes 'active' objects
@@ -1079,13 +1097,7 @@ void AddStaticObjectBox ( int iObjectNumber , int iStaticBoxObject)
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 	pImporterComopundShape->addChildShape    ( startTransform, boxShape );
 }
@@ -1134,13 +1146,7 @@ void CreateSphere ( int iObjectNumber, int isDynamic )
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 	btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass,myMotionState,colShape,localInertia);
@@ -1202,13 +1208,7 @@ void CreateCylinder ( int iObjectNumber, int isDynamic, float fXPos, float fYPos
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 
 	// motionstate provides interpolation capabilities and only synchronizes 'active' objects
@@ -1485,13 +1485,7 @@ void CreateMesh ( int iObjectNumber, int isDynamic, int iLimbNumber, int iTerrai
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 	btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass,myMotionState,trimeshShape,localInertia);
@@ -1794,13 +1788,7 @@ void CreateCapsule ( int iObjectNumber, int isDynamic, float fScaleModifier, flo
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 
 	// motionstate provides interpolation capabilities and only synchronizes 'active' objects
@@ -1861,13 +1849,7 @@ void ODE_CreateDynamicCharacterController ( int iObjectNumber, float fGravity, f
 	btTransform startTransform;
 	startTransform.setIdentity();
 	startTransform.setOrigin(btVector3(fXPos,fYPos,fZPos));
-	D3DXQUATERNION QuatAroundX(1,0,0,fXRot);
-	D3DXQUATERNION QuatAroundY(0,1,0,fYRot);
-	D3DXQUATERNION QuatAroundZ(0,0,1,fZRot);
-	D3DXQuaternionRotationAxis(&QuatAroundX,&D3DXVECTOR3(1,0,0),fXRot);
-	D3DXQuaternionRotationAxis(&QuatAroundY,&D3DXVECTOR3(0,1,0),fYRot);
-	D3DXQuaternionRotationAxis(&QuatAroundZ,&D3DXVECTOR3(0,0,1),fZRot);
-	D3DXQUATERNION finalOrientation = QuatAroundX * QuatAroundY * QuatAroundZ;
+	D3DXQUATERNION finalOrientation = MakeEulerRotationQuat(fXRot, fYRot, fZRot);
 	startTransform.setRotation(btQuaternion(finalOrientation.x,finalOrientation.y,finalOrientation.z,finalOrientation.w));
 
 	// create a character controller shape (if not already created)
@@ -2213,9 +2195,9 @@ void ODE_SetNoGravity( int iObjectNumber, int iGravity )
 
 // Ragdoll commands
 
-void DBProReportError ( LPSTR pErr1, LPSTR pErr2 )
+void DBProReportError ( LPCSTR pErr1, LPCSTR pErr2 )
 {
-	MessageBox ( NULL, pErr1, pErr2, MB_OK );
+	MessageBoxA ( NULL, pErr1, pErr2, MB_OK );
 }
 
 void BPhys_RagDollBegin(int objectID, float objTotalWeight)

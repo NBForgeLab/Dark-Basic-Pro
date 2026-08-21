@@ -72,7 +72,7 @@ namespace DBPro
 	float ObjectScaleX ( int );
 	float ObjectScaleY ( int );
 	float ObjectScaleZ ( int );
-	void ReportError ( LPCSTR pErr1, LPSTR pErr2 );
+	void ReportError ( LPCSTR pErr1, LPCSTR pErr2 );
 }
 
 #endif

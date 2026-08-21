@@ -22,11 +22,11 @@ public:
 	int AddBone(int objID, int limbID1, int LimbID2, btScalar diameter, float lengthmod, int collisionGroup, int collisionMask);
 	int AddBone(int objID, int limbID1, int LimbID2, btScalar diameter, int collisionGroup, int collisionMask);
 	void AddJoint( int boneIndex1, int boneIndex2, int jointType, int limbID);
-	void AddHingeJoint(int boneIndex1, int boneIndex2, int limbID, btVector3& jointRotation, btScalar minRotation, btScalar maxRotation);
-	void AddTwistConstraint(int boneIndex1, int boneIndex2, int limbID, btVector3& jointRotation, btVector3& jointlimits);
+	void AddHingeJoint(int boneIndex1, int boneIndex2, int limbID, const btVector3& jointRotation, btScalar minRotation, btScalar maxRotation);
+	void AddTwistConstraint(int boneIndex1, int boneIndex2, int limbID, const btVector3& jointRotation, const btVector3& jointlimits);
 	void Finalize();
 	void Activate();
-	void ApplyForce(int iLimbNumber, btVector3& Start, btVector3& End, float fForceValue);
+	void ApplyForce(int iLimbNumber, const btVector3& Start, const btVector3& End, float fForceValue);
 	void Update();
 	void HideBones();
 	void ShowBones();

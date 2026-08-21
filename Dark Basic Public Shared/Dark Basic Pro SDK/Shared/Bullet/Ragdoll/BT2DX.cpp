@@ -33,7 +33,8 @@ D3DXMATRIX BT2DX::BT2DX_MATRIX(const btTransform &ms)
 	btVector3 p = ms.getOrigin();
 	D3DXMATRIX pos, rot, world;
 	D3DXMatrixTranslation(&pos, p.x(), p.y(), p.z());
-	D3DXMatrixRotationQuaternion(&rot, &BT2DX_QUATERNION(q));
+	D3DXQUATERNION dxq = BT2DX_QUATERNION(q);
+	D3DXMatrixRotationQuaternion(&rot, &dxq);
 	D3DXMatrixMultiply(&world, &rot, &pos);
 	return world;
 }

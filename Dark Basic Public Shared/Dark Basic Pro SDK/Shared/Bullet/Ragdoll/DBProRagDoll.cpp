@@ -196,7 +196,7 @@ int DBProRagDoll::AddBone(int objID, int limbID1, int limbID2, btScalar diameter
 	return m_ragDollBoneArray.size()-1;
 }
 
-void DBProRagDoll::AddHingeJoint(int boneIndex1, int boneIndex2, int limbID, btVector3& jointRotation,
+void DBProRagDoll::AddHingeJoint(int boneIndex1, int boneIndex2, int limbID, const btVector3& jointRotation,
 																					btScalar minRotation, btScalar maxRotation)
 {
 	btScalar scaleFactor = 40.0f;///DynamicsWorldArray[0]->m_scaleFactor;
@@ -272,7 +272,7 @@ void DBProRagDoll::AddHingeJoint(int boneIndex1, int boneIndex2, int limbID, btV
 	hingeC = NULL;
 }
 
-void DBProRagDoll::AddTwistConstraint(int boneIndex1, int boneIndex2, int limbID, btVector3& jointRotation, btVector3& jointlimits)
+void DBProRagDoll::AddTwistConstraint(int boneIndex1, int boneIndex2, int limbID, const btVector3& jointRotation, const btVector3& jointlimits)
 {
 	btScalar scaleFactor = 40.0f;///DynamicsWorldArray[0]->m_scaleFactor;
 	btConeTwistConstraint* coneC; 
@@ -430,7 +430,7 @@ void DBProRagDoll::Activate()
 	}
 }
 
-void DBProRagDoll::ApplyForce(int iLimbNumber, btVector3& Start, btVector3& End, float fForceValue)
+void DBProRagDoll::ApplyForce(int iLimbNumber, const btVector3& Start, const btVector3& End, float fForceValue)
 {
 	for (int i = 0; i < m_ragDollBoneArray.size(); i++)
 	{

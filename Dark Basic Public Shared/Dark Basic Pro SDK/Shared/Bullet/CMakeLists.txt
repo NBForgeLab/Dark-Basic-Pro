@@ -14,10 +14,49 @@ set(BULLET_SOURCES
     Ragdoll/DBProRagDollBone.cpp
     Ragdoll/DBProRagdollManager.cpp
     Ragdoll/DBProToBullet.cpp
+    Ragdoll/DBPro/include/DBPro.cpp
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Data/CDataC.cpp"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core/globstruct.cpp"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error/CError.cpp"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDK/Bullet/Script1.RC"
+)
+
+file(GLOB BULLET_COLLISION_SRCS
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletCollision/BroadphaseCollision/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletCollision/CollisionDispatch/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletCollision/CollisionShapes/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletCollision/Gimpact/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletCollision/NarrowPhaseCollision/*.cpp"
+)
+file(GLOB BULLET_DYNAMICS_SRCS
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletDynamics/Character/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletDynamics/ConstraintSolver/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletDynamics/Dynamics/*.cpp"
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletDynamics/Vehicle/*.cpp"
+)
+file(GLOB BULLET_LINEARMATH_SRCS
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/LinearMath/*.cpp"
+)
+file(GLOB BULLET_SOFTBODY_SRCS
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src/BulletSoftBody/*.cpp"
+)
+
+add_library(bullet_physics STATIC
+    ${BULLET_COLLISION_SRCS}
+    ${BULLET_DYNAMICS_SRCS}
+    ${BULLET_LINEARMATH_SRCS}
+    ${BULLET_SOFTBODY_SRCS}
+)
+dbp_apply_legacy_cpp_options(bullet_physics)
+target_include_directories(bullet_physics PUBLIC
+    "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src"
+)
+
+target_compile_definitions(bullet_physics PRIVATE
+    WIN32
+    _WINDOWS
+    _MBCS
+    _CRT_SECURE_NO_WARNINGS
 )
 
 add_library(dbp_plugin_ode SHARED ${BULLET_SOURCES})
@@ -39,6 +78,7 @@ target_compile_definitions(dbp_plugin_ode PRIVATE
 target_include_directories(dbp_plugin_ode PUBLIC
     .
     Ragdoll
+    Ragdoll/DBPro/include
     "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src"
     "${CMAKE_SOURCE_DIR}/SDK/BaseClasses"
     "${CMAKE_SOURCE_DIR}/SDK/DB3"
@@ -51,16 +91,12 @@ target_include_directories(dbp_plugin_ode PUBLIC
     ${DXSDK_INCLUDE_DIR}
 )
 
-target_link_directories(dbp_plugin_ode PRIVATE
-    "${CMAKE_SOURCE_DIR}/SDK/BULLET/lib64/Release"
-)
-
 if(DXSDK_LIBRARY_DIR)
     target_link_directories(dbp_plugin_ode PRIVATE ${DXSDK_LIBRARY_DIR})
 endif()
 
 target_link_libraries(dbp_plugin_ode PRIVATE
-    Bullet
+    bullet_physics
     winmm
     d3d9
     d3dx9

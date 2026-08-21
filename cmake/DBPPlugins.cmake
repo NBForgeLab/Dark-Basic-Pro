@@ -37,7 +37,7 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ConvMDL" "${CMAKE_BINARY_DIR}/plugins/convmdl")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/EnhancedMatrix" "${CMAKE_BINARY_DIR}/plugins/enhancedmatrix")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/GameFX" "${CMAKE_BINARY_DIR}/plugins/gamefx")
-add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/ODE" "${CMAKE_BINARY_DIR}/plugins/ode")
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Bullet" "${CMAKE_BINARY_DIR}/plugins/bullet")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/BlitzTerrain" "${CMAKE_BINARY_DIR}/plugins/blitzterrain")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/DarkLIGHTS" "${CMAKE_BINARY_DIR}/plugins/darklights")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/DarkAI" "${CMAKE_BINARY_DIR}/plugins/darkai")
