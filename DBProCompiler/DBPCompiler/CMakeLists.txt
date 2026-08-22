@@ -67,20 +67,7 @@ set(LIB_SOURCES
     StructTable.cpp
     Task.cpp
     VarTable.cpp
-    icons/DIB.C
-    icons/ICONS.C
 )
-
-# Force MSVC to compile .C files as C instead of C++ and compile without UNICODE
-if(MSVC)
-    set_source_files_properties(
-        icons/DIB.C
-        icons/ICONS.C
-        PROPERTIES 
-        COMPILE_FLAGS "/TC"
-        COMPILE_DEFINITIONS "_WINDOWS;NOGETDXVERSIONCODE"
-    )
-endif()
 
 # Create static library to allow linking with tests
 add_library(dbp_compiler_lib STATIC ${LIB_SOURCES})
@@ -95,7 +82,6 @@ target_link_libraries(dbp_compiler_lib PUBLIC
 )
 target_include_directories(dbp_compiler_lib PUBLIC
     .
-    icons
     ${CMAKE_SOURCE_DIR}/SDK/DB3
     ${CMAKE_SOURCE_DIR}/SDK/BaseClasses
     ${CMAKE_SOURCE_DIR}/SDK/EAX2/Include

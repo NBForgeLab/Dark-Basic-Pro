@@ -41,7 +41,6 @@ public:
 private:
     [[nodiscard]] bool AddRuntimeLibraries() noexcept;
     [[nodiscard]] bool AddProjectMedia() noexcept;
-    [[nodiscard]] bool AddApplicationAssets() noexcept;
     [[nodiscard]] bool AddEffects() noexcept;
     [[nodiscard]] bool AddResourceMetadata() noexcept;
 
@@ -49,6 +48,5 @@ private:
     const ResolvedRuntimeBundle* runtimeBundle_{nullptr};
     std::filesystem::path outputPath_;
     std::filesystem::path mediaRoot_;
-    std::filesystem::path replacementIcon_;
     bool effectsRequired_{false};
 };

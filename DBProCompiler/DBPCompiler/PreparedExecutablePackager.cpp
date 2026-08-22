@@ -223,10 +223,6 @@ bool ASMWriterStandalonePackagingServices::StageExecutable(
             Report("DBP3117: Project media could not be staged.");
             return false;
         }
-        if (!AddApplicationAssets()) {
-            Report("DBP3118: Application icons or cursors could not be staged.");
-            return false;
-        }
         if (!AddEffects()) {
             Report("DBP3119: Runtime effect files could not be staged.");
             return false;
@@ -355,87 +351,6 @@ bool ASMWriterStandalonePackagingServices::AddProjectMedia() noexcept {
                         builder_, source, ToUtf8(placementPath))) {
                     return false;
                 }
-                if (dbp::iequals(mediaName.get(), "icon.ico")) {
-                    replacementIcon_ = source;
-                }
-            }
-        }
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-bool ASMWriterStandalonePackagingServices::AddApplicationAssets() noexcept {
-    try {
-        if (replacementIcon_.empty()) {
-            auto configuredIcon = ProjectField("icon1");
-            if (configuredIcon != nullptr && configuredIcon[0] != '\0') {
-                replacementIcon_ = ResolveMediaPath(
-                    configuredIcon.get(), mediaRoot_);
-                if (replacementIcon_.empty()) {
-                    return false;
-                }
-            }
-        }
-        if (replacementIcon_.empty()) {
-            replacementIcon_ =
-                runtimeBundle_->pluginsDirectory / L"icon.ico";
-        }
-
-        auto packagedIcon = replacementIcon_;
-        if (_wcsicmp(packagedIcon.extension().c_str(), L".bmp") == 0) {
-            auto sourceText = ToUtf8(packagedIcon);
-            auto destinationText =
-                ToUtf8(runtimeBundle_->pluginsDirectory) + "\\";
-            if (!builder_.MakeICOFromBMP(
-                    sourceText.data(), destinationText.data())) {
-                return false;
-            }
-            packagedIcon =
-                runtimeBundle_->pluginsDirectory / L"workicon.ico";
-        }
-        std::error_code iconError;
-        if (!std::filesystem::is_regular_file(packagedIcon, iconError) ||
-            iconError) {
-            Report("DBP3108: The configured application icon is unavailable.");
-            return false;
-        }
-        if (!AddFile(builder_, packagedIcon, "icon.ico")) {
-            return false;
-        }
-
-        for (DWORD index = 0U; index < 32U; ++index) {
-            const std::string fieldName = index == 0U
-                ? "cursorarrow"
-                : index == 1U ? "cursorwait"
-                              : "pointer" + std::to_string(index);
-            const std::string placement = index == 0U
-                ? "arrow.cur"
-                : index == 1U ? "hourglass.cur"
-                              : "pointer" + std::to_string(index) + ".cur";
-            auto cursorName = ProjectField(fieldName.c_str());
-            if (cursorName == nullptr || cursorName[0] == '\0') {
-                continue;
-            }
-            auto cursorPath = ResolveMediaPath(
-                cursorName.get(), mediaRoot_);
-            if (cursorPath.empty()) {
-                return false;
-            }
-            if (_wcsicmp(cursorPath.extension().c_str(), L".bmp") == 0) {
-                const auto converted = runtimeBundle_->pluginsDirectory /
-                    (L"workcursor" + std::to_wstring(index) + L".cur");
-                auto sourceText = ToUtf8(cursorPath);
-                auto convertedText = ToUtf8(converted);
-                if (!builder_.MakeCURFromBMP(
-                        sourceText.data(), convertedText.data())) {
-                    return false;
-                }
-                cursorPath = converted;
-            }
-            if (!AddFile(builder_, cursorPath, placement)) {
-                return false;
             }
         }
         return true;
@@ -487,9 +402,7 @@ bool ASMWriterStandalonePackagingServices::CustomizeResources() noexcept {
         g_pErrorReport->ProgressReport(
             "Linker now at line ", g_pErrorReport->GetPerc(60));
         auto outputText = ToUtf8(outputPath_);
-        auto pluginRoot = ToUtf8(runtimeBundle_->pluginsDirectory) + "\\";
-        return builder_.ChangeEXE(
-            outputText.data(), pluginRoot.data());
+        return builder_.ChangeEXE(outputText.data());
     } catch (...) {
         return false;
     }
@@ -546,34 +459,7 @@ bool ASMWriterStandalonePackagingServices::AddResourceMetadata() noexcept {
             }
         }
 
-        auto largeIcon = ProjectField("icon1");
-        auto smallIcon = ProjectField("icon2");
-        auto largePath = largeIcon != nullptr && largeIcon[0] != '\0'
-            ? ResolveMediaPath(largeIcon.get(), mediaRoot_)
-            : replacementIcon_;
-        auto smallPath = smallIcon != nullptr && smallIcon[0] != '\0'
-            ? ResolveMediaPath(smallIcon.get(), mediaRoot_)
-            : largePath;
-        if (largePath.empty()) {
-            largePath = runtimeBundle_->pluginsDirectory / L"icon.ico";
-        }
-        if (smallPath.empty()) {
-            smallPath = largePath;
-        }
-        std::error_code iconError;
-        if (!std::filesystem::is_regular_file(largePath, iconError) ||
-            iconError) {
-            Report("DBP3108: The large executable icon is unavailable.");
-            return false;
-        }
-        iconError.clear();
-        if (!std::filesystem::is_regular_file(smallPath, iconError) ||
-            iconError) {
-            Report("DBP3108: The small executable icon is unavailable.");
-            return false;
-        }
-        return AddFile(builder_, largePath, "") &&
-               AddFile(builder_, smallPath, "");
+        return true;
     } catch (...) {
         return false;
     }
