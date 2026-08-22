@@ -388,13 +388,8 @@ void  UpdateOverlayFlag					( sObject* pObject );
 void  SetObjectTransparency				( sObject* pObject, int iTransparency );
 
 void  NewObjectAutoCam					( float fRadius );
-void  SetupModelFunctionPointers		( void* pModel, HINSTANCE hDLL );
-void  SetupPrimitiveFunctionPointers	( void* pData );
-void  SetupDefaultProperties			( void* pData );
 void  SetupDefaultPosition				( int iID );
-bool  PrepareCustomObject				( void* m_pData );
 void  GetCullDataFromModel				( int iID );
-bool  CreateModelFromCustom				( int iID, void* m_pData );
 
 DARKSDK bool    SetNewObjectFinalProperties		( int iID, float fRadius );
 DARKSDK bool    CreateNewObject					( int iID, LPCSTR pName );
@@ -413,7 +408,6 @@ BOOL SupportsEnvironmentBumpMapping				();
 BOOL SupportsCubeMapping						();
 BOOL SupportsDotProduct3BumpMapping				();
 int GetBitDepthFromFormat						( D3DFORMAT Format );
-void CreateImageNormalMap						( int iImageIndex );
 LPDIRECT3DCUBETEXTURE9 CreateNewImageCubeMap	( int i1, int i2, int i3, int i4, int i5, int i6 );
 void SetVertexShaderMesh						( int iID, DWORD dwFVFOverride );
 void FreeVertexShaderMesh						( int iID ) ;

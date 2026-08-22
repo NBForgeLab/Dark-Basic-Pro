@@ -1258,21 +1258,6 @@ DARKSDK_DLL void NewObjectAutoCam( float fRadius )
 	g_Camera3D_SetAutoCam ( 0.0f, 0.0f, 0.0f, fRadius );
 }
 
-DARKSDK_DLL void SetupModelFunctionPointers ( void* pModel, HINSTANCE [[maybe_unused]] hDLL )
-{
-	// MIKEMIKE : Propose we remove this!
-}
-
-DARKSDK_DLL void SetupPrimitiveFunctionPointers ( void* [[maybe_unused]] pData )
-{
-	// MIKEMIKE : Propose we remove this!
-}
-
-DARKSDK_DLL void SetupDefaultProperties ( void* [[maybe_unused]] pData )
-{
-	// MIKEMIKE : Propose we remove this!
-}
-
 DARKSDK_DLL void SetupDefaultPosition ( int iID )
 {
 	Position ( iID, 0.0f, 0.0f, 0.0f );
@@ -1280,22 +1265,9 @@ DARKSDK_DLL void SetupDefaultPosition ( int iID )
 	Rotate   ( iID, 0.0f, 0.0f, 0.0f );
 }
 
-DARKSDK_DLL bool PrepareCustomObject ( void* [[maybe_unused]] m_pData )
-{
-	// MIKEMIKE : Propose we remove this!
-	// Complete
-	return true;
-}
-
 DARKSDK_DLL void GetCullDataFromModel ( int [[maybe_unused]] iID )
 {
 	// MIKEMIKE : Propose we remove this!
-}
-
-DARKSDK_DLL bool CreateModelFromCustom( int iID, void* [[maybe_unused]] m_pData )
-{
-	// MIKEMIKE : Propose we remove this!
-	return true;
 }
 
 DARKSDK_DLL bool SetNewObjectFinalProperties ( int iID, float fRadius )
@@ -1642,10 +1614,6 @@ DARKSDK_DLL int GetBitDepthFromFormat(D3DFORMAT Format)
 		case D3DFMT_A4L4 :			return 8;	break;
 	}
 	return 0;
-}
-
-DARKSDK_DLL void CreateImageNormalMap( int [[maybe_unused]] iImageIndex )
-{
 }
 
 DARKSDK_DLL LPDIRECT3DCUBETEXTURE9 CreateNewImageCubeMap ( int i1, int i2, int i3, int i4, int i5, int i6 )

@@ -133,7 +133,6 @@ DARKSDK void SetBlendMap				( int iID, int iLimbNumber, int iStage, int iImage, 
 DARKSDK void SetBlendMap				( int iID, int iStage, int iImage, int iTexCoordMode, int iMode, int iA, int iB, int iC, int iR );
 DARKSDK void SetBlendMap				( int iID, int iStage, int iImage, int iTexCoordMode, int iMode );
 DARKSDK void SetBlendMap				( int iID, int iImage, int iMode );
-DARKSDK void SetTextureMD3              ( int iID, int iH0, int iH1, int iL0, int iL1, int iL2, int iU0 );
 
 // 2790515 - can be called from external DLLs (blitzterrain to render to depth texture)
 DARKSDK int  SwitchRenderTargetToDepthTexture ( int iID );
@@ -186,7 +185,6 @@ DARKSDK void SetEffectConstantM			( int iEffectID, SDK_LPSTR pConstantName, int 
 DARKSDK void SetEffectConstantM			( int iEffectID, SDK_LPSTR pConstantName, int iValue );
 DARKSDK void SetEffectConstantMEx		( int iEffectID, int iParamIndex, int iValue );
 DARKSDK void SetEffectTechnique			( int iEffectID, SDK_LPSTR pTechniqueName );
-DARKSDK void SetEffectLODTechnique		( int iEffectID, SDK_LPSTR pTechniqueName );
 
 // new commands - need help additions too!
 DARKSDK int GetEffectExist				( int iEffectID );
@@ -223,8 +221,6 @@ DARKSDK void DeletePixelShader			( int iShader );
 DARKSDK void SetPixelShaderTexture		( int iShader, int iSlot, int iTexture );
 
 // Animation
-DARKSDK void SaveAnimation				( int iID, SDK_LPSTR pFilename );
-DARKSDK void AppendAnimation			( int iID, SDK_LPSTR pFilename );
 DARKSDK void ClearAllKeyFrames			( int iID );
 DARKSDK void ClearKeyFrame				( int iID, int iFrame );
 DARKSDK void SetKeyFrame				( int iID, int iFrame );
@@ -381,11 +377,7 @@ DARKSDK DWORD		GetVertexDataPtr			( void );
 
 // Misc
 DARKSDK void		SetFastBoundsCalculation	( int iMode );
-DARKSDK void		SetMipmapMode				( int iMode );
 DARKSDK void		FlushVideoMemory			( void );
-DARKSDK void		DisableTNL					( void );
-DARKSDK void		EnableTNL					( void );
-DARKSDK void		Convert3DStoX				( DWORD_PTR pFilename1, DWORD_PTR pFilename2 );
 
 // Pick Commands
 DARKSDK int			PickScreenObjectEx			( int iX, int iY, int iObjectStart, int iObjectEnd, int iIgnoreCamera );
@@ -601,13 +593,7 @@ DARKSDK void			SetMask	( int iID, int iMASK );
 DARKSDK void SetMask			( int iID, int iMASK, int iShadowMASK );
 DARKSDK void SetMask			( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK );
 DARKSDK void SetMask			( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK, int iForeColorWipe );
-DARKSDK void SetArrayMap		( int iID, int iStage, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10 );
-DARKSDK void SetArrayMapEx		( int iID, int iStage, int iSrcObject, int iSrcStage );
 DARKSDK void Instance			( int iDestinationID, int iSourceID, int iInstanceValue );
-DARKSDK void SetNodeTreeEffect	( int iEffectID );
-DARKSDK void DrawSingle			( int iObjectID, int iCameraID );
-DARKSDK void ResetStaticLights	( void );
-DARKSDK void AddStaticLight		( int iIndex, float fX, float fY, float fZ, float fRange );
 DARKSDK void UpdateStaticLights	( void );
 
 // lee - 071108 - u71 - post processing screen commands (from SetupDLL)
@@ -721,7 +707,6 @@ DARKSDK void SetLegacyMode				( int iUseLegacy );
 	void		dbSetDetailMappingOn					( int iID, int iImage );
 	void		dbSetBlendMappingOn						( int iID, int iImage, int iMode );
 	void		dbSetBlendMappingOn						( int iID, int iStage, int iImage, int iTexCoordMode, int iMode );
-	void		dbSetTextureMD3							( int iID, int iH0, int iH1, int iL0, int iL1, int iL2, int iU0 );
 
 	void		dbSetAlphaMappingOn						( int iID, float fPercentage );
 
@@ -772,8 +757,6 @@ DARKSDK void SetLegacyMode				( int iUseLegacy );
 	void		dbDeletePixelShader						( int iShader );
 	void		dbSetPixelShaderTexture					( int iShader, int iSlot, int iTexture );
 
-	void		dbSaveObjectAnimation					( int iID, char* pFilename );
-	void		dbAppendObjectAnimation					( int iID, char* pFilename );
 	void		dbClearAllObjectKeyFrames				( int iID );
 	void		dbClearObjectKeyFrame					( int iID, int iFrame );
 	void		dbSetObjectKeyFrame						( int iID, int iFrame );
@@ -899,11 +882,7 @@ DARKSDK void SetLegacyMode				( int iUseLegacy );
 	float		dbGetVertexDataU						( int iVertex, int iIndex );
 	float		dbGetVertexDataV						( int iVertex, int iIndex );
 
-	void		dbSetMipmapMode							( int iMode );
 	void		dbFlushVideoMemory						( void );
-	void		dbDisableTNL							( void );
-	void		dbEnableTNL								( void );
-	void		dbConvert3DStoX							( char* pFilename1, char* pFilename2 );
 
 	int			dbPickObject							( int iX, int iY, int iObjectStart, int iObjectEnd );
 	void		dbPickScreen							( int iX, int iY, float fDistance );

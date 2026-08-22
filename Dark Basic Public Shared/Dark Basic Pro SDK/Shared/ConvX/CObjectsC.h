@@ -233,7 +233,6 @@ DARKSDK void SetEffectConstantMEx		( int iEffectID, DWORD dwParamIndex, int iVal
 DARKSDK void SetEffectTechnique			( int iEffectID, LPSTR pTechniqueName );
 DARKSDK void SetEffectTechniqueEx		( int iEffectID, DWORD dwPtr );
 DARKSDK DWORD GetEffectTechniqueEx		( int iEffectID );
-DARKSDK void SetEffectLODTechnique		( int iEffectID, LPSTR pTechniqueName );
 
 // new commands - need help additions too!
 DARKSDK void SetGlobalDepthSkipSystem	( bool bSkipDepthRenderings );
@@ -383,11 +382,7 @@ DARKSDK DWORD		GetVertexDataPtr			( void );
 
 // Misc
 DARKSDK void		SetFastBoundsCalculation	( int iMode );
-DARKSDK void		SetMipmapMode				( int iMode );
 DARKSDK void		FlushVideoMemory			( void );
-DARKSDK void		DisableTNL					( void );
-DARKSDK void		EnableTNL					( void );
-DARKSDK void		Convert3DStoX				( DWORD_PTR pFilename1, DWORD_PTR pFilename2 );
 
 // Pick Commands
 DARKSDK int			PickScreenObjectEx			( int iX, int iY, int iObjectStart, int iObjectEnd, int iIgnoreCamera, int iIgnoreNonSelectables );
@@ -612,13 +607,7 @@ DARKSDK void SetObjectMask		( int iID, int iMASK, int iShadowMASK );
 DARKSDK void SetObjectMask		( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK );
 DARKSDK void SetObjectMask		( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK, int iForeColorWipe );
 
-DARKSDK void SetArrayMap		( int iID, int iStage, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10 );
-DARKSDK void SetArrayMapEx		( int iID, int iStage, int iSrcObject, int iSrcStage );
 DARKSDK void Instance			( int iDestinationID, int iSourceID, int iInstanceValue );
-DARKSDK void SetNodeTreeEffect	( int iEffectID );
-DARKSDK void DrawSingle			( int iObjectID, int iCameraID );
-DARKSDK void ResetStaticLights	( void );
-DARKSDK void AddStaticLight		( int iIndex, float fX, float fY, float fZ, float fRange );
 DARKSDK void UpdateStaticLights	( void );
 
 // lee - 071108 - u71 - post processing screen commands (from SetupDLL)

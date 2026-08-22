@@ -3019,24 +3019,6 @@ DARKSDK_DLL void SetInterpolation ( int iID, int iJump )
 	if ( iJump==100 ) pObject->bAnimManualSlerp=false;
 }
 
-DARKSDK_DLL void SaveAnimation ( int iID, SDK_LPSTR [[maybe_unused]] pFilename )
-{
-	// Not Implemented in DBPRO V1 RELEASE
-	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
-}
-
-DARKSDK_DLL void AppendAnimation ( int iID, SDK_LPSTR [[maybe_unused]] pFilename )
-{
-	// Not Implemented in DBPRO V1 RELEASE
-	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
-}
-
-DARKSDK_DLL void SetAnimationMode ( int iID, int [[maybe_unused]] iMode )
-{
-	// Not Implemented in DBPRO V1 RELEASE
-	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
-}
-
 // Visual Commands
 
 DARKSDK_DLL void AddVisibilityListMask ( int iID )
@@ -4064,11 +4046,6 @@ DARKSDK void SetObjectBlendMap ( int iID, int iStage, int iImage, int iTexCoordM
 DARKSDK_DLL void SetBlendMap ( int iID, int iImage, int iMode )
 {
 	SetBlendMap ( iID, 1, iImage, 3, iMode );
-}
-
-DARKSDK_DLL void SetTextureMD3 ( int iID, int iH0, int iH1, int iL0, int iL1, int iL2, int [[maybe_unused]] iU0 )
-{
-	// MIKEMIKE : Fits in with MD3 format of what DBO will make of it..[MD3]
 }
 
 DARKSDK_DLL int SwitchRenderTargetToDepthTexture ( int iFlag )
@@ -5211,40 +5188,6 @@ DARKSDK_DLL void SetEffectTechnique	( int iEffectID, SDK_LPSTR pTechniqueName )
 	}
 	else
 		return;
-}
-
-DARKSDK_DLL void SetEffectLODTechnique	( int [[maybe_unused]] iEffectID, SDK_LPSTR pTechniqueName )
-{
-	/* experimental idea
-	// check the effect exists
-	if ( !ConfirmEffect ( iEffectID ) )
-		return;
-
-	// Get effect ptr
-	LPD3DXEFFECT pEffectPtr = NULL;
-	cSpecialEffect* pEffectObject = m_EffectList [ iEffectID ]->pEffectObj;
-	if ( pEffectObject )
-		if ( pEffectObject->m_pEffect )
-			pEffectPtr = pEffectObject->m_pEffect;
-
-	// Choose technique based on name
-	if ( pEffectPtr && pTechniqueName )
-	{
-		if ( strcmp ( (LPSTR)pTechniqueName, "" )!=NULL )
-		{
-			// use this when object at LOD distance
-			D3DXHANDLE hTechnique = pEffectPtr->GetTechniqueByName ( (LPSTR)pTechniqueName );
-			pEffectObject->m_hLODTechnique = hTechnique;
-		}
-		else
-		{
-			// do not override effect based on object distance
-			pEffectObject->m_hLODTechnique = NULL;
-		}
-	}
-	else
-		return;
-	*/
 }
 
 DARKSDK_DLL int GetEffectExist ( int iEffectID )
@@ -8515,27 +8458,7 @@ DARKSDK_DLL void SetFastBoundsCalculation ( int iMode )
 		g_bFastBoundsCalculation = false;
 }
 
-DARKSDK_DLL void SetMipmapMode ( int [[maybe_unused]] iMode )
-{
-	// OBSOLETE
-}
-
 DARKSDK_DLL void FlushVideoMemory ( void )
-{
-	// OBSOLETE
-}
-
-DARKSDK_DLL void DisableTNL ( void )
-{
-	// OBSOLETE
-}
-
-DARKSDK_DLL void EnableTNL ( void )
-{
-	// OBSOLETE
-}
-
-DARKSDK_DLL void Convert3DStoX ( DWORD_PTR pFilename1, DWORD_PTR [[maybe_unused]] pFilename2 )
 {
 	// OBSOLETE
 }
@@ -10657,37 +10580,7 @@ DARKSDK void SetMask ( int iID, int iMASK, int iShadowMASK, int [[maybe_unused]]
 }
 
 
-DARKSDK void SetArrayMap				( int iID, int iStage, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int [[maybe_unused]] i8, int i9, int i10 )
-{
-	// MessageBox ( NULL, "DX10", "", MB_OK );
-}
-
-DARKSDK void SetArrayMapEx				( int [[maybe_unused]] iID, int iStage, int iSrcObject, int iSrcStage )
-{
-	// MessageBox ( NULL, "DX10", "", MB_OK );
-}
-
 DARKSDK void Instance					( int iDestinationID, int iSourceID, int [[maybe_unused]] iInstanceValue )
-{
-	// MessageBox ( NULL, "DX10", "", MB_OK );
-}
-
-DARKSDK void SetNodeTreeEffect			( int [[maybe_unused]] iEffectID )
-{
-	// MessageBox ( NULL, "DX10", "", MB_OK );
-}
-
-DARKSDK void DrawSingle					( int iObjectID, int [[maybe_unused]] iCameraID )
-{
-	// MessageBox ( NULL, "DX10", "", MB_OK );
-}
-
-DARKSDK void ResetStaticLights			( void )
-{
-	// MessageBox ( NULL, "DX10", "", MB_OK );
-}
-
-DARKSDK void AddStaticLight				( int iIndex, float fX, float [[maybe_unused]] fY, float fZ, float fRange )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
@@ -11276,11 +11169,6 @@ void dbSetBlendMappingOn ( int iID, int iStage, int iImage, int iTexCoordMode, i
 	SetBlendMap ( iID, iStage, iImage, iTexCoordMode, iMode );
 }
 
-void dbSetTextureMD3 ( int iID, int iH0, int iH1, int iL0, int iL1, int iL2, int iU0 )
-{
-
-}
-
 void dbSetAlphaMappingOn ( int iID, float fPercentage )
 {
 	SetAlphaFactor ( iID, fPercentage );
@@ -11495,16 +11383,6 @@ void dbDeletePixelShader ( int iShader )
 void dbSetPixelShaderTexture ( int iShader, int iSlot, int iTexture )
 {
 	SetPixelShaderTexture ( iShader, iSlot, iTexture );
-}
-
-void dbSaveObjectAnimation ( int iID, char* pFilename )
-{
-	SaveAnimation ( iID, (DWORD_PTR)pFilename );
-}
-
-void dbAppendObjectAnimation ( int iID, char* pFilename )
-{
-	AppendAnimation ( iID, (DWORD_PTR)pFilename );
 }
 
 void dbClearAllObjectKeyFrames ( int iID )
@@ -12103,29 +11981,9 @@ float dbGetVertexDataV ( int iVertex, int iIndex )
 	return *( float* ) &dwReturn;
 }
 
-void dbSetMipmapMode ( int iMode )
-{
-	SetMipmapMode ( iMode );
-}
-
 void dbFlushVideoMemory ( void )
 {
 	FlushVideoMemory ( );
-}
-
-void dbDisableTNL ( void )
-{
-	DisableTNL ( );
-}
-
-void dbEnableTNL ( void )
-{
-	EnableTNL ( );
-}
-
-void dbConvert3DStoX ( char* pFilename1, char* pFilename2 )
-{
-	Convert3DStoX ( (DWORD_PTR)pFilename1, (DWORD_PTR)pFilename2 );
 }
 
 int dbPickObject ( int iX, int iY, int iObjectStart, int iObjectEnd )
