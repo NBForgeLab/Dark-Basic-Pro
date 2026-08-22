@@ -1,4 +1,4 @@
-﻿// MathOp.cpp: implementation of the CMathOp class.
+// MathOp.cpp: implementation of the CMathOp class.
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
@@ -203,8 +203,8 @@ bool CMathOp::DoValue(CStr* pExpression)
 		// LEEFIX - 171002 - If negative symbol used as first char (ie -99 or -a#), only literals are direct values
 		if(UpperExpression.GetChar(0)=='-')
 		{
-			DWORD dwType=0;
-			if(IsLiteral(&UpperExpression, &dwType)==false)
+			DWORD dwLiteralType=0;
+			if(IsLiteral(&UpperExpression, &dwLiteralType)==false)
 			{
 				dwPosition=0;
 				dwMathSymbol=5;
@@ -856,17 +856,17 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 					if ( pDecChain )
 					{
 						CDeclaration* pDec = pDecChain->GetNext();
-						CParameter* pCurrent = pFirstParameter.get();
-						while ( pCurrent && pDec )
+						CParameter* pParamWalk = pFirstParameter.get();
+						while ( pParamWalk && pDec )
 						{
-							DWORD dwDataType = pCurrent->GetMathItem()->FindResultTypeValueForDBM();
+							DWORD dwDataType = pParamWalk->GetMathItem()->FindResultTypeValueForDBM();
 							if ( dwDataType>=1001 )
 							{
 								// UDT vars passed in is ok
 								if ( dwDataType==1001 )
 								{
 									CStr* pFunctionTypeName = pDec->GetType();
-									CResultData* pParamData = pCurrent->GetMathItem()->FindResultData();
+									CResultData* pParamData = pParamWalk->GetMathItem()->FindResultData();
 									if ( pParamData )
 									{
 										CStr* pParamTypeName = pParamData->m_pStruct->GetTypeName();
@@ -893,7 +893,7 @@ bool CMathOp::DoValueFunction(CStr* pExpressionValue)
 									break;
 								}
 							}
-							pCurrent = pCurrent->GetNext();
+							pParamWalk = pParamWalk->GetNext();
 							pDec = pDec->GetNext();
 						}
 					}
@@ -1761,7 +1761,7 @@ bool CMathOp::DoValueLiteral(CStr* pExpressionValue, DWORD dwTypeValue)
 	{
 		// non DWORD types can remove the leading zeros
 		LPSTR pString = str.GetStr();
-		DWORD dwLen = strlen(pString);
+		DWORD dwLen = static_cast<DWORD>(strlen(pString));
 		if ( pString[0]=='0' )
 		{
 			for ( DWORD c=0; c<dwLen; c++ )
@@ -2211,7 +2211,7 @@ bool CMathOp::IsComplexVariable(CStr* pExpressionValue)
 	return false;
 }
 
-bool CMathOp::IsAnything(CStr* pExpressionValue)
+bool CMathOp::IsAnything([[maybe_unused]] CStr* pExpressionValue)
 {
 	// Always try and resolve it
 	return true;
@@ -2514,7 +2514,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 			dwNumberOfPopsToMake++;
 		}
 
-		DWORD dwInstructionValue=g_pInstructionTable->GetIIValue(dwUseNewInstruction);
+
 		LPSTR pMathDLL=pRef->GetDLL()->GetStr();
 		LPSTR pMathCommand=pRef->GetDecoratedName()->GetStr();
 		g_pASMWriter->WriteASMCall(dwLineNumber, pMathDLL, pMathCommand);
@@ -2526,7 +2526,7 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 		CStr* pReturnData = GetResultStringToken();
 		if(pReturnData)
 		{
-			DWORD dwReturnDataType = GetResultType();
+			[[maybe_unused]] DWORD dwReturnDataType = GetResultType();
 			g_pASMWriter->WriteASMTaskP2(dwLineNumber, static_cast<DWORD>(ASMTask::Assign), GetResultData(), nullptr);
 		}
 

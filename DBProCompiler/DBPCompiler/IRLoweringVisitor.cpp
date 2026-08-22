@@ -234,7 +234,7 @@ void IRLoweringVisitor::Visit(ASTArrayAccessNode* node) {
     m_program.instructions.push_back(inst);
 }
 
-void IRLoweringVisitor::Visit(ASTStructDeclNode* node) {
+void IRLoweringVisitor::Visit([[maybe_unused]] ASTStructDeclNode* node) {
 }
 
 void IRLoweringVisitor::Visit(ASTStructAccessNode* node) {

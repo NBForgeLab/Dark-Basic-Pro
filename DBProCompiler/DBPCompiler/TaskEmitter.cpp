@@ -110,7 +110,7 @@ DWORD CTaskEmitter::CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffs
     return dwPassNumber * dwBaseOffset;
 }
 
-void CTaskEmitter::WriteASMARRtoRAX(CASMWriter* pASMWriter, [[maybe_unused]] DWORD dwMode, CStr* pP, [[maybe_unused]] CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const
+void CTaskEmitter::WriteASMARRtoRAX(CASMWriter* pASMWriter, [[maybe_unused]] DWORD dwMode, [[maybe_unused]] CStr* pP, [[maybe_unused]] CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const
 {
 	if (!pASMWriter) return;
 
@@ -371,7 +371,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, DWORD dwMode, CStr* pP
 	}
 }
 
-void CTaskEmitter::WriteASMRAXtoARR(CASMWriter* pASMWriter, [[maybe_unused]] DWORD dwMode, CStr* pP, [[maybe_unused]] CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const
+void CTaskEmitter::WriteASMRAXtoARR(CASMWriter* pASMWriter, [[maybe_unused]] DWORD dwMode, [[maybe_unused]] CStr* pP, [[maybe_unused]] CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const
 {
 	if (!pASMWriter) return;
 

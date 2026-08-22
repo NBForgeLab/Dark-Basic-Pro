@@ -40,7 +40,7 @@ CParseJump::~CParseJump()
 	// unique_ptr members auto-cleanup
 }
 
-bool CParseJump::WriteDBM(DWORD PlacementCode)
+bool CParseJump::WriteDBM([[maybe_unused]] DWORD PlacementCode)
 {
 	if(GetJumpType()==JUMPTYPE_IF)
 	{

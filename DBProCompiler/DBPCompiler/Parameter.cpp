@@ -390,7 +390,7 @@ bool CParameter::CastAllParametersToInstruction(CInstructionTableEntry* pRef)
 				// leefix - 280305 - casting IS required as cannot PRINT *PTR without casting to what PRINT wants
 				if(pCurrent->GetResultType()>=201 && pCurrent->GetResultType()<=299)
 				{
-					int lee=42;
+
 					//bCastingRequired=false;
 				}
 

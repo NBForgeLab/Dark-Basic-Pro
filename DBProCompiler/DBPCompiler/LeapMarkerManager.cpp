@@ -32,7 +32,7 @@ void CLeapMarkerManager::Reset() noexcept
 
 void CLeapMarkerManager::RebaseForBufferExpansion(
 	LPSTR pNewProgramStart,
-	DWORD dwNewMCBlockSize)
+	[[maybe_unused]] DWORD dwNewMCBlockSize)
 {
 	if (!pNewProgramStart)
 		return;
@@ -98,7 +98,7 @@ bool CLeapMarkerManager::WriteASMLeapMarkerJumpToTop(CASMWriter* pWriter)
 	return true;
 }
 
-bool CLeapMarkerManager::WriteASMLineLeap(DWORD dwOp, DWORD di, CASMWriter* pWriter)
+bool CLeapMarkerManager::WriteASMLineLeap(DWORD dwOp, [[maybe_unused]] DWORD di, CASMWriter* pWriter)
 {
 	if (!pWriter) return false;
 

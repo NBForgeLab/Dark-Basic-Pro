@@ -612,7 +612,7 @@ int CASMWriter::DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2)
 	return 8;
 }
 
-int CASMWriter::DetermineSecondOpDataWidth(int iPreOp, int iOp1, int iOp2)
+int CASMWriter::DetermineSecondOpDataWidth(int iPreOp, int iOp1, [[maybe_unused]] int iOp2)
 {
 	// MOV r/m, imm: the value slot is imm8/imm16/imm32 for C6/C7; register
 	// forms 80/81/83 carry imm8/imm32/imm8. All other instructions take a
@@ -669,7 +669,7 @@ bool CASMWriter::CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPC
 	return CreateASMMiddleCore(iPreOpCode, iOpCode1, iOpCode2, lpOpData, nullptr, false, 0, iOp3);
 }
 
-bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, LPCSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize, int iOp3)
+bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, LPCSTR lpOpData2, bool bSecondOpDataIsIMM, [[maybe_unused]] DWORD dwSecondOpDataIMMSize, int iOp3)
 {
 	if(m_machineCodeBuffer.GetProgramStart()==nullptr || m_machineCodeBuffer.GetMachineBlock()==nullptr)
 	{
@@ -839,9 +839,9 @@ bool CASMWriter::CheckAndExpandMCBMemory(void)
 	DWORD dwLeapRelDiff[9];
 	if (pOldStart)
 	{
-		dwByteOffset = m_leapManager.GetRecordTopBytePosition() - pOldStart;
+		dwByteOffset = static_cast<DWORD>(m_leapManager.GetRecordTopBytePosition() - pOldStart);
 		for(DWORD di=0; di<9; di++)
-			dwLeapRelDiff[di] = m_leapManager.GetRecordBytePosition(di) - pOldStart;
+			dwLeapRelDiff[di] = static_cast<DWORD>(m_leapManager.GetRecordBytePosition(di) - pOldStart);
 	}
 
 	// Delegate expansion to machine code buffer
@@ -952,7 +952,7 @@ bool CASMWriter::ReportAnyErrorsToCLI(void)
 		else
 			snprintf(lpReturnError, sizeof(lpReturnError), "Runtime Error %d [%s]", dwRTError, pRuntimeErrorString);
 			
-		CDebuggerInterface::SendDataToDebugger(31, lpReturnError, strlen(lpReturnError));
+		CDebuggerInterface::SendDataToDebugger(31, lpReturnError, static_cast<DWORD>(strlen(lpReturnError)));
 
 		// Clear error
 		g_pEXE->m_dwRuntimeErrorDWORD=0;
@@ -1213,7 +1213,7 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 					if(!stringPointer)
 						return nullptr;
 					LPSTR pStringInMemory=*stringPointer;
-					if(pStringInMemory) dwLengthOfString=strlen(pStringInMemory);
+					if(pStringInMemory) dwLengthOfString=static_cast<DWORD>(strlen(pStringInMemory));
 					dwSizeOfData+=dwLengthOfString;
 				}
 			}
@@ -1282,7 +1282,7 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 
 					// Store length and contents of string in memory
 					DWORD dwLengthOfString=0;
-					if(pStringInMemory) dwLengthOfString=strlen(pStringInMemory);
+					if(pStringInMemory) dwLengthOfString=static_cast<DWORD>(strlen(pStringInMemory));
 					if(!writeValue(dwLengthOfString))
 					{
 						delete[] pData;
@@ -1307,7 +1307,7 @@ LPSTR CASMWriter::MakeVarValuesForTransfer(DWORD *pdwDataSize)
 	return pData;
 }
 
-void CASMWriter::TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dwPatternArrayCounter, DWORD* dwSizeOfUserTypePattern, CDeclaration* pDecMain)
+void CASMWriter::TraverseDecForPattern([[maybe_unused]] DWORD dwBaseOffset, [[maybe_unused]] short pass, [[maybe_unused]] DWORD* dwPatternArrayCounter, [[maybe_unused]] DWORD* dwSizeOfUserTypePattern, [[maybe_unused]] CDeclaration* pDecMain)
 {
 }
 

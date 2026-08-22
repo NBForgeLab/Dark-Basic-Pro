@@ -97,7 +97,7 @@ static std::unique_ptr<ASTNode> ParsePrimary(const std::string& str) {
         std::string arrName = ExpressionTrim(trimmed.substr(0, openParen));
         if (IsSimpleIdentifier(arrName)) {
             std::string lowerName = arrName;
-            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+            std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
             // Built-in functions ending with $ or common math/string commands are not array accesses
             if (!lowerName.empty() && (lowerName.back() == '$' ||
                 lowerName == "len" || lowerName == "sin" || lowerName == "cos" || lowerName == "tan" ||
