@@ -61,7 +61,7 @@ bool cCompiler::Clip ( cBSPTree* pTree, bool bFlag )
 	return true;
 }
 
-bool cCompiler::CompileScene ( sMesh* pMeshA, D3DXMATRIX* matA, sMesh* pMeshB, D3DXMATRIX* matB )
+bool cCompiler::CompileScene ( sMesh* pMeshA, D3DXMATRIX* [[maybe_unused]] matA, sMesh* pMeshB, D3DXMATRIX* matB )
 {
 	// leemove - 130306 - u60b3 - CSG needs all meshes as trilist
 	if ( pMeshA )

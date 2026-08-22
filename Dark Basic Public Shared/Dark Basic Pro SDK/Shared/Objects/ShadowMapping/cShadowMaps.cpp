@@ -839,7 +839,7 @@ HRESULT CascadedShadowsManager::InitFrame ( LPD3DXEFFECT pEffectPtr  )
 //--------------------------------------------------------------------------------------
 // Render the cascades into a texture atlas.
 //--------------------------------------------------------------------------------------
-HRESULT CascadedShadowsManager::RenderShadowsForAllCascades ( LPD3DXEFFECT pEffectPtr ) 
+HRESULT CascadedShadowsManager::RenderShadowsForAllCascades ( LPD3DXEFFECT [[maybe_unused]] pEffectPtr )
 {
 	// temp
     HRESULT hr = S_OK;
@@ -993,9 +993,9 @@ HRESULT CascadedShadowsManager::RenderShadowsForAllCascades ( LPD3DXEFFECT pEffe
 // Render the scene.
 //--------------------------------------------------------------------------------------
 HRESULT CascadedShadowsManager::RenderScene ( int iEffectID, LPD3DXEFFECT pEffectPtr, 
-                                      LPVOID prtvBackBuffer,
-                                      LPVOID pdsvBackBuffer,
-                                      CFirstPersonCamera* pActiveCamera,
+                                      LPVOID [[maybe_unused]] prtvBackBuffer,
+                                      LPVOID [[maybe_unused]] pdsvBackBuffer,
+                                      CFirstPersonCamera* [[maybe_unused]] pActiveCamera,
                                       BOOL bVisualize
             ) 
 {

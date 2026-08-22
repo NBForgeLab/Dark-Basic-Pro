@@ -264,7 +264,7 @@ DARKSDK_DLL void LoadCore ( SDK_LPSTR szFilename, int iID, int iDBProMode, int i
 	}
 }
 
-bool CheckForWorkshopFile ( char* szFilename )
+bool CheckForWorkshopFile ( char* [[maybe_unused]] szFilename )
 {
 	return false;
 }
@@ -3019,19 +3019,19 @@ DARKSDK_DLL void SetInterpolation ( int iID, int iJump )
 	if ( iJump==100 ) pObject->bAnimManualSlerp=false;
 }
 
-DARKSDK_DLL void SaveAnimation ( int iID, SDK_LPSTR pFilename )
+DARKSDK_DLL void SaveAnimation ( int iID, SDK_LPSTR [[maybe_unused]] pFilename )
 {
 	// Not Implemented in DBPRO V1 RELEASE
 	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
 }
 
-DARKSDK_DLL void AppendAnimation ( int iID, SDK_LPSTR pFilename )
+DARKSDK_DLL void AppendAnimation ( int iID, SDK_LPSTR [[maybe_unused]] pFilename )
 {
 	// Not Implemented in DBPRO V1 RELEASE
 	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
 }
 
-DARKSDK_DLL void SetAnimationMode ( int iID, int iMode )
+DARKSDK_DLL void SetAnimationMode ( int iID, int [[maybe_unused]] iMode )
 {
 	// Not Implemented in DBPRO V1 RELEASE
 	RunTimeError(RUNTIMEERROR_COMMANDNOWOBSOLETE);
@@ -4066,7 +4066,7 @@ DARKSDK_DLL void SetBlendMap ( int iID, int iImage, int iMode )
 	SetBlendMap ( iID, 1, iImage, 3, iMode );
 }
 
-DARKSDK_DLL void SetTextureMD3 ( int iID, int iH0, int iH1, int iL0, int iL1, int iL2, int iU0 )
+DARKSDK_DLL void SetTextureMD3 ( int iID, int iH0, int iH1, int iL0, int iL1, int iL2, int [[maybe_unused]] iU0 )
 {
 	// MIKEMIKE : Fits in with MD3 format of what DBO will make of it..[MD3]
 }
@@ -4572,7 +4572,7 @@ DARKSDK_DLL void SetOcclusionMode ( int iOcclusionMode )
 	g_Occlusion.SetOcclusionMode ( iOcclusionMode );
 }
 
-DARKSDK_DLL void SetObjectOcclusion ( int iID, int iOcclusionShape, int iMeshOrLimbID, int iA, int iIsOccluder, int iDeleteFromOccluder )
+DARKSDK_DLL void SetObjectOcclusion ( int iID, int [[maybe_unused]] iOcclusionShape, int iMeshOrLimbID, int iA, int iIsOccluder, int iDeleteFromOccluder )
 {
 	// iOcclusionShape & iMeshOrLimbID ignored for now
 
@@ -4925,7 +4925,7 @@ DARKSDK_DLL void PerformChecklistForEffectErrors ( void )
 		g_pGlob->checklistexists=false;
 }
 
-DARKSDK_DLL void PerformChecklistForEffectErrors ( int iEffectID )
+DARKSDK_DLL void PerformChecklistForEffectErrors ( int [[maybe_unused]] iEffectID )
 {
 	PerformChecklistForEffectErrors();
 }
@@ -4992,7 +4992,7 @@ DARKSDK_DLL int GetEffectParameterIndex ( int iEffectID, SDK_LPSTR pConstantName
 	return iParameterIndex;
 }
 
-DARKSDK_DLL LPD3DXEFFECT SetEffectConstantCore ( int iEffectID, SDK_LPSTR pConstantName, int iOptionalParamIndex )
+DARKSDK_DLL LPD3DXEFFECT SetEffectConstantCore ( int iEffectID, SDK_LPSTR pConstantName, int [[maybe_unused]] iOptionalParamIndex )
 {
 	// check the effect exists
 	if ( !ConfirmEffect ( iEffectID ) )
@@ -5213,7 +5213,7 @@ DARKSDK_DLL void SetEffectTechnique	( int iEffectID, SDK_LPSTR pTechniqueName )
 		return;
 }
 
-DARKSDK_DLL void SetEffectLODTechnique	( int iEffectID, SDK_LPSTR pTechniqueName )
+DARKSDK_DLL void SetEffectLODTechnique	( int [[maybe_unused]] iEffectID, SDK_LPSTR pTechniqueName )
 {
 	/* experimental idea
 	// check the effect exists
@@ -6079,7 +6079,7 @@ DARKSDK_DLL void CreateVertexShaderFromFile ( int iID, SDK_LPSTR szFile )
 	}
 }
 
-DARKSDK_DLL void SetVertexShaderVector ( int iID, DWORD dwRegister, int iVector, DWORD dwConstantCount )
+DARKSDK_DLL void SetVertexShaderVector ( int iID, DWORD dwRegister, int iVector, DWORD [[maybe_unused]] dwConstantCount )
 {
 	// vertify shader valid
 	if ( iID < 0 || iID > MAX_VERTEX_SHADERS )
@@ -6093,7 +6093,7 @@ DARKSDK_DLL void SetVertexShaderVector ( int iID, DWORD dwRegister, int iVector,
 	m_pD3D->SetVertexShaderConstantF ( dwRegister, (float*)&vecData, 1 );
 }
 
-DARKSDK_DLL void SetVertexShaderMatrix ( int iID, DWORD dwRegister, int iMatrix, DWORD dwConstantCount )
+DARKSDK_DLL void SetVertexShaderMatrix ( int iID, DWORD dwRegister, int iMatrix, DWORD [[maybe_unused]] dwConstantCount )
 {
 	// vertify shader valid
 	if ( iID < 0 || iID > MAX_VERTEX_SHADERS )
@@ -6392,7 +6392,7 @@ DARKSDK_DLL void AddNodeTreeLight ( int iLightIndex, float fX, float fY, float f
 	}
 }
 
-DARKSDK_DLL void SetNodeTreeTextureMode ( int iMode ){}
+DARKSDK_DLL void SetNodeTreeTextureMode ( int [[maybe_unused]] iMode ){}
 DARKSDK_DLL void EnableNodeTreeOcclusion ( void ){}
 DARKSDK_DLL void DisableNodeTreeOcclusion ( void ){}
 
@@ -7208,7 +7208,7 @@ DARKSDK_DLL void PerformCheckListForLimbs ( int iID )
 		g_pGlob->checklistexists=false;
 }
 
-DARKSDK_DLL void PerformCheckListForOnscreenObjects ( int iMode )
+DARKSDK_DLL void PerformCheckListForOnscreenObjects ( int [[maybe_unused]] iMode )
 {
 	// 301007 - new command
 	bool bCreateChecklistNow=false;
@@ -8515,7 +8515,7 @@ DARKSDK_DLL void SetFastBoundsCalculation ( int iMode )
 		g_bFastBoundsCalculation = false;
 }
 
-DARKSDK_DLL void SetMipmapMode ( int iMode )
+DARKSDK_DLL void SetMipmapMode ( int [[maybe_unused]] iMode )
 {
 	// OBSOLETE
 }
@@ -8535,7 +8535,7 @@ DARKSDK_DLL void EnableTNL ( void )
 	// OBSOLETE
 }
 
-DARKSDK_DLL void Convert3DStoX ( DWORD_PTR pFilename1, DWORD_PTR pFilename2 )
+DARKSDK_DLL void Convert3DStoX ( DWORD_PTR pFilename1, DWORD_PTR [[maybe_unused]] pFilename2 )
 {
 	// OBSOLETE
 }
@@ -10620,17 +10620,17 @@ void CalculateObjectBoundsEx ( int iID, int iOnlyUpdateFrames )
 }
 
 // lee - 140108 - x10 compat.
-DARKSDK void SetMask					( int iID, int iMASK, int iShadowMASK )
+DARKSDK void SetMask					( int iID, int iMASK, int [[maybe_unused]] iShadowMASK )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void SetMask					( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK )
+DARKSDK void SetMask					( int iID, int iMASK, int iShadowMASK, int [[maybe_unused]] iCubeMapMASK )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void SetMask ( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK, int iForeColorWipe )
+DARKSDK void SetMask ( int iID, int iMASK, int iShadowMASK, int [[maybe_unused]] iCubeMapMASK, int iForeColorWipe )
 {
 	// check the object exists
 	// leefix - 211006 - allow instanced objects to be masked
@@ -10657,27 +10657,27 @@ DARKSDK void SetMask ( int iID, int iMASK, int iShadowMASK, int iCubeMapMASK, in
 }
 
 
-DARKSDK void SetArrayMap				( int iID, int iStage, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10 )
+DARKSDK void SetArrayMap				( int iID, int iStage, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int [[maybe_unused]] i8, int i9, int i10 )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void SetArrayMapEx				( int iID, int iStage, int iSrcObject, int iSrcStage )
+DARKSDK void SetArrayMapEx				( int [[maybe_unused]] iID, int iStage, int iSrcObject, int iSrcStage )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void Instance					( int iDestinationID, int iSourceID, int iInstanceValue )
+DARKSDK void Instance					( int iDestinationID, int iSourceID, int [[maybe_unused]] iInstanceValue )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void SetNodeTreeEffect			( int iEffectID )
+DARKSDK void SetNodeTreeEffect			( int [[maybe_unused]] iEffectID )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void DrawSingle					( int iObjectID, int iCameraID )
+DARKSDK void DrawSingle					( int iObjectID, int [[maybe_unused]] iCameraID )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
@@ -10687,7 +10687,7 @@ DARKSDK void ResetStaticLights			( void )
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }
 
-DARKSDK void AddStaticLight				( int iIndex, float fX, float fY, float fZ, float fRange )
+DARKSDK void AddStaticLight				( int iIndex, float fX, float [[maybe_unused]] fY, float fZ, float fRange )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }

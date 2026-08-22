@@ -2889,7 +2889,7 @@ bool CObjectManager::ShaderStart ( sMesh* pMesh, IDirect3DSurface9** ppCurrentRe
 
 DWORD g_InstanceAlphaControlValue = 0;
 
-bool CObjectManager::ShaderPass ( sMesh* pMesh, UINT uPass, UINT uPasses, bool bEffectRendering, bool bLocalOverrideAllTexturesAndEffects, IDirect3DSurface9* pCurrentRenderTarget, IDirect3DSurface9* pCurrentDepthTarget, sObject* pObject )
+bool CObjectManager::ShaderPass ( sMesh* pMesh, UINT uPass, UINT [[maybe_unused]] uPasses, bool bEffectRendering, bool bLocalOverrideAllTexturesAndEffects, IDirect3DSurface9* pCurrentRenderTarget, IDirect3DSurface9* pCurrentDepthTarget, sObject* pObject )
 {
 	// return true else if something like [depth render is skipped]
 	bool bResult = true;
@@ -5094,7 +5094,7 @@ D3DFORMAT CObjectManager::GetValidStencilBufferFormat ( D3DFORMAT BackBufferForm
 	return DepthFormat;
 }
 
-int CObjectManager::SwitchRenderTargetToDepth ( int iFlag )
+int CObjectManager::SwitchRenderTargetToDepth ( int [[maybe_unused]] iFlag )
 {
 	// create render target if not exists
 	if ( g_pMainCameraDepthTexture==NULL )

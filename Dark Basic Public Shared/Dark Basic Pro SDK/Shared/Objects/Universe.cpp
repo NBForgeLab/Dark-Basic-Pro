@@ -1871,7 +1871,7 @@ void cUniverse::TransformVertices ( sMesh* pMesh, D3DXMATRIX matWorld )
 	TransformSelectedVertices ( pMesh, 0, pMesh->dwVertexCount, &matWorld );
 }
 
-bool cUniverse::Remove ( int iID )
+bool cUniverse::Remove ( int [[maybe_unused]] iID )
 {
 	// remove an object from nodes
 
@@ -2928,7 +2928,7 @@ bool cUniverse::CanAreaPointSeeBox ( int iAtAreaBox, D3DXVECTOR3* pvecAt, D3DXVE
 }
 
 
-void cUniverse::DrawDebug ( sNode* pNode )
+void cUniverse::DrawDebug ( sNode* [[maybe_unused]] pNode )
 {
 	// draw node bounds and portals
 
@@ -4362,8 +4362,8 @@ bool cUniverse::CollisionRayVolume ( float fOldX, float fOldY, float fOldZ, floa
 	return bResult;
 }
 
-bool cUniverse::CollisionTest (	int iTestIndex, float fX1, float fY1, float fZ1, float fX2, float fY2, float fZ2,
-								float fNewX1, float fNewY1, float fNewZ1, float fNewX2, float fNewY2, float fNewZ2 )
+bool cUniverse::CollisionTest (	int [[maybe_unused]] iTestIndex, float fX1, float fY1, float fZ1, float fX2, float fY2, float fZ2,
+								float [[maybe_unused]] fNewX1, float fNewY1, float fNewZ1, float fNewX2, float fNewY2, float fNewZ2 )
 {
 	// report best collision result
 	return false;
@@ -4604,7 +4604,7 @@ void cUniverse::CopyVertices ( sPortalVertex* pTo, cVertex* pFrom )
 	pTo->dwDiffuse     = D3DCOLOR_ARGB ( 255, 0, 0, 255 );
 }
 
-int	cUniverse::GetPortalCount ( cBSPTree* pTree, sMesh* pMesh )
+int	cUniverse::GetPortalCount ( cBSPTree* pTree, sMesh* [[maybe_unused]] pMesh )
 {
 	// get the number of valid portals within a tree
 

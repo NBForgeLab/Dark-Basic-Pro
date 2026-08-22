@@ -1626,7 +1626,7 @@ bool cBSPTree::IntersectedBySphere ( cVector3& vecSphereCentre, float fSphereRad
     return false;
 }
 
-bool cBSPTree::LinkDetailObject ( int iObjectIndex, cVector3& vecSphereCentre, float fSphereRadius, int iNode )
+bool cBSPTree::LinkDetailObject ( int [[maybe_unused]] iObjectIndex, cVector3& vecSphereCentre, float fSphereRadius, int iNode )
 {
 	// we can add in complex objects which we don't want used in the BSP compile into the tree
 

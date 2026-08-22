@@ -415,7 +415,7 @@ void cSpecialEffect::Mesh ( sMesh* pMesh )
 	}
 }
 
-DWORD cSpecialEffect::Start	( sMesh* pMesh, D3DXMATRIX matObject )
+DWORD cSpecialEffect::Start	( sMesh* pMesh, D3DXMATRIX [[maybe_unused]] matObject )
 {
 	// if a valid FX effect
 	if ( m_pEffect )
@@ -466,7 +466,7 @@ void cSpecialEffect::End ( void )
 	}
 }
 
-bool cSpecialEffect::AssignValueHookCore ( LPCSTR pName, D3DXHANDLE hParam, DWORD dwClass, bool bRemove )
+bool cSpecialEffect::AssignValueHookCore ( LPCSTR pName, D3DXHANDLE hParam, DWORD [[maybe_unused]] dwClass, bool bRemove )
 {
 	#define ASSIGNNAME(a,b)	if ( bRemove ) { if ( b==hParam ) { b=NULL; return true; } } else { if ( _stricmp ( pName, a )==0 ) { if ( hParam ) { b=hParam; return true; } else { if ( b ) return true;  }; } };
 
@@ -2351,7 +2351,7 @@ DARKSDK_DLL bool MakeLocalMeshFromPureMeshData ( sMesh* pMesh, DWORD dwFVF, DWOR
 	return true;
 }
 
-DARKSDK_DLL LPD3DXMESH ComputeTangentBasisEx ( LPD3DXMESH gMasterMesh, bool bMakeNormals, bool bMakeTangents, bool bMakeBinormals, bool bFixTangents, bool bCylTexGen, bool bWeightNormalsByFace )
+DARKSDK_DLL LPD3DXMESH ComputeTangentBasisEx ( LPD3DXMESH gMasterMesh, bool bMakeNormals, bool [[maybe_unused]] bMakeTangents, bool bMakeBinormals, bool bFixTangents, bool bCylTexGen, bool bWeightNormalsByFace )
 {
 	// define raw input data type for this computation
 	typedef struct {
@@ -3164,7 +3164,7 @@ DARKSDK_DLL bool CopyVertexMeshDataSameFVF ( sMesh* pDstMesh, sMesh* pSrcMesh, D
 	return true;
 }
 
-DARKSDK_DLL void SplitMeshSide ( int iSide, sMesh* pMesh, sMesh* pSplitMesh )
+DARKSDK_DLL void SplitMeshSide ( int iSide, sMesh* pMesh, sMesh* [[maybe_unused]] pSplitMesh )
 {
 	// determine direction of side
 	D3DXVECTOR3 vecDirection;
@@ -4626,7 +4626,7 @@ DARKSDK_DLL bool CalculateObjectBounds ( int iPass, sMesh* pMesh, D3DXMATRIX* pM
 	return true;
 }
 
-DARKSDK_DLL bool CalculateAllBounds ( sObject* pObject, bool bNotUsed )
+DARKSDK_DLL bool CalculateAllBounds ( sObject* pObject, bool [[maybe_unused]] bNotUsed )
 {
 	// ensure that the object is valid
 	SAFE_MEMORY ( pObject );
@@ -5164,7 +5164,7 @@ DARKSDK_DLL bool SetupPortalFrustum ( DWORD dwFrustumCount, D3DXVECTOR3* pvecSta
 	return true;
 }
 
-DARKSDK_DLL bool SetupCastFrustum ( DWORD dwFrustumCount, D3DXVECTOR3* pvecStart, D3DXVECTOR3* pvecFinish )
+DARKSDK_DLL bool SetupCastFrustum ( DWORD dwFrustumCount, D3DXVECTOR3* pvecStart, D3DXVECTOR3* [[maybe_unused]] pvecFinish )
 {
 	// useful to create a frustrum that immitates a ray cast for finding nodes from a line
 
@@ -5629,7 +5629,7 @@ DARKSDK_DLL bool GetFVFOffsetMap ( sMesh* pMesh, sOffsetMap* psOffsetMap )
 	}
 }
 
-DARKSDK_DLL bool CreateVertexShaderFromFVF ( DWORD dwFVF, DWORD* pdwShader )
+DARKSDK_DLL bool CreateVertexShaderFromFVF ( DWORD [[maybe_unused]] dwFVF, DWORD* pdwShader )
 {
 	// create the vertex shader handle
 

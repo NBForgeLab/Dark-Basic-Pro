@@ -717,7 +717,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 	*pdwIndexOffset = iIndiceIndexOffset;
 }
 
-DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int iBlockMode, int iGridDimension, int iGX, int iGY, int iGZ )
+DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]] iBlockMode, int iGridDimension, int iGX, int iGY, int iGZ )
 {
 	// limits of this process
 	if ( iGX>50 || iGY>50 || iGZ>50 )
@@ -2517,7 +2517,7 @@ DARKSDK_DLL void ConvertToFVF ( sMesh* pMesh, DWORD dwFVF )
 	ConvertLocalMeshToFVF ( pMesh, dwFVF );
 }
 
-DARKSDK_DLL void CombineSubsetPolygonsInMesh ( sMesh* pMesh )
+DARKSDK_DLL void CombineSubsetPolygonsInMesh ( sMesh* [[maybe_unused]] pMesh )
 {
 	// go through each polygon
 //	for ()
@@ -2622,7 +2622,7 @@ DARKSDK_DLL void VectorTransform ( const D3DXVECTOR3 in1, const D3DXMATRIX matri
 	out [ 2 ] = DotProduct ( in1, in2 [ 2 ] ) +	in2 [ 2 ] [ 3 ];
 }
 
-DARKSDK_DLL void AnimateBoneMeshMDL ( sObject* pObject, sFrame* pFrame )
+DARKSDK_DLL void AnimateBoneMeshMDL ( sObject* pObject, sFrame* [[maybe_unused]] pFrame )
 {
 	// MIKE 240303 - MDL ANIMATION STYLE /////////////////////////////////////////////////////////
 	int iFrame = ( int ) pObject->fAnimFrame;
@@ -2777,7 +2777,7 @@ DARKSDK_DLL void AnimateBoneMeshMDX ( sObject* pObject, sFrame* pFrame )
 	g_vRefreshMeshList.push_back ( pMesh );
 }
 
-void AnimateBoneMeshBONE ( sObject* pObject, sFrame* pFrame, sMesh* pMesh )
+void AnimateBoneMeshBONE ( sObject* [[maybe_unused]] pObject, sFrame* pFrame, sMesh* pMesh )
 {
 	// first time around, copy vertex data to original-store (131214 - external to the NEVERSTOREORIGINALVERTICES define as it is NEEDED here)
 	if ( pMesh->pOriginalVertexData==NULL )
@@ -2952,7 +2952,7 @@ DARKSDK_DLL void ResetVertexDataInMeshPerMesh ( sMesh* pMesh )
 	}
 }
 
-DARKSDK_DLL void CollectOriginalVertexData ( sMesh* pMesh )
+DARKSDK_DLL void CollectOriginalVertexData ( sMesh* [[maybe_unused]] pMesh )
 {
 	#ifndef NEVERSTOREORIGINALVERTICES
 	if ( pMesh->pOriginalVertexData==NULL )
@@ -4182,7 +4182,7 @@ DARKSDK_DLL bool UpdateShadowMesh ( float fX, float fY, float fZ, float fRange, 
 }
 */
 
-DARKSDK_DLL bool CastShadowGeometryToShadowMesh ( D3DXVECTOR3 vecLightPos, sMesh* pOrigMesh, float fShadowRange, sMesh** ppMesh, DWORD* pdwStartAtVertex, D3DXMATRIX* pmatWorld, D3DXMATRIX* pmatBoneMatrix )
+DARKSDK_DLL bool CastShadowGeometryToShadowMesh ( D3DXVECTOR3 vecLightPos, sMesh* pOrigMesh, float fShadowRange, sMesh** ppMesh, DWORD* [[maybe_unused]] pdwStartAtVertex, D3DXMATRIX* pmatWorld, D3DXMATRIX* pmatBoneMatrix )
 {
 	// copy all orig vertex data (being animated) to shadow mesh
 	sMesh* pMesh = *ppMesh;
@@ -4375,7 +4375,7 @@ DARKSDK_DLL bool UpdateShadowMesh ( float fX, float fY, float fZ, float fRange, 
 
 // Mesh Construction Functions
 
-DARKSDK_DLL bool MakeMeshPlain ( bool bCreateNew, sMesh* pMesh, float fWidth, float fHeight, DWORD dwFVF, DWORD dwColor )
+DARKSDK_DLL bool MakeMeshPlain ( bool [[maybe_unused]] bCreateNew, sMesh* pMesh, float fWidth, float fHeight, DWORD dwFVF, DWORD dwColor )
 {
 	// create memory
 	DWORD dwVertexCount = 6;									// store number of vertices
@@ -4405,7 +4405,7 @@ DARKSDK_DLL bool MakeMeshPlain ( bool bCreateNew, sMesh* pMesh, float fWidth, fl
 }
 
 // mike - 021005 - alternative make plane function
-DARKSDK_DLL bool MakeMeshPlainEx ( bool bCreateNew, sMesh* pMesh, float fWidth, float fHeight, DWORD dwFVF, DWORD dwColor )
+DARKSDK_DLL bool MakeMeshPlainEx ( bool [[maybe_unused]] bCreateNew, sMesh* pMesh, float fWidth, float fHeight, DWORD dwFVF, DWORD dwColor )
 {
 	// create memory
 	DWORD dwVertexCount = 6;									// store number of vertices
@@ -4647,7 +4647,7 @@ DARKSDK_DLL bool MakeMeshSphere ( bool bCreateNew, sMesh* pMesh, D3DXVECTOR3 vec
 	return true;
 }
 
-DARKSDK_DLL bool MakeMeshFromOtherMesh ( bool bCreateNew, sMesh* pMesh, sMesh* pOtherMesh, D3DXMATRIX* pmatWorld, DWORD dwIndexCount, DWORD dwVertexCount )
+DARKSDK_DLL bool MakeMeshFromOtherMesh ( bool [[maybe_unused]] bCreateNew, sMesh* pMesh, sMesh* pOtherMesh, D3DXMATRIX* pmatWorld, DWORD dwIndexCount, DWORD dwVertexCount )
 {
 	// make new mesh from existing other mesh
 	MakeLocalMeshFromOtherLocalMesh ( pMesh, pOtherMesh, dwIndexCount, dwVertexCount );

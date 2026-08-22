@@ -151,7 +151,7 @@ DARKSDK void Scale ( int iID, float fX, float fY, float fZ )
 	CalcObjectWorld ( pObject );
 }
 
-DARKSDK void Position  ( int iID, float fX, float fY, float fZ, int iUpdateAbsWorldImmediately )
+DARKSDK void Position  ( int iID, float fX, float fY, float fZ, int [[maybe_unused]] iUpdateAbsWorldImmediately )
 {
 	// MessageBox ( NULL, "DX10", "", MB_OK );
 }

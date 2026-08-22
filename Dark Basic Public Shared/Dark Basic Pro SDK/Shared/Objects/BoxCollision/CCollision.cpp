@@ -642,7 +642,7 @@ bool CheckSphereToObjectIntersect ( sObject* pObject, D3DXVECTOR3* pVecVec, D3DX
 	return bHit;
 }
 
-bool CheckTwoObjectsForBoxOverlap( int iObjectA, sObject* pObjectA, int iObjectB, sObject* pObjectB )
+bool CheckTwoObjectsForBoxOverlap( int [[maybe_unused]] iObjectA, sObject* pObjectA, int iObjectB, sObject* pObjectB )
 {
 	if(DBV1_ReturnModelBoxSystemOverlapResult ( pObjectA, pObjectB ))
 		return true;

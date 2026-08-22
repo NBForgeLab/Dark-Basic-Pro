@@ -158,7 +158,7 @@ void cShadowVolume::End ( void )
 // Reflection Effect
 //
 
-bool cReflectionMapping::Setup ( sMesh* pMesh, LPSTR pEffectFile, bool bUseXFile, bool bUseTextures )
+bool cReflectionMapping::Setup ( sMesh* [[maybe_unused]] pMesh, LPSTR pEffectFile, bool bUseXFile, bool bUseTextures )
 {
 	// complete
 	return true;
@@ -176,7 +176,7 @@ void cReflectionMapping::Mesh ( sMesh* pMesh )
 	pMesh->dwFVFSize = sizeof ( MESH_VERTEX );
 }
 
-DWORD cReflectionMapping::Start ( sMesh* pMesh, D3DXMATRIX matObject )
+DWORD cReflectionMapping::Start ( sMesh* pMesh, D3DXMATRIX [[maybe_unused]] matObject )
 {
 	// If this stencil effect active
 	if(g_pGlob->dwStencilMode==2)

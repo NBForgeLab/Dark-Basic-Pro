@@ -1132,7 +1132,7 @@ DARKSDK_DLL bool AddNewAnimationFrame ( sObject* pObject, sFrame* pFrameToAdd )
 	return true;
 }
 
-DARKSDK_DLL bool RemoveAnimationRec ( sObject* pObject, sAnimation** ppCurrentBase, sFrame* pFrameToRemove )
+DARKSDK_DLL bool RemoveAnimationRec ( sObject* [[maybe_unused]] pObject, sAnimation** ppCurrentBase, sFrame* pFrameToRemove )
 {
 	// find frame
 	sAnimation* pPrevious = NULL;

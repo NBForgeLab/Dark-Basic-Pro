@@ -1443,7 +1443,7 @@ void cLightMapConsolidation::UnlockTexture ( LPDIRECT3DTEXTURE9 pTexture )
 	pTexture->UnlockRect ( NULL );
 }
 
-void cLightMapConsolidation::FindSpace ( int iWidth, int iHeight, int* pX, int* pY )
+void cLightMapConsolidation::FindSpace ( int iWidth, int [[maybe_unused]] iHeight, int* pX, int* pY )
 {
 	// find a space within the master texture for the
 	// new texture
@@ -1731,7 +1731,7 @@ bool cLightMapConsolidation::Run ( sMesh* pMesh, DWORD** m_ppdwLumelList, bool* 
 	return true;
 }
 
-void cLightMapConsolidation::Complete ( int iType )
+void cLightMapConsolidation::Complete ( int [[maybe_unused]] iType )
 {
 	// unlock master texture
 	UnlockTexture ( m_pMasterTexture );
