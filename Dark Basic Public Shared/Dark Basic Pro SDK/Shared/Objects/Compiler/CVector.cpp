@@ -249,10 +249,10 @@ float cVector4::SquareLength ( void ) const
 
 bool cVector4::FuzzyCompare ( const cVector4& vecCompare, const float& Tolerance ) const
 {
-    if ( fabsf ( x ) > Tolerance ) return false;
-    if ( fabsf ( y ) > Tolerance ) return false;
-    if ( fabsf ( z ) > Tolerance ) return false;
-    if ( fabsf ( w ) > Tolerance ) return false;
+    if ( fabsf ( x - vecCompare.x ) >= Tolerance ) return false;
+    if ( fabsf ( y - vecCompare.y ) >= Tolerance ) return false;
+    if ( fabsf ( z - vecCompare.z ) >= Tolerance ) return false;
+    if ( fabsf ( w - vecCompare.w ) >= Tolerance ) return false;
 
     return true;
 }
