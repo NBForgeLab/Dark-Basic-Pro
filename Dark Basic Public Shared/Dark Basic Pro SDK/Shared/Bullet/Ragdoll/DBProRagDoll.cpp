@@ -169,7 +169,7 @@ void DBProRagDoll::SetStatic(bool bStatic)
 	}
 }
 
-btRigidBody* DBProRagDoll::localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int collisionGroup, int collisionMask)
+btRigidBody* DBProRagDoll::localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int groupFilter, int maskFilter)
 {
 	bool isDynamic = (mass != 0.f);
 	btVector3 localInertia(0,0,0);
@@ -178,7 +178,7 @@ btRigidBody* DBProRagDoll::localCreateRigidBody (btScalar mass, const btTransfor
 	DBProMotionState* myMotionState = new DBProMotionState(startTransform, objID);
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass,myMotionState,shape,localInertia);
 	btRigidBody* body = new btRigidBody(rbInfo);
-	g_dynamicsWorld->addRigidBody(body, collisionGroup, collisionMask);
+	g_dynamicsWorld->addRigidBody(body, static_cast<short>(groupFilter), static_cast<short>(maskFilter));
 	return body;
 }
 

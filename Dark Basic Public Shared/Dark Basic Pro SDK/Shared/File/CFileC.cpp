@@ -6,12 +6,14 @@
 #include <windows.h> 
 #include <windowsx.h>
 #include "mmsystem.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdint>
+#include <ctime>
 #include "cfilec.h"
-#include "direct.h"
-#include "time.h"
-#include "io.h"
+#include <direct.h>
+#include <io.h>
 #include ".\..\error\cerror.h"
 #include ".\..\core\globstruct.h"
 #include "winioctl.h"
@@ -260,7 +262,7 @@ DARKSDK BOOL DB_FileExist(char* Filename)
 
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
-	strcpy(VirtualFilename, (LPSTR)Filename);
+	strcpy_s(VirtualFilename, sizeof(VirtualFilename), Filename);
 	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
@@ -276,7 +278,7 @@ DARKSDK BOOL DB_FileExist(char* Filename)
 
 DARKSDK DWORD DB_FileSize(char* Filename)
 {
-	DWORD size;
+	DWORD size = 0;
 
 	// If no string, no file
 	if(Filename==NULL)
@@ -284,7 +286,7 @@ DARKSDK DWORD DB_FileSize(char* Filename)
 
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
-	strcpy(VirtualFilename, (LPSTR)Filename);
+	strcpy_s(VirtualFilename, sizeof(VirtualFilename), Filename);
 	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
@@ -308,11 +310,11 @@ DARKSDK BOOL DB_FileWriteProtected(char* Filename)
 
 	// If no string, no file
 	if(Filename==NULL)
-		return 0;
+		return FALSE;
 
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
-	strcpy(VirtualFilename, (LPSTR)Filename);
+	strcpy_s(VirtualFilename, sizeof(VirtualFilename), Filename);
 	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 	CheckForWorkshopFile ( VirtualFilename );
@@ -357,9 +359,9 @@ DARKSDK bool rFindFileInSub(char* currentpath, char* searchfile, char* returnpat
 			{
 				// Sub-Directory
 				char gointodir[512];
-				strcpy(gointodir, currentpath);
-				strcat(gointodir, "\\");
-				strcat(gointodir, localdata.name);
+				strcpy_s(gointodir, sizeof(gointodir), currentpath);
+				strcat_s(gointodir, sizeof(gointodir), "\\");
+				strcat_s(gointodir, sizeof(gointodir), localdata.name);
 				if(strlen(gointodir)<=255)
 				{
 					if(rFindFileInSub(gointodir, searchfile, returnpath))
@@ -373,13 +375,14 @@ DARKSDK bool rFindFileInSub(char* currentpath, char* searchfile, char* returnpat
 			{
 				// File
 				char checkfilenameA[256];
-				strcpy(checkfilenameA, _strlwr(localdata.name));
+				strcpy_s(checkfilenameA, sizeof(checkfilenameA), localdata.name);
+				_strlwr_s(checkfilenameA, sizeof(checkfilenameA));
 				if(strcmp(checkfilenameA, searchfile)==0)
 				{
 					// Found File & Path!
-					strcpy(returnpath, currentpath);
-					strcat(returnpath, "\\");
-					strcat(returnpath, searchfile);
+					strcpy_s(returnpath, 256, currentpath);
+					strcat_s(returnpath, 256, "\\");
+					strcat_s(returnpath, 256, searchfile);
 					_findclose(hFile);
 					return TRUE;
 				}
@@ -395,16 +398,14 @@ DARKSDK bool rFindFileInSub(char* currentpath, char* searchfile, char* returnpat
 
 DARKSDK BOOL DB_FindFileInSubPath(char* filename, char* returnpath)
 {
-	BOOL bResult=FALSE;
-
 	// Get current directory
 	char path[256];
 	_getcwd(path, 256);
 
 	// Make search filename lowercase
 	char searchfile[256];
-	strcpy(searchfile, filename);
-	_strlwr(searchfile);
+	strcpy_s(searchfile, sizeof(searchfile), filename);
+	_strlwr_s(searchfile, sizeof(searchfile));
 
 	// Search for filen
 	if(rFindFileInSub(path, searchfile, returnpath))
@@ -591,13 +592,13 @@ DARKSDK BOOL DB_ExecuteFile(HANDLE* phExecuteFileProcess, char* Operation, char*
 	}
 	else
 	{
-		HINSTANCE hinstance = ShellExecute(	NULL,//g_pGlob->hWnd,
+		HINSTANCE hinstance = ShellExecuteA(	nullptr,
 											"open",
 											Filename,
 											String,
 											Path,
 											SW_SHOWDEFAULT);
-		if((DWORD)hinstance<=32)
+		if(reinterpret_cast<uintptr_t>(hinstance) <= 32)
 			return FALSE;
 		else
 			return TRUE;
@@ -607,37 +608,37 @@ DARKSDK BOOL DB_ExecuteFile(HANDLE* phExecuteFileProcess, char* Operation, char*
 DARKSDK BOOL DB_ExecuteFileIndi ( DWORD* dwExecuteFileProcess, char* Operation, char* Filename, char* String, char* Path, int iPriorityOfProcess )
 {
 	// create process data
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
-    ZeroMemory( &si, sizeof(si) );
-    si.cb = sizeof(si);
+	STARTUPINFOA si{};
+	PROCESS_INFORMATION pi{};
+	si.cb = sizeof(si);
 	si.dwFlags = STARTF_USESHOWWINDOW;
 	si.wShowWindow = SW_SHOWDEFAULT;
 
 	// directory must be absolute
-	LPSTR pDirectory = NULL;
-	if ( strlen ( Path )>0 )
+	char szDirectory[_MAX_PATH] = {};
+	char* pDirectory = nullptr;
+	if ( Path && strlen ( Path ) > 0 )
 	{
-		pDirectory = new char[_MAX_PATH];
-		if ( Path[1]==':' )
+		if ( Path[1] == ':' )
 		{
 			// absolute
-			strcpy ( pDirectory, Path );
+			strcpy_s ( szDirectory, sizeof(szDirectory), Path );
 		}
 		else
 		{
 			// relative
-			getcwd ( pDirectory, _MAX_PATH );
-			strcat ( pDirectory, "\\" );
-			strcat ( pDirectory, Path );
+			_getcwd ( szDirectory, _MAX_PATH );
+			strcat_s ( szDirectory, sizeof(szDirectory), "\\" );
+			strcat_s ( szDirectory, sizeof(szDirectory), Path );
 		}
+		pDirectory = szDirectory;
 	}
 
 	// Concat Filename and Commandline String
-	char pConcat[512];
-	strcpy ( pConcat, Filename );
-	strcat ( pConcat, " " );
-	strcat ( pConcat, String );
+	char pConcat[512] = {};
+	strcpy_s ( pConcat, sizeof(pConcat), Filename ? Filename : "" );
+	strcat_s ( pConcat, sizeof(pConcat), " " );
+	strcat_s ( pConcat, sizeof(pConcat), String ? String : "" );
 
 	// Process priority
 	DWORD dwPriority = NORMAL_PRIORITY_CLASS;
@@ -646,28 +647,26 @@ DARKSDK BOOL DB_ExecuteFileIndi ( DWORD* dwExecuteFileProcess, char* Operation, 
 		case 1 : dwPriority = HIGH_PRIORITY_CLASS;	break;
 	}
 
-    // Start the process. 
-    if( CreateProcess(	NULL,
+	// Start the process. 
+	if( CreateProcessA(	nullptr,
 						pConcat,	
-						NULL, 
-						NULL, 
+						nullptr, 
+						nullptr, 
 						FALSE,
 						dwPriority,
-						NULL,
+						nullptr,
 						pDirectory,
 						&si, 
-						&pi )			) 
-    {
-		SAFE_DELETE(pDirectory);
+						&pi ) ) 
+	{
 		CloseHandle ( pi.hThread );
 		CloseHandle ( pi.hProcess );
-		*dwExecuteFileProcess = pi.dwProcessId;
+		if ( dwExecuteFileProcess ) *dwExecuteFileProcess = pi.dwProcessId;
 		return TRUE;
 	}
 	else
 	{
-		SAFE_DELETE(pDirectory);
-		*dwExecuteFileProcess = 0;
+		if ( dwExecuteFileProcess ) *dwExecuteFileProcess = 0;
 		return FALSE;
 	}
 }
@@ -857,15 +856,15 @@ DARKSDK void ChecklistForDrives(void)
 
 	memset ( szList, 0, sizeof ( szList ) );
 
-	strcpy ( szList [ iCount++ ], "a:\\" );
+	strcpy_s ( szList [ iCount++ ], sizeof(szList[0]), "a:\\" );
 
 	for ( int iCounter = 0; iCounter < MAX_HARD_DRIVE; iCounter++ )
 	{
 		if ( GetDriveType ( g_HardDiskLetters [ iCounter ] ) == DRIVE_FIXED )
-			strcpy ( szList [ iCount++ ], g_HardDiskLetters [ iCounter ] );
+			strcpy_s ( szList [ iCount++ ], sizeof(szList[0]), g_HardDiskLetters [ iCounter ] );
 
 		if ( GetDriveType ( g_HardDiskLetters [ iCounter ] ) == DRIVE_CDROM )
-			strcpy ( szList [ iCount++ ], g_HardDiskLetters [ iCounter ] );
+			strcpy_s ( szList [ iCount++ ], sizeof(szList[0]), g_HardDiskLetters [ iCounter ] );
 	}
 
 	
@@ -878,11 +877,9 @@ DARKSDK void ChecklistForDrives(void)
 	for(int c=0; c<g_pGlob->checklistqty; c++)
 		GlobExpandChecklist(c, 255);
 
-	// mike - 020206 - addition for vs8
-	//for( c=0; c<g_pGlob->checklistqty; c++)
 	for( int c=0; c<g_pGlob->checklistqty; c++)
 	{
-		strcpy(g_pGlob->checklist[c].string, szList[c]);
+		strcpy_s(g_pGlob->checklist[c].string, 255, szList[c]);
 	}
 
 	/*
@@ -1185,9 +1182,9 @@ DARKSDK DWORD ExecuteFileIndi( DWORD_PTR pFilename, DWORD_PTR pFilename2, DWORD_
 DARKSDK BOOL CALLBACK EnumWindowsProcForTerminator( HWND hwnd, LPARAM lParam )
 {
 	// check process ID of window
-	DWORD dwProcessID;
+	DWORD dwProcessID = 0;
 	GetWindowThreadProcessId ( hwnd, &dwProcessID );
-	if ( dwProcessID==(DWORD)lParam )
+	if ( dwProcessID == static_cast<DWORD>(lParam) )
 	{
 		// Post close message to any windows associated with process
 		PostMessage ( hwnd, WM_CLOSE, 0, 0 );
@@ -1584,33 +1581,29 @@ DARKSDK void MakePathToThisFolder(char* thepathiwant)
 	// Get path from filename (upto 8 nests)
 	char filepath[8][256];
 	int filepathindex=0;
-	for(unsigned int n=0; n<8; n++)
-		strcpy(filepath[n],"");
+	for(size_t n=0; n<8; n++)
+		strcpy_s(filepath[n], sizeof(filepath[n]), "");
 
-	// mike - 020206 - addition for vs8
-	//for(n=0; n<strlen(file); n++)
-	for(unsigned int n=0; n<strlen(file); n++)
+	for(size_t n=0; n<strlen(file); n++)
 	{
 		if(file[n]=='\\')
 		{
-			// mike - 020206 - addition for vs8
-			unsigned int o = 0;
+			size_t o = 0;
 
 			// Get folder name
 			char folder[256];
 			
-			//for(unsigned int o=0; o<n; o++)
 			for(o=0; o<n; o++)
 				folder[o]=file[o];
 			folder[o]=0;
 
 			// Copy and store it
-			strcpy(filepath[filepathindex], folder);
+			strcpy_s(filepath[filepathindex], sizeof(filepath[filepathindex]), folder);
 			if(filepathindex<7) filepathindex++;
 
 			// Truncate and continue
-			unsigned int q=0;
-			for(unsigned int p=n+1; p<=strlen(file); p++)
+			size_t q=0;
+			for(size_t p=n+1; p<=strlen(file); p++)
 				file[q++]=file[p];
 			file[q]=0;
 			n=0;
@@ -1816,11 +1809,11 @@ DARKSDK void WriteLong( int f, int iValue )
 	DWORD bytes;
 	if(f>=1 && f<=MAX_FILES)
 	{
-		if(File[f]!=NULL)
+		if(File[f]!=nullptr)
 		{
 			// Write to file
-			DWORD data = (DWORD)iValue;
-			if(WriteFile(File[f], &data, sizeof(data), &bytes, NULL)==0)
+			DWORD data = static_cast<DWORD>(iValue);
+			if(WriteFile(File[f], &data, sizeof(data), &bytes, nullptr)==0)
 				RunTimeWarning(RUNTIMEERROR_CANNOTWRITETOFILE);
 		}
 		else

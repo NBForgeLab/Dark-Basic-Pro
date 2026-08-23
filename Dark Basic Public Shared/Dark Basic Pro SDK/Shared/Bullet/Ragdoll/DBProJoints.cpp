@@ -15,7 +15,7 @@ struct MyContactResultCallback : public btCollisionWorld::ContactResultCallback
 	btManifoldPoint m_cp;
 	bool m_connected;
 	btScalar m_margin;
-	MyContactResultCallback() :m_connected(false),m_margin(0.05)
+	MyContactResultCallback() :m_connected(false),m_margin(btScalar(0.05))
 	{
 	}
 	virtual   btScalar   addSingleResult(btManifoldPoint& cp,const btCollisionObjectWrapper* colObj0Wrap,int partId0,int index0,const btCollisionObjectWrapper* colObj1Wrap,int partId1,int index1)
@@ -144,7 +144,7 @@ int DBProJoints::SetBreakingThreshold(btTypedConstraint* constraint,btScalar bre
 	if( !constraint->getRigidBodyA().isStaticOrKinematicObject() && !constraint->getRigidBodyB().isStaticOrKinematicObject()
 		&& constraint->getRigidBodyA().getInvMass() != 0 && constraint->getRigidBodyB().getInvMass() != 0)
 	{
-		btScalar totalMass = 1.0/constraint->getRigidBodyA().getInvMass() + 1.0/constraint->getRigidBodyB().getInvMass();
+		btScalar totalMass = btScalar(1.0)/constraint->getRigidBodyA().getInvMass() + btScalar(1.0)/constraint->getRigidBodyB().getInvMass();
 		constraint->setBreakingImpulseThreshold(breakThreshold*totalMass);
 		return 0;
 	}

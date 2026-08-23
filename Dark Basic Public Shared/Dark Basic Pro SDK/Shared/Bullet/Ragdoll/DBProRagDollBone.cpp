@@ -28,7 +28,7 @@ DBProRagDollBone::DBProRagDollBone(int dbproObjectID, int dbproStartLimbID, int 
 DBProRagDollBone::~DBProRagDollBone(void)
 {
 	g_dynamicsWorld->removeRigidBody(rigidBody);
-	DBProMotionState* dbproMotionState = (DBProMotionState*)rigidBody->getMotionState();
+	DBProMotionState* dbproMotionState = static_cast<DBProMotionState*>(rigidBody->getMotionState());
 	SAFE_DELETE(dbproMotionState); 
 	SAFE_DELETE(rigidBody);
 	SAFE_DELETE(m_collisionShape);
@@ -71,7 +71,7 @@ int DBProPrimitiveCreateCapsule(btScalar diameter, btScalar height, eAxis axis)
 	}
 	DBPro::UnlockVertexdata();
 	//Remake the object to get rid of all rotations which makes it the correct axis capsule
-	if(axis == Z_AXIS || X_AXIS)
+	if(axis == Z_AXIS || axis == X_AXIS)
 	{
 		int tempMesh = DBPro::FindFreeMesh();
 		DBPro::MakeMeshFromObject(tempMesh, tempSphere);
@@ -173,7 +173,7 @@ btVector3  DBProRagDollBone::GetNormilizedVector()
 	return boneNormVec;
 }
 
-btRigidBody* DBProRagDollBone::localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int collisionGroup, int collisionMask)
+btRigidBody* DBProRagDollBone::localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int groupFilter, int maskFilter)
 {
 	bool isDynamic = (mass != 0.f);
 	btVector3 localInertia(0,0,0);
@@ -185,7 +185,7 @@ btRigidBody* DBProRagDollBone::localCreateRigidBody (btScalar mass, const btTran
 	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, shape, localInertia);
 	btRigidBody* body = new btRigidBody(rbInfo);
 	//add the body to the dynamics world
-	g_dynamicsWorld->addRigidBody(body, collisionGroup, collisionMask);
+	g_dynamicsWorld->addRigidBody(body, static_cast<short>(groupFilter), static_cast<short>(maskFilter));
 	return body;
 }
 

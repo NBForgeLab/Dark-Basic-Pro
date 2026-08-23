@@ -1,7 +1,9 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "SteamCheckForWorkshop.h"
-#include <stdio.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdint>
 
 // Steam Multiplayer DLL functions needed
 HMODULE SteamMultiplayerModule = NULL;
@@ -94,8 +96,8 @@ bool CheckForWorkshopFile ( LPSTR VirtualFilename)
 		// only check if the workshop item path isnt blank
 		if ( strcmp ( szWorkShopItemPath , "" ) )
 		{
-			// replace and forward slashes with backslash
-			for ( unsigned int c = 0 ; c < strlen(szWorkshopFilenameFolder); c++ )
+			// replace any forward slashes with backslash
+			for ( size_t c = 0 ; c < strlen(szWorkshopFilenameFolder); c++ )
 			{
 				if ( szWorkshopFilenameFolder[c] == '/' )
 					szWorkshopFilenameFolder[c] = '\\';
@@ -108,92 +110,69 @@ bool CheckForWorkshopFile ( LPSTR VirtualFilename)
 			bool found = true;
 			while ( found )
 			{
-			char* stripped = strstr ( szWorkshopFilenameFolder , "Files\\" );
-			if ( !stripped )
-				stripped = strstr ( szWorkshopFilenameFolder , "files\\" );
+				char* stripped = strstr ( szWorkshopFilenameFolder , "Files\\" );
+				if ( !stripped )
+					stripped = strstr ( szWorkshopFilenameFolder , "files\\" );
 
-			if ( stripped )
-				strcpy ( szWorkshopFilenameFolder , stripped+6 );
-			else
-				found = false;
+				if ( stripped )
+					strcpy_s ( szWorkshopFilenameFolder, sizeof(szWorkshopFilenameFolder), stripped+6 );
+				else
+					found = false;
 			}
 
 			bool last = false;
 			char tempstring[MAX_PATH];
-			strcpy ( tempstring, szWorkshopFilenameFolder);
-			strcpy ( szWorkshopFilenameFolder , "" );
-			// replace and forward slashes with backslash
-			for ( unsigned int c = 0 ; c < strlen(tempstring); c++ )
+			strcpy_s ( tempstring, sizeof(tempstring), szWorkshopFilenameFolder);
+			strcpy_s ( szWorkshopFilenameFolder, sizeof(szWorkshopFilenameFolder), "" );
+			// replace any forward slashes with backslash
+			for ( size_t c = 0 ; c < strlen(tempstring); c++ )
 			{
 				if ( tempstring[c] == '/' || tempstring[c] == '\\' ) 
 				{
-					if ( last == false )
+					if ( !last )
 					{
-						strcat ( szWorkshopFilenameFolder , "_" );
+						strcat_s ( szWorkshopFilenameFolder, sizeof(szWorkshopFilenameFolder), "_" );
 						last = true;
 					}
 				}
 				else
 				{
-					strcat ( szWorkshopFilenameFolder , " " );
+					strcat_s ( szWorkshopFilenameFolder, sizeof(szWorkshopFilenameFolder), " " );
 					szWorkshopFilenameFolder[strlen(szWorkshopFilenameFolder)-1] = tempstring[c];
 					last = false;
 				}
 			}
 
-			//NEED TO CHECK IF THE FILE EXISTS FIRST, IF IT DOES WE COPY IT
+			// NEED TO CHECK IF THE FILE EXISTS FIRST, IF IT DOES WE COPY IT
 			char szTempName[_MAX_PATH];
-			strcpy ( szTempName , szWorkShopItemPath );
-			strcat ( szTempName , "\\" );
-			strcat ( szTempName , szWorkshopFilenameFolder );
+			strcpy_s ( szTempName, sizeof(szTempName), szWorkShopItemPath );
+			strcat_s ( szTempName, sizeof(szTempName), "\\" );
+			strcat_s ( szTempName, sizeof(szTempName), szWorkshopFilenameFolder );
 
-			/*FILE* tempy = NULL;
-			tempy = fopen ( "f:\\DUMPFILE.txt" ,"a" );
-			if ( tempy )
-			{
-				fputs ( szTempName , tempy );
-				fputs ( "\n" , tempy );
-				fclose ( tempy );
-			}*/
-
-			tempFile = fopen ( szTempName ,"r" );
+			FILE* tempFile = fopen ( szTempName ,"r" );
 			if ( tempFile )
 			{
 				fclose ( tempFile );
-				strcpy ( VirtualFilename , szTempName );
-
-				/*FILE* tempy = NULL;
-				tempy = fopen ( "f:\\DUMPFILE.txt" ,"a" );
-				if ( tempy )
-				{					
-					fputs ( szWorkShopItemPath , tempy );
-					fputs ( "\n" , tempy );
-					fputs ( VirtualFilename , tempy );
-					fputs ( "\n" , tempy );
-					fputs ( "============" , tempy );
-					fputs ( "\n" , tempy );
-					fclose ( tempy );
-				}*/
-
+				strcpy_s ( VirtualFilename, _MAX_PATH, szTempName );
 				return true;
 			}
-		else // check for encrypted version
-		{
-				tempCharPointer = strrchr( szTempName, '\\' );
+			else // check for encrypted version
+			{
+				char* tempCharPointer = strrchr( szTempName, '\\' );
 				if ( tempCharPointer && tempCharPointer != szTempName+strlen(szTempName)-1 )
 				{
 					tempCharPointer[0] = 0;
-					sprintf ( szWorkshopFilename , "%s\\_w_%s" , szTempName , tempCharPointer+1 );
+					sprintf_s ( szWorkshopFilename, sizeof(szWorkshopFilename), "%s\\_w_%s" , szTempName , tempCharPointer+1 );
 				}
 				else
 				{
-					sprintf ( szWorkshopFilename , "_w_%s" , szTempName );
+					sprintf_s ( szWorkshopFilename, sizeof(szWorkshopFilename), "_w_%s" , szTempName );
 				}
-			tempFile = fopen ( szWorkshopFilename ,"r" );
-			if ( tempFile )
+				FILE* tempEncFile = fopen ( szWorkshopFilename ,"r" );
+				if ( tempEncFile )
 				{
-					fclose ( tempFile );
-					strcpy ( VirtualFilename , szWorkshopFilename );
+					fclose ( tempEncFile );
+					strcpy_s ( VirtualFilename, _MAX_PATH, szWorkshopFilename );
 					return true;
 				}
 			}

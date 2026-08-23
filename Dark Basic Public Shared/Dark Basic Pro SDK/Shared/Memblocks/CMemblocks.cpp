@@ -42,12 +42,12 @@ DBPRO_GLOBAL DWORD					gpMemblockSize[MEMBLOCKSIZE];
 DBPRO_GLOBAL LPSTR					gpMemblock[MEMBLOCKSIZE];
 
 // Global Shared Data Pointer (passed in from core)
-DBPRO_GLOBAL GlobStruct*				g_pGlob							= NULL;
-DBPRO_GLOBAL PTR_FuncCreateStr		g_pCreateDeleteStringFunction	= NULL;
+DBPRO_GLOBAL GlobStruct*				g_pGlob							= nullptr;
+DBPRO_GLOBAL PTR_FuncCreateStr		g_pCreateDeleteStringFunction	= nullptr;
 
 // Internal Work Variables
-DBPRO_GLOBAL HWND					GlobalHwndCopy					= NULL;
-DBPRO_GLOBAL char					m_pWorkString[_MAX_PATH];
+DBPRO_GLOBAL HWND					GlobalHwndCopy					= nullptr;
+DBPRO_GLOBAL char					m_pWorkString[_MAX_PATH]        = {};
 
 // Declarations for memblock access functions
 typedef void 				( *RetVoidGetBitmapDataPFN )   ( int iID, DWORD* dwWidth, DWORD* dwHeight, DWORD* dwDepth, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
@@ -57,14 +57,14 @@ typedef void 				( *RetVoidSetSoundDataPFN )   ( int iID, DWORD dwBitsPerSecond,
 typedef void 				( *RetVoidGetMeshDataPFN )   ( int iMeshID, DWORD* pdwFVF, DWORD* pdwFVFSize, DWORD* pdwVertMax, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
 typedef void 				( *RetVoidSetMeshDataPFN )   ( int iMeshID, DWORD dwFVF, DWORD dwFVFSize, LPSTR pMeshData, DWORD dwVertMax );
 
-DBPRO_GLOBAL RetVoidGetBitmapDataPFN		g_MEM_GetBitmapData			= NULL;
-DBPRO_GLOBAL RetVoidSetBitmapDataPFN		g_MEM_SetBitmapData 		= NULL;
-DBPRO_GLOBAL RetVoidGetBitmapDataPFN		g_MEM_GetImageData			= NULL;
-DBPRO_GLOBAL RetVoidSetBitmapDataPFN		g_MEM_SetImageData 			= NULL;
-DBPRO_GLOBAL RetVoidGetSoundDataPFN		g_MEM_GetSoundData			= NULL;
-DBPRO_GLOBAL RetVoidSetSoundDataPFN		g_MEM_SetSoundData 			= NULL;
-DBPRO_GLOBAL RetVoidGetMeshDataPFN		g_MEM_GetMeshData			= NULL;
-DBPRO_GLOBAL RetVoidSetMeshDataPFN		g_MEM_SetMeshData 			= NULL;
+DBPRO_GLOBAL RetVoidGetBitmapDataPFN		g_MEM_GetBitmapData			= nullptr;
+DBPRO_GLOBAL RetVoidSetBitmapDataPFN		g_MEM_SetBitmapData 		= nullptr;
+DBPRO_GLOBAL RetVoidGetBitmapDataPFN		g_MEM_GetImageData			= nullptr;
+DBPRO_GLOBAL RetVoidSetBitmapDataPFN		g_MEM_SetImageData 			= nullptr;
+DBPRO_GLOBAL RetVoidGetSoundDataPFN		g_MEM_GetSoundData			= nullptr;
+DBPRO_GLOBAL RetVoidSetSoundDataPFN		g_MEM_SetSoundData 			= nullptr;
+DBPRO_GLOBAL RetVoidGetMeshDataPFN		g_MEM_GetMeshData			= nullptr;
+DBPRO_GLOBAL RetVoidSetMeshDataPFN		g_MEM_SetMeshData 			= nullptr;
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +170,10 @@ DBPRO_GLOBAL LPSTR GetReturnStringFromWorkString(void)
 	{
 		size_t dwSize=strlen(m_pWorkString);
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, static_cast<DWORD>(dwSize+1));
-		strcpy(pReturnString, m_pWorkString);
+		if(pReturnString)
+		{
+			strcpy_s(pReturnString, dwSize+1, m_pWorkString);
+		}
 	}
 	return pReturnString;
 }

@@ -5,8 +5,10 @@
 // Includes
 #include "BulletPhysics.h"
 #include <stack>
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 
 // Bullet specific includes
 #include "btBulletDynamicsCommon.h"
@@ -252,7 +254,7 @@ sObjectList* ODE_FindID ( int iID )
 
 void PostTickCallback(btDynamicsWorld *world, btScalar timeStep)
 {
-	for (int j=g_ObjectList.size()-1; j>=0 ;j--)
+	for (int j=(int)g_ObjectList.size()-1; j>=0 ;j--)
 	{
 		btRigidBody* body = g_ObjectList[j].body;
 		if ( body==NULL ) continue;
@@ -406,7 +408,7 @@ void ODE_End ( void )
 		// reset links to regular DBP objects in case any missed
 		//for (int j=g_dynamicsWorld->getNumCollisionObjects()-1; j>=0 ;j--)
 		//	DestroyThisObject ( &g_ObjectList[j] );
-		for (int j=g_ObjectList.size()-1; j>=0 ;j--)
+		for (int j=(int)g_ObjectList.size()-1; j>=0 ;j--)
 			DestroyThisObject ( &g_ObjectList[j] );
 
 		// remove the collision objects from the dynamics world and delete them (any stragglers not deleted by DestroyThisObject)
@@ -530,7 +532,7 @@ void Update ( float fTimeStep )
 	}
 
 	//print positions of all objects
-	for (int j=g_ObjectList.size()-1; j>=0 ;j--)
+	for (int j=(int)g_ObjectList.size()-1; j>=0 ;j--)
 	{		
 		// get this object
 		btRigidBody* body = g_ObjectList[j].body;
@@ -1275,7 +1277,7 @@ void CreateMesh ( int iObjectNumber, int isDynamic, int iLimbNumber, int iTerrai
 	if ( pObject->pInstanceOfObject ) pRealObject = pObject->pInstanceOfObject;
 
 	// scaling modifier
-	float fScalingFactor = (float)iCollisionScaling / 100.0f;
+	float fScalingFactor = static_cast<float>(iCollisionScaling) / 100.0f;
 
 	// obtain sizes, position and rotation
 	float fXSize = ( pObject->collision.vecMax.x - pObject->collision.vecMin.x ) * pObject->position.vecScale.x * fScalingFactor;
@@ -1401,7 +1403,7 @@ void CreateMesh ( int iObjectNumber, int isDynamic, int iLimbNumber, int iTerrai
 						if ( bDWORDSizeIndices==true )
 							((DWORD*)gIndices)[icount+i] = vcount + (*pIndexData);
 						else
-							((WORD*)gIndices)[icount+i] = vcount + (*pIndexData);
+							((WORD*)gIndices)[icount+i] = static_cast<WORD>( vcount + (*pIndexData) );
 						pIndexData++;
 					}
 					vcount+=pMesh->dwVertexCount;
@@ -1583,9 +1585,6 @@ void CreateTerrain ( int iObjectNumber, int isDynamic, int iWidth, int iLength, 
 	float fXPos	 = pObject->position.vecPosition.x;
 	float fYPos	 = pObject->position.vecPosition.y;
 	float fZPos	 = pObject->position.vecPosition.z;
-	float fXRot	 = D3DXToRadian ( pObject->position.vecRotate.x );
-	float fYRot	 = D3DXToRadian ( pObject->position.vecRotate.y );
-	float fZRot	 = D3DXToRadian ( pObject->position.vecRotate.z );
 
 	// just before shape creation, reduce scale of size and position
 	fXSize /= gSc;
@@ -1949,7 +1948,7 @@ void ODE_ControlDynamicCharacterController ( int iObjectNumber, float fAngleY, f
 		{
 			// cannot walk when being pushed
 			float fPushAngleRad = D3DXToRadian(fPushAngle);
-			btVector3 vecPush = btVector3(sin(fPushAngleRad),0.0,cos(fPushAngleRad));
+			btVector3 vecPush = btVector3(sinf(fPushAngleRad),0.0f,cosf(fPushAngleRad));
 			m_character->setWalkDirection((vecPush*fPushForce)/gSc);
 		}
 		else
@@ -2333,6 +2332,7 @@ int BPhys_RagdollIsStatic(int ragdollID)
 	{
 		return ragdoll->IsStatic();
 	}
+	return 0;
 }
 
 int BPhys_RagdollSetStatic(int ragdollID, int isStatic)
@@ -2462,8 +2462,8 @@ int ODE_RayTerrainEx ( float fX, float fY, float fZ, float fToX, float fToY, flo
     Start = btVector3(fX/gSc,fY/gSc,fZ/gSc);
 	End = btVector3(fToX/gSc,fToY/gSc,fToZ/gSc);
 	btCollisionWorld::ClosestRayResultCallback RayCallback(Start, End);
-	RayCallback.m_collisionFilterGroup = iCollisionType;
-	RayCallback.m_collisionFilterMask = iCollisionType;
+	RayCallback.m_collisionFilterGroup = static_cast<short>(iCollisionType);
+	RayCallback.m_collisionFilterMask = static_cast<short>(iCollisionType);
 	g_dynamicsWorld->rayTest(Start, End, RayCallback);
 	if(RayCallback.hasHit())
 	{
@@ -2512,7 +2512,7 @@ int ODE_RayForce ( float fX, float fY, float fZ, float fToX, float fToY, float f
 
 			// find which object we hit
 			sObject* pFound = NULL;
-			for (int j=g_ObjectList.size()-1; j>=0 ;j--)
+			for (int j=(int)g_ObjectList.size()-1; j>=0 ;j--)
 			{
 				btRigidBody* findbody = g_ObjectList[j].body;
 				if ( findbody==pBody )
@@ -2613,18 +2613,12 @@ void ODE_SetBodyPosition ( int iObjectNumber, float fX, float fY, float fZ )
 	}
 }
 
-void ODE_SetBodyMass ( int iObject, float fPercentage )
+void ODE_SetBodyMass ( int iObject, float [[maybe_unused]] fPercentage )
 {
+	// NOTE: live mass updates are not applied - setMassProps requires an inertia rebuild,
+	// so this command only validates that the physics object exists.
 	sObjectList* pPhyObject = ODE_FindID ( iObject );
 	if ( pPhyObject==NULL ) return;
-	if ( pPhyObject->body )
-	{
-		fPercentage=fPercentage/100.0f;
-		float fOld = pPhyObject->body->getInvMass() * fPercentage;
-		btScalar mass(fOld);
-		btVector3 localInertia(0,0,0);
-		//pPhyObject->body->setMassProps(mass,localInertia);
-	}
 }
 
 void ODE_SetBodyFriction ( int iObject, float fFriction )

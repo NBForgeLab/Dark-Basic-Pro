@@ -52,6 +52,25 @@ target_include_directories(bullet_physics PUBLIC
     "${CMAKE_SOURCE_DIR}/SDK/BULLET/bullet-2.81-rev2613/src"
 )
 
+# Vendored third-party source (bullet-2.81-rev2613) is kept pristine, mirroring the
+# documented C4201 exception for DirectX headers: /W4 noise from upstream code is
+# silenced here only, while all plugin-owned code keeps the full warning set.
+if(MSVC)
+    target_compile_options(bullet_physics PRIVATE
+        /wd4100  # unreferenced formal parameter (upstream API signatures)
+        /wd4189  # unreferenced local (upstream debug hooks)
+        /wd4244  # narrowing conversions inside upstream math/serialization
+        /wd4267  # size_t narrowing in upstream serialization
+        /wd4305  # double->float truncation in upstream literals
+        /wd4389 /wd4018 /wd4245 # signed/unsigned loop comparisons
+        /wd4456 /wd4457 /wd4458 # shadowed declarations in upstream scopes
+        /wd4463 # overflow in implicit constant conversion
+        /wd4505 # unreferenced inline function removed
+        /wd4701 /wd4702 /wd4715 # uninitialized/unreachable paths in upstream dispatch
+        /wd4838 # narrowing in aggregate initialization
+    )
+endif()
+
 target_compile_definitions(bullet_physics PRIVATE
     WIN32
     _WINDOWS

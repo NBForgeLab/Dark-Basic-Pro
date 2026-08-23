@@ -140,7 +140,7 @@ namespace DBProToBullet
 
 	btVector3 DBProToBullet::GetScale(int objectID)
 	{
-		return btVector3(DBPro::ObjectScaleX(objectID)/100.0, DBPro::ObjectScaleY(objectID)/100.0, DBPro::ObjectScaleZ(objectID)/100.0);
+		return btVector3(btScalar(DBPro::ObjectScaleX(objectID)/100.0), btScalar(DBPro::ObjectScaleY(objectID)/100.0), btScalar(DBPro::ObjectScaleZ(objectID)/100.0));
 	}
 
 	//Note: Transform does not include scaling

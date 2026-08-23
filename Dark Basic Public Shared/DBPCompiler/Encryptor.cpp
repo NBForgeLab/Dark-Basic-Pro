@@ -26,50 +26,43 @@ bool CEncryptor::EncryptFileData(LPSTR filebuffer, DWORD filebuffersize, bool bE
 	{
 		// New key string
 		char pNewKey[10];
-		strcpy ( pNewKey , m_szStringKey );
+		strcpy_s ( pNewKey, sizeof(pNewKey), m_szStringKey );
 		pNewKey[9]=0;
 
 		// Key Index
-		DWORD dwKeyIndex=0;
+		size_t dwKeyIndex=0;
 		size_t dwKeyMax=strlen(pNewKey);
 
-		// Encrupt Data using Key (mess the file data up)
-		DWORD dwSpan = filebuffersize/1024;
+		// Encrypt Data using Key (mess the file data up)
+		size_t dwSpan = static_cast<size_t>(filebuffersize) / 1024;
 
 		//Dave - span can be 0 with files under 1024 bytes
 		if ( dwSpan < 1 ) dwSpan = 1;
 
 		// Change a byte at each step point
-		LPSTR pPtr = filebuffer;
-		LPSTR pPtrEnd = filebuffer + filebuffersize;
+		char* pPtr = filebuffer;
+		char* pPtrEnd = filebuffer + filebuffersize;
 		while(pPtr<pPtrEnd)
 		{
-			// Key Modifier (not so predictable method)
-			DWORD dwActualIndex = (DWORD)(dwKeyIndex/2)*2;
-			DWORD dwKeyValue = pNewKey[dwActualIndex];
-			int iKeyData = dwKeyValue;
-			if(((float)dwKeyIndex/3.0)==(DWORD)dwKeyIndex/3) iKeyData*=-1;
-			iKeyData = abs(iKeyData) % 32;
-
 			// Replacement keycode thats reliable
-			iKeyData = dwUniqueKeyValue % 64;
+			int iKeyData = static_cast<int>(dwUniqueKeyValue % 64);
 
 			// Modify byte (true=encrypt)
 			for(int r=0; r<iKeyData; r++)
 			{
 				if(bEncryptIfTrue)
 				{
-					if((unsigned char)*(pPtr)==255)
-						*(pPtr)=0;
+					if(static_cast<unsigned char>(*pPtr)==255)
+						*pPtr=0;
 					else
-						*(pPtr)+=1;
+						*pPtr+=1;
 				}
 				else
 				{
-					if((unsigned char)*(pPtr)==0)
-						*(pPtr)=(unsigned char)255;
+					if(static_cast<unsigned char>(*pPtr)==0)
+						*pPtr=static_cast<char>(255);
 					else
-						*(pPtr)-=1;
+						*pPtr-=1;
 				}
 			}
 

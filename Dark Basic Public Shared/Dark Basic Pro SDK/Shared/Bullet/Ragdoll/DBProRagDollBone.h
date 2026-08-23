@@ -44,6 +44,6 @@ private:
 
 private:
 	void CreateBone();
-	btRigidBody* localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int collisionGroup, int collisionMask);
+	btRigidBody* localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int groupFilter, int maskFilter);
 };
 

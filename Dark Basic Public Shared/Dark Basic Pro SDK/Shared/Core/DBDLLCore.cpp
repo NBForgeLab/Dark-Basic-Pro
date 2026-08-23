@@ -1181,13 +1181,15 @@ DARKSDK void EncryptDecrypt( LPSTR szStringAddress, bool bEncryptIfTrue, bool bD
 		g_Glob.dwEncryptionUniqueKey = 1;
 
 		char stringToMakeKey[_MAX_PATH];
-		strcpy ( stringToMakeKey , "" );
-		int tLength = 0;
-		for ( DWORD c = 0 ; c < strlen(checkForEncryptName) ; c++ )
+		strcpy_s ( stringToMakeKey, sizeof(stringToMakeKey), "" );
+		size_t tLength = 0;
+		for ( size_t c = 0 ; c < strlen(checkForEncryptName) ; c++ )
 		{
 			if ( checkForEncryptName[c] != '.' )
+			{
 				stringToMakeKey[tLength++] = checkForEncryptName[c];
 				stringToMakeKey[tLength] = 0;
+			}
 		}
 
 		int len = static_cast<int>(strlen(stringToMakeKey))-1;
@@ -5445,42 +5447,43 @@ LPSTR GetTypePatternCore ( LPSTR dwTypeName, DWORD dwTypeIndex )
 	}
 
 	// copy pattern to return string, or null
-	LPSTR lpNewStr = new char[(strlen(g_pStructPatternsPtr)-dwPatternDataBeginsAt)+1];
+	size_t patternBufSize = (strlen(g_pStructPatternsPtr) - dwPatternDataBeginsAt) + 1;
+	LPSTR lpNewStr = new char[patternBufSize];
 	if ( dwPatternDataBeginsAt > 0 )
 	{
 		// get type index, then go to get pattern
 		if ( dwTypeName )
 		{
-			LPSTR lpNum = new char[(strlen(g_pStructPatternsPtr)-dwPatternDataBeginsAt)+1];
+			LPSTR lpNum = new char[patternBufSize];
 			LPSTR pSourceStr = g_pStructPatternsPtr + dwPatternDataBeginsAt;
-			strcpy ( lpNum, pSourceStr );
-			DWORD dwI = 0;
-			for (; dwI<strlen(pSourceStr); dwI++ )
+			strcpy_s ( lpNum, patternBufSize, pSourceStr );
+			size_t dwI = 0;
+			for (; dwI < strlen(pSourceStr); dwI++ )
 			{
-				if ( lpNum[dwI]==':' )
+				if ( lpNum[dwI] == ':' )
 				{
-					lpNum[dwI]=0;
+					lpNum[dwI] = 0;
 					break;
 				}
 			}
 			delete[] lpNum;
-			dwPatternDataBeginsAt += dwI + 1;
+			dwPatternDataBeginsAt += static_cast<DWORD>(dwI + 1);
 		}
 
 		// get pattern, then cut off at : colon
 		LPSTR pSourceStr = g_pStructPatternsPtr + dwPatternDataBeginsAt;
-		strcpy ( lpNewStr, pSourceStr );
-		for ( DWORD dwI=0; dwI<strlen(pSourceStr); dwI++ )
+		strcpy_s ( lpNewStr, patternBufSize, pSourceStr );
+		for ( size_t dwI = 0; dwI < strlen(pSourceStr); dwI++ )
 		{
-			if ( lpNewStr[dwI]==':' )
+			if ( lpNewStr[dwI] == ':' )
 			{
-				lpNewStr[dwI]=0;
+				lpNewStr[dwI] = 0;
 				break;
 			}
 		}
 	}
 	else
-		strcpy ( lpNewStr, "" );
+		strcpy_s ( lpNewStr, patternBufSize, "" );
 
 	// return pattern from type found
 	return lpNewStr;

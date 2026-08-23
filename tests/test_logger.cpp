@@ -6,9 +6,11 @@
 #include "DBPLogger.h"
 
 TEST(DBPLoggerTest, BasicFileLogging) {
+    spdlog::shutdown();
     std::string logFile = "test_run.log";
-    if (std::filesystem::exists(logFile)) {
-        std::filesystem::remove(logFile);
+    std::error_code ec;
+    if (std::filesystem::exists(logFile, ec)) {
+        std::filesystem::remove(logFile, ec);
     }
 
     DBPLogger::Initialize(logFile);
@@ -32,9 +34,11 @@ TEST(DBPLoggerTest, BasicFileLogging) {
 }
 
 TEST(DBPLoggerTest, FormatTracingAndLogLevels) {
+    spdlog::shutdown();
     std::string testLog3 = "test_format.log";
-    if (std::filesystem::exists(testLog3)) {
-        std::filesystem::remove(testLog3);
+    std::error_code ec;
+    if (std::filesystem::exists(testLog3, ec)) {
+        std::filesystem::remove(testLog3, ec);
     }
     DBPLogger::Initialize(testLog3);
     DBP_TRACE("Trace variable: {} = {}", "myVar", 100);

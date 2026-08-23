@@ -18,7 +18,7 @@ public:
 	virtual ~DBProRagDoll();
 
 
-	btRigidBody* localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int collisionGroup, int collisionMask);
+	btRigidBody* localCreateRigidBody (btScalar mass, const btTransform& startTransform, btCollisionShape* shape, int objID, int groupFilter, int maskFilter);
 	int AddBone(int objID, int limbID1, int LimbID2, btScalar diameter, float lengthmod, int collisionGroup, int collisionMask);
 	int AddBone(int objID, int limbID1, int LimbID2, btScalar diameter, int collisionGroup, int collisionMask);
 	void AddJoint( int boneIndex1, int boneIndex2, int jointType, int limbID);
