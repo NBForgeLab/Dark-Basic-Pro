@@ -294,7 +294,6 @@ bool cNodeTree::GetCentrePoint ( D3DXVECTOR3* pVecCentre, int* piVertexCount )
 	SAFE_MEMORY ( pVecCentre    );
 	SAFE_MEMORY ( piVertexCount );
 
-	int			 iCurrentMesh   = 0;								// current mesh being accessed
 	int			 iCurrentVertex = 0;								// current vertex being accessed
 	sObjectList* pList;
 	sOffsetMap	 offsetMap;
@@ -356,7 +355,6 @@ bool cNodeTree::GetBounds ( D3DXVECTOR3 vecCentre, float* pfWidth, float* pfHeig
 	SAFE_MEMORY ( pfHeight );
 	SAFE_MEMORY ( pfDepth  );
 
-	int			 iCurrentMesh   = 0;
 	int			 iCurrentVertex = 0;
 	sObjectList* pList;
 	sOffsetMap	 offsetMap;
@@ -431,14 +429,8 @@ bool cNodeTree::GetBoundingBox ( void )
 {
 	// get the bounding box for the scene
 
-	float		 fMaxWidth      = 0.0f;								// width
-	float		 fMaxHeight     = 0.0f;								// height
-	float		 fMaxDepth      = 0.0f;								// depth
-	int			 iCurrentMesh   = 0;								// current mesh being accessed
-	int			 iCurrentVertex = 0;								// current vertex being accessed
 	int			 iVertexCount   = 0;
 	D3DXVECTOR3  vecCentre      = D3DXVECTOR3 ( 0.0f, 0.0f, 0.0f );	// centre point
-	sObjectList* pList          = NULL;								// list for objects
 	
 	// get the centre point
 	this->GetCentrePoint ( &m_vecCentre, &iVertexCount );
@@ -965,9 +957,6 @@ void cNodeTree::DrawNode ( cNodeTree* pNode )
 
 bool cNodeTree::Render ( void )
 {
-	// get object list ptr
-	sObjectList* pList = &m_ObjectList;
-
 	// create a scaling and position matrix
 	D3DXMATRIX matScale, matTranslation, matRotation, matWorld, matRotateX, matRotateY, matRotateZ;
 	D3DXMatrixScaling ( &matScale, 1.0f, 1.0f, 1.0f );
@@ -1444,9 +1433,6 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 				polyObjectList.push_back ( pass1Front [ iTemp ] );
 			}
 
-			POLYGON blank;
-			memset ( &blank, 0, sizeof ( POLYGON ) );
-
 			pass1Front.clear ( );
 			pass1Back.clear ( );
 
@@ -1480,7 +1466,6 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 		}
 
 		int iPosition   = 0;
-		int iFrontSplit = 0;
 		int iSplit      = 0;
 
 		for ( int iTemp = 0; iTemp < (int)polyObjectList.size ( ); iTemp++ )
@@ -1535,8 +1520,8 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 			SetupMeshFVFData ( pNewMesh, pMesh->dwFVF, polyNodeObject.NumberOfVertices, polyNodeObject.NumberOfIndices );
 
 			// get the offset map
-			sOffsetMap offsetMap;
-			GetFVFOffsetMap ( pNewMesh, &offsetMap );
+			sOffsetMap newOffsetMap;
+			GetFVFOffsetMap ( pNewMesh, &newOffsetMap );
 
 			// run through all of the vertices
 			for ( int iCurrentVertex = 0; iCurrentVertex < polyNodeObject.NumberOfVertices; iCurrentVertex++ )
@@ -1544,24 +1529,24 @@ void cNodeTree::RebuildMesh ( cNodeTree* pNode )
 				// check for position data
 				if ( pNewMesh->dwFVF & D3DFVF_XYZ )
 				{
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwX + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].x;
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwY + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].y;
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwZ + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].z;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwX + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].x;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwY + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].y;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwZ + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].z;
 				}
 
 				// check for normals
 				if ( pNewMesh->dwFVF & D3DFVF_NORMAL )
 				{
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwNX + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].nx;
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwNY + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].ny;
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwNZ + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].nz;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwNX + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].nx;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwNY + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].ny;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwNZ + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].nz;
 				}
 
 				// texture coordinates
 				if ( pNewMesh->dwFVF & D3DFVF_TEX1 )
 				{
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwTU [ 0 ] + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].tu;
-					*( ( float* ) pNewMesh->pVertexData + offsetMap.dwTV [ 0 ] + ( offsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].tv;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwTU [ 0 ] + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].tu;
+					*( ( float* ) pNewMesh->pVertexData + newOffsetMap.dwTV [ 0 ] + ( newOffsetMap.dwSize * iCurrentVertex ) ) = polyNodeObject.VertexList [ iCurrentVertex ].tv;
 				}
 			}
 

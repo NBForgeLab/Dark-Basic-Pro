@@ -110,7 +110,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 					       const Option _FixCylindricalTexGen,
                            const Option _WeightNormalsByFaceSize )
 {
-    typedef std::map< std::string, unsigned int > Mapping;
+    typedef std::map< std::string, size_t > Mapping;
 	typedef std::set< Edge > EdgeSet;
     typedef std::vector< std::set< unsigned int > > IdenticalVertices;
 
@@ -199,8 +199,6 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
     int* pIndices = (int*)( &( indices[ 0 ] ) );
 
     D3DXVECTOR3* pNormals = 0;
-    D3DXVECTOR3* pBiNormals = 0;
-    D3DXVECTOR3* pTangents = 0;
     D3DXVECTOR3* pTex0 = 0;
 
     bool bNeedNormals = false;
@@ -249,8 +247,6 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
 			// just initialize array so it's the correct size
 			output[ (*want).second ].floatVector_ = positions;
-
-            VertexAttribute::FloatVector& normals = output[ (*want).second ].floatVector_;
 
             // zero out normals
             for ( unsigned n = 0; n < positions.size(); ++n )
@@ -359,7 +355,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 			bool minz,miny,minx;
 			minx = miny = minz = false;
 
-			float deltaMajor;
+			float deltaMajor{};
 
 			if ( ( delta.x >= delta.y ) && ( delta.x >= delta.z ) )
 			{
@@ -409,7 +405,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
 				D3DXVECTOR3 texCoords = ( ( maxPosition + minPosition ) / 2.0f ) - pPositions[ p ];
 				
-				float Major, Minor, Other = 0.0f;
+				float Major{}, Minor{}, Other{};
 
 				if ( maxx )
 				{
@@ -491,7 +487,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
 			VertexAttribute::FloatVector& texcoords = ( output[ (*texIter).second ].floatVector_ );
 
-			const unsigned int theSize = indices.size();
+			const size_t theSize = indices.size();
 			
 			for ( unsigned int f = 0; f < theSize; f += 3 )
 			{
@@ -529,7 +525,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
 					if ( bDoS == true )
 					{
-						unsigned int theNewIndex = texcoords.size() / 3;
+            size_t theNewIndex = texcoords.size() / 3;
 						// Duplicate every part of the vertex
 						for ( unsigned int att = 0; att < output.size(); ++att )
 						{
@@ -554,11 +550,11 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
                         IdenticalVertices_.push_back( EmptySet );
 
-                        IdenticalVertices_[ indices[ theOneToChange ] ].insert( theNewIndex );
+                        IdenticalVertices_[ indices[ theOneToChange ] ].insert( static_cast<unsigned int>( theNewIndex ) );
                         IdenticalVertices_[ theNewIndex ].insert( indices[ theOneToChange ] );
 
 						// point to where the new vertices will go
-						indices[ theOneToChange ] = theNewIndex;
+						indices[ theOneToChange ] = static_cast<int>( theNewIndex );
 					}
 
 				} // for v
@@ -599,7 +595,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
 					if ( bDoT == true )
 					{
-						unsigned int theNewIndex = texcoords.size() / 3;
+            size_t theNewIndex = texcoords.size() / 3;
 						// Duplicate every part of the vertex
 						for ( unsigned int att = 0; att < output.size(); ++att )
 						{
@@ -625,10 +621,10 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
                         IdenticalVertices_.push_back( EmptySet );
 
                         IdenticalVertices_[ theNewIndex ].insert( indices[ theOneToChange ] );
-                        IdenticalVertices_[ indices[ theOneToChange ] ].insert( theNewIndex );
+                        IdenticalVertices_[ indices[ theOneToChange ] ].insert( static_cast<unsigned int>( theNewIndex ) );
 
 						// point to where the new vertices will go
-						indices[ theOneToChange ] = theNewIndex;
+						indices[ theOneToChange ] = static_cast<int>( theNewIndex );
 					}
 				}
 
@@ -636,14 +632,6 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 
 			} // for f
 		} // if fix texgen
-
-		D3DXMATRIX theMatrix( 1,0,0,0,
-							  1,0,0,0,
-							  1,0,0,0,
-							  1,0,0,2);
-        D3DXVECTOR3 v(1, 2, 3);
-		D3DXVec3TransformCoord( &v, &v, &theMatrix);
-
 
 		if ( pTextureMatrix )
 		{
@@ -706,7 +694,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
         VecVector sxtVector;
         EdgeSet Edges;
 
-        const unsigned int theSize = indices.size();
+        const size_t theSize = indices.size();
 		// for each face, calculate its S,T & SxT vector, & store its edges
 		for ( unsigned int f = 0; f < theSize; f += 3 )
 		{
@@ -876,7 +864,7 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
 							//  preventing the tangent basis from becoming degenerate
 
 							//  divide by 3 b/c vector is of floats and not vectors
-							const unsigned int theNewIndex = positions.size() / 3;
+        const size_t theNewIndex = positions.size() / 3;
 
 							// Duplicate every part of the vertex
 							for ( unsigned int att = 0; att < output.size(); ++att )
@@ -899,8 +887,8 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
                             IdenticalVertices_.push_back( EmptySet );
 
 							// point to where the new vertices will go
-							indices[ start ] = theNewIndex;
-							indices[ end ] =   theNewIndex + 1;
+							indices[ start ] = static_cast<int>( theNewIndex );
+							indices[ end ] =   static_cast<int>( theNewIndex + 1 );
 
 						}
 
@@ -922,9 +910,9 @@ bool NVMeshMender::MungeD3DX(  const NVMeshMender::VAVector& input,
         }
 
         //  go through faces and add up the bases for each vertex 
-        const int theFaceCount = indices.size() / 3;
+        const size_t theFaceCount = indices.size() / 3;
 
-        for ( unsigned int face = 0; face < (unsigned int)theFaceCount; ++face )
+        for ( size_t face = 0; face < theFaceCount; ++face )
         {
             // sum bases, so we smooth the tangent space across edges
             avgS[ pIndices[ face * 3 ] ] +=   sVector[ face ];

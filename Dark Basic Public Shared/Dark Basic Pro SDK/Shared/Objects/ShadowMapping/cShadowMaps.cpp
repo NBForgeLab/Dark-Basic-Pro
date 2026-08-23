@@ -92,7 +92,7 @@ D3DFORMAT GetValidStencilBufferFormat ( D3DFORMAT BackBufferFormat )
 	m_pD3D->GetDirect3D(&m_pDX);
 
 	// create the list in order of precedence
-	D3DFORMAT DepthFormat;
+	D3DFORMAT DepthFormat = D3DFMT_UNKNOWN;
 	D3DFORMAT	list [ ] =
 							{
 								D3DFMT_D24S8, //GeForce4 top choice
@@ -184,7 +184,6 @@ HRESULT CascadedShadowsManager::ReleaseAndAllocateNewShadowResources( LPD3DXEFFE
 		D3DSURFACE_DESC backbufferdesc;
 		g_pGlob->pHoldBackBufferPtr->GetDesc(&backbufferdesc);
 		D3DFORMAT BackBufferFormat = backbufferdesc.Format;
-		HRESULT hr;
 		hr = m_pDX->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, BackBufferFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, FOURCC_NULL);
 		m_bNULLRenderTargetSupported = (hr == D3D_OK);
 		m_bNULLRenderTargetSupported = false; // seems terrain shadow was fine, but non-primary effects had MESSED UP depth fetches!!
@@ -959,7 +958,7 @@ HRESULT CascadedShadowsManager::RenderShadowsForAllCascades ( LPD3DXEFFECT [[may
 					pDebugSee->GetSurfaceLevel ( mips, &pShadowDebugImage );
 					if ( pShadowDebugImage )
 					{
-						HRESULT hRes = D3DXLoadSurfaceFromSurface ( pShadowDebugImage, NULL, NULL, m_pCascadedShadowMapTexture, NULL, NULL, D3DX_DEFAULT, 0 );
+						D3DXLoadSurfaceFromSurface ( pShadowDebugImage, NULL, NULL, m_pCascadedShadowMapTexture, NULL, NULL, D3DX_DEFAULT, 0 );
 						pShadowDebugImage->Release();
 					}
 				}

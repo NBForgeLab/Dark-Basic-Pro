@@ -114,7 +114,7 @@ DWORD FindPositionKey ( sAnimation* pAnim, float fTime )
 	int keyMin=0;
 	int keyMax=(int)dwKeyMax;
 	int keyDiff = keyMax-keyMin;
-	int keyCentre = keyMin+((keyDiff)/2.0);
+	int keyCentre = keyMin+(keyDiff/2);
 	for(;keyDiff>2;)
 	{
 		// the divisions are not yet too small; ie, there's still nothing definite to choose from
@@ -131,7 +131,7 @@ DWORD FindPositionKey ( sAnimation* pAnim, float fTime )
 
 		// subdivide
 		keyDiff=keyMax-keyMin;
-		keyCentre=keyMin+((keyDiff)/2.0);
+		keyCentre=keyMin+(keyDiff/2);
 	}
 
 	// the divisions are now small enough to be checked on a one-on-one basis
@@ -157,7 +157,7 @@ DWORD FindRotationKey ( sAnimation* pAnim, float fTime )
 	int keyMin=0;
 	int keyMax=(int)dwKeyMax;
 	int keyDiff = keyMax-keyMin;
-	int keyCentre = keyMin+((keyDiff)/2.0);
+	int keyCentre = keyMin+(keyDiff/2);
 	for(;keyDiff>2;)
 	{
 		// the divisions are not yet too small; ie, there's still nothing definite to choose from
@@ -174,7 +174,7 @@ DWORD FindRotationKey ( sAnimation* pAnim, float fTime )
 
 		// subdivide
 		keyDiff=keyMax-keyMin;
-		keyCentre=keyMin+((keyDiff)/2.0);
+		keyCentre=keyMin+(keyDiff/2);
 	}
 
 	// the divisions are now small enough to be checked on a one-on-one basis
@@ -200,7 +200,7 @@ DWORD FindScaleKey ( sAnimation* pAnim, float fTime )
 	int keyMin=0;
 	int keyMax=(int)dwKeyMax;
 	int keyDiff = keyMax-keyMin;
-	int keyCentre = keyMin+((keyDiff)/2.0);
+	int keyCentre = keyMin+(keyDiff/2);
 	for(;keyDiff>2;)
 	{
 		// the divisions are not yet too small; ie, there's still nothing definite to choose from
@@ -217,7 +217,7 @@ DWORD FindScaleKey ( sAnimation* pAnim, float fTime )
 
 		// subdivide
 		keyDiff=keyMax-keyMin;
-		keyCentre=keyMin+((keyDiff)/2.0);
+		keyCentre=keyMin+(keyDiff/2);
 	}
 
 	// the divisions are now small enough to be checked on a one-on-one basis
@@ -273,7 +273,7 @@ DWORD FindMatrixKey ( sAnimation* pAnim, float fTime )
 		int keyMin=0;
 		int keyMax=(int)dwKeyMax;
 		int keyDiff = keyMax-keyMin;
-		int keyCentre = keyMin+((keyDiff)/2.0);
+		int keyCentre = keyMin+(keyDiff/2);
 		for(;keyDiff>2;)
 		{
 			// the divisions are not yet too small; ie, there's still nothing definite to choose from
@@ -290,7 +290,7 @@ DWORD FindMatrixKey ( sAnimation* pAnim, float fTime )
 
 			// subdivide
 			keyDiff=keyMax-keyMin;
-			keyCentre=keyMin+((keyDiff)/2.0);
+			keyCentre=keyMin+(keyDiff/2);
 		}
 
 		// the divisions are now small enough to be checked on a one-on-one basis
@@ -886,7 +886,6 @@ DARKSDK_DLL bool AppendAnimationData ( sObject* pObject, LPSTR szFilename, int i
 	}
 
 	// new animation data available?
-	sAnimation* pAnim = pLoadObject->pAnimationSet->pAnimation;
 
 	// get number of new frames
 	DWORD dwNewFrames = pLoadObject->pAnimationSet->ulLength;

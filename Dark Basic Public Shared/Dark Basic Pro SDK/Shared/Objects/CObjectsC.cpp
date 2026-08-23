@@ -234,8 +234,8 @@ DARKSDK_DLL void LoadCore ( SDK_LPSTR szFilename, int iID, int iDBProMode, int i
 		// Path is current model location
 		strcpy( szPath, "" );
 		LPSTR pFile = (LPSTR)szFilename;
-		DWORD dwLength = strlen(pFile);
-		for ( int n=dwLength; n>0; n-- )
+		size_t dwLength = strlen(pFile);
+		for ( size_t n=dwLength; n>0; n-- )
 		{
 			if ( pFile[n]=='\\' || pFile[n]=='/' )
 			{
@@ -292,7 +292,7 @@ DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID )
 		{
 			// get relative path from current
 			strcpy ( pPathToOriginalFile, VirtualFilename );
-			for(DWORD n=strlen(pPathToOriginalFile)-1; n>0; n--)
+			for(size_t n=strlen(pPathToOriginalFile)-1; n>0; n--)
 			{
 				if(pPathToOriginalFile[n]=='\\' || pPathToOriginalFile[n]=='/' || (unsigned char)(pPathToOriginalFile[n])<32)
 				{
@@ -1041,9 +1041,6 @@ DARKSDK_DLL void SetDiffuseMaterialEx ( int iID, DWORD dwRGB, int iMaterialOrVer
 		// only if have at least one mesh
 		if ( pActualObject->iMeshCount>0 )
 		{
-			// mesh ptr
-			sMesh* pMesh = pActualObject->ppMeshList [ 0 ];
-
 			// this object is an instance
 			SetObjectStatisticsInteger(iID,0,dwRGB);
 			if ( pObject->dwCustomSize==0 )
@@ -1794,9 +1791,6 @@ DARKSDK_DLL void CloneShared ( int iDestinationID, int iSourceID, int iCloneShar
 				DWORD dwMultiMatCount = pOrigMesh->dwMultiMaterialCount;
 				if ( pMesh->bUseMultiMaterial==true && pOrigMesh->bUseMultiMaterial==true )
 				{
-					// Currrent texture if any used
-					sTexture* pTexture = NULL;
-
 					// if multimaterial not exist (clone texture only)
 					if ( pMesh->pMultiMaterial==NULL )
 					{
@@ -2106,9 +2100,8 @@ DARKSDK_DLL void InstanceStamp ( int iDestinationID, int iSourceInstanceID, int 
 		// place data at specific reference point
 		sInstanceStamp* pStampPtr = (sInstanceStamp*)pObject->pCustomData;
 		sInstanceStampTileData** pStampMapPtr = pStampPtr->map;
-		float fStepX = 100.0f * pStampPtr->dwViewXSize;
-		float fStepY = 100.0f * pStampPtr->dwViewYSize;
-		float fStepZ = 100.0f * pStampPtr->dwViewZSize;
+	float fStepX = 100.0f * pStampPtr->dwViewXSize;
+	float fStepZ = 100.0f * pStampPtr->dwViewZSize;
 		int iX = fabs(stamptile->fPosX/fStepX);
 		int iY = 0;
 		int iZ = fabs(stamptile->fPosZ/fStepZ);
@@ -3245,9 +3238,6 @@ DARKSDK_DLL void UnGlueAllObjects ( void )
 			sObject* pTargetObject = g_ObjectList [ iTarget ];
 			if ( pTargetObject )
 			{
-				// set new position of source to target
-				int iFrameIndex = abs ( pSourceObject->position.iGluedToMesh );
-				
 				CalcObjectWorld ( pSourceObject );
 				CalcObjectWorld ( pTargetObject );
 
@@ -4519,7 +4509,6 @@ DARKSDK_DLL void SetObjectEffectCore ( int iID, int iEffectID, int iEffectNoBone
 	{
 		// reset setting to all meshes
 		g_pGlob->dwInternalFunctionCode=12001;
-		sObject* pObject = g_ObjectList [ iID ];
 		for ( int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++ )
 		{
 			g_pGlob->dwInternalFunctionCode=12001+iMesh;
@@ -4721,9 +4710,9 @@ DARKSDK_DLL void PerformChecklistForEffectValues ( int iEffectID )
 			pEffectPtr->GetParameterDesc( hParam, &ParamDesc );
 
 			// Add to checklist
-			DWORD dwSize=0;
+			size_t dwSize=0;
 			if(ParamDesc.Name) dwSize=strlen(ParamDesc.Name);
-			if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=dwSize;
+			if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=static_cast<DWORD>(dwSize);
 			if(bCreateChecklistNow)
 			{
 				// New checklist item
@@ -4862,11 +4851,11 @@ DARKSDK_DLL void PerformChecklistForEffectErrors ( void )
 						_strrev ( pErrorLine );
 						pErrorLine[dwSize-nn]=0;
 						_strrev ( pErrorLine );
-						dwSize = strlen(pErrorLine)+1;
+						dwSize = static_cast<DWORD>( strlen(pErrorLine)+1 );
 					}
 
 					// Add to checklist at end of line or buffer
-					if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=dwSize;
+					if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=static_cast<DWORD>(dwSize);
 					if(bCreateChecklistNow)
 					{
 						// New checklist item
@@ -4961,7 +4950,7 @@ DARKSDK_DLL int GetEffectParameterIndex ( int iEffectID, SDK_LPSTR pConstantName
 		{
 			pEffectObject->AssignValueHookCore ( NULL, hConstantParamHandle, 0, true ); //remove handle
 			g_EffectParamHandleList.push_back ( hConstantParamHandle );
-			iParameterIndex = g_EffectParamHandleList.size() - 1;
+			iParameterIndex = static_cast<int>( g_EffectParamHandleList.size() - 1 );
 		}
 	}
 
@@ -6703,7 +6692,7 @@ DARKSDK_DLL int IntersectAll ( int iPrimaryStart, int iPrimaryEnd, float fX, flo
 	g_pIntersectShortList.clear();
 	for ( int iPass=0; iPass<3; iPass++ )
 	{
-		int iStart, iEnd;
+		int iStart{}, iEnd{};
 		if ( iPass==0 ) { iStart=iPrimaryStart; iEnd=iPrimaryEnd; }
 		if ( iPass==1 ) { iStart=g_iIntersectAllSecondStart; iEnd=g_iIntersectAllSecondEnd; }
 		if ( iPass==2 ) { iStart=g_iIntersectAllThirdStart; iEnd=g_iIntersectAllThirdEnd; if ( iStart == 0 ) break; }
@@ -6782,7 +6771,6 @@ DARKSDK_DLL int IntersectAll ( int iPrimaryStart, int iPrimaryEnd, float fX, flo
 	float fBestDistance = 999999.9f;
 	GlobChecklistStruct pBestHit[10];
 	std::sort(g_pIntersectShortList.begin(), g_pIntersectShortList.end(), OrderByCamDistance() );
-	int iIntersectShortListMax = g_pIntersectShortList.size ( );
 	// DAVE 9/12/2014 Commented this out as sometimes the closer object isnt the one that gets hit by the ray first
 	// E.G. in the middle of a building which counts as closer but the player who is inside the building would be the one getting hit as he is infront of the wall that will get tested first
 	// Since the building counts as being closer, the test is a success and the player is never checked despite the polygon that would be hit of the player being closer
@@ -6822,7 +6810,7 @@ DARKSDK_DLL int IntersectAll ( int iPrimaryStart, int iPrimaryEnd, float fX, flo
 	// go through all objects presently in scene
 	for ( int iPass=0; iPass<3; iPass++ )
 	{
-		int iStart, iEnd;
+		int iStart{}, iEnd{};
 		if ( iPass==0 ) { iStart=iPrimaryStart; iEnd=iPrimaryEnd; }
 		if ( iPass==1 ) { iStart=g_iIntersectAllSecondStart; iEnd=g_iIntersectAllSecondEnd; }
 		if ( iPass==2 ) { iStart=g_iIntersectAllThirdStart; iEnd=g_iIntersectAllThirdEnd; if ( iStart == 0 ) break; }
@@ -7106,9 +7094,9 @@ DARKSDK_DLL void PerformCheckListForLimbs ( int iID )
 			LPSTR pName = g_ObjectList [ iID ]->ppFrameList [ iLimbID ]->szName;
 
 			// Add to checklist
-			DWORD dwSize=0;
+			size_t dwSize=0;
 			if(pName) dwSize=strlen(pName);
-			if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=dwSize;
+			if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=static_cast<DWORD>(dwSize);
 			if(bCreateChecklistNow)
 			{
 				// New checklist item
@@ -8249,7 +8237,6 @@ DARKSDK_DLL void GetMemblockFromObject ( int iMemblock, int iID )
 
 	// get custom data and get the data from it
 	DWORD dwMemblockToken = *((DWORD*)(LPSTR)pObject->pCustomData+0 );
-	LPSTR pMemblockData = (LPSTR)pObject->pCustomData+4;
 	DWORD dwMemBlockSize = pObject->dwCustomSize-8;
 
 	// token must be correct
@@ -9604,8 +9591,8 @@ DARKSDK_DLL SDK_LPSTR GetLimbTextureNameEx ( SDK_RETSTR int iID, int iLimbID, in
 
 	// Allocate new size
 	LPSTR pString = NULL;
-	DWORD dwSize = strlen ( pTextureLimbName );
-	g_pGlob->CreateDeleteString((DWORD_PTR*)&pString, dwSize+1);
+	size_t dwSize = strlen ( pTextureLimbName );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pString, static_cast<DWORD>( dwSize+1 ));
 	ZeroMemory ( pString, dwSize+1 );
 	memcpy ( pString, pTextureLimbName, dwSize );
 
@@ -9637,8 +9624,8 @@ DARKSDK_DLL SDK_LPSTR GetLimbName ( SDK_RETSTR int iID, int iLimbID )
 
 	// Allocate new size
 	LPSTR pString = NULL;
-	DWORD dwSize = strlen ( pLimbName );
-	g_pGlob->CreateDeleteString((DWORD_PTR*)&pString, dwSize+1);
+	size_t dwSize = strlen ( pLimbName );
+	g_pGlob->CreateDeleteString((DWORD_PTR*)&pString, static_cast<DWORD>( dwSize+1 ));
 	ZeroMemory ( pString, dwSize+1 );
 	memcpy ( pString, pLimbName, dwSize );
 

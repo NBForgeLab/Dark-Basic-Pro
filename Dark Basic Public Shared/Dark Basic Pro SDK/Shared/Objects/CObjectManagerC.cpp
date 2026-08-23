@@ -654,7 +654,6 @@ CObjectManager::sVertexData* CObjectManager::FindVertexBuffer ( DWORD dwFVF, LPD
 bool CObjectManager::AddObjectMeshToBuffers ( sMesh* pMesh, bool bUsesItsOwnBuffers )
 {
 	// vertex and index buffer set up
-	WORD*		 pIndices    = NULL;
 	sVertexData* pVertexData = NULL;
 	sIndexData*	 pIndexData  = NULL;
 
@@ -751,9 +750,6 @@ bool CObjectManager::AddObjectToBuffers ( sObject* pObject )
 {
 	// vertex and index buffer set up
 	bool			bAllOkay		= true;
-	WORD*			pIndices		= NULL;
-	sVertexData*	pVertexData		= NULL;
-	sIndexData*		pIndexData		= NULL;
 
 	// run through each frame within an object
 	for ( int iFrame = 0; iFrame < pObject->iFrameCount; iFrame++ )
@@ -905,8 +901,6 @@ bool CObjectManager::RemoveBuffersUsedByObjectMesh ( sMesh* pMesh, bool bRecurse
 	sDrawBuffer* pDrawBuffer = pMesh->pDrawBuffer;
 	if(pDrawBuffer)
 	{
-		DWORD* pdwAdd = (DWORD*)&pMesh->pDrawBuffer;
-
 		// get reference to VB and IB ptrs
 		sVertexData* pVertexData = (sVertexData*)pDrawBuffer->pVBListEntryRef;
 		sIndexData*	 pIndexData  = (sIndexData* )pDrawBuffer->pIBListEntryRef;
@@ -2940,7 +2934,7 @@ bool CObjectManager::ShaderPass ( sMesh* pMesh, UINT uPass, UINT [[maybe_unused]
 					if ( g_pGlob->dwRenderCameraID==0 )
 					{
 						// only render depths from camera zero
-						int iSuccess = SwitchRenderTargetToDepth(0);
+						SwitchRenderTargetToDepth(0);
 					}
 					else
 					{
@@ -3590,10 +3584,6 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 	
 	// go through all frames in object (different textures go into different buffers)
 	sObject* pParentObject = g_ObjectList [ pAddingStampMapPtr->dwParentObjNumber ];
-	if ( pParentObject->dwObjectNumber==30005 )
-	{
-		int stophere=42;
-	}
 
 	// count how many items in refgrid, to get better size of buffer allocation
 	// lod=1 means we need to count refgrid tile AND the ones x+1 and z+1
@@ -3851,7 +3841,6 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 				}
 				
 				// get more buffer details
-				DWORD dwFVFSize = pStampBufferPtr->pMeshFromParent->dwFVFSize;
 				DWORD dwUsage = D3DUSAGE_WRITEONLY;
 				DWORD dwFVF = pStampBufferPtr->pMeshFromParent->dwFVF;
 
@@ -3974,7 +3963,6 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 					pStampBufferPtr->dwCurrentMaxIBSize = dwMaxIBSize;
 
 					// create refresh dx buffers
-					DWORD dwFVFSize = pStampBufferPtr->pMeshFromParent->dwFVFSize;
 					DWORD dwUsage = D3DUSAGE_WRITEONLY;
 					DWORD dwFVF = pStampBufferPtr->pMeshFromParent->dwFVF;
 					if ( FAILED ( m_pD3D->CreateVertexBuffer ( 
@@ -4042,10 +4030,6 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 				pStampBufferPtr->pFirstLOD2Item = pAddingStampMapPtr;
 			}
 		}
-
-		// record how much of the buffer we use
-		DWORD dwBeforeStartV = pStampBufferPtr->dwVBOffset;
-		DWORD dwBeforeStartI = pStampBufferPtr->dwIBOffset;
 
 		// with buffer we can proceed to populate it
 		if ( pStampBufferPtr )
@@ -4249,7 +4233,6 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 						pStampBufferPtr->dwCurrentMaxIBSize = dwMaxIBSize;
 
 						// create new buffers
-						DWORD dwFVFSize = pStampBufferPtr->pMeshFromParent->dwFVFSize;
 						DWORD dwUsage = D3DUSAGE_WRITEONLY;
 						DWORD dwFVF = pStampBufferPtr->pMeshFromParent->dwFVF;
 						if ( FAILED ( m_pD3D->CreateVertexBuffer ( 
@@ -4375,10 +4358,10 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 						D3DXVECTOR3 vecScale = D3DXVECTOR3(1,1,1);
 						if ( bUseSpecialBuiltInLOD==true )
 						{
-							sFrame* pFrame = pParentObject->ppFrameList [ iLODHIGH ];
-							vecScale.x = pFrame->pMesh->Collision.vecMax.x-pFrame->pMesh->Collision.vecMin.x;
-							vecScale.y = pFrame->pMesh->Collision.vecMax.y-pFrame->pMesh->Collision.vecMin.y;
-							vecScale.z = pFrame->pMesh->Collision.vecMax.z-pFrame->pMesh->Collision.vecMin.z;
+							sFrame* pLODFrame = pParentObject->ppFrameList [ iLODHIGH ];
+							vecScale.x = pLODFrame->pMesh->Collision.vecMax.x-pLODFrame->pMesh->Collision.vecMin.x;
+							vecScale.y = pLODFrame->pMesh->Collision.vecMax.y-pLODFrame->pMesh->Collision.vecMin.y;
+							vecScale.z = pLODFrame->pMesh->Collision.vecMax.z-pLODFrame->pMesh->Collision.vecMin.z;
 							vecScale.x = 500.0f;
 							vecScale.y = 500.0f;
 							vecScale.z = 500.0f;
@@ -4460,467 +4443,13 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 	return true;
 }
 
-bool CObjectManager::UpdateInstanceStampObject ( sObject* pObject )
+bool CObjectManager::UpdateInstanceStampObject ( sObject* [[maybe_unused]] pObject )
 {
 	// disabled all batching for now, will resurrect it when performance requires this extra boost
 	// and can solve the problem of adding live polygons to dynamic VBs and causing stutter/slow down
 	return true;
-
-	// work out what should be added/removed from buffers
-	// based on paradroid system of entrance/exit references
-	sInstanceStamp* pStampPtr = (sInstanceStamp*)pObject->pCustomData;
-
-	// get camera location
-	tagCameraData* pCameraData = ( tagCameraData* ) g_Camera3D_GetInternalData ( g_pGlob->dwCurrentSetCameraID );
-	float fCX = pCameraData->vecPosition.x;
-	float fCY = 0.0f;
-	float fCZ = pCameraData->vecPosition.z;
-	if ( fCY > 100.0f * (20.0f+pStampPtr->dwViewYSize-1) ) fCY = 100.0f * (20.0f+pStampPtr->dwViewYSize-1);
-
-	// monitor if additions still taking place
-	bool bAdditionsTakingPlace = false;
-
-	// ref grid map pointer and size dimensions
-	sInstanceStampTileData** pStampMapPtrBase = pStampPtr->map;
-	DWORD dwXX = 1, dwYY = pStampPtr->dwXSize, dwZZ = pStampPtr->dwXSize * pStampPtr->dwYSize;
-
-	// camera position
-	float fStepX = 100.0f * pStampPtr->dwViewXSize;
-	float fStepY = 100.0f * pStampPtr->dwViewYSize;
-	float fStepZ = 100.0f * pStampPtr->dwViewZSize;
-	int iCamRefX = (int)(fCX/fStepX);
-	int iCamRefY = (int)(fCY/fStepY);
-	int iCamRefZ = (int)(fCZ/fStepZ);
-	int iCamRefX1 = iCamRefX-1;
-	int iCamRefY1 = iCamRefY-1;
-	int iCamRefZ1 = iCamRefZ-1;
-	int iCamRefX2 = iCamRefX+1;
-	int iCamRefY2 = iCamRefY+1;
-	int iCamRefZ2 = iCamRefZ+1;
-	if ( iCamRefX1<0 ) iCamRefX1 = 0;
-	if ( iCamRefY1<0 ) iCamRefY1 = 0;
-	if ( iCamRefZ1<0 ) iCamRefZ1 = 0;
-	if ( iCamRefX2>=(int)pStampPtr->dwXSize ) iCamRefX2 = pStampPtr->dwXSize - 1;
-	if ( iCamRefY2>=(int)pStampPtr->dwYSize ) iCamRefY2 = pStampPtr->dwYSize - 1;
-	if ( iCamRefZ2>=(int)pStampPtr->dwZSize ) iCamRefZ2 = pStampPtr->dwZSize - 1;
-
-	// go through each LOD level (not the QUAD levels though as they are already generated)
-	for ( int lod=0; lod<2; lod++ )
-	{
-		// early exit count (will depend on workload per add) - controls smoothness of cycles
-		int earlyexitcount = 5;
-		if ( lod==1 ) earlyexitcount = 10;
-
-		// loop to cover HIGH(-1 to +1) and LOW areas(-x to +x)
-		int loddepth = 1;
-		if ( lod==1 ) loddepth=4;
-		int iCameraScanY = iCamRefY;
-		for ( int iCameraScanX=iCamRefX-loddepth; iCameraScanX<=iCamRefX+loddepth; iCameraScanX++ )
-		{
-			for ( int iCameraScanZ=iCamRefZ-loddepth; iCameraScanZ<=iCamRefZ+loddepth; iCameraScanZ++ )
-			{
-				// Cap ref coordinate to size of given map
-				int iCameraX = iCameraScanX;
-				int iCameraY = iCameraScanY;
-				int iCameraZ = iCameraScanZ;
-				if ( iCameraX<0 ) iCameraX = 0;
-				if ( iCameraY<0 ) iCameraY = 0;
-				if ( iCameraZ<0 ) iCameraZ = 0;
-				if ( iCameraX>=(int)pStampPtr->dwXSize ) iCameraX = pStampPtr->dwXSize - 1;
-				if ( iCameraY>=(int)pStampPtr->dwYSize ) iCameraY = pStampPtr->dwYSize - 1;
-				if ( iCameraZ>=(int)pStampPtr->dwZSize ) iCameraZ = pStampPtr->dwZSize - 1;
-
-				// skip the middle built covered by LOD0
-				if ( lod==1 )
-					if ( iCameraX>=iCamRefX1 && iCameraX<=iCamRefX2 )
-						if ( iCameraY>=iCamRefY1 && iCameraY<=iCamRefY2 )
-							if ( iCameraZ>=iCamRefZ1 && iCameraZ<=iCamRefZ2 )
-								continue;
-
-				// ref that needs a buffer to live in
-				DWORD dwX = iCameraX;
-				DWORD dwY = iCameraY;
-				DWORD dwZ = iCameraZ;
-				sInstanceStampTileData** pStampMapPtr = pStampMapPtrBase + (dwX*dwXX)+(dwY*dwYY)+(dwZ*dwZZ);
-				if ( (*pStampMapPtr)==NULL ) continue;
-
-				// go through all items in this ref
-				sInstanceStampTileData* pItem = (*pStampMapPtr);
-				while ( pItem )
-				{
-					if ( pItem->bAddedToBuffer[lod]==false )
-					{
-						AddInstanceStampObjectToBuffer(pObject,pItem,lod,dwX,dwY,dwZ);
-						pItem->bAddedToBuffer[lod] = true;
-						bAdditionsTakingPlace = true;
-
-						// early exit to smooth out update delay
-						earlyexitcount--;
-						if ( earlyexitcount<=0 )
-						{
-							// ensure 'later' LOW to HIGH phase does not start too soon!
-							break;
-						}
-					}
-					pItem = pItem->pNext;
-				}
-			}
-		}
-
-		// REMOVE BUFFERS
-		// also scan areas that need to have buffers removed
-		// code = detect when bounds of a buffer are entirely outside camera zone
-		if ( lod==1 )
-		{
-			// area within stuff can remain visible
-			DWORD dwCameraMinX = iCamRefX - 5;
-			DWORD dwCameraMaxX = iCamRefX + 5;
-			DWORD dwCameraMinZ = iCamRefZ - 5;
-			DWORD dwCameraMaxZ = iCamRefZ + 5;
-
-			// check against active buffers to see if any have left the above region
-			sInstanceStampBuffer* pActiveBufferList = pStampPtr->pActiveBufferList[lod];
-			while ( pActiveBufferList )
-			{
-				// get next active ptr ready (as we delete next ref in this cycle)
-				sInstanceStampBuffer* pNextActiveBufferList = pActiveBufferList->pActiveListNext;
-
-				// is buffer bound intersecting camera zone
-				bool bBufferWithinCameraZone = false;
-				if ( pActiveBufferList->dwMinX <= dwCameraMaxX && pActiveBufferList->dwMaxX >= dwCameraMinX )
-					if ( pActiveBufferList->dwMinZ <= dwCameraMaxZ && pActiveBufferList->dwMaxZ >= dwCameraMinZ )
-						bBufferWithinCameraZone = true;
-
-				if ( bBufferWithinCameraZone==false )
-				{
-					// remove this buffer from ref map
-					DWORD dwX = pActiveBufferList->dwRefPosX;
-					DWORD dwY = pActiveBufferList->dwRefPosY;
-					DWORD dwZ = pActiveBufferList->dwRefPosZ;
-					sInstanceStampBuffer** pStampBufferPtrBase = pStampPtr->buffer[lod];
-					sInstanceStampBuffer** pNewStampBufferPtrPtr = pStampBufferPtrBase + (dwX*dwXX)+(dwY*dwYY)+(dwZ*dwZZ);
-					if ( *pNewStampBufferPtrPtr==pActiveBufferList )
-					{
-						*pNewStampBufferPtrPtr = (*pNewStampBufferPtrPtr)->pNext;
-					}
-					else
-					{
-						sInstanceStampBuffer* pFind = *pNewStampBufferPtrPtr;
-						while ( pFind )
-						{
-							if ( pFind->pNext==pActiveBufferList )
-							{
-								pFind->pNext = pActiveBufferList->pNext;
-								break;
-							}
-							pFind = pFind->pNext;
-						}
-					}
-
-					// reset instance flags as they will no longer be in any buffers
-					for ( DWORD dwRX=pActiveBufferList->dwMinX; dwRX<=pActiveBufferList->dwMaxX; dwRX++ )
-					{
-						for ( DWORD dwRY=pActiveBufferList->dwMinY; dwRY<=pActiveBufferList->dwMaxY; dwRY++ )
-						{
-							for ( DWORD dwRZ=pActiveBufferList->dwMinZ; dwRZ<=pActiveBufferList->dwMaxZ; dwRZ++ )
-							{
-								// possible ref that needs a buffer to live in
-								sInstanceStampTileData** pStampMapPtr = pStampMapPtrBase + (dwRX*dwXX)+(dwRY*dwYY)+(dwRZ*dwZZ);
-								if ( (*pStampMapPtr)==NULL ) continue;
-								sInstanceStampTileData* pItem = (*pStampMapPtr);
-								while ( pItem )
-								{
-									//pItem->dwBuffersUsed[lod] = 0;
-									pItem->bAddedToBuffer[lod] = false;
-									pItem = pItem->pNext;
-								}
-							}
-						}
-					}
-
-					// reset counters
-					pActiveBufferList->dwVBOffset = 0;
-					pActiveBufferList->dwIBOffset = 0;
-					pActiveBufferList->dwPrimitiveCount = 0;
-					pActiveBufferList->dwVertexCount = 0;
-
-					// add this buffer to the inert list
-					if ( pStampPtr->pInertBufferList[lod]==NULL )
-						pStampPtr->pInertBufferList[lod] = pActiveBufferList;
-					else
-					{
-						pActiveBufferList->pInertListNext = pStampPtr->pInertBufferList[lod];
-						pStampPtr->pInertBufferList[lod] = pActiveBufferList;
-					}
-
-					// remove buffer from active list
-					if ( pActiveBufferList==pStampPtr->pActiveBufferList[lod] )
-						pStampPtr->pActiveBufferList[lod] = pActiveBufferList->pActiveListNext;
-					else
-					{
-						sInstanceStampBuffer* pFind = pStampPtr->pActiveBufferList[lod];
-						while ( pFind )
-						{
-							if ( pFind->pActiveListNext==pActiveBufferList )
-							{
-								pFind->pActiveListNext = pActiveBufferList->pActiveListNext;
-								break;
-							}
-							pFind = pFind->pActiveListNext;
-						}
-					}
-
-					// cut off from active buffer list
-					pActiveBufferList->pActiveListNext = NULL;
-					pActiveBufferList->pNext = NULL;
-
-					// start again as we have modified list to ensure we are not traversing deleted item
-					pActiveBufferList = pStampPtr->pActiveBufferList[lod];
-				}
-				else
-				{
-					// go to next buffer in active list
-					pActiveBufferList = pNextActiveBufferList;
-				}
-			}
-		}
-	}
-
-	// If addition takes place, we moved, so dirty LOW LOD AREAS in case we need to add new HIGH items
-	if ( bAdditionsTakingPlace==true )
-	{
-		sInstanceStampBuffer* pActiveBufferList = pStampPtr->pActiveBufferList[1];
-		while ( pActiveBufferList )
-		{
-			pActiveBufferList->bDirty = true;
-			pActiveBufferList = pActiveBufferList->pActiveListNext;
-		}
-	}
-
-	// ACTIVATE HIGH ITEMS in LOW LOD AREAS where HIGH CENTER AREA overlaps them
-	// (and then HIDE the LOW LOD AREA so that we do not have HIGH and LOW lods overlapping)
-	if ( bAdditionsTakingPlace==false )
-	{
-		int lod = 1; //LLA
-		sInstanceStampBuffer* pActiveBufferList = pStampPtr->pActiveBufferList[lod];
-		while ( pActiveBufferList )
-		{
-			if ( pActiveBufferList->bDirty==true )
-			{
-				// does center area encroach on any LOW LOD AREA buffer?
-				bool bHighCenterInterectsLowLodArea = false;
-				if ( iCamRefX1<=(int)pActiveBufferList->dwMaxX && iCamRefX2>=(int)pActiveBufferList->dwMinX)
-					if ( iCamRefZ1<=(int)pActiveBufferList->dwMaxZ && iCamRefZ2>=(int)pActiveBufferList->dwMinZ)
-						bHighCenterInterectsLowLodArea = true;
-
-				// if there is an intersect
-				if ( bHighCenterInterectsLowLodArea==true )
-				{
-					// we need to completely add HIGH items to all spaces covered by LLA
-					int earlyexitcount = 5;
-					DWORD dwY=pActiveBufferList->dwRefPosY;
-					for ( DWORD dwX=pActiveBufferList->dwRefPosX; dwX<=pActiveBufferList->dwRefPosX+1; dwX++ )
-					{
-						for ( DWORD dwZ=pActiveBufferList->dwRefPosZ; dwZ<=pActiveBufferList->dwRefPosZ+1; dwZ++ )
-						{
-							// possible ref that needs a buffer to live in
-							sInstanceStampTileData** pStampMapPtr = pStampMapPtrBase + (dwX*dwXX)+(dwY*dwYY)+(dwZ*dwZZ);
-							if ( (*pStampMapPtr)==NULL ) continue;
-
-							// go through all items in this ref
-							int lod = 0;
-							sInstanceStampTileData* pItem = (*pStampMapPtr);
-							while ( pItem )
-							{
-								if ( pItem->bAddedToBuffer[lod]==false )
-								{
-									AddInstanceStampObjectToBuffer(pObject,pItem,lod,dwX,dwY,dwZ);
-									pItem->bAddedToBuffer[lod] = true;
-
-									// early exit to smooth out update delay
-									earlyexitcount--;
-									if ( earlyexitcount<=0 )
-										break;
-								}
-								pItem = pItem->pNext;
-							}
-						}
-					}
-					if ( earlyexitcount==5 )
-					{
-						// then when we can complete the full loop without an early exit, hide the LOW LOD AREA
-						pActiveBufferList->bDirty = false;
-						pActiveBufferList->bVisible = false;
-					}
-				}
-				else
-				{
-					// LLA is NOT intersecting HIGH CENTER AREA (and LLA is invisible) (weird but works, do not reverse!)
-					if ( pActiveBufferList->bVisible==false )
-					{
-						// delete any HCA buffers which are entirely within this LLA (copy of above - possible cleanup here!)
-						sInstanceStampBuffer* pActiveHighBufferList = pStampPtr->pActiveBufferList[0];
-						while ( pActiveHighBufferList )
-						{
-							// get next active ptr ready (as we delete next ref in this cycle)
-							sInstanceStampBuffer* pNextActiveBufferList = pActiveHighBufferList->pActiveListNext;
-
-							// is HIGH buffer bound intersecting LLA
-							bool bBufferWithinLLA = false;
-							if ( pActiveHighBufferList->dwRefPosX>=pActiveBufferList->dwRefPosX && pActiveHighBufferList->dwRefPosX<=pActiveBufferList->dwRefPosX+1 )
-								if ( pActiveHighBufferList->dwRefPosZ>=pActiveBufferList->dwRefPosZ && pActiveHighBufferList->dwRefPosZ<=pActiveBufferList->dwRefPosZ+1 )
-									bBufferWithinLLA = true;
-
-							if ( bBufferWithinLLA==true )
-							{
-								// remove this buffer from ref map
-								sInstanceStampBuffer** pStampBufferPtrBase = pStampPtr->buffer[0];
-								DWORD dwY = pActiveHighBufferList->dwRefPosY;
-								DWORD dwX = pActiveHighBufferList->dwRefPosX;
-								DWORD dwZ = pActiveHighBufferList->dwRefPosZ;
-								sInstanceStampBuffer** pNewStampBufferPtrPtr = pStampBufferPtrBase + (dwX*dwXX)+(dwY*dwYY)+(dwZ*dwZZ);
-								if ( *pNewStampBufferPtrPtr==pActiveHighBufferList )
-								{
-									*pNewStampBufferPtrPtr = (*pNewStampBufferPtrPtr)->pNext;
-								}
-								else
-								{
-									sInstanceStampBuffer* pFind = *pNewStampBufferPtrPtr;
-									while ( pFind )
-									{
-										if ( pFind->pNext==pActiveHighBufferList )
-										{
-											pFind->pNext = pActiveHighBufferList->pNext;
-											break;
-										}
-										pFind = pFind->pNext;
-									}
-								}
-
-								// reset instance flags as they will no longer be in any buffers
-								DWORD dwRX=pActiveHighBufferList->dwRefPosX;
-								DWORD dwRY=pActiveHighBufferList->dwRefPosY;
-								DWORD dwRZ=pActiveHighBufferList->dwRefPosZ;
-
-								// possible ref that needs a buffer to live in
-								sInstanceStampTileData** pStampMapPtr = pStampMapPtrBase + (dwRX*dwXX)+(dwRY*dwYY)+(dwRZ*dwZZ);
-								if ( (*pStampMapPtr)==NULL ) continue;
-								sInstanceStampTileData* pItem = (*pStampMapPtr);
-								while ( pItem )
-								{
-									//pItem->dwBuffersUsed[0] = 0;
-									pItem->bAddedToBuffer[0] = false;
-									pItem = pItem->pNext;
-								}
-
-								// reset counters
-								pActiveHighBufferList->dwVBOffset = 0;
-								pActiveHighBufferList->dwIBOffset = 0;
-								pActiveHighBufferList->dwPrimitiveCount = 0;
-								pActiveHighBufferList->dwVertexCount = 0;
-
-								// add this buffer to the inert list
-								if ( pStampPtr->pInertBufferList[0]==NULL )
-									pStampPtr->pInertBufferList[0] = pActiveHighBufferList;
-								else
-								{
-									pActiveHighBufferList->pInertListNext = pStampPtr->pInertBufferList[0];
-									pStampPtr->pInertBufferList[0] = pActiveHighBufferList;
-								}
-
-								// remove buffer from active list
-								if ( pActiveHighBufferList==pStampPtr->pActiveBufferList[0] )
-									pStampPtr->pActiveBufferList[0] = pActiveHighBufferList->pActiveListNext;
-								else
-								{
-									sInstanceStampBuffer* pFind = pStampPtr->pActiveBufferList[0];
-									while ( pFind )
-									{
-										if ( pFind->pActiveListNext==pActiveHighBufferList )
-										{
-											pFind->pActiveListNext = pActiveHighBufferList->pActiveListNext;
-											break;
-										}
-										pFind = pFind->pActiveListNext;
-									}
-								}
-
-								// cut off from active buffer list
-								pActiveHighBufferList->pActiveListNext = NULL;
-								pActiveHighBufferList->pNext = NULL;
-
-								// start again as we have modified list to ensure we are not traversing deleted item
-								pActiveHighBufferList = pStampPtr->pActiveBufferList[0];
-							}
-							else
-							{
-								// go to next buffer in active list
-								pActiveHighBufferList = pNextActiveBufferList;
-							}
-						}
-
-						// show LLA
-						pActiveBufferList->bVisible = true;
-					}
-				}
-			}
-			pActiveBufferList = pActiveBufferList->pActiveListNext;
-		}
-	}
-
-	/* even some HIGH LOD polygons reach HIGH QUAD?!? - this can save me a draw call if I can solve it
-	// decide which QUAD buffers are visible
-	int lod=2;
-	sInstanceStampBuffer* pQUADBufferList = pStampPtr->pActiveBufferList[lod];
-	while ( pQUADBufferList )
-	{
-		// find Hgih Quad Area corner
-		DWORD dwHQARefX = pQUADBufferList->dwRefPosX;
-		DWORD dwHQARefY = pQUADBufferList->dwRefPosY;
-		DWORD dwHQARefZ = pQUADBufferList->dwRefPosZ;
-
-		// check all four LOW LOD buffer visibilities captured by HIGH QUAD area
-		bool bHideTheQUAD = false;
-		for ( int scanlod=0; scanlod<1; scanlod++ )
-		{
-			sInstanceStampBuffer** pStampBufferPtrBase = pStampPtr->buffer[scanlod];
-			int iCountVisible = 0;
-			int loddepth = 4;
-			if ( scanlod==1 ) loddepth = 2;
-			for ( int dwZ=0; dwZ<loddepth; dwZ++ )
-			{
-				for ( int dwX=0; dwX<loddepth; dwX++ )
-				{
-					sInstanceStampBuffer** pNewStampBufferPtrPtr = pStampBufferPtrBase + ((dwHQARefX+dwX)*dwXX)+(dwHQARefY*dwYY)+((dwHQARefZ+dwZ)*dwZZ);
-					if ( pNewStampBufferPtrPtr )
-					{
-						sInstanceStampBuffer* pThisBuffer = *pNewStampBufferPtrPtr;
-						while ( pThisBuffer )
-						{
-							if ( pThisBuffer->bVisible==true ) 
-								iCountVisible++;
-							pThisBuffer = pThisBuffer->pNext;
-						}
-					}
-				}
-			}
-			if ( scanlod==0 && iCountVisible>0 ) bHideTheQUAD = true;
-			//if ( scanlod==1 && iCountVisible>0 ) bHideTheQUAD = true; // wuads in closer so we can fade between LOW LOD and HIGH QUAD
-		}
-
-		// only completely visible LOW LOD set will hide HIGH QUAD
-		if ( bHideTheQUAD==true )
-			pQUADBufferList->bVisible = false;
-		else
-			pQUADBufferList->bVisible = true;
-
-		pQUADBufferList = pQUADBufferList->pActiveListNext;
-	}
-	*/
-
-	// complete
-	return true;
 }
+
 
  // Construct a world-space billboard that (in screen-space) 
  // fully covers the input bounding box.
@@ -5032,7 +4561,7 @@ void CObjectManager::initImposterViewport(int textureWidth, int textureHeight,
 D3DFORMAT CObjectManager::GetValidStencilBufferFormat ( D3DFORMAT BackBufferFormat )
 {
 	// create the list in order of precedence
-	D3DFORMAT DepthFormat;
+	D3DFORMAT DepthFormat = D3DFMT_UNKNOWN;
 	D3DFORMAT list [ ] =
 							{
 								D3DFMT_D24S8, //GeForce4 top choice
@@ -5120,7 +4649,7 @@ int CObjectManager::SwitchRenderTargetToDepth ( int [[maybe_unused]] iFlag )
 				pDebugSee->GetSurfaceLevel ( 0, &pShadowDebugImage );
 				if ( pShadowDebugImage )
 				{
-					HRESULT hRes = D3DXLoadSurfaceFromSurface ( pShadowDebugImage, NULL, NULL, g_pMainCameraDepthTextureSurfaceRef, NULL, NULL, D3DX_DEFAULT, 0 );
+					D3DXLoadSurfaceFromSurface ( pShadowDebugImage, NULL, NULL, g_pMainCameraDepthTextureSurfaceRef, NULL, NULL, D3DX_DEFAULT, 0 );
 					pShadowDebugImage->Release();
 				}
 			}
@@ -5271,7 +4800,7 @@ bool CObjectManager::DrawInstanceStampObject ( sObject* pObject )
 
 						// does depth surface have to be same size as render target?
 						D3DFORMAT DepthFormat = GetValidStencilBufferFormat(CommonFormat);
-						HRESULT hRes = m_pD3D->CreateDepthStencilSurface(	2048, 2048,
+						m_pD3D->CreateDepthStencilSurface(	2048, 2048,
 																			DepthFormat, D3DMULTISAMPLE_NONE, 0, TRUE,
 																			&m_pImposterRendererDSV, NULL );
 					}
@@ -5764,12 +5293,12 @@ bool CObjectManager::DrawInstanceStampObject ( sObject* pObject )
 									if ( pStampBufferPtr->pMeshFromParent->pIndices )
 									{
 										// draw an indexed primitive
-										HRESULT hDrawSuccess = m_pD3D->DrawIndexedPrimitive (	pStampBufferPtr->dwPrimType,
-																								pStampBufferPtr->dwBaseVertexIndex,
-																								pStampBufferPtr->dwVertexStart,
-																								pStampBufferPtr->dwVertexCount,
-																								pStampBufferPtr->dwIndexStart,
-																								pStampBufferPtr->dwPrimitiveCount		);
+										m_pD3D->DrawIndexedPrimitive (	pStampBufferPtr->dwPrimType,
+																						pStampBufferPtr->dwBaseVertexIndex,
+																						pStampBufferPtr->dwVertexStart,
+																						pStampBufferPtr->dwVertexCount,
+																						pStampBufferPtr->dwIndexStart,
+																						pStampBufferPtr->dwPrimitiveCount		);
 
 										if ( g_pGlob ) g_pGlob->dwNumberOfPolygonsDrawn += pStampBufferPtr->dwPrimitiveCount;
 										if ( g_pGlob ) g_pGlob->dwNumberOfPrimCalls++;
@@ -5777,7 +5306,7 @@ bool CObjectManager::DrawInstanceStampObject ( sObject* pObject )
 									}
 									else
 									{
-										HRESULT hDrawSuccess = m_pD3D->DrawPrimitive (	pStampBufferPtr->dwPrimType, 0, pStampBufferPtr->dwPrimitiveCount );
+										m_pD3D->DrawPrimitive (	pStampBufferPtr->dwPrimType, 0, pStampBufferPtr->dwPrimitiveCount );
 										if ( g_pGlob ) g_pGlob->dwNumberOfPolygonsDrawn += pStampBufferPtr->dwPrimitiveCount;
 										if ( g_pGlob ) g_pGlob->dwNumberOfPrimCalls++;
 										//bRealRenderHappened = true;
@@ -6475,12 +6004,12 @@ bool CObjectManager::Reset ( void )
 void CObjectManager::UpdateViewProjForMotionBlur(void)
 {
 	// 270515 - record current viewproj (for working out previous viewproj for motion blur)
-	tagCameraData* m_pCamera = (tagCameraData*)g_Camera3D_GetInternalData ( 0 );
-	if ( m_pCamera )
+	tagCameraData* pCameraForMotionBlur = (tagCameraData*)g_Camera3D_GetInternalData ( 0 );
+	if ( pCameraForMotionBlur )
 	{
 		g_matPreviousViewProj = g_matThisViewProj;
 		D3DXMATRIX matView, matProj;
-	    g_matThisViewProj = m_pCamera->matView * m_pCamera->matProjection;
+	    g_matThisViewProj = pCameraForMotionBlur->matView * pCameraForMotionBlur->matProjection;
 		D3DXMatrixInverse ( &g_matThisViewProjInverse, NULL, &g_matThisViewProj );
 	}
 }
@@ -6644,7 +6173,6 @@ bool CObjectManager::UpdateLayer ( int iLayer )
 bool CObjectManager::UpdateLayerInner ( int iLayer )
 {
 	// work vars
-	int iObject = 0;
 	bool bUseStencilWrite=false;
 	D3DLIGHT9 lightzero;
 	D3DXVECTOR3 vecShadowPos;

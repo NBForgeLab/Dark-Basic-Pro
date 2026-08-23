@@ -71,7 +71,7 @@ HRESULT cProcessHSR::Process ( void )
 	cBounds3    BoundsA,
 				BoundsB;
     cBSPTree**  pBSPTrees  = NULL;
-    int			iMeshCount = m_vpMeshList.size ( );
+    int			iMeshCount = static_cast<int>( m_vpMeshList.size ( ) );
     
 	memset ( &Options, 0, sizeof ( sBSP ) );
 

@@ -390,7 +390,7 @@ void cUniverse::LeesTestFPSCQuadRemover ( void )
 							int iTheZ = iOther[iThirdVert][2];
 
 							// imply other two verts (forming second poly)
-							int iFirst, iSecnd;
+							int iFirst{}, iSecnd{};
 							if ( iThirdVert==0 ) { iFirst=1; iSecnd=2; }
 							if ( iThirdVert==1 ) { iFirst=0; iSecnd=2; }
 							if ( iThirdVert==2 ) { iFirst=0; iSecnd=1; }
@@ -444,7 +444,7 @@ void cUniverse::LeesTestFPSCQuadRemover ( void )
 								if ( iDiffX==0 && iDiffY==0 && iDiffZ==0 )
 								{
 									// this pair forms a perfect quad facing a clean direction
-									sQuadList quad;
+									sQuadList quad{};
 									quad.iPolyVertIndexA = iCurrentVertex;
 									quad.iPolyVertIndexB = iOtherVertex;
 									if ( vecNormal0.x<-0.5f ) quad.iDirection = 0;
@@ -544,7 +544,7 @@ void cUniverse::LeesTestFPSCQuadRemover ( void )
 
 			// work out direction and counter-direction
 			int iDirection = pQuadPtr->iDirection;
-			int iOppositeDirection;
+			int iOppositeDirection{};
 			switch ( iDirection )
 			{
 				case 0 : iOppositeDirection=1; break;
@@ -607,7 +607,7 @@ void cUniverse::LeesTestFPSCQuadRemover ( void )
 						}
 
 						// continue with scan
-						iOQ = quadList.size();
+						iOQ = static_cast<int>( quadList.size() );
 						continue;
 					}
 				}
@@ -957,8 +957,6 @@ void cUniverse::SaveDBU ( LPSTR pDBUFilename )
 {
 	// open DBU file to deposit universe (V1.0 DBU format hard coded for FPSC-dev-speed)
 	DWORD written;
-	LPSTR pData = NULL;
-	DWORD dwDataSize = 0;
 	HANDLE hwritefile = CreateFile(pDBUFilename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hwritefile!=INVALID_HANDLE_VALUE)
 	{
@@ -971,7 +969,7 @@ void cUniverse::SaveDBU ( LPSTR pDBUFilename )
 		WriteFile(hwritefile, &dwUniverseZ, 4, &written, NULL); 
 
 		// AREA BOXES
-		DWORD dwAreaBoxMax = m_pAreaList.size ( );
+		DWORD dwAreaBoxMax = static_cast<DWORD>( m_pAreaList.size ( ) );
 		WriteFile(hwritefile, &dwAreaBoxMax, 4, &written, NULL); 
 		for ( int iAreaBox = 0; iAreaBox < (int)dwAreaBoxMax; iAreaBox++ )
 		{
@@ -984,21 +982,21 @@ void cUniverse::SaveDBU ( LPSTR pDBUFilename )
 			WriteFile(hwritefile, (LPSTR)&pArea->vecCentre, sizeof(D3DXVECTOR3), &written, NULL); 
 
 			// Area Box Geometry (indexes into master mesh)
-			DWORD dwWithinMax = pArea->meshgroups.size ( );
+			DWORD dwWithinMax = static_cast<DWORD>( pArea->meshgroups.size ( ) );
 			WriteFile(hwritefile, &dwWithinMax, 4, &written, NULL); 
 			for ( int iWithinIndex = 0; iWithinIndex < (int)dwWithinMax; iWithinIndex++ )
 			{
 				DWORD dwIndex = GetMasterMeshIndex ( pArea->meshgroups [ iWithinIndex ]->pMesh );
 				WriteFile(hwritefile, &dwIndex, 4, &written, NULL); 
 			}
-			DWORD dwShared = pArea->sharedmeshgroups.size ( );
+			DWORD dwShared = static_cast<DWORD>( pArea->sharedmeshgroups.size ( ) );
 			WriteFile(hwritefile, &dwShared, 4, &written, NULL); 
 			for ( int iSharedIndex = 0; iSharedIndex < (int)dwShared; iSharedIndex++ )
 			{
 				DWORD dwIndex = GetMasterMeshIndex ( pArea->sharedmeshgroups [ iSharedIndex ]->pMesh );
 				WriteFile(hwritefile, &dwIndex, 4, &written, NULL); 
 			}
-			DWORD dwRef = pArea->meshgroupref.size ( );
+			DWORD dwRef = static_cast<DWORD>( pArea->meshgroupref.size ( ) );
 			WriteFile(hwritefile, &dwRef, 4, &written, NULL); 
 			for ( int iRefIndex = 0; iRefIndex < (int)dwRef; iRefIndex++ )
 			{
@@ -1057,7 +1055,7 @@ void cUniverse::SaveDBU ( LPSTR pDBUFilename )
 			}
 
 			// node collision data
-			DWORD dwColESize = pNode->collisionE.size ( );
+			DWORD dwColESize = static_cast<DWORD>( pNode->collisionE.size ( ) );
 			WriteFile(hwritefile, &dwColESize, 4, &written, NULL); 
 			sCollisionPolygon* pColData = new sCollisionPolygon[dwColESize];
 			for ( int iCol = 0; iCol < (int)dwColESize; iCol++ )
@@ -1134,7 +1132,7 @@ bool cUniverse::Attach ( sObject* pObject )
 bool cUniverse::Detach ( sObject* pObject )
 {
 	// find iterator and delete from both lists
-	int iVisLinkedObjMax = m_VisLinkedObjectList.size ( );
+	int iVisLinkedObjMax = static_cast<int>( m_VisLinkedObjectList.size ( ) );
 	for ( int iObj = 0; iObj < iVisLinkedObjMax; iObj++ )
 	{
 		// object ptr
@@ -2205,7 +2203,7 @@ bool cUniverse::BuildAreaBoxes ( void )
 				if ( iSide==5 ) { iX2=iX1; }
 
 				// calculate opposite side for secondary side check
-				int iOSide, iOX, iOY, iOZ;
+				int iOSide{}, iOX{}, iOY{}, iOZ{};
 				if ( iSide==0 ) { iOSide=1; iOX=0; iOY=0; iOZ=-1; }
 				if ( iSide==1 ) { iOSide=0; iOX=0; iOY=0; iOZ= 1; }
 				if ( iSide==2 ) { iOSide=3; iOX=0; iOY= 1; iOZ=0; }
@@ -2391,7 +2389,7 @@ bool cUniverse::BuildAreaBoxes ( void )
 		CreatePortalVertices ( m_pAreaList [ iNode ]->pDebugRegion );
 
 	// store count of all area boxes
-	g_iAreaBoxCount = m_pAreaList.size ( );
+	g_iAreaBoxCount = static_cast<int>( m_pAreaList.size ( ) );
 	
 	// complete
 	return true;
@@ -2553,8 +2551,8 @@ bool cUniverse::BuildAreaLinks ( void )
 				int iXStart=0, iXEnd=0;
 				int iYStart=0, iYEnd=0;
 				int iZStart=0, iZEnd=0;
-				int iS1OffX, iS1OffY, iS1OffZ;
-				int iS2OffX, iS2OffY, iS2OffZ;
+				int iS1OffX{}, iS1OffY{}, iS1OffZ{};
+				int iS2OffX{}, iS2OffY{}, iS2OffZ{};
 
 				// NORTH and SOUTH checks scan the XY plane
 				bool bNorthSouthScan=false;
@@ -2797,13 +2795,13 @@ bool cUniverse::RecurseCheckArea ( D3DXVECTOR3* pAtPos, D3DXVECTOR3* pvecToCente
 	{
 		// center of box must by within (5) units of areabox for light effect
 //		float fTrimArea = 5.0f;
-		float fTrimArea = 25.0f; //corridors with deep structures do not get lit (why need this at all?)
-		if ( pvecToCenter->x >= pCurrentArea->vecMin.x-fTrimArea
-		&&   pvecToCenter->y >= pCurrentArea->vecMin.y-fTrimArea
-		&&   pvecToCenter->z >= pCurrentArea->vecMin.z-fTrimArea
-		&&	 pvecToCenter->x <= pCurrentArea->vecMax.x+fTrimArea
-		&&   pvecToCenter->y <= pCurrentArea->vecMax.y+fTrimArea
-		&&   pvecToCenter->z <= pCurrentArea->vecMax.z+fTrimArea )
+		float fCenterMargin = 25.0f; //corridors with deep structures do not get lit (why need this at all?)
+		if ( pvecToCenter->x >= pCurrentArea->vecMin.x-fCenterMargin
+		&&   pvecToCenter->y >= pCurrentArea->vecMin.y-fCenterMargin
+		&&   pvecToCenter->z >= pCurrentArea->vecMin.z-fCenterMargin
+		&&	 pvecToCenter->x <= pCurrentArea->vecMax.x+fCenterMargin
+		&&   pvecToCenter->y <= pCurrentArea->vecMax.y+fCenterMargin
+		&&   pvecToCenter->z <= pCurrentArea->vecMax.z+fCenterMargin )
 		{
 			// check if point can be seen inside frustrum
 			if ( dwFrustumCount==0 )
@@ -3301,7 +3299,7 @@ void cUniverse::SetWorldMatrix ( void )
 bool cUniverse::RenderArea ( DWORD dwFrustumCount, sArea* pArea )
 {
 	// record draw prims before main render
-	DWORD dwStoredPolygonsDrawn, dwStoredDrawPrimCount;
+	DWORD dwStoredPolygonsDrawn{}, dwStoredDrawPrimCount{};
 	if ( g_pGlob )
 	{
 		dwStoredPolygonsDrawn = g_pGlob->dwNumberOfPolygonsDrawn;
@@ -3640,7 +3638,7 @@ bool cUniverse::Render ( void )
 	}
 
 	// all objects in visible areabox to be visible
-	int iVisLinkedObjMax = m_VisLinkedObjectList.size ( );
+	int iVisLinkedObjMax = static_cast<int>( m_VisLinkedObjectList.size ( ) );
 	for ( int iObj = 0; iObj < iVisLinkedObjMax; iObj++ )
 	{
 		// object ptr
@@ -3728,8 +3726,6 @@ bool cUniverse::RayVolume ( float fX, float fY, float fZ, float fNewX, float fNe
 		return true;
 	else
 		return false;
-
-	return false;
 }
 
 bool cUniverse::CollisionQuickRayCast ( sMesh* pMesh, float fX, float fY, float fZ, float fNewX, float fNewY, float fNewZ )
@@ -3758,7 +3754,7 @@ bool cUniverse::CollisionSingleRayCast (	sMesh* pMesh, float fX, float fY, float
 
 	// extra data collected for checklist feedback
 	int iRefToObject=0, iRefToLimbOfTheObject=0;
-	DWORD dwVertex0IndexOfHitPoly, dwVertex1IndexOfHitPoly, dwVertex2IndexOfHitPoly;
+	DWORD dwVertex0IndexOfHitPoly{}, dwVertex1IndexOfHitPoly{}, dwVertex2IndexOfHitPoly{};
 	D3DXVECTOR3 vec0Hit, vec1Hit, vec2Hit;
 	D3DXVECTOR3 vecHitPoint;
 
@@ -4077,9 +4073,9 @@ int cUniverse::CollisionRayCast ( float fX, float fY, float fZ, float fNewX, flo
 				for ( int iBothMeshGroups=0; iBothMeshGroups<3; iBothMeshGroups++ )
 				{
 					int iIndexMax = 0;
-					if ( iBothMeshGroups==0 ) iIndexMax = pArea->meshgroups.size ( );
-					if ( iBothMeshGroups==1 ) iIndexMax = pArea->sharedmeshgroups.size ( );
-					if ( iBothMeshGroups==2 ) iIndexMax = pArea->meshgroupref.size();
+					if ( iBothMeshGroups==0 ) iIndexMax = static_cast<int>( pArea->meshgroups.size ( ) );
+					if ( iBothMeshGroups==1 ) iIndexMax = static_cast<int>( pArea->sharedmeshgroups.size ( ) );
+					if ( iBothMeshGroups==2 ) iIndexMax = static_cast<int>( pArea->meshgroupref.size() );
 					for ( int iIndex = 0; iIndex < iIndexMax; iIndex++ )
 					{
 						sMesh* pMesh = NULL;
@@ -4501,20 +4497,20 @@ bool cUniverse::AddPortals ( sNode* pNode )
 
 			for ( int iMesh = 0; iMesh < (int)vpMeshList.size ( ); iMesh++ )
 			{
-				cMesh* pMesh = vpMeshList [ iMesh ];
+				cMesh* pCMesh = vpMeshList [ iMesh ];
 
-				if ( !pMesh )
+				if ( !pCMesh )
 					continue;
 
-				pMesh->m_Bounds.Max.x = 10000.0f;
-				pMesh->m_Bounds.Max.y = 10000.0f;
-				pMesh->m_Bounds.Max.z = 10000.0f;
+				pCMesh->m_Bounds.Max.x = 10000.0f;
+				pCMesh->m_Bounds.Max.y = 10000.0f;
+				pCMesh->m_Bounds.Max.z = 10000.0f;
 
-				pMesh->m_Bounds.Min.x = -10000.0f;
-				pMesh->m_Bounds.Min.y = -10000.0f;
-				pMesh->m_Bounds.Min.z = -10000.0f;
+				pCMesh->m_Bounds.Min.x = -10000.0f;
+				pCMesh->m_Bounds.Min.y = -10000.0f;
+				pCMesh->m_Bounds.Min.z = -10000.0f;
 				
-				g_tree.AddFaces ( pMesh->m_ppFaces, pMesh->m_dwFaceCount, true );
+				g_tree.AddFaces ( pCMesh->m_ppFaces, pCMesh->m_dwFaceCount, true );
 			}
 
 			g_tree.CompileTree ( );
@@ -5307,7 +5303,7 @@ void cUniverse::BuildAreaBoxMeshGroups ( void )
 	for ( int iFirstShared=0; iFirstShared<3; iFirstShared++ )
 	{
 		// for each areabox
-		for ( int iAreaBox = 0; iAreaBox < (int)m_pAreaList.size ( ); iAreaBox++ )
+		for ( iAreaBox = 0; iAreaBox < (int)m_pAreaList.size ( ); iAreaBox++ )
 		{
 			// get current area box ptr
 			sArea* pArea = m_pAreaList [ iAreaBox ];
@@ -5432,17 +5428,12 @@ void cUniverse::BuildAreaBoxMeshGroups ( void )
 									{
 										// find meshgroup in neighbor that holds this mesh
 										sMeshGroup* pMeshGroupRef = FindMeshInAreaBox ( pArea, pMesh, pNeighborArea );
-										if ( pMeshGroupRef==NULL )
+										if ( pMeshGroupRef!=NULL )
 										{
-											// odd, as mesh was 'used' and placed in neighbor?
-											int lee=42;
-										}
-										else
-										{
-											// this areabox ALSO needs to draw mesh, so draw the meshgroup that holds it 
+											// this areabox ALSO needs to draw mesh, so draw the meshgroup that holds it
 											int iRef = 0;
-											
-											int iRefMax = pArea->meshgroupref.size();
+
+											int iRefMax = static_cast<int>( pArea->meshgroupref.size() );
 											for (  iRef = 0; iRef < iRefMax; iRef++ )
 												if ( pArea->meshgroupref [ iRef ]==pMeshGroupRef )
 													break;
@@ -5544,17 +5535,12 @@ void cUniverse::BuildAreaBoxMeshGroups ( void )
 									{
 										// find meshgroup in neighbor that holds this mesh
 										sMeshGroup* pMeshGroupRef = FindMeshInAreaBox ( pArea, pMesh, pNeighborArea );
-										if ( pMeshGroupRef==NULL )
+										if ( pMeshGroupRef!=NULL )
 										{
-											// odd, as mesh was 'used' and placed in neighbor?
-											int lee=42;
-										}
-										else
-										{
-											// this areabox ALSO needs to draw mesh, so draw the meshgroup that holds it 
+											// this areabox ALSO needs to draw mesh, so draw the meshgroup that holds it
 											int iRef = 0;
-											
-											int iRefMax = pArea->meshgroupref.size();
+
+											int iRefMax = static_cast<int>( pArea->meshgroupref.size() );
 											for (  iRef = 0; iRef < iRefMax; iRef++ )
 												if ( pArea->meshgroupref [ iRef ]==pMeshGroupRef )
 													break;
@@ -5842,7 +5828,6 @@ sMeshGroup* cUniverse::AddMeshToAreaBox ( sArea* pArea, sMesh* pInputMesh, sArea
 		else
 		{
 			// should not get here, if does, means a single area filling up mesh with too many polygons!
-			int lee=42;
 		}
 	}
 
@@ -6003,7 +5988,6 @@ void cUniverse::AddScorch ( float fSize, int iScorchType )
 			&&	CollisionQuickRayCast ( MegaCollisionFeedback.pHitMesh, vec3.x+vecN.x, vec3.y+vecN.y, vec3.z+vecN.z, vec3.x-vecN.x, vec3.y-vecN.y, vec3.z-vecN.z ) )
 			{
 				// add detected scorch polygons to scorch mesh
-				DWORD dwVertPos=0;
 				sMesh* pMesh = m_pScorchMesh;
 				SetupShortVertex ( pMesh->dwFVF, pMesh->pVertexData, m_dwScorchVPos+0, vec0.x, vec0.y, vec0.z, fU0, fV0 );
 				SetupShortVertex ( pMesh->dwFVF, pMesh->pVertexData, m_dwScorchVPos+1, vec1.x, vec1.y, vec1.z, fU1, fV1 );

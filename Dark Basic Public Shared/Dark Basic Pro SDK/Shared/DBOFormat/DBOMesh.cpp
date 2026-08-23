@@ -644,6 +644,17 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 	int iVertIndexOffset = *pdwVertexOffset;
 	int iIndiceIndexOffset = *pdwIndexOffset;
 
+	// write the two triangles of a quad (0,1,2 / 2,3,0) into the WORD index buffer
+	auto WriteQuadIndices = [ & ] ( )
+	{
+		pMesh->pIndices [ iIndiceIndexOffset + 0 ] = static_cast < WORD > ( iVertIndexOffset + 0 );
+		pMesh->pIndices [ iIndiceIndexOffset + 1 ] = static_cast < WORD > ( iVertIndexOffset + 1 );
+		pMesh->pIndices [ iIndiceIndexOffset + 2 ] = static_cast < WORD > ( iVertIndexOffset + 2 );
+		pMesh->pIndices [ iIndiceIndexOffset + 3 ] = static_cast < WORD > ( iVertIndexOffset + 2 );
+		pMesh->pIndices [ iIndiceIndexOffset + 4 ] = static_cast < WORD > ( iVertIndexOffset + 3 );
+		pMesh->pIndices [ iIndiceIndexOffset + 5 ] = static_cast < WORD > ( iVertIndexOffset + 0 );
+	};
+
 	// include faces that are flagged
 	if ( bF )
 	{
@@ -651,8 +662,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 		SetupStandardVertexDec ( pMesh, pMesh->pVertexData, iVertIndexOffset +  1, fWidth2, fHeight2, fDepth1,  0.0f,  0.0f, -1.0f, dwColor, 1.00f, 0.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  2, fWidth2, fHeight1, fDepth1,  0.0f,  0.0f, -1.0f, dwColor, 1.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  3, fWidth1, fHeight1, fDepth1,  0.0f,  0.0f, -1.0f, dwColor, 0.00f, 1.00f );
-		pMesh->pIndices [ iIndiceIndexOffset +  0 ] = iVertIndexOffset +  0;		pMesh->pIndices [ iIndiceIndexOffset +  1 ] = iVertIndexOffset +  1;		pMesh->pIndices [ iIndiceIndexOffset +  2 ] = iVertIndexOffset +  2;
-		pMesh->pIndices [ iIndiceIndexOffset +  3 ] = iVertIndexOffset +  2;		pMesh->pIndices [ iIndiceIndexOffset +  4 ] = iVertIndexOffset +  3;		pMesh->pIndices [ iIndiceIndexOffset +  5 ] = iVertIndexOffset +  0;
+		WriteQuadIndices ( );
 		iIndiceIndexOffset+=6;
 		iVertIndexOffset+=4;
 	}
@@ -662,8 +672,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  1, fWidth1, fHeight1, fDepth2,  0.0f,  0.0f,  1.0f, dwColor, 1.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  2, fWidth2, fHeight1, fDepth2,  0.0f,  0.0f,  1.0f, dwColor, 0.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  3, fWidth2, fHeight2, fDepth2,  0.0f,  0.0f,  1.0f, dwColor, 0.00f, 0.00f );
-		pMesh->pIndices [ iIndiceIndexOffset +  0 ] = iVertIndexOffset +  0;		pMesh->pIndices [ iIndiceIndexOffset +  1 ] = iVertIndexOffset +  1;		pMesh->pIndices [ iIndiceIndexOffset +  2 ] = iVertIndexOffset +  2;
-		pMesh->pIndices [ iIndiceIndexOffset +  3 ] = iVertIndexOffset +  2;		pMesh->pIndices [ iIndiceIndexOffset +  4 ] = iVertIndexOffset +  3;		pMesh->pIndices [ iIndiceIndexOffset +  5 ] = iVertIndexOffset +  0;
+		WriteQuadIndices ( );
 		iIndiceIndexOffset+=6;
 		iVertIndexOffset+=4;
 	}
@@ -673,8 +682,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  1, fWidth2, fHeight2, fDepth2,	 0.0f,  1.0f,  0.0f, dwColor, 1.00f, 0.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  2, fWidth2, fHeight2, fDepth1,	 0.0f,  1.0f,  0.0f, dwColor, 1.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  3, fWidth1, fHeight2, fDepth1,	 0.0f,  1.0f,  0.0f, dwColor, 0.00f, 1.00f );
-		pMesh->pIndices [ iIndiceIndexOffset +  0 ] = iVertIndexOffset +  0;		pMesh->pIndices [ iIndiceIndexOffset +  1 ] = iVertIndexOffset +  1;		pMesh->pIndices [ iIndiceIndexOffset +  2 ] = iVertIndexOffset +  2;
-		pMesh->pIndices [ iIndiceIndexOffset +  3 ] = iVertIndexOffset +  2;		pMesh->pIndices [ iIndiceIndexOffset +  4 ] = iVertIndexOffset +  3;		pMesh->pIndices [ iIndiceIndexOffset +  5 ] = iVertIndexOffset +  0;
+		WriteQuadIndices ( );
 		iIndiceIndexOffset+=6;
 		iVertIndexOffset+=4;
 	}
@@ -684,8 +692,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  1, fWidth1, fHeight1, fDepth1,	 0.0f, -1.0f,  0.0f, dwColor, 0.00f, 0.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  2, fWidth2, fHeight1, fDepth1,	 0.0f, -1.0f,  0.0f, dwColor, 1.00f, 0.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  3, fWidth2, fHeight1, fDepth2,	 0.0f, -1.0f,  0.0f, dwColor, 1.00f, 1.00f );
-		pMesh->pIndices [ iIndiceIndexOffset +  0 ] = iVertIndexOffset +  0;		pMesh->pIndices [ iIndiceIndexOffset +  1 ] = iVertIndexOffset +  1;		pMesh->pIndices [ iIndiceIndexOffset +  2 ] = iVertIndexOffset +  2;
-		pMesh->pIndices [ iIndiceIndexOffset +  3 ] = iVertIndexOffset +  2;		pMesh->pIndices [ iIndiceIndexOffset +  4 ] = iVertIndexOffset +  3;		pMesh->pIndices [ iIndiceIndexOffset +  5 ] = iVertIndexOffset +  0;
+		WriteQuadIndices ( );
 		iIndiceIndexOffset+=6;
 		iVertIndexOffset+=4;
 	}
@@ -695,8 +702,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  1, fWidth2, fHeight2, fDepth2,	 1.0f,  0.0f,  0.0f, dwColor, 1.00f, 0.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  2, fWidth2, fHeight1, fDepth2,	 1.0f,  0.0f,  0.0f, dwColor, 1.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  3, fWidth2, fHeight1, fDepth1,	 1.0f,  0.0f,  0.0f, dwColor, 0.00f, 1.00f );
-		pMesh->pIndices [ iIndiceIndexOffset +  0 ] = iVertIndexOffset +  0;		pMesh->pIndices [ iIndiceIndexOffset +  1 ] = iVertIndexOffset +  1;		pMesh->pIndices [ iIndiceIndexOffset +  2 ] = iVertIndexOffset +  2;
-		pMesh->pIndices [ iIndiceIndexOffset +  3 ] = iVertIndexOffset +  2;		pMesh->pIndices [ iIndiceIndexOffset +  4 ] = iVertIndexOffset +  3;		pMesh->pIndices [ iIndiceIndexOffset +  5 ] = iVertIndexOffset +  0;
+		WriteQuadIndices ( );
 		iIndiceIndexOffset+=6;
 		iVertIndexOffset+=4;
 	}
@@ -706,8 +712,7 @@ DARKSDK_DLL void AddBoxToMesh ( sMesh* pMesh, DWORD* pdwVertexOffset, DWORD* pdw
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  1, fWidth1, fHeight1, fDepth1,	-1.0f,  0.0f,  0.0f, dwColor, 1.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  2, fWidth1, fHeight1, fDepth2,	-1.0f,  0.0f,  0.0f, dwColor, 0.00f, 1.00f );
 		SetupStandardVertexDec ( pMesh,	pMesh->pVertexData, iVertIndexOffset +  3, fWidth1, fHeight2, fDepth2,	-1.0f,  0.0f,  0.0f, dwColor, 0.00f, 0.00f );
-		pMesh->pIndices [ iIndiceIndexOffset +  0 ] = iVertIndexOffset +  0;		pMesh->pIndices [ iIndiceIndexOffset +  1 ] = iVertIndexOffset +  1;		pMesh->pIndices [ iIndiceIndexOffset +  2 ] = iVertIndexOffset +  2;
-		pMesh->pIndices [ iIndiceIndexOffset +  3 ] = iVertIndexOffset +  2;		pMesh->pIndices [ iIndiceIndexOffset +  4 ] = iVertIndexOffset +  3;		pMesh->pIndices [ iIndiceIndexOffset +  5 ] = iVertIndexOffset +  0;
+		WriteQuadIndices ( );
 		iIndiceIndexOffset+=6;
 		iVertIndexOffset+=4;
 	}
@@ -765,7 +770,6 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 	// grid work varriables
 	float fGapThirdX = fGapX/3.0f;
 	float fGapThirdY = fGapY/3.0f;
-	float fGapThirdZ = fGapZ/3.0f;
 	float fGapHalfX = fGapX/2.0f;
 	float fGapHalfY = fGapY/2.0f;
 	float fGapHalfZ = fGapZ/2.0f;
@@ -774,8 +778,8 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 	for ( int iSide=0; iSide<2; iSide++ )
 	{
 		// chizel values
-		int iChZ, iChAdd;
-		float fChZHalf, fChZDir, fGridForDist;
+		int iChZ{}, iChAdd{};
+		float fChZHalf{}, fChZDir{}, fGridForDist{};
 		if ( iSide==0 )
 		{ 
 			iChZ=0; fChZHalf=-fGapHalfZ; fChZDir=1.0f; iChAdd=1; fGridForDist=fGapZ;
@@ -935,9 +939,9 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 						bCanExpand=true;
 						if ( iY==-1 ) bCanExpand=false;
 						if ( bCanExpand )
-							for ( int iX=sBox.iX1; iX<=sBox.iX2; iX++ )
-								for ( int iZ=sBox.iZ1; iZ<=sBox.iZ2; iZ++ )
-									if ( bBlock[iX][iY][iZ]<255 )
+							for ( int iBX=sBox.iX1; iBX<=sBox.iX2; iBX++ )
+								for ( int iBZ=sBox.iZ1; iBZ<=sBox.iZ2; iBZ++ )
+									if ( bBlock[iBX][iY][iBZ]<255 )
 										bCanExpand=false;
 						if ( bCanExpand ) { sBox.iY1=iY; iExpandCount++; }
 
@@ -946,9 +950,9 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 						bCanExpand=true;
 						if ( iY==iGY ) bCanExpand=false;
 						if ( bCanExpand )
-							for ( int iX=sBox.iX1; iX<=sBox.iX2; iX++ )
-								for ( int iZ=sBox.iZ1; iZ<=sBox.iZ2; iZ++ )
-									if ( bBlock[iX][iY][iZ]<255 )
+							for ( int iBX=sBox.iX1; iBX<=sBox.iX2; iBX++ )
+								for ( int iBZ=sBox.iZ1; iBZ<=sBox.iZ2; iBZ++ )
+									if ( bBlock[iBX][iY][iBZ]<255 )
 										bCanExpand=false;
 						if ( bCanExpand ) { sBox.iY2=iY; iExpandCount++; }
 
@@ -957,9 +961,9 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 						bCanExpand=true;
 						if ( iZ==-1 ) bCanExpand=false;
 						if ( bCanExpand )
-							for ( int iX=sBox.iX1; iX<=sBox.iX2; iX++ )
-								for ( int iY=sBox.iY1; iY<=sBox.iY2; iY++ )
-									if ( bBlock[iX][iY][iZ]<255 )
+							for ( int iBX=sBox.iX1; iBX<=sBox.iX2; iBX++ )
+								for ( int iBY=sBox.iY1; iBY<=sBox.iY2; iBY++ )
+									if ( bBlock[iBX][iBY][iZ]<255 )
 										bCanExpand=false;
 						if ( bCanExpand ) { sBox.iZ1=iZ; iExpandCount++; }
 
@@ -968,9 +972,9 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 						bCanExpand=true;
 						if ( iZ==iGZ ) bCanExpand=false;
 						if ( bCanExpand )
-							for ( int iX=sBox.iX1; iX<=sBox.iX2; iX++ )
-								for ( int iY=sBox.iY1; iY<=sBox.iY2; iY++ )
-									if ( bBlock[iX][iY][iZ]<255 )
+							for ( int iBX=sBox.iX1; iBX<=sBox.iX2; iBX++ )
+								for ( int iBY=sBox.iY1; iBY<=sBox.iY2; iBY++ )
+									if ( bBlock[iBX][iBY][iZ]<255 )
 										bCanExpand=false;
 						if ( bCanExpand ) { sBox.iZ2=iZ; iExpandCount++; }
 
@@ -1032,8 +1036,8 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 					if ( iZ==-1 ) sBox.bBack=true;
 					if ( !sBox.bBack )
 						for ( iX=sBox.iX1; iX<=sBox.iX2; iX++ )
-							for ( int iY=sBox.iY1; iY<=sBox.iY2; iY++ )
-								if ( bBlock[iX][iY][iZ]==253 )
+							for ( int iBY=sBox.iY1; iBY<=sBox.iY2; iBY++ )
+								if ( bBlock[iX][iBY][iZ]==253 )
 									sBox.bBack=true;
 
 					// check fore
@@ -1042,8 +1046,8 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 					if ( iZ==iGZ ) sBox.bFore=true;
 					if ( !sBox.bFore )
 						for ( iX=sBox.iX1; iX<=sBox.iX2; iX++ )
-							for ( int iY=sBox.iY1; iY<=sBox.iY2; iY++ )
-								if ( bBlock[iX][iY][iZ]==253 )
+							for ( int iBY=sBox.iY1; iBY<=sBox.iY2; iBY++ )
+								if ( bBlock[iX][iBY][iZ]==253 )
 									sBox.bFore=true;
 
 					// expand list if too small
@@ -1095,12 +1099,12 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 		for ( DWORD dwCurrentBox=0; dwCurrentBox<dwLogicalBoxesCount; dwCurrentBox++ )
 		{
 			// Box dimensions
-			int iScanX = pLogicalBoxes [ dwCurrentBox ].iX1;
-			int iScanY = pLogicalBoxes [ dwCurrentBox ].iY1;
-			int iScanZ = pLogicalBoxes [ dwCurrentBox ].iZ1;
-			int iScanWX = 1+(pLogicalBoxes [ dwCurrentBox ].iX2-iScanX);
-			int iScanWY = 1+(pLogicalBoxes [ dwCurrentBox ].iY2-iScanY);
-			int iScanWZ = 1+(pLogicalBoxes [ dwCurrentBox ].iZ2-iScanZ);
+			int iBoxX = pLogicalBoxes [ dwCurrentBox ].iX1;
+			int iBoxY = pLogicalBoxes [ dwCurrentBox ].iY1;
+			int iBoxZ = pLogicalBoxes [ dwCurrentBox ].iZ1;
+			int iScanWX = 1+(pLogicalBoxes [ dwCurrentBox ].iX2-iBoxX);
+			int iScanWY = 1+(pLogicalBoxes [ dwCurrentBox ].iY2-iBoxY);
+			int iScanWZ = 1+(pLogicalBoxes [ dwCurrentBox ].iZ2-iBoxZ);
 			bool bL = pLogicalBoxes [ dwCurrentBox ].bLeft;
 			bool bR = pLogicalBoxes [ dwCurrentBox ].bRight;
 			bool bU = pLogicalBoxes [ dwCurrentBox ].bUp;
@@ -1109,7 +1113,7 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 			bool bF = pLogicalBoxes [ dwCurrentBox ].bFore;
 
 			// calculate box size
-			D3DXVECTOR3 vecBox = D3DXVECTOR3 ( vecMin.x+(iScanX*fGapX), vecMin.y+(iScanY*fGapY), vecMin.z+(iScanZ*fGapZ) );
+			D3DXVECTOR3 vecBox = D3DXVECTOR3 ( vecMin.x+(iBoxX*fGapX), vecMin.y+(iBoxY*fGapY), vecMin.z+(iBoxZ*fGapZ) );
 			float fWidth1 = vecBox.x;
 			float fHeight1 = vecBox.y;
 			float fDepth1 = vecBox.z;
@@ -1199,7 +1203,7 @@ DARKSDK_DLL int CheckIfMeshSolid ( sMesh* pMesh, int iGX, int iGY, int iGZ )
 
 				// go through each polygon and find CLOSEST polygon hit
 				bool bPolygonHitDetected=false;
-				float fU, fV, fDistance, fBestCollision=99999.0f;
+				float fU, fV, fDistance;
 
 				// with indexed data
 				if ( pMesh->pIndices )
@@ -1492,7 +1496,7 @@ DARKSDK_DLL bool DeleteMeshFromData ( sMesh* pMesh, int iVertex1, int iVertex2, 
 	}
 
 	// reduce 'indice' data after vertex data shuffle
-	WORD wVGap = iVertex2 - iVertex1;
+	WORD wVGap = static_cast<WORD>( iVertex2 - iVertex1 );
 	WORD* pThisIndexData = (WORD*)pNewIndexData;
 	for ( DWORD i=0; i<dwNewIndexCount; i++)
 		if(pThisIndexData[i]>=iVertex2)
@@ -1721,7 +1725,7 @@ DARKSDK_DLL int LoadOrFindTextureAsImage ( LPCSTR pTextureName, LPCSTR TexturePa
 		// texture load b : file as DDS
 		char pDDSFile [ _MAX_PATH*2 ];
 		strcpy(pDDSFile, pNoPath);
-		DWORD dwLenDot = strlen(pDDSFile);
+		size_t dwLenDot = strlen(pDDSFile);
 		if ( dwLenDot>4 )
 		{
 			pDDSFile[dwLenDot-4]=0;
@@ -1760,10 +1764,10 @@ DARKSDK_DLL int LoadOrFindTextureAsImage ( LPCSTR pTextureName, LPCSTR TexturePa
 								{
 									// texture load f : 031208 - U71 - as above, but as DDS
 									strcpy(pDDSFile, pTextureName);
-									DWORD dwLenDot = strlen(pDDSFile);
-									if ( dwLenDot>4 )
+									size_t dwLenDotTex = strlen(pDDSFile);
+									if ( dwLenDotTex>4 )
 									{
-										pDDSFile[dwLenDot-4]=0;
+										pDDSFile[dwLenDotTex-4]=0;
 										strcat(pDDSFile, ".dds");
 										sprintf ( Path, "%s%s", TexturePath, pDDSFile );
 										iImageIndex = g_Image_InternalLoadEx ( Path, iDivideTextureSize );
@@ -2639,8 +2643,6 @@ DARKSDK_DLL void AnimateBoneMeshMDL ( sObject* pObject, sFrame* [[maybe_unused]]
 		sOffsetMap offsetMap;
 		GetFVFOffsetMap ( pMesh, &offsetMap );
 
-		int iVertexPosition = 0;
-		
 		for ( int iVertex = 0; iVertex < ( int ) pMesh->dwVertexCount; iVertex++ )
 		{
 			D3DXVECTOR3 vecInput = D3DXVECTOR3 (
@@ -2745,13 +2747,6 @@ DARKSDK_DLL void AnimateBoneMeshMDX ( sObject* pObject, sFrame* pFrame )
 	{
 		if ( offsetMap.dwZ>0 )
 		{
-			// find the frame
-			sFrame*	pTheFrame     = pMesh->pSubFrameList;
-			sFrame* pCurrentFrame = NULL;
-			sFrame* pLastFrame    = NULL;
-			sFrame* pNextFrame    = NULL;
-			int     iFrame        = 0;
-
 			D3DXVECTOR3 vecNextPos = D3DXVECTOR3 (
 													*( ( float* ) pMesh->pSubFrameList [ pFrame->pMesh->iNextFrame + 1 ].pMesh->pVertexData + offsetMap.dwX + ( offsetMap.dwSize * iVertex ) ),
 													*( ( float* ) pMesh->pSubFrameList [ pFrame->pMesh->iNextFrame + 1 ].pMesh->pVertexData + offsetMap.dwY + ( offsetMap.dwSize * iVertex ) ),
@@ -4721,7 +4716,6 @@ bool MakeLODMeshFromMesh ( sMesh* pMeshIn, int iVertexNum, sMesh** ppMeshOut )
 	bool bSuccess = false;
     LPD3DXPMESH  m_pPMeshFull = NULL;
     LPD3DXBUFFER pAdjacencyBuffer = NULL;
-    LPDIRECT3DVERTEXBUFFER9 pVertexBuffer = NULL;
     LPD3DXMESH   pMesh = NULL;
     LPD3DXPMESH  pPMesh = NULL;
     LPD3DXMESH   pTempMesh;

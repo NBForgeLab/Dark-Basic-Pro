@@ -688,11 +688,11 @@ DARKSDK_DLL float GetZColPosition ( int iID )
 //////////////////////////////////////////////////////////////////////////////////
 DARKSDK_DLL LPSTR GetReturnStringFromWorkString(void)
 {
-	LPSTR pReturnString=NULL;
+	LPSTR pReturnString=nullptr;
 	if(m_pWorkString)
 	{
-		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
+		size_t dwSize=strlen(m_pWorkString);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, static_cast<DWORD>( dwSize+1 ));
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -1327,19 +1327,19 @@ DARKSDK_DLL bool SetNewObjectFinalProperties ( int iID, float fRadius )
 	MapFramesToAnimations ( pObject );
 
 	// store original vertex data immediately
+	#ifndef NEVERSTOREORIGINALVERTICES
 	for ( int iMesh = 0; iMesh < pObject->iMeshCount; iMesh++ )
 	{
 		sMesh* pMesh = pObject->ppMeshList [ iMesh ];
-		DWORD dwTotalVertSize = pMesh->dwVertexCount * pMesh->dwFVFSize;
-		#ifndef NEVERSTOREORIGINALVERTICES
 		if ( pMesh->pOriginalVertexData==NULL )
 		{
 			// create original vertex data memory
+			DWORD dwTotalVertSize = pMesh->dwVertexCount * pMesh->dwFVFSize;
 			pMesh->pOriginalVertexData = (BYTE*)new char [ dwTotalVertSize ];
 			memcpy ( pMesh->pOriginalVertexData, pMesh->pVertexData, dwTotalVertSize );
 		}
-		#endif
 	}
+	#endif
 
 	// ensure vectors are initially updated
 	for ( int iFrame = 0; iFrame < pObject->iFrameCount; iFrame++ )
@@ -1530,7 +1530,7 @@ DARKSDK_DLL bool DoesDepthBufferHaveStencil(D3DFORMAT d3dfmt)
 
 DARKSDK_DLL BOOL SupportsStencilBuffer()
 {
-	D3DSURFACE_DESC ddsd;
+	D3DSURFACE_DESC ddsd{};
 	LPDIRECT3DSURFACE9 pSurface;
 	m_pD3D->GetDepthStencilSurface(&pSurface);
 	if(pSurface)
@@ -1624,17 +1624,17 @@ DARKSDK_DLL LPDIRECT3DCUBETEXTURE9 CreateNewImageCubeMap ( int i1, int i2, int i
 
 	// Individual Images
 	LPDIRECT3DCUBETEXTURE9 pCubeTexture = NULL;
-	HRESULT hRes = D3DXCreateCubeTexture( m_pD3D, dwWidth, 1, D3DUSAGE_RENDERTARGET, Format, D3DPOOL_DEFAULT, &pCubeTexture );
+	D3DXCreateCubeTexture( m_pD3D, dwWidth, 1, D3DUSAGE_RENDERTARGET, Format, D3DPOOL_DEFAULT, &pCubeTexture );
 	if ( pCubeTexture )
 	{
 		// Copy images to cubetexture surfaces
 		for ( DWORD s=0; s<6; s++)
 		{
 			LPDIRECT3DSURFACE9 pCubeSurface=NULL;
-			HRESULT hRes = pCubeTexture->GetCubeMapSurface( (D3DCUBEMAP_FACES)s, 0, &pCubeSurface );
+			pCubeTexture->GetCubeMapSurface( (D3DCUBEMAP_FACES)s, 0, &pCubeSurface );
 			if ( pCubeSurface )
 			{
-				int iImage;
+				int iImage{};
 				if ( s==0 ) iImage = i1;
 				if ( s==1 ) iImage = i2;
 				if ( s==2 ) iImage = i3;

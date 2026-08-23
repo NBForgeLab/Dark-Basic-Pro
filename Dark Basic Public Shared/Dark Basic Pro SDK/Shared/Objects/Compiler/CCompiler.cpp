@@ -340,11 +340,9 @@ void cCompiler::BuildPolygonList ( bool bMode )
 						vertices [ iVertex ].tv = pFace->m_pVertices [ iVertex ].tv;
 					}
 
-					for ( iVertex = 0; iVertex < (int)pFace->m_dwVertexCount - 2; iVertex++ )
-					{
-						int a = 0;
-
-						finalVertices [ iVertexPos++ ] = vertices [ iA   ];
+				for ( iVertex = 0; iVertex < (int)pFace->m_dwVertexCount - 2; iVertex++ )
+				{
+					finalVertices [ iVertexPos++ ] = vertices [ iA   ];
 						finalVertices [ iVertexPos++ ] = vertices [ iB++ ];
 						finalVertices [ iVertexPos++ ] = vertices [ iC++ ];
 					}

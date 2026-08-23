@@ -54,7 +54,6 @@ bool cCSG::Union ( sMesh* pMeshA, D3DXMATRIX OriginalMatA, sMesh* pMeshB, D3DXMA
 	compiler.CompileScene (	pMeshA, &OriginalMatA, pMeshB, &OriginalMatB );
 
 	sVertex* pVerticesA = NULL;
-	sVertex* pVerticesB = NULL;
 	int		 iCountA    = 0;
 
 	{
@@ -122,26 +121,26 @@ bool cCSG::Union ( sMesh* pMeshA, D3DXMATRIX OriginalMatA, sMesh* pMeshB, D3DXMA
 		//////////////////////////////////////////////////////////////////////////////////////////
 		
 		
-		int iVertexCount = newVertices.size ( );
-		int iIndexCount  = newIndicesFinal.size ( );
+		size_t iVertexCount = newVertices.size ( );
+		size_t iIndexCount  = newIndicesFinal.size ( );
 
 		// replace mesh data directly!
 		sOffsetMap offsetMap;
 		SAFE_DELETE_ARRAY ( pMeshA->pVertexData );
 		SAFE_DELETE_ARRAY ( pMeshA->pIndices );
 		GetFVFOffsetMap ( pMeshA, &offsetMap );
-		SetupMeshFVFData ( pMeshA, pMeshA->dwFVF, iVertexCount, iIndexCount );
-		for ( int iIndex = 0; iIndex < iIndexCount; iIndex++ )
+		SetupMeshFVFData ( pMeshA, pMeshA->dwFVF, static_cast<DWORD>( iVertexCount ), static_cast<DWORD>( iIndexCount ) );
+		for ( size_t iIndex = 0; iIndex < iIndexCount; iIndex++ )
 		{
 			pMeshA->pIndices [ iIndex ] = newIndicesFinal [ iIndex ];
 		}
-		for ( int iVertex = 0; iVertex < iVertexCount; iVertex++ )
+		for ( size_t iVertex = 0; iVertex < iVertexCount; iVertex++ )
 		{
 			// copy the vertex into the mesh vertex data
 			memcpy ( ( ( sVertex* ) pMeshA->pVertexData + iVertex ), &newVertices [ iVertex ], sizeof ( sVertex ) );
 		}
-		pMeshA->iDrawVertexCount = iVertexCount;
-		pMeshA->iDrawPrimitives  = iIndexCount / 3;
+		pMeshA->iDrawVertexCount = static_cast<int>( iVertexCount );
+		pMeshA->iDrawPrimitives  = static_cast<int>( iIndexCount / 3 );
 	}
 
 	D3DXMatrixInverse ( &OriginalMatA, NULL, &OriginalMatA );
@@ -550,8 +549,8 @@ void cCSG::BuildVertexAndIndexList ( cCompiler* pA, cCompiler* pB, sMesh* pMesh 
 	}
 
 	// store new vertex and index counts
-	iVertexCount = vertexListFinal.size ( );
-	iIndexCount  = indexListFinal.size  ( );
+	iVertexCount = static_cast<int>( vertexListFinal.size ( ) );
+	iIndexCount  = static_cast<int>( indexListFinal.size  ( ) );
 	
 	// delete original data
 	SAFE_DELETE_ARRAY ( pMesh->pVertexData );

@@ -97,12 +97,11 @@ HRESULT LoadEffectFromFile(LPDIRECT3DDEVICE9 pDevice, LPCWSTR pSrcFile, LPD3DXEF
     HRESULT hr = D3DXCreateEffectFromFileExW(pDevice, pSrcFile, 
         NULL, NULL, NULL, dwShaderFlags, NULL, ppEffect, &pCompilationErrors);
 
-    if (FAILED(hr))
+	if (FAILED(hr))
 	{
 		if (pCompilationErrors)
 		{
-			LPVOID error = pCompilationErrors->GetBufferPointer();
-			//HZBDebugPrintf("Failed to compile effect. %s\n", (char*)error);
+			//HZBDebugPrintf("Failed to compile effect. %s\n", (char*)pCompilationErrors->GetBufferPointer());
 		}
 		else
 		{
@@ -339,7 +338,7 @@ void HZBManager::RenderOccluders(const D3DXMATRIX& view, const D3DXMATRIX& proje
 				pDebugSee->GetSurfaceLevel ( mips, &pOccluderDebugImage );
 				if ( pOccluderDebugImage  )
 				{
-					HRESULT hRes = D3DXLoadSurfaceFromSurface ( pOccluderDebugImage, NULL, NULL, m_pMipLevelEvenSurfaces[0], NULL, NULL, D3DX_DEFAULT, 0 );
+					D3DXLoadSurfaceFromSurface ( pOccluderDebugImage, NULL, NULL, m_pMipLevelEvenSurfaces[0], NULL, NULL, D3DX_DEFAULT, 0 );
 				}
 			}
 		}
@@ -371,15 +370,15 @@ void HZBManager::RenderMipmap()
         if (width == 0) width = 1;
         if (height == 0) height = 1;
 
-        D3DVIEWPORT9 vp;
-        vp.Width = width;
-        vp.Height = height;
-        vp.MinZ = 0;
-        vp.MaxZ = 1;
-        vp.X = 0;
-        vp.Y = 0;
-        HRESULT hr = m_pDevice->SetViewport(&vp);
-        assert(SUCCEEDED(hr));
+        D3DVIEWPORT9 mipVp;
+        mipVp.Width = width;
+        mipVp.Height = height;
+        mipVp.MinZ = 0;
+        mipVp.MaxZ = 1;
+        mipVp.X = 0;
+        mipVp.Y = 0;
+        HRESULT mipHr = m_pDevice->SetViewport(&mipVp);
+        assert(SUCCEEDED(mipHr));
 
         hr = m_pDevice->SetStreamSource(0, m_pHizMipmapVertexBuffer, 0, sizeof(VPos));
         assert(SUCCEEDED(hr));
@@ -559,7 +558,6 @@ void HZBManager::EndCullingQuery(UINT boundsSize, float* pResults)
 
     BYTE* pBuffer = (BYTE*)pLockedRect.pBits;
 
-    bool done = false;
     for (UINT y = 0; y < m_cullingResultsHeight; y++)
     {
         BYTE* pBufferRow = (BYTE*)pBuffer;
@@ -728,7 +726,7 @@ void HZBManager::LoadDepthEffect()
 	g_pGlob->pHoldBackBufferPtr->GetDesc(&backbufferdesc);
 	D3DFORMAT CommonFormat = backbufferdesc.Format;
 	D3DFORMAT DepthFormat = m_ObjectManager.GetValidStencilBufferFormat(CommonFormat);
-	HRESULT hRes = m_pD3D->CreateDepthStencilSurface(	512, 256,
+	m_pD3D->CreateDepthStencilSurface(	512, 256,
 														DepthFormat, D3DMULTISAMPLE_NONE, 0, TRUE,
 														&m_pOcclusionZBuffer, NULL );
 }

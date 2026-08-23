@@ -386,8 +386,6 @@ cBSPPortal* cProcessPRT::ClipPortal ( int iNode, cBSPPortal* pPortal )
 
                 return NULL;
 			}
-			
-			return NULL;
 		}
 	}
 

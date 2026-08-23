@@ -73,17 +73,6 @@ BOOL Collision::World ( D3DXVECTOR3 starto, D3DXVECTOR3 endo, D3DXVECTOR3 eRadiu
 		g_DBPROCollisionResult.vecPos = finalPos;
 		g_DBPROCollisionResult.vecDifference = finalPos - start;
 
-		// leecatch - 220506 - u62 - catch a QNAN assign, by using the old camera positions
-		if ( g_DBPROCollisionResult.vecDifference.x<=0.0f || g_DBPROCollisionResult.vecDifference.x>0.0f )
-		{
-			// a valid difference value returned
-		}
-		else
-		{
-			// otherwise a NAN produced - useful for debugging
-			int leefounderror=1;
-		}
-
 		g_DBPROCollisionResult.iPolysChecked = g_pUniverse->m_dwCollisionPoolIndex;
 		if ( trace->triangleindex>=0 ) g_DBPROCollisionResult.dwArbitaryValue = g_pUniverse->m_pCollisionDiffuse [ trace->triangleindex ];
 		g_DBPROCollisionResult.bCollidedAgainstFloor = trace->collidedagainstfloor;

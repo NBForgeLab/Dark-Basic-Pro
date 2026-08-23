@@ -90,7 +90,7 @@ void COcclusion::StartOcclusionStep ( void )
 
 		// NOTE: Can speed this up by retaining the boundboxes array each cycle, and modify it when an object moves (hook into DBP) = performance!
 		D3DXVECTOR4 vecRealWorldCenterPosAndRadius;
-		UINT iBoundBoxesCount = m_pHZB->m_vObjectOccludeeList.size();
+		UINT iBoundBoxesCount = static_cast<UINT>( m_pHZB->m_vObjectOccludeeList.size() );
         float* results = NULL;
         D3DXVECTOR4* bounds = NULL;
 		if ( m_pHZB->m_vObjectOccludeeList.size()>0 )

@@ -4,7 +4,7 @@
 VECTOR::VECTOR(){x=0; y=0; z=0;}
 VECTOR::VECTOR(float x, float y, float z){this->x=x; this->y=y; this->z=z;}
 
-void VECTOR::set(float x, float y, float z){this->x=x; this->y=y; this->z=z;}
+void VECTOR::set(float fx, float fy, float fz){x=fx; y=fy; z=fz;}
 void VECTOR::get(float **floatvector){(*floatvector)[0]=x; (*floatvector)[1]=y; (*floatvector)[2]=z;}
 
 VECTOR VECTOR::operator+(VECTOR const &V1)

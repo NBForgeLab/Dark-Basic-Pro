@@ -158,7 +158,7 @@ bool cBSPLeaf::BuildFaceIndices ( cBSPFace* pFaceList )
 	}
 
     // copy newly built final list into this leafs index array
-    m_dwFaceCount = m_iFaceIndices.size ( );
+    m_dwFaceCount = static_cast<DWORD>( m_iFaceIndices.size ( ) );
 
     // optimize the vector
     if ( m_dwFaceCount < m_iFaceIndices.capacity ( ) )
@@ -329,31 +329,31 @@ cBounds3& cBSPTree::GetBounds ( void )
 int cBSPTree::GetNodeCount ( void )
 {
 	// get node count
-	return m_vpNodes.size ( );
+	return static_cast<int>( m_vpNodes.size ( ) );
 }
 
 int cBSPTree::GetLeafCount ( void )
 {
 	// get leaf count
-	return m_vpLeaves.size ( );
+	return static_cast<int>( m_vpLeaves.size ( ) );
 }
 
 int cBSPTree::GetPlaneCount ( void )
 {
 	// get plane count
-	return m_vpPlanes.size ( );
+	return static_cast<int>( m_vpPlanes.size ( ) );
 }
 
 int cBSPTree::GetFaceCount ( void )
 {
 	// get face count
-	return m_vpFaces.size ( );
+	return static_cast<int>( m_vpFaces.size ( ) );
 }
 
 int cBSPTree::GetPortalCount ( void )
 {
 	// get portal count
-	return m_vpPortals.size ( );
+	return static_cast<int>( m_vpPortals.size ( ) );
 }
 
 cBSPNode* cBSPTree::GetNode ( int iIndex )
@@ -1517,8 +1517,7 @@ int cBSPTree::FindLeaf ( cVector3& vecPosition )
 	// given a position, this function attempts to determine which leaf
 	// that point falls into
 
-    int	iNode = 0,
-		iLeaf = 0;
+    int	iNode = 0;
 	
 	for ( ;; )
     {
@@ -1554,9 +1553,6 @@ int cBSPTree::FindLeaf ( cVector3& vecPosition )
 			break;
 		}
 	}
-
-    // will never get here!
-    return -1;
 }
 
 bool cBSPTree::IntersectedBySphere ( cVector3& vecSphereCentre, float fSphereRadius, int iNode )

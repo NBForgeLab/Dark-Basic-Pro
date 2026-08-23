@@ -49,13 +49,13 @@ DARKSDK_DLL bool WriteComma ( LPSTR* ppBlock, DWORD* pdwSize )
 {
 	char pCommaStr[2];
 	strcpy(pCommaStr,",");
-	DWORD dwLen = strlen(pCommaStr);
+	size_t dwLen = strlen(pCommaStr);
 	if ( ppBlock )
 	{
 		memcpy ( *ppBlock, pCommaStr, dwLen );
 		*ppBlock += dwLen;
 	}
-	*pdwSize += dwLen;
+	*pdwSize += static_cast<DWORD>( dwLen );
 	return true;
 }
 
@@ -64,19 +64,19 @@ DARKSDK_DLL bool WriteSpeechmark ( LPSTR* ppBlock, DWORD* pdwSize )
 	char pMarkStr[2];
 	pMarkStr[0]='"';
 	pMarkStr[1]=0;
-	DWORD dwLen = strlen(pMarkStr);
+	size_t dwLen = strlen(pMarkStr);
 	if ( ppBlock )
 	{
 		memcpy ( *ppBlock, pMarkStr, dwLen );
 		*ppBlock += dwLen;
 	}
-	*pdwSize += dwLen;
+	*pdwSize += static_cast<DWORD>( dwLen );
 	return true;
 }
 
 DARKSDK_DLL bool WriteBYTE ( BYTE bNumber, LPSTR* ppBlock, DWORD* pdwSize )
 {
-	DWORD dwLen = 1;
+	size_t dwLen = 1;
 	if ( g_bWriteAsText )
 	{
 		// make text value
@@ -88,7 +88,7 @@ DARKSDK_DLL bool WriteBYTE ( BYTE bNumber, LPSTR* ppBlock, DWORD* pdwSize )
 			memcpy ( *ppBlock, pNumberStr, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 
 		// make text comma
 		WriteComma ( ppBlock, pdwSize );
@@ -100,14 +100,14 @@ DARKSDK_DLL bool WriteBYTE ( BYTE bNumber, LPSTR* ppBlock, DWORD* pdwSize )
 			*(BYTE*)*ppBlock = bNumber;
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 	return true;
 }
 
 DARKSDK_DLL bool WriteDWORD ( DWORD dwNumber, LPSTR* ppBlock, DWORD* pdwSize )
 {
-	DWORD dwLen = 4;
+	size_t dwLen = 4;
 	if ( g_bWriteAsText )
 	{
 		// make text value
@@ -119,7 +119,7 @@ DARKSDK_DLL bool WriteDWORD ( DWORD dwNumber, LPSTR* ppBlock, DWORD* pdwSize )
 			memcpy ( *ppBlock, pNumberStr, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 
 		// make text comma
 		WriteComma ( ppBlock, pdwSize );
@@ -131,7 +131,7 @@ DARKSDK_DLL bool WriteDWORD ( DWORD dwNumber, LPSTR* ppBlock, DWORD* pdwSize )
 			*(DWORD*)*ppBlock = dwNumber;
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 	return true;
 }
@@ -159,7 +159,7 @@ DARKSDK_DLL bool WriteCODE ( DWORD dwCode, DWORD dwCodeSize, LPSTR* ppBlock, DWO
 
 DARKSDK_DLL bool WriteVECTOR ( D3DXVECTOR3 vecVector, LPSTR* ppBlock, DWORD* pdwSize )
 {
-	DWORD dwLen = sizeof(vecVector);
+	size_t dwLen = sizeof(vecVector);
 	if ( g_bWriteAsText )
 	{
 		for ( int x=0; x<3; x++)
@@ -175,7 +175,7 @@ DARKSDK_DLL bool WriteVECTOR ( D3DXVECTOR3 vecVector, LPSTR* ppBlock, DWORD* pdw
 				memcpy ( *ppBlock, pNumberStr, dwLen );
 				*ppBlock += dwLen;
 			}
-			*pdwSize += dwLen;
+			*pdwSize += static_cast<DWORD>( dwLen );
 
 			// make text comma
 			WriteComma ( ppBlock, pdwSize );
@@ -188,14 +188,14 @@ DARKSDK_DLL bool WriteVECTOR ( D3DXVECTOR3 vecVector, LPSTR* ppBlock, DWORD* pdw
 			memcpy ( *ppBlock, &vecVector, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 	return true;
 }
 
 DARKSDK_DLL bool WriteMATRIX ( D3DXMATRIX mMatrix, LPSTR* ppBlock, DWORD* pdwSize )
 {
-	DWORD dwLen = sizeof(mMatrix);
+	size_t dwLen = sizeof(mMatrix);
 	if ( g_bWriteAsText )
 	{
 		for ( int y=0; y<4; y++)
@@ -213,7 +213,7 @@ DARKSDK_DLL bool WriteMATRIX ( D3DXMATRIX mMatrix, LPSTR* ppBlock, DWORD* pdwSiz
 					memcpy ( *ppBlock, pNumberStr, dwLen );
 					*ppBlock += dwLen;
 				}
-				*pdwSize += dwLen;
+				*pdwSize += static_cast<DWORD>( dwLen );
 
 				// make text comma
 				WriteComma ( ppBlock, pdwSize );
@@ -227,14 +227,14 @@ DARKSDK_DLL bool WriteMATRIX ( D3DXMATRIX mMatrix, LPSTR* ppBlock, DWORD* pdwSiz
 			memcpy ( *ppBlock, &mMatrix, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 	return true;
 }
 
 DARKSDK_DLL bool WriteMATERIAL ( D3DMATERIAL9 mMaterial, LPSTR* ppBlock, DWORD* pdwSize )
 {
-	DWORD dwLen = sizeof(mMaterial);
+	size_t dwLen = sizeof(mMaterial);
 	if ( g_bWriteAsText )
 	{
 		DWORD dwBytes = sizeof(mMaterial);
@@ -251,7 +251,7 @@ DARKSDK_DLL bool WriteMATERIAL ( D3DMATERIAL9 mMaterial, LPSTR* ppBlock, DWORD* 
 				memcpy ( *ppBlock, pNumberStr, dwLen );
 				*ppBlock += dwLen;
 			}
-			*pdwSize += dwLen;
+			*pdwSize += static_cast<DWORD>( dwLen );
 
 			// make text comma
 			WriteComma ( ppBlock, pdwSize );
@@ -264,7 +264,7 @@ DARKSDK_DLL bool WriteMATERIAL ( D3DMATERIAL9 mMaterial, LPSTR* ppBlock, DWORD* 
 			memcpy ( *ppBlock, &mMaterial, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 	return true;
 }
@@ -280,13 +280,13 @@ DARKSDK_DLL bool WriteMEMORY ( BYTE* pData, DWORD dwBytes, LPSTR* ppBlock, DWORD
 			_itoa ( *(pData+i) , pNumberStr, 10);
 
 			// make text value
-			DWORD dwLen = strlen(pNumberStr);
+			size_t dwLen = strlen(pNumberStr);
 			if ( ppBlock )
 			{
 				memcpy ( *ppBlock, pNumberStr, dwLen );
 				*ppBlock += dwLen;
 			}
-			*pdwSize += dwLen;
+			*pdwSize += static_cast<DWORD>( dwLen );
 
 			// make text comma
 			WriteComma ( ppBlock, pdwSize );
@@ -306,7 +306,7 @@ DARKSDK_DLL bool WriteMEMORY ( BYTE* pData, DWORD dwBytes, LPSTR* ppBlock, DWORD
 
 DARKSDK_DLL bool WriteString ( LPCSTR pString, LPSTR* ppBlock, DWORD* pdwSize )
 {
-	DWORD dwLen = strlen(pString);
+	size_t dwLen = strlen(pString);
 	if ( g_bWriteAsText )
 	{
 		// make text speechmark
@@ -318,7 +318,7 @@ DARKSDK_DLL bool WriteString ( LPCSTR pString, LPSTR* ppBlock, DWORD* pdwSize )
 			memcpy ( *ppBlock, pString, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 
 		// make text speechmark
 		WriteSpeechmark ( ppBlock, pdwSize );
@@ -329,14 +329,14 @@ DARKSDK_DLL bool WriteString ( LPCSTR pString, LPSTR* ppBlock, DWORD* pdwSize )
 		if ( ppBlock )
 		{
 			// string size
-			*(DWORD*)*ppBlock = dwLen;
+			*(DWORD*)*ppBlock = static_cast<DWORD>( dwLen );
 			*ppBlock += 4;
 
 			// string data
 			memcpy ( *ppBlock, pString, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += 4 + dwLen;
+		*pdwSize += static_cast<DWORD>( 4 + dwLen );
 	}
 	return true;
 }
@@ -350,7 +350,7 @@ DARKSDK_DLL bool WriteVertexData ( BYTE* pVertexData, DWORD dwFVFSize, DWORD dwV
 		return true;
 	}
 
-	DWORD dwLen = dwFVFSize * dwVertexCount;
+	size_t dwLen = dwFVFSize * dwVertexCount;
 	if ( g_bWriteAsText )
 	{
 		DWORD dwBytes = dwVertexCount*dwFVFSize;
@@ -367,7 +367,7 @@ DARKSDK_DLL bool WriteVertexData ( BYTE* pVertexData, DWORD dwFVFSize, DWORD dwV
 				memcpy ( *ppBlock, pNumberStr, dwLen );
 				*ppBlock += dwLen;
 			}
-			*pdwSize += dwLen;
+			*pdwSize += static_cast<DWORD>( dwLen );
 
 			// make text comma
 			WriteComma ( ppBlock, pdwSize );
@@ -380,7 +380,7 @@ DARKSDK_DLL bool WriteVertexData ( BYTE* pVertexData, DWORD dwFVFSize, DWORD dwV
 			memcpy ( *ppBlock, pVertexData, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 
 	// okay
@@ -396,7 +396,7 @@ DARKSDK_DLL bool WriteIndices ( WORD* pIndices, DWORD dwIndexCount, LPSTR* ppBlo
 		return true;
 	}
 	
-	DWORD dwLen = dwIndexCount * sizeof(WORD);
+	size_t dwLen = dwIndexCount * sizeof(WORD);
 	if ( g_bWriteAsText )
 	{
 		for ( DWORD i=0; i<dwIndexCount; i++)
@@ -412,7 +412,7 @@ DARKSDK_DLL bool WriteIndices ( WORD* pIndices, DWORD dwIndexCount, LPSTR* ppBlo
 				memcpy ( *ppBlock, pNumberStr, dwLen );
 				*ppBlock += dwLen;
 			}
-			*pdwSize += dwLen;
+			*pdwSize += static_cast<DWORD>( dwLen );
 
 			// make text comma
 			WriteComma ( ppBlock, pdwSize );
@@ -425,7 +425,7 @@ DARKSDK_DLL bool WriteIndices ( WORD* pIndices, DWORD dwIndexCount, LPSTR* ppBlo
 			memcpy ( *ppBlock, pIndices, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 
 	// okay
@@ -441,7 +441,7 @@ DARKSDK_DLL bool WriteOffsetList ( int* pIndices, DWORD dwIndexCount, LPSTR* ppB
 		return true;
 	}
 	
-	DWORD dwLen = dwIndexCount * sizeof(int);
+	size_t dwLen = dwIndexCount * sizeof(int);
 	if ( g_bWriteAsText )
 	{
 		for ( DWORD i=0; i<dwIndexCount; i++)
@@ -457,7 +457,7 @@ DARKSDK_DLL bool WriteOffsetList ( int* pIndices, DWORD dwIndexCount, LPSTR* ppB
 				memcpy ( *ppBlock, pNumberStr, dwLen );
 				*ppBlock += dwLen;
 			}
-			*pdwSize += dwLen;
+			*pdwSize += static_cast<DWORD>( dwLen );
 
 			// make text comma
 			WriteComma ( ppBlock, pdwSize );
@@ -470,7 +470,7 @@ DARKSDK_DLL bool WriteOffsetList ( int* pIndices, DWORD dwIndexCount, LPSTR* ppB
 			memcpy ( *ppBlock, pIndices, dwLen );
 			*ppBlock += dwLen;
 		}
-		*pdwSize += dwLen;
+		*pdwSize += static_cast<DWORD>( dwLen );
 	}
 
 	// okay
@@ -639,7 +639,7 @@ DARKSDK_DLL bool ScanBones ( sBone* pBoneArray, DWORD dwBoneCount, LPSTR* ppBloc
 			WriteCODE ( DBOBLOCK_BONES_NAME, 0, ppBlock, pdwSize );
 			WriteString ( pBone->szName, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			// bone num influences
 			WriteCODE ( DBOBLOCK_BONES_NUMINFLUENCES, 4, ppBlock, pdwSize );
@@ -670,7 +670,7 @@ DARKSDK_DLL bool ScanBones ( sBone* pBoneArray, DWORD dwBoneCount, LPSTR* ppBloc
 			WriteCODE ( DBOBLOCK_BONES_TRANSLATIONMATRIX, 0, ppBlock, pdwSize );
 			WriteMATRIX ( pBone->matTranslation, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			// end of this bone
 			WriteCODE ( 0, 0, ppBlock, pdwSize );
@@ -701,7 +701,7 @@ DARKSDK_DLL bool ScanTextures ( sTexture* pTextureArray, DWORD dwTextureCount, L
 			WriteCODE ( DBOBLOCK_TEXTURE_NAME, 0, ppBlock, pdwSize );
 			WriteString ( pTexture->pName, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			// texture settings
 			WriteCODE ( DBOBLOCK_TEXTURE_STAGE, 4, ppBlock, pdwSize );
@@ -781,7 +781,7 @@ DARKSDK_DLL bool ScanMultiMaterial ( sMultiMaterial* pMultiMaterialArray, DWORD 
 			WriteCODE ( DBOBLOCK_MULTIMAT_NAME, 0, ppBlock, pdwSize );
 			WriteString ( pMultiMat->pName, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			// write multimaterial material information
 			WriteCODE	( DBOBLOCK_MULTIMAT_MATERIAL, sizeof(pMultiMat->mMaterial), ppBlock, pdwSize );
@@ -900,7 +900,7 @@ DARKSDK_DLL bool ScanMesh ( sMesh* pMesh, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCR ( ppBlock, pdwSize );
 		ScanBones	( pMesh->pBones, pMesh->dwBoneCount, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write material information
 		WriteCODE	( DBOBLOCK_MESH_USEMATERIAL, 1,	ppBlock, pdwSize );
@@ -921,7 +921,7 @@ DARKSDK_DLL bool ScanMesh ( sMesh* pMesh, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCR ( ppBlock, pdwSize );
 		ScanTextures ( pMesh->pTextures, pMesh->dwTextureCount, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write multi material information
 		WriteCODE	( DBOBLOCK_MESH_USEMULTIMAT, 1,		ppBlock, pdwSize );
@@ -936,7 +936,7 @@ DARKSDK_DLL bool ScanMesh ( sMesh* pMesh, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCR ( ppBlock, pdwSize );
 		ScanMultiMaterial ( pMesh->pMultiMaterial, pMesh->dwMultiMaterialCount, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write render states
 		WriteCODE	( DBOBLOCK_MESH_WIREFRAME,	1,	ppBlock, pdwSize );
@@ -973,12 +973,12 @@ DARKSDK_DLL bool ScanMesh ( sMesh* pMesh, LPSTR* ppBlock, DWORD* pdwSize )
 		// 250704 - Write FX effect file name (if any)
 		if ( pMesh->bUseVertexShader )
 		{
-			LPSTR pCodeSizePtr = NULL;
+			pCodeSizePtr = NULL;
 			if ( ppBlock ) pCodeSizePtr = *ppBlock+4;
 			WriteCODE ( DBOBLOCK_MESH_FXEFFECTNAME, 0, ppBlock, pdwSize );
 			WriteString ( pMesh->pEffectName, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 		}
 
 		// 190804 - Write dwArbitaryValue to meshdata
@@ -1029,7 +1029,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCODE ( DBOBLOCK_FRAME_NAME, 0, ppBlock, pdwSize );
 		WriteString ( pFrame->szName, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 	
 		// Write original matrix
 		pCodeSizePtr = NULL;
@@ -1037,7 +1037,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCODE ( DBOBLOCK_FRAME_MATRIX, 0, ppBlock, pdwSize );
 		WriteMATRIX ( pFrame->matOriginal, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write mesh
 		pCodeSizePtr = NULL;
@@ -1046,7 +1046,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCR ( ppBlock, pdwSize );
 		ScanMesh ( pFrame->pMesh, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write child
 		pCodeSizePtr = NULL;
@@ -1055,7 +1055,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCR ( ppBlock, pdwSize );
 		ScanFrame ( pFrame->pChild, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write sibling
 		pCodeSizePtr = NULL;
@@ -1064,7 +1064,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCR ( ppBlock, pdwSize );
 		ScanFrame ( pFrame->pSibling, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write vector offset
 		pCodeSizePtr = NULL;
@@ -1072,7 +1072,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCODE ( DBOBLOCK_FRAME_OFFSET, 0, ppBlock, pdwSize );
 		WriteVECTOR ( pFrame->vecOffset, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write vector rotation
 		pCodeSizePtr = NULL;
@@ -1080,7 +1080,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCODE ( DBOBLOCK_FRAME_ROTATION, 0, ppBlock, pdwSize );
 		WriteVECTOR ( pFrame->vecRotation, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write vector scale
 		pCodeSizePtr = NULL;
@@ -1088,7 +1088,7 @@ DARKSDK_DLL bool ScanFrame ( sFrame* pFrame, LPSTR* ppBlock, DWORD* pdwSize )
 		WriteCODE ( DBOBLOCK_FRAME_SCALE, 0, ppBlock, pdwSize );
 		WriteVECTOR ( pFrame->vecScale, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 	}
 
 	// No more frame codes
@@ -1113,7 +1113,7 @@ DARKSDK_DLL bool WriteBoneMatrices ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* p
 	}
 
 	WriteCR ( ppBlock, pdwSize );
-	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 	
 	return true;
 }
@@ -1150,7 +1150,7 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 		WriteCODE ( DBOBLOCK_ANIM_NAME, 0, ppBlock, pdwSize );
 		WriteString ( pAnim->szName, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write num pos keys
 		WriteCODE	( DBOBLOCK_ANIM_NUMPOSKEYS, 4, ppBlock, pdwSize );
@@ -1215,7 +1215,7 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 			WriteCODE ( DBOBLOCK_FRAME_BONETYPE, 0, ppBlock, pdwSize );
 			WriteDWORD ( pAnim->bBoneType, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			pCodeSizePtr = NULL;
 			if ( ppBlock ) pCodeSizePtr = *ppBlock+4;
@@ -1223,14 +1223,14 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 			WriteDWORD ( pAnim->iBoneOffsetListCount, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 			
 			pCodeSizePtr = NULL;
 			if ( ppBlock ) pCodeSizePtr = *ppBlock+4;
 			WriteCODE	( DBOBLOCK_FRAME_BONEOFFSETLIST, pAnim->iBoneOffsetListCount * sizeof ( int ), ppBlock, pdwSize );
 			WriteOffsetList ( pAnim->piBoneOffsetList, pAnim->iBoneOffsetListCount, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			pCodeSizePtr = NULL;
 			if ( ppBlock ) pCodeSizePtr = *ppBlock+4;
@@ -1238,7 +1238,7 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 			WriteDWORD ( pAnim->iBoneFrameA, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			pCodeSizePtr = NULL;
 			if ( ppBlock ) pCodeSizePtr = *ppBlock+4;
@@ -1246,7 +1246,7 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 			WriteDWORD ( pAnim->iBoneFrameB, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 			pCodeSizePtr = NULL;
 			if ( ppBlock ) pCodeSizePtr = *ppBlock+4;
@@ -1254,7 +1254,7 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 			WriteCR ( ppBlock, pdwSize );
 			WriteBoneMatrices ( pAnim, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 		}
 		
 		// Write NEXT animdata (if present)
@@ -1266,7 +1266,7 @@ DARKSDK_DLL bool ScanAnimation ( sAnimation* pAnim, LPSTR* ppBlock, DWORD* pdwSi
 			WriteCR ( ppBlock, pdwSize );
 			if ( pAnim->pNext ) ScanAnimation ( pAnim->pNext, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 		}
 	}
 
@@ -1288,7 +1288,7 @@ DARKSDK_DLL bool ScanAnimationSet ( sAnimationSet* pAnimSet, LPSTR* ppBlock, DWO
 		WriteCODE ( DBOBLOCK_ANIMSET_NAME, 0, ppBlock, pdwSize );
 		WriteString ( pAnimSet->szName, ppBlock, pdwSize );
 		WriteCR ( ppBlock, pdwSize );
-		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+		if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 		// Write length
 		WriteCODE	( DBOBLOCK_ANIMSET_LENGTH, 4, ppBlock, pdwSize );
@@ -1304,7 +1304,7 @@ DARKSDK_DLL bool ScanAnimationSet ( sAnimationSet* pAnimSet, LPSTR* ppBlock, DWO
 			WriteCR ( ppBlock, pdwSize );
 			ScanAnimation ( pAnimSet->pAnimation, ppBlock, pdwSize );
 			WriteCR ( ppBlock, pdwSize );
-			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+			if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 		}
 	}
 
@@ -1331,7 +1331,7 @@ DARKSDK_DLL bool ScanObject ( sObject* pObject, LPSTR* ppBlock, DWORD* pdwSize )
 	WriteCR ( ppBlock, pdwSize );
 	if ( !ScanFrame ( pObject->pFrame, ppBlock, pdwSize ) ) return false;
 	WriteCR ( ppBlock, pdwSize );
-	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 	// scan animation data
 	pCodeSizePtr = NULL;
@@ -1340,7 +1340,7 @@ DARKSDK_DLL bool ScanObject ( sObject* pObject, LPSTR* ppBlock, DWORD* pdwSize )
 	WriteCR ( ppBlock, pdwSize );
 	if ( !ScanAnimationSet ( pObject->pAnimationSet, ppBlock, pdwSize ) ) return false;
 	WriteCR ( ppBlock, pdwSize );
-	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 	// 280305 - used when objects want to store custom data for example when they save and want to save out this data
 	pCodeSizePtr = NULL;
@@ -1358,7 +1358,7 @@ DARKSDK_DLL bool ScanObject ( sObject* pObject, LPSTR* ppBlock, DWORD* pdwSize )
 	WriteCR ( ppBlock, pdwSize );
 	WriteMEMORY ( tpCustomData, tdwCustomSize, ppBlock, pdwSize );
 	WriteCR ( ppBlock, pdwSize );
-	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=(*ppBlock-4)-pCodeSizePtr;
+	if ( pCodeSizePtr ) *(DWORD*)pCodeSizePtr=static_cast<DWORD>((*ppBlock-4)-pCodeSizePtr);
 
 	// leefix - 070405 - No more tokens to parse (scan functions do this at end!)
 	WriteCODE ( 0, 0, ppBlock, pdwSize );

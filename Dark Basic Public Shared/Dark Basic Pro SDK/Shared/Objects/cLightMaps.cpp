@@ -373,7 +373,6 @@ void cLightMaps::Create ( int iLMSize, int iLMQuality, LPSTR pPathForLightMaps )
 		}
 
 		// go through all polygons in mesh, together with local light list (with frustrums recorded for shadow calculation)
-		float* pVertex = (float*)pMesh->pVertexData;
 		for ( int iPolygon = 0, iOffset = 0; iPolygon < (int)pMesh->dwVertexCount / 3; iPolygon++ )
 		{
 			// extract triangle
@@ -555,8 +554,6 @@ int cLightMaps::GetMajorPlane ( void )
 
 void cLightMaps::SetupCoordinates ( void )
 {
-	DWORD dwTimeBase = timeGetTime();
-
 	// convert to 2D texture space
 	m_uvMinU = m_pVertices [ 0 ]->lu;
 	m_uvMinV = m_pVertices [ 0 ]->lv;
@@ -608,9 +605,6 @@ void cLightMaps::SetupCoordinates ( void )
 		m_pVertices [ iVertex ]->lu /= m_uvDeltaU;	// divide by u delta
 		m_pVertices [ iVertex ]->lv /= m_uvDeltaV;	// divide by v delta
 	}
-
-	DWORD dwTimeEnd = timeGetTime()-dwTimeBase;
-	DWORD dwTimeTaken = dwTimeEnd;
 }
 
 void cLightMaps::SetupWorldSpace ( void )
@@ -701,14 +695,14 @@ bool cLightMaps::SetupLights ( void )
 	vecPolyVec [ 2 ] = D3DXVECTOR3 ( m_pVertices [ 2 ]->x, m_pVertices [ 2 ]->y, m_pVertices [ 2 ]->z );
 
 	// set red, green and blue to black
-	float m_fCombinedRed[LMTEXTILESIZE][LMTEXTILESIZE];
-	float m_fCombinedGreen[LMTEXTILESIZE][LMTEXTILESIZE];
-	float m_fCombinedBlue[LMTEXTILESIZE][LMTEXTILESIZE];
+	float fCombinedRed[LMTEXTILESIZE][LMTEXTILESIZE];
+	float fCombinedGreen[LMTEXTILESIZE][LMTEXTILESIZE];
+	float fCombinedBlue[LMTEXTILESIZE][LMTEXTILESIZE];
 
 	// clear color pots
-	memset(m_fCombinedRed, 0, sizeof(m_fCombinedRed) );
-	memset(m_fCombinedGreen, 0, sizeof(m_fCombinedGreen) );
-	memset(m_fCombinedBlue, 0, sizeof(m_fCombinedBlue) );
+	memset(fCombinedRed, 0, sizeof(fCombinedRed) );
+	memset(fCombinedGreen, 0, sizeof(fCombinedGreen) );
+	memset(fCombinedBlue, 0, sizeof(fCombinedBlue) );
 
 	// work out light values based on all lights in list (local list prepared higher up)
 	int iFrustrumStart=0, iFrustrumFinish=0;
@@ -774,8 +768,6 @@ bool cLightMaps::SetupLights ( void )
 				// compute extra to create texture filter data
 				float fAreaWithinU = fLMWidth-2.0f;
 				float fAreaWithinV = fLMHeight-2.0f;
-				float fHalfOfU = 0.5f/fAreaWithinU;
-				float fHalfOfV = 0.5f/fAreaWithinV;
 
 				// for each light, go through texels of polygon
 				for ( int iX = 0; iX < m_iLMWidth; iX++ )
@@ -889,9 +881,9 @@ bool cLightMaps::SetupLights ( void )
 								}
 								
 								// now we have our red, green and blue values
-								m_fCombinedRed   [ iY ] [ iX ] += fRed;
-								m_fCombinedGreen [ iY ] [ iX ] += fGreen;
-								m_fCombinedBlue  [ iY ] [ iX ] += fBlue;
+								fCombinedRed   [ iY ] [ iX ] += fRed;
+								fCombinedGreen [ iY ] [ iX ] += fGreen;
+								fCombinedBlue  [ iY ] [ iX ] += fBlue;
 							}
 						}
 					}
@@ -911,12 +903,12 @@ bool cLightMaps::SetupLights ( void )
 		for ( int iY = 0; iY < m_iLMHeight; iY++ )
 		{
 			// check red, green and blue don't go over the boundaries
-			if ( m_fCombinedRed   [ iY ] [ iX ] > 255.0f ) m_fCombinedRed   [ iY ] [ iX ] = 255.0f;
-			if ( m_fCombinedGreen [ iY ] [ iX ] > 255.0f ) m_fCombinedGreen [ iY ] [ iX ] = 255.0f;
-			if ( m_fCombinedBlue  [ iY ] [ iX ] > 255.0f ) m_fCombinedBlue  [ iY ] [ iX ] = 255.0f;
+			if ( fCombinedRed   [ iY ] [ iX ] > 255.0f ) fCombinedRed   [ iY ] [ iX ] = 255.0f;
+			if ( fCombinedGreen [ iY ] [ iX ] > 255.0f ) fCombinedGreen [ iY ] [ iX ] = 255.0f;
+			if ( fCombinedBlue  [ iY ] [ iX ] > 255.0f ) fCombinedBlue  [ iY ] [ iX ] = 255.0f;
 
 			// now create the DWORD that gets written to the texture
-			*((DWORD*)m_dwLumelColour + (iX) + (iY*m_iLMWidth)) = D3DCOLOR_ARGB ( 255, (int)m_fCombinedRed [ iY ] [ iX ], (int)m_fCombinedGreen [ iY ] [ iX ], (int)m_fCombinedBlue [ iY ] [ iX ] );
+			*((DWORD*)m_dwLumelColour + (iX) + (iY*m_iLMWidth)) = D3DCOLOR_ARGB ( 255, (int)fCombinedRed [ iY ] [ iX ], (int)fCombinedGreen [ iY ] [ iX ], (int)fCombinedBlue [ iY ] [ iX ] );
 		}
 	}
 
@@ -1362,8 +1354,6 @@ int cLightMapConsolidation::IsTextureInList ( DWORD* pLumelPoly )
 	if ( m_iTextureCount == 0 )
 		return -1;
 
-	DWORD* pPixelsA = NULL;
-	DWORD* pPixelsB = NULL;
 	bool   bMatch = true;
 	int    iFound = -1;
 
@@ -1372,10 +1362,6 @@ int cLightMapConsolidation::IsTextureInList ( DWORD* pLumelPoly )
 	{
 		// set match to true
 		bMatch = true;
-
-		// get start x and y
-		int iXStart = m_rect [ iImageInMaster ].left;
-		int iYStart = m_rect [ iImageInMaster ].top;
 
 		// go through all pixels and see if there are any different
 		DWORD dwLMSingleSize = sizeof(DWORD)*m_iLMWidth*m_iLMHeight;

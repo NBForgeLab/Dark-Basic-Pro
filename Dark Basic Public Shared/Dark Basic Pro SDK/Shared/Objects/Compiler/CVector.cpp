@@ -542,23 +542,23 @@ float cVector3::DistanceToPlane ( const cPlane3& Plane, const cVector3& Directio
 
 float cVector3::DistanceToLine ( const cVector3 &vecStart, const cVector3& vecEnd ) const
 {
-    cVector3 c, v;
+    cVector3 c, vecLine;
     float    d, t;
 
     c = *this  - vecStart;
-    v = vecEnd - vecStart;   
-    d = v.Length ( );
+    vecLine = vecEnd - vecStart;   
+    d = vecLine.Length ( );
     
-    v.Normalize ( );
+    vecLine.Normalize ( );
     
-    t = v.Dot ( c );
+    t = vecLine.Dot ( c );
    
     if ( t < 0.01f     ) return 99999.0f;
     if ( t > d - 0.01f ) return 99999.0f;
   
-    v.x = vecStart.x + ( v.x * t );
-    v.y = vecStart.y + ( v.y * t );
-    v.z = vecStart.z + ( v.z * t );
+    vecLine.x = vecStart.x + ( vecLine.x * t );
+    vecLine.y = vecStart.y + ( vecLine.y * t );
+    vecLine.z = vecStart.z + ( vecLine.z * t );
   
-    return ( ( *this ) - v ).Length ( );
+    return ( ( *this ) - vecLine ).Length ( );
 }

@@ -392,9 +392,7 @@ BOOL Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadiu
 
 	// find collision
 	g_DBPROCollisionResult.fClosestDist = 99999.0f;
-	DWORD dwT3=timeGetTime();
 	D3DXVECTOR3 pos = check_collisions ( o_pos, n_pos - o_pos, eRadius, fScale );
-	DWORD dwT4=timeGetTime();
 
 	// ellipse denom
 	pos.x *= eRadius.x;
@@ -410,7 +408,7 @@ BOOL Collision::World ( D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos, D3DXVECTOR3 eRadiu
 		// basic collision feedback
 		g_DBPROCollisionResult.vecPos = pos;
 		g_DBPROCollisionResult.vecDifference = pos - o_pos;
-		g_DBPROCollisionResult.iPolysChecked = g_PolygonList.size();
+		g_DBPROCollisionResult.iPolysChecked = static_cast<int>( g_PolygonList.size() );
 
 		// additional collision feedback
 		g_DBPROCollisionResult.iTextureIndex = 0;//this data needs to be added higher up

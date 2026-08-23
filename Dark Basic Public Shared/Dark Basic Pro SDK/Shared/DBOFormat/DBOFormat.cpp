@@ -154,7 +154,6 @@ bool cSpecialEffect::CorrectFXFile ( LPSTR pFile, LPSTR pModifiedFile )
 		int newbuffersize = filebuffersize*2;	
 		char* newbuffer = (char*)GlobalAlloc(GMEM_FIXED, newbuffersize);
 		LPSTR pWritePtr = newbuffer;
-		LPSTR pWritePtrEnd = newbuffer+newbuffersize;
 
 		// go through data again
 		pPtr = filebuffer;
@@ -199,7 +198,7 @@ bool cSpecialEffect::CorrectFXFile ( LPSTR pFile, LPSTR pModifiedFile )
 		}
 
 		// write new temp file
-		DWORD actualnewdatasize = pWritePtr-newbuffer;
+		DWORD actualnewdatasize = static_cast<DWORD>( pWritePtr-newbuffer );
 		HANDLE hwritefile = CreateFile(pModifiedFile, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(hwritefile!=INVALID_HANDLE_VALUE)
 		{
@@ -234,7 +233,7 @@ bool cSpecialEffect::Load ( LPCSTR pEffectFile, bool bUseXFile, bool bUseTexture
 	char pFile[_MAX_PATH];
 	strcpy ( pPath, "" );
 	strcpy ( pFile, pEffectFile );
-	for ( int n=strlen(pEffectFile); n>0; n--)
+	for ( size_t n=strlen(pEffectFile); n>0; n--)
 	{
 		if ( pEffectFile[n]=='\\' ||  pEffectFile[n]=='/' )
 		{
@@ -1305,8 +1304,6 @@ DARKSDK_DLL bool CalculateObjectWorld ( sObject* pObject, sFrame* pGluedToFrameP
 		D3DXMatrixScaling ( &matShrinkScale, g_fShrinkObjectsTo, g_fShrinkObjectsTo, g_fShrinkObjectsTo );
 		D3DXMatrixMultiply ( &pObject->position.matScale, &pObject->position.matScale, &matShrinkScale );
 	}
- 
-	LPVOID pWhenThisCHanges = (LPVOID)&pObject->position.vecPosition.x;
 
 	// handle rotation as either euler or freeflight
 	UpdateObjectRotation ( pObject );
@@ -1462,20 +1459,6 @@ DARKSDK_DLL bool CreateSingleMeshFromObjectCore ( sMesh** ppMesh, sObject* pObje
 					sMesh* pStandardMesh = new sMesh;
 					MakeLocalMeshFromOtherLocalMesh ( pStandardMesh, pFrameMesh );
 					ConvertLocalMeshToFVF ( pStandardMesh, dwNewMeshFVF );
-
-					if ( iIgnoreMode==11 )
-					{
-						if ( pFrameMesh->dwBoneCount>0 )
-						{
-							int lee=42;
-						}
-
-						// 11 - delete any BONE data in resulting mesh
-						if ( pStandardMesh->dwBoneCount>0 )
-						{
-							int lee=42;
-						}
-					}
 
 					// U75 - 010410 - this is redundant as the check is performed earlier in this function
 					// leeadd - 081208 - U71 - if mesh has NO index data, all mesh must have NO index data, so switch to vertex only
@@ -2230,7 +2213,6 @@ DARKSDK_DLL void ConvertToSharedVerts ( sMesh* pMesh, float fEpsilon )
 {
 	if ( pMesh->pIndices )
 	{
-		DWORD dwFaceIndex = 0;
 		BYTE* pBase = pMesh->pVertexData;
 		DWORD dwVertSize = pMesh->dwFVFSize;
 		for ( DWORD i=0; i<pMesh->dwIndexCount; i+=3 )
@@ -2488,8 +2470,8 @@ DARKSDK_DLL LPD3DXMESH ComputeTangentBasisEx ( LPD3DXMESH gMasterMesh, bool bMak
 
 	// ensure vertex data and index data size is unchanged
 	LPD3DXMESH pOutputMesh = NULL;
-	DWORD dwNewVertexCount = position.size()/3;
-	DWORD dwNewFaceCount = index.size()/3;
+	DWORD dwNewVertexCount = static_cast<DWORD>( position.size()/3 );
+	DWORD dwNewFaceCount = static_cast<DWORD>( index.size()/3 );
 	if ( dwNewVertexCount==numVertices && dwNewFaceCount==numTriangles )
 	{
 		// create mesh from new declaration
@@ -2598,11 +2580,11 @@ DARKSDK_DLL LPD3DXMESH ComputeTangentBasisEx ( LPD3DXMESH gMasterMesh, bool bMak
 		hr = pIB->Lock( 0, 0, (VOID**)&indexBuffer, 0 );
 		if( SUCCEEDED(hr) )
 		{
-			for (DWORD i = 0; i < dwFaceCount; ++i)
+			for (DWORD dwFace = 0; dwFace < dwFaceCount; ++dwFace)
 			{
-				indexBuffer[i][0] = index[3 * i + 0];
-				indexBuffer[i][1] = index[3 * i + 1];
-				indexBuffer[i][2] = index[3 * i + 2];
+				indexBuffer[dwFace][0] = static_cast<WORD>( index[3 * dwFace + 0] );
+				indexBuffer[dwFace][1] = static_cast<WORD>( index[3 * dwFace + 1] );
+				indexBuffer[dwFace][2] = static_cast<WORD>( index[3 * dwFace + 2] );
 			}
 
 			// unlock buffer
@@ -3480,9 +3462,6 @@ DARKSDK_DLL bool SortAnimationRotationByTime ( sAnimation* pAnim )
 	// leefix - 270203 - some animation data is not time sorted (required for keyframe finder)
 	SAFE_MEMORY ( pAnim->pRotateKeys );
 
-	// store the number of keys
-	DWORD dwNumKeys = pAnim->dwNumRotateKeys;
-	
 	/* 121113 - Reloaded assumes all keyframes sequential for performance
 	// bubble sort into time ascending order (or key-frame select gets messed up)
 	for ( int iKeyA = 0; iKeyA < ( int ) dwNumKeys; iKeyA++ )
@@ -4252,7 +4231,6 @@ DARKSDK_DLL bool SetupStandardVertexDec ( sMesh* pMesh, BYTE* pVertex, int iOffs
 DARKSDK_DLL bool CreateFrameAndMeshList ( sObject* pObject )
 {
 	// 130213 - used to traverse 10,000 nests (no more) (avoids recursive stack overflow)
-	int iNestCountMax = 9999;
 	sFrame* pFrameBeforeNest[9999];
 	sFrame* pThisFrame = NULL;
 	int iNestCount = 0;
@@ -4768,7 +4746,6 @@ DARKSDK_DLL bool CalculateAllBounds ( sObject* pObject, bool [[maybe_unused]] bN
 							// calculate from all keyframes of animated mesh
 							pObject->bAnimPlaying=true;
 							int iLength = pObject->pAnimationSet->ulLength;
-							sAnimation* pAnim = pObject->pAnimationSet->pAnimation;
 
 							// keyframe ised to balance bounds of animation with speed code takes
 							int iKeyStep = iLength/1000;
@@ -5421,7 +5398,6 @@ DARKSDK_DLL bool GetFVFValueOffsetMap ( DWORD dwFVF, sOffsetMap* psOffsetMap )
 	memset ( psOffsetMap, 0, sizeof ( sOffsetMap ) );
 
 	int iOffset   = 0;
-	int iPosition = 0;
 
 	DWORD dwFVFSize = D3DXGetFVFVertexSize ( dwFVF );
 
@@ -5772,7 +5748,6 @@ DARKSDK_DLL bool ConvertToDBOBlock ( LPSTR pFilename, LPSTR pExtension, DWORD_PT
 		typedef bool ( *CONVERTFUNCTION ) ( LPSTR, DWORD_PTR*, DWORD* );
 		PASSCORE pPassCoreFn = (PASSCORE) GetProcAddress ( hDLLModule, "PassCoreData" );
 		VOIDVOID pSetLegacyModeOn = (VOIDVOID) GetProcAddress ( hDLLModule, "SetLegacyModeOn" );
-		VOIDVOID pSetLegacyModeOff = (VOIDVOID) GetProcAddress ( hDLLModule, "SetLegacyModeOff" );
 		CONVERTFUNCTION pConvertFn = (CONVERTFUNCTION) GetProcAddress ( hDLLModule, "Convert" );
 		FREEFUNCTION pFree = (FREEFUNCTION) GetProcAddress ( hDLLModule, "Free" );
 
@@ -5835,7 +5810,7 @@ DARKSDK_DLL bool LoadDBO ( LPSTR pFilename, sObject** ppObject )
 	// Obtain extension
 	char pExtension[256];
 	strcpy(pExtension, "");
-	for ( int n=strlen(pFilename); n>0; n-- )
+	for ( size_t n=strlen(pFilename); n>0; n-- )
 	{
 		if ( pFilename[n]=='.' )
 		{
