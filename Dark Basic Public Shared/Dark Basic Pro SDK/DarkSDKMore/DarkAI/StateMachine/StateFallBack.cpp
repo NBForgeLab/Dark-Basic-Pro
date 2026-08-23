@@ -67,9 +67,6 @@ void StateSet::StateFallBack::Enter   ( Entity *pEntity )
 
 	float fRange = ( fDirX*fDirX + fDirZ*fDirZ );
 	
-	bool bFound = false;
-	int iCount = 0;
-
 	int iIndex = -1;
 	int iIndex2 = -1;
 	float fStraightest = 10000.0f;
@@ -90,7 +87,7 @@ void StateSet::StateFallBack::Enter   ( Entity *pEntity )
 		//find the point matching these restrictions that is most inline with the entity->target vector
 		if ( ( fabs( fDotP2 ) < fStraightest ) && ( fDotP > 0.0f ) && ( fDist < fRange / 4.0f ) ) 
 		{
-			fStraightest = fabs( fDotP2 );
+			fStraightest = fabsf( fDotP2 );
 			iIndex = i;
 		}
 		

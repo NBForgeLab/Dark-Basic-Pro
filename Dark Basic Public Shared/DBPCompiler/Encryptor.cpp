@@ -31,7 +31,7 @@ bool CEncryptor::EncryptFileData(LPSTR filebuffer, DWORD filebuffersize, bool bE
 
 		// Key Index
 		DWORD dwKeyIndex=0;
-		DWORD dwKeyMax=strlen(pNewKey);
+		size_t dwKeyMax=strlen(pNewKey);
 
 		// Encrupt Data using Key (mess the file data up)
 		DWORD dwSpan = filebuffersize/1024;

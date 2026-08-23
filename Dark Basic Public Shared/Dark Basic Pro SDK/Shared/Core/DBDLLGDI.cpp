@@ -76,8 +76,8 @@ DARKSDK void GDI_ClearSomeText(int LeftmostToClear, int RightmostToClear)
 	{
 		// Work out Text Details
 		SIZE Size;
-		DWORD dwLength = strlen(" ");
-		GetTextExtentPoint32(g_hdcDisplay, " ", dwLength, &Size); 
+		size_t dwLength = strlen(" ");
+		GetTextExtentPoint32(g_hdcDisplay, " ", static_cast<int>(dwLength), &Size); 
 
 		// Select In Bitmap and Brush
 		HGDIOBJ hdcOldBitmap = SelectObject(g_hdcDisplay, g_hDisplayBitmap);
@@ -121,11 +121,11 @@ DARKSDK void GDI_PrintSomething(LPSTR pStr, bool bIncludeCarriageReturn)
 		{
 			// Work out Text Details
 			SIZE Size;
-			DWORD dwLength = strlen(pStr);
-			GetTextExtentPoint32(g_hdcDisplay, pStr, dwLength, &Size); 
+			size_t dwLength = strlen(pStr);
+			GetTextExtentPoint32(g_hdcDisplay, pStr, static_cast<int>(dwLength), &Size);
 
 			// Write Text to HDC
-			TextOut(g_hdcDisplay, g_Glob.iCursorX, g_Glob.iCursorY, pStr, dwLength);
+			TextOut(g_hdcDisplay, g_Glob.iCursorX, g_Glob.iCursorY, pStr, static_cast<int>(dwLength));
 
 			// Ensure Height is calculated
 			if(Size.cy==0) { GetTextExtentPoint32(g_hdcDisplay, " ", 1, &Size); Size.cx=0; }
@@ -177,6 +177,6 @@ DARKSDK void GDI_PrintSomething(LPSTR pStr, bool bIncludeCarriageReturn)
 DARKSDK SIZE GDI_GetTextSize(LPSTR pText)
 {
 	SIZE s;
-	GetTextExtentPoint32(g_hdcDisplay, pText, strlen(pText), &s);
+	GetTextExtentPoint32(g_hdcDisplay, pText, static_cast<int>(strlen(pText)), &s);
 	return s;
 }

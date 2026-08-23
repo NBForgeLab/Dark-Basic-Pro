@@ -89,7 +89,6 @@ bool CheckForWorkshopFile ( LPSTR VirtualFilename)
 		//strcpy ( szWorkShopItemPath,"D:\\Games\\Steam\\steamapps\\workshop\\content\\266310\\378822626");
 		// If the string is empty then there is no active workshop item, so we can return
 		if ( strcmp ( szWorkShopItemPath , "" ) == 0 ) return false;
-		char* tempCharPointer = NULL;
 		strcpy ( szWorkshopFilenameFolder, VirtualFilename );
 
 		// only check if the workshop item path isnt blank
@@ -157,13 +156,10 @@ bool CheckForWorkshopFile ( LPSTR VirtualFilename)
 				fclose ( tempy );
 			}*/
 
-			FILE* tempFile = NULL;
 			tempFile = fopen ( szTempName ,"r" );
 			if ( tempFile )
 			{
 				fclose ( tempFile );
-				int szTempNamelength = strlen(szTempName);
-				int virtualfilelength = strlen(VirtualFilename);				
 				strcpy ( VirtualFilename , szTempName );
 
 				/*FILE* tempy = NULL;
@@ -181,10 +177,8 @@ bool CheckForWorkshopFile ( LPSTR VirtualFilename)
 
 				return true;
 			}
-			else // check for encrypted version
-			{
-				char* tempCharPointer = NULL;
-
+		else // check for encrypted version
+		{
 				tempCharPointer = strrchr( szTempName, '\\' );
 				if ( tempCharPointer && tempCharPointer != szTempName+strlen(szTempName)-1 )
 				{
@@ -195,9 +189,8 @@ bool CheckForWorkshopFile ( LPSTR VirtualFilename)
 				{
 					sprintf ( szWorkshopFilename , "_w_%s" , szTempName );
 				}
-				FILE* tempFile = NULL;
-				tempFile = fopen ( szWorkshopFilename ,"r" );
-				if ( tempFile )
+			tempFile = fopen ( szWorkshopFilename ,"r" );
+			if ( tempFile )
 				{
 					fclose ( tempFile );
 					strcpy ( VirtualFilename , szWorkshopFilename );

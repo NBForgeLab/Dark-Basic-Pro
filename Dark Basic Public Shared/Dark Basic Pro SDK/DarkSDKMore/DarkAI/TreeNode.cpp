@@ -122,7 +122,7 @@ void TreeNode::BuildTree( TreeFace* faces, unsigned fnum, int facesPerNode )
         case 2 : limit=difz/2.0f + minz;break;
     }
     
-    float avg;
+    float avg{};
     float total = 0;
             
     while (faces)

@@ -617,7 +617,7 @@ public:
 
 	void RebuildDynamicPathFinder( );
 
-	void TurnToAngle ( float ftimeDelta, bool bMoving );
+	void TurnToAngle ( float ftimeDelta, bool bIsMoving );
 	//void SearchArea ( );
 	void FireWeapon ( );
 

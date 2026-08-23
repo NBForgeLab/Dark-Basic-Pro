@@ -61,16 +61,15 @@ unsigned int LeeThread::Run( )
 				float fBestZ = 0.0f;
 				float fDX = m_fGetX - m_fFinalDestX;
 				float fDZ = m_fGetZ - m_fFinalDestZ;
-				float fDD = sqrt ( fabs(fDX*fDX) + fabs(fDZ*fDZ) );
+				float fDD = sqrtf ( fabsf(fDX*fDX) + fabsf(fDZ*fDZ) );
 				float fDDInc = fDD / 30.0f;
-				int iDistCount = (int)fDDInc;
 				for ( int iDist = 1; iDist <= 30; iDist++ )
 				{
 					for ( int iAng = 0; iAng < 360; iAng+=45 )
 					{
 						// this is where I want the AI to try to get to
-						float fTryX = m_fFinalDestX + (sin(iAng*DEGTORAD)*(iDist*fDDInc));
-						float fTryZ = m_fFinalDestZ + (cos(iAng*DEGTORAD)*(iDist*fDDInc));
+						float fTryX = m_fFinalDestX + (sinf(iAng*DEGTORAD)*(iDist*fDDInc));
+						float fTryZ = m_fFinalDestZ + (cosf(iAng*DEGTORAD)*(iDist*fDDInc));
 						int waypointmax = waypoint_getmax();
 						for ( int waypointindex = 1; waypointindex <= waypointmax; waypointindex++ )
 						{
@@ -92,13 +91,13 @@ unsigned int LeeThread::Run( )
 				{
 					// best is within waypoint zone, but outside AI obstacle zone (margin added to AI waypoint system)
 					// so project away from player to ensure we get inside
-					float fDX = fBestX - m_fFinalDestX;
-					float fDZ = fBestZ - m_fFinalDestZ;
-					float fDD = sqrt ( fabs(fDX*fDX)+fabs(fDZ*fDZ) );
-					fDX = (fDX/fDD)*(fDD+30.0f);
-					fDZ = (fDZ/fDD)*(fDD+30.0f);
-					fBestX = m_fFinalDestX + fDX;
-					fBestZ = m_fFinalDestZ + fDZ;
+					float fProjX = fBestX - m_fFinalDestX;
+					float fProjZ = fBestZ - m_fFinalDestZ;
+					float fProjD = sqrtf ( fabsf(fProjX*fProjX)+fabsf(fProjZ*fProjZ) );
+					fProjX = (fProjX/fProjD)*(fProjD+30.0f);
+					fProjZ = (fProjZ/fProjD)*(fProjD+30.0f);
+					fBestX = m_fFinalDestX + fProjX;
+					fBestZ = m_fFinalDestZ + fProjZ;
 
 					// now assign final pos
 					if ( m_iDestContainer != iThisContainer )
@@ -112,7 +111,7 @@ unsigned int LeeThread::Run( )
 						// same container, so dont get too close to edge when move nearer target
 						float fPushX = fBestX - m_fFinalDestX;
 						float fPushZ = fBestZ - m_fFinalDestZ;
-						float fPushDD = sqrt ( fabs(fPushX*fPushX) + fabs(fPushZ*fPushZ) );
+						float fPushDD = sqrtf ( fabsf(fPushX*fPushX) + fabsf(fPushZ*fPushZ) );
 						fPushX /= fPushDD;
 						fPushZ /= fPushDD;
 						m_fFinalDestX = fBestX + (fPushX*2.0f);

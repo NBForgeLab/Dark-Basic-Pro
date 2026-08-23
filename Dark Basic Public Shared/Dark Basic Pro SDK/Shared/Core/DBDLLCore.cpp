@@ -632,7 +632,7 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 					if ( hWinUserDLL )
 					{
 						sRegisterTouchWindowFnc pRegTouchWin = (sRegisterTouchWindowFnc) GetProcAddress ( hWinUserDLL, "RegisterTouchWindow" );
-						if ( pRegTouchWin ) BOOL bRes = pRegTouchWin ( g_Glob.hWnd, 0 );
+						if ( pRegTouchWin ) pRegTouchWin ( g_Glob.hWnd, 0 );
 						FreeLibrary ( hWinUserDLL );
 					}
 				}
@@ -772,11 +772,11 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 //			return DecodeGesture(hWnd, message, wParam, lParam);
 
 		case WM_SYSKEYDOWN:
-			g_wWinKey = wParam; // leefix - 240604 - u54 - for WAIT KEY bug F10
+			g_wWinKey = static_cast<WORD>( wParam ); // leefix - 240604 - u54 - for WAIT KEY bug F10
 			break;
 
 		case WM_KEYDOWN:
-			g_wWinKey = wParam;
+			g_wWinKey = static_cast<WORD>( wParam );
 			if((int)wParam==VK_ESCAPE)
 			{
 				if(g_EscapeValue) *(DWORD*)g_EscapeValue=1;
@@ -978,7 +978,6 @@ DARKSDK int TestMemory ( int iSizeInBytes )
 	{
 		return 0;
 	}
-	return 0;
 }
 
 DARKSDK void CreateSingleString(DWORD_PTR* dwVariableSpaceAddress, DWORD dwSize)
@@ -1045,7 +1044,7 @@ DARKSDK void BreakS(DWORD_PTR pString)
 	// Send String to CLI Debug Console
 	LPSTR lpReturnError = new char[1024];
 	wsprintf(lpReturnError, "%s", pString);
-	SendDataToDebugger(31, lpReturnError, strlen(lpReturnError));
+	SendDataToDebugger(31, lpReturnError, static_cast<DWORD>(strlen(lpReturnError)));
 	delete[] lpReturnError;
 	lpReturnError=NULL;
 
@@ -1191,7 +1190,7 @@ DARKSDK void EncryptDecrypt( LPSTR szStringAddress, bool bEncryptIfTrue, bool bD
 				stringToMakeKey[tLength] = 0;
 		}
 
-		int len = strlen(stringToMakeKey)-1;
+		int len = static_cast<int>(strlen(stringToMakeKey))-1;
 		if ( len <= 0 ) return;
 
 		for ( int c = len; c >= 0 && c > len-9 ; c-- )
@@ -1231,7 +1230,7 @@ DARKSDK void EncryptDecrypt( LPSTR szStringAddress, bool bEncryptIfTrue, bool bD
 			// get file ext
 			char pExt[32];
 			strcpy ( pExt, "" );
-			for ( int n=strlen(pFilename)-1; n>0; n-- )
+			for ( int n=static_cast<int>(strlen(pFilename))-1; n>0; n-- )
 			{
 				if ( pFilename[n]=='.' )
 				{
@@ -1383,7 +1382,7 @@ DARKSDK bool EncryptNewFile ( const char* szStringAddress )
 	GetCurrentDirectory ( MAX_PATH, pThisDirAndFile );
 	strcat ( pThisDirAndFile, "\\" );
 	strcat ( pThisDirAndFile, pScanFilename );
-	int iScanMax = strlen(pThisDirAndFile)-8;
+	int iScanMax = static_cast<int>(strlen(pThisDirAndFile))-8;
 	if ( iScanMax < 0 ) iScanMax = 0;
 	if ( strlen ( pThisDirAndFile ) > 8 )
 	{
@@ -2524,21 +2523,18 @@ DARKSDK void DeleteSingleVariableAllocation(DWORD_PTR* dwVariableSpaceAddress)
 DARKSDK DWORD_PTR CreateArray(DWORD dwSizeOfArray, DWORD dwSizeOfOneDataItem, DWORD dwTypeValueOfOneDataItem)
 {
 	// Calculate Total Size of Array
-	DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
-	DWORD dwDimSizeBytes = 40;
-	DWORD dwRefSizeInBytes = dwSizeOfArray * sizeof(uintptr_t);
-	DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
-	DWORD dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
+	size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
+	size_t dwRefSizeInBytes = static_cast<size_t>(dwSizeOfArray) * sizeof(uintptr_t);
+	size_t dwFlagSizeInBytes = static_cast<size_t>(dwSizeOfArray) * 1;
+	size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwSizeOfOneDataItem;
 
 	// Total Size
-	DWORD dwTotalSize = dwHeaderSizeInBytes + dwRefSizeInBytes + dwFlagSizeInBytes + dwDataSizeInBytes;
+	size_t dwTotalSize = dwHeaderSizeInBytes + dwRefSizeInBytes + dwFlagSizeInBytes + dwDataSizeInBytes;
 
 	// Error Trap for debug to discover larger chunk allocations mid-app activity (fragmentation danger)
 	if ( dwTotalSize > 1024*1000*4 )
 	{
 		// can put breakpoint here when checking for large allocations mid-flow
-		int iMB = dwTotalSize / 1024 / 1000;
-		int stopwhen4megallocated = 42;
 	}
 
 	// Create Array Memory
@@ -2570,7 +2566,7 @@ DARKSDK DWORD_PTR CreateArray(DWORD dwSizeOfArray, DWORD dwSizeOfOneDataItem, DW
 	memset(pFlag, 1, dwSizeOfArray);
 
 	// Clear DataBlock Memory
-	DWORD dwTotalDataSize = dwSizeOfArray * dwSizeOfOneDataItem;
+	size_t dwTotalDataSize = static_cast<size_t>(dwSizeOfArray) * dwSizeOfOneDataItem;
 	memset(pData, 0, dwTotalDataSize);
 
 	// Advance ArrayPtr to First Byte in RefTable
@@ -2590,7 +2586,6 @@ DARKSDK void FreeStringsFromArray(DWORD_PTR dwArrayPtr)
 		{
 			// only free strings if array holds string items
 			DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
-			DWORD dwDataItemSize = *((DWORD*)dwArrayPtr-3);
 			DWORD dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
 			DWORD dwFlagSizeInBytes = dwSizeOfTable * 1;
 			LPSTR* pData = (LPSTR*)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
@@ -2683,17 +2678,16 @@ DARKSDK DWORD_PTR ExpandArray(DWORD_PTR dwOldArrayPtr, DWORD dwAddElements)
 
 	// Old Array Pointers and Data
 	DWORD* pHeader	= (DWORD*)(pOldArrayPtr);
-	DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
+	size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 
 	// Extract header info
 	DWORD dwOldSizeOfArray = pHeader[10];
 	DWORD dwOldSizeOfOneDataItem = pHeader[11];
 	DWORD dwOldTypeValueOfOneDataItem = pHeader[12];
-	DWORD dwOldInternalIndex = pHeader[13];
 
-	DWORD dwOldRefSizeInBytes = dwOldSizeOfArray * sizeof(uintptr_t);
-	DWORD dwOldFlagSizeInBytes = dwOldSizeOfArray * 1;
-	DWORD dwOldDataSizeInBytes = dwOldSizeOfArray * dwOldSizeOfOneDataItem;
+	size_t dwOldRefSizeInBytes = static_cast<size_t>(dwOldSizeOfArray) * sizeof(uintptr_t);
+	size_t dwOldFlagSizeInBytes = static_cast<size_t>(dwOldSizeOfArray) * 1;
+	size_t dwOldDataSizeInBytes = static_cast<size_t>(dwOldSizeOfArray) * dwOldSizeOfOneDataItem;
 	uintptr_t* pOldRef = (uintptr_t*)(pOldArrayPtr+dwHeaderSizeInBytes);
 	LPSTR pOldFlag = (LPSTR)(pOldArrayPtr+dwHeaderSizeInBytes+dwOldRefSizeInBytes);
 	LPSTR pOldData = (LPSTR)(pOldArrayPtr+dwHeaderSizeInBytes+dwOldRefSizeInBytes+dwOldFlagSizeInBytes);
@@ -2709,9 +2703,9 @@ DARKSDK DWORD_PTR ExpandArray(DWORD_PTR dwOldArrayPtr, DWORD dwAddElements)
 	memcpy(pArrayPtr, pOldArrayPtr, 40);
 
 	// Calculate Sizes of New Array
-	DWORD dwRefSizeInBytes = dwSizeOfArray * sizeof(uintptr_t);
-	DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
-	DWORD dwDataSizeInBytes = dwSizeOfArray * dwOldSizeOfOneDataItem;
+	size_t dwRefSizeInBytes = static_cast<size_t>(dwSizeOfArray) * sizeof(uintptr_t);
+	size_t dwFlagSizeInBytes = static_cast<size_t>(dwSizeOfArray) * 1;
+	size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwOldSizeOfOneDataItem;
 
 	// Derive Pointers into New Array
 	uintptr_t* pNewRef		= (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
@@ -2837,7 +2831,6 @@ DARKSDK DWORD_PTR ReDimCore(DWORD_PTR dwOldArrayPtr, DWORD dwNewTypeAndSizeOfEle
 	if(dwD9>0) dwD9+=1;
 
 	// Old Header Info
-	DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 	DWORD* pOldHeader = (DWORD*)(((LPSTR)dwOldArrayPtr)-HEADERSIZEINBYTES);
 	DWORD dwSizeOfOneDataItem = pOldHeader[11];
 
@@ -3259,7 +3252,6 @@ DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr, int iIndex)
 	size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
 	size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
 	uintptr_t* pRef = (uintptr_t*)dwArrayPtr;
-	LPSTR pFlag = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes);
 	LPSTR pData = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
 	DWORD dwOffset = (DWORD)(pRef[iIndex] - (uintptr_t)pData);
 
@@ -3269,8 +3261,9 @@ DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr, int iIndex)
 	if ( pPattern )
 	{
 		// go through pattern which matches basic types
-		DWORD dwTypeInternalOffset = 0;
-		for ( DWORD n=0; n<strlen(pPattern); n++ )
+		size_t dwTypeInternalOffset = 0;
+		size_t patternLen = strlen(pPattern);
+		for ( size_t n=0; n<patternLen; n++ )
 		{
 			// delete any strings in the user type
 			if ( pPattern[n]=='S' )
@@ -3569,7 +3562,7 @@ DARKSDK DWORD_PTR ReadS(DWORD_PTR pDestStr)
 	LPSTR pString;
 	if (pDatStr)
 	{
-		DWORD dwLength = strlen(pDatStr);
+		size_t dwLength = strlen(pDatStr);
 		pString=new char[dwLength+1];
 		strcpy(pString, pDatStr);
 	}
@@ -3725,26 +3718,26 @@ DARKSDK DWORD PowerLLL(int iValueA, int iValueB)
 	// do not know the ASM version of this
 	// mike - 020206 - addition for vs8
 	//int result = (int)pow(iValueA,iValueB);
-	int result = (int)pow((long double)iValueA,(long double)iValueB);
+	int result = (int)pow((double)iValueA,(double)iValueB);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD PowerBBB(DWORD dwValueA, DWORD dwValueB)
 {
 	// mike - 020206 - addition for vs8
 	//DWORD result = (unsigned char)pow((unsigned char)dwValueA,(unsigned char)dwValueB);
-	DWORD result = (unsigned char)pow((long double)dwValueA,(long double)dwValueB);
+	DWORD result = (unsigned char)pow((double)dwValueA,(double)dwValueB);
 	return result;
 }
 DARKSDK DWORD PowerWWW(DWORD dwValueA, DWORD dwValueB)
 {
 	// mike - 020206 - addition for vs8
 	//DWORD result = (WORD)pow((WORD)dwValueA,(WORD)dwValueB);
-	DWORD result = (WORD)pow((long double)dwValueA,(long double)dwValueB);
+	DWORD result = (WORD)pow((double)dwValueA,(double)dwValueB);
 	return result;
 }
 DARKSDK DWORD PowerDDD(DWORD dwValueA, DWORD dwValueB)
 {
-	DWORD result = (DWORD_PTR)pow(( double ) dwValueA,( double ) dwValueB);
+	DWORD result = static_cast<DWORD>((DWORD_PTR)pow(( double ) dwValueA,( double ) dwValueB));
 	return result;
 }
 
@@ -4616,13 +4609,13 @@ DARKSDK int RndLL(int r)
 
 DARKSDK DWORD CeilFF(float x)
 {
-	float value = ceil ( x );
+	float value = ceilf ( x );
 	return *((DWORD*)&value);
 }
 
 DARKSDK DWORD FloorFF(float x)
 {
-	float value = floor ( x );
+	float value = floorf ( x );
 	return *((DWORD*)&value);
 }
 
@@ -5065,11 +5058,9 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD dwAllocation)
 	if(dwAllocation)
 	{
 		// Header Info
-		DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 		DWORD dwSizeOfArray = *((DWORD*)dwAllocation-4);
 		DWORD dwElementSize = *((DWORD*)dwAllocation-3);
 		DWORD dwExistingElementType = *((DWORD*)dwAllocation-2);
-		DWORD dwTableSizeInBytes = dwSizeOfArray * 4;
 
 		// Can only save pure types
 		if(dwExistingElementType<9)
@@ -5082,7 +5073,6 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD dwAllocation)
 				if(dwExistingElementType==2)
 				{
 					// Save Out Array (of x size)
-					DWORD dwDataPointer=dwAllocation+dwTableSizeInBytes;
 					for(DWORD n=0; n<dwSizeOfArray; n++)
 					{
 						DWORD* pEntry = *((DWORD**)dwAllocation+n);
@@ -5091,7 +5081,7 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD dwAllocation)
 							// String data
 							DWORD dwStringSize=0;
 							LPSTR pStr = (LPSTR)*pEntry;
-							if(*pEntry) dwStringSize = strlen(pStr);
+							if(*pEntry) dwStringSize = static_cast<DWORD>(strlen(pStr));
 							if(dwStringSize>0) WriteFile(hFile, pStr, dwStringSize, &written, FALSE);
 
 							// carriage return
@@ -5109,7 +5099,6 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD dwAllocation)
 					WriteFile(hFile, &dwSizeOfArray, 4, &written, FALSE);
 
 					// Save Out Array (of x size)
-					DWORD dwDataPointer=dwAllocation+dwTableSizeInBytes;
 					for(DWORD n=0; n<dwSizeOfArray; n++)
 					{
 						DWORD* pEntry = *((DWORD**)dwAllocation+n);
@@ -5158,7 +5147,6 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD dwAllocation)
 	if(dwAllocation)
 	{
 		// Header Info
-		DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 		DWORD dwExistingSizeOfArray = *((DWORD*)dwAllocation-4);
 		DWORD dwElementSize = *((DWORD*)dwAllocation-3);
 		DWORD dwExistingElementType = *((DWORD*)dwAllocation-2);
@@ -5203,7 +5191,7 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD dwAllocation)
 							pNewStr[dwStringSize]=0;
 
 							// New string
-							*pEntry = (DWORD_PTR)pNewStr;
+							*pEntry = static_cast<DWORD>( reinterpret_cast<DWORD_PTR>(pNewStr) );
 						}
 						arrindex++;
 					}
@@ -5428,12 +5416,12 @@ LPSTR GetTypePatternCore ( LPSTR dwTypeName, DWORD dwTypeIndex )
 			LPSTR pFindName = new char[strlen((LPSTR)dwTypeName)+2];
 			strcpy ( pFindName, (LPSTR)dwTypeName );
 			strcat ( pFindName, ":" );
-			DWORD dwFindLength = strlen ( pFindName );
+			size_t dwFindLength = strlen ( pFindName );
 			for ( DWORD dwI=0; dwI<g_dwStructPatternQty-dwFindLength; dwI++ )
 			{
 				if ( strnicmp ( g_pStructPatternsPtr+dwI, pFindName, dwFindLength )==NULL )
 				{
-					dwPatternDataBeginsAt = dwI+dwFindLength;
+				dwPatternDataBeginsAt = static_cast<DWORD>( dwI+dwFindLength );
 					break;
 				}
 			}
@@ -5443,12 +5431,12 @@ LPSTR GetTypePatternCore ( LPSTR dwTypeName, DWORD dwTypeIndex )
 		{
 			LPSTR pFindName = new char[g_dwStructPatternQty+1];
 			wsprintf ( pFindName, ":%d:", dwTypeIndex );
-			DWORD dwFindLength = strlen ( pFindName );
+			size_t dwFindLength = strlen ( pFindName );
 			for ( DWORD dwI=0; dwI<g_dwStructPatternQty-dwFindLength; dwI++ )
 			{
 				if ( strnicmp ( g_pStructPatternsPtr+dwI, pFindName, dwFindLength )==NULL )
 				{
-					dwPatternDataBeginsAt = dwI+dwFindLength;
+				dwPatternDataBeginsAt = static_cast<DWORD>( dwI+dwFindLength );
 					break;
 				}
 			}

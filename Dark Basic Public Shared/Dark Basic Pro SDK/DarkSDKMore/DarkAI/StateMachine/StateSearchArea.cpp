@@ -73,9 +73,6 @@ void StateSet::StateSearchArea::Enter   ( Entity *pEntity )
 		fDirZ /= length;
 	}
 
-	float fDir2X =  fDirZ;
-	float fDir2Z = -fDirX;
-
 	int iIndex = -1;
 	int iIndex2 = -1;
 
@@ -110,7 +107,7 @@ void StateSet::StateSearchArea::Enter   ( Entity *pEntity )
 			}
 
 			float fSqrDist = fX*fX + fZ*fZ;
-			float fDist = sqrt(fSqrDist);
+			float fDist = sqrtf(fSqrDist);
 
 			float fDotP = (fX * fDirX + fZ * fDirZ)/fDist;
 			//float fDotP2 = fX * fDir2X + fZ * fDir2Z;

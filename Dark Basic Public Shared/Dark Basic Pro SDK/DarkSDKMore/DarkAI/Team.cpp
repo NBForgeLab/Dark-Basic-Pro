@@ -469,7 +469,7 @@ void Team::UpdateMemberMovement ( float fTimeDelta )
 			// based on distance from player, determine if movement to be updated or removed from consideration
 			float fDX = pEntity->GetX() - fPlayerX;
 			float fDZ = pEntity->GetZ() - fPlayerZ;
-			float fPlrDist = fabs(fDX*fDX)+fabs(fDZ*fDZ); 
+			float fPlrDist = fabsf(fDX*fDX)+fabsf(fDZ*fDZ); 
 			if ( fPlrDist < 3000.0f*3000.0f || pEntity->bAlwaysActive==true  || g_LeeThread.GetWorkInProgress() == pEntity->GetID() )
 			{
 				// update entity movement logic

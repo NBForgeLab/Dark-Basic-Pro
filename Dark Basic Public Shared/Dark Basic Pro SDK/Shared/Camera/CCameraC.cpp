@@ -353,7 +353,7 @@ DARKSDK bool CameraToImage ( void )
 				if ( m_ptr->pCameraToImageAlphaSurface )
 				{
 					// copy surface to alpha surface
-					HRESULT hRes = D3DXLoadSurfaceFromSurface(m_ptr->pCameraToImageAlphaSurface, NULL, NULL, m_ptr->pCameraToImageSurface, NULL, NULL, D3DX_FILTER_NONE, 0xFF000000 );
+					D3DXLoadSurfaceFromSurface(m_ptr->pCameraToImageAlphaSurface, NULL, NULL, m_ptr->pCameraToImageSurface, NULL, NULL, D3DX_FILTER_NONE, 0xFF000000 );
 
 					/* commenetd out for safe keeping (direct alpha manipulation of render target)
 					// now lock the surface
@@ -1316,7 +1316,6 @@ DARKSDK void SetCamerasToStereoscopic ( int iStereoscopicMode, int iCameraL, int
 		return;
 
 	// set-up new render targets to hold back/front surfaces for new functionality of camera image writing
-	HRESULT hRes = S_OK;
 
 	// image values must be correct
 	if(iBackGrey<1 || iBackGrey>MAXIMUMVALUE)
@@ -1659,7 +1658,7 @@ DARKSDK void SetCurrentCamera ( int iID )
 DARKSDK D3DFORMAT GetValidStencilBufferFormat ( D3DFORMAT BackBufferFormat )
 {
 	// create the list in order of precedence
-	D3DFORMAT DepthFormat;
+	D3DFORMAT DepthFormat = D3DFMT_UNKNOWN;
 	D3DFORMAT	list [ ] =
 							{
 								D3DFMT_D24S8, //GeForce4 top choice
@@ -1808,7 +1807,7 @@ DARKSDK void SetCameraToImageEx ( int iID, int iImage, int iWidth, int iHeight, 
 		if ( iGenerateCameraAlpha==1 )
 		{
 			// make render target an internal texture
-			HRESULT hRes = D3DXCreateTexture (m_pD3D,
+			D3DXCreateTexture (m_pD3D,
 									  iWidth,
 									  iHeight,
 									  D3DX_DEFAULT,
@@ -1879,7 +1878,7 @@ DARKSDK void SetCameraToImageEx ( int iID, int iImage, int iWidth, int iHeight, 
 		{
 			m_dwImageDepthWidth = dwDepthWidth;
 			m_dwImageDepthHeight = dwDepthHeight;
-			HRESULT hRes = m_pD3D->CreateDepthStencilSurface(	dwDepthWidth, dwDepthHeight,
+			m_pD3D->CreateDepthStencilSurface(	dwDepthWidth, dwDepthHeight,
 																GetValidStencilBufferFormat(CommonFormat), D3DMULTISAMPLE_NONE, 0, TRUE,
 																&m_pImageDepthSurface, NULL );
 		}
@@ -2560,9 +2559,6 @@ DARKSDK void Follow ( int iID, float targetx, float targety, float targetz, floa
 
 	if(usestaticcollision>0)
 	{
-		int once=usestaticcollision;
-		int twice=usestaticcollision*2;
-
 		/* mike : need two functions to check collision with the static objects
 
 		// Put line at top of camera
@@ -2648,19 +2644,19 @@ DARKSDK void Follow ( int iID, float targetx, float targety, float targetz, floa
 	}
 }
 
-DARKSDK void CheckRotationConversion ( tagCameraData* m_ptr, bool bUseFreeFlightMode )
+DARKSDK void CheckRotationConversion ( tagCameraData* pCameraPtr, bool bUseFreeFlightMode )
 {
 	// has there been a change?
-	if ( bUseFreeFlightMode != m_ptr->bUseFreeFlightRotation )
+	if ( bUseFreeFlightMode != pCameraPtr->bUseFreeFlightRotation )
 	{
 		// Caluclates equivilant rotation data if switch rotation-modes
 		if( bUseFreeFlightMode==true )
 		{
 			// Euler to Freeflight
-			m_ptr->matFreeFlightRotate = m_ptr->matView;
-			m_ptr->matFreeFlightRotate._41=0.0f;
-			m_ptr->matFreeFlightRotate._42=0.0f;
-			m_ptr->matFreeFlightRotate._43=0.0f;
+			pCameraPtr->matFreeFlightRotate = pCameraPtr->matView;
+			pCameraPtr->matFreeFlightRotate._41=0.0f;
+			pCameraPtr->matFreeFlightRotate._42=0.0f;
+			pCameraPtr->matFreeFlightRotate._43=0.0f;
 		}
 	}
 
@@ -2669,14 +2665,14 @@ DARKSDK void CheckRotationConversion ( tagCameraData* m_ptr, bool bUseFreeFlight
 	{
 		// Freeflight to Euler
 		D3DXVECTOR3 vecRotate;
-		AnglesFromMatrix ( &m_ptr->matFreeFlightRotate, &vecRotate );
-		m_ptr->fXRotate = vecRotate.x;
-		m_ptr->fYRotate = vecRotate.y;
-		m_ptr->fZRotate = vecRotate.z;
+		AnglesFromMatrix ( &pCameraPtr->matFreeFlightRotate, &vecRotate );
+		pCameraPtr->fXRotate = vecRotate.x;
+		pCameraPtr->fYRotate = vecRotate.y;
+		pCameraPtr->fZRotate = vecRotate.z;
 	}
 
 	// new rotation mode
-	m_ptr->bUseFreeFlightRotation = bUseFreeFlightMode;
+	pCameraPtr->bUseFreeFlightRotation = bUseFreeFlightMode;
 }
 
 DARKSDK void TurnLeft ( int iID, float fAngle )

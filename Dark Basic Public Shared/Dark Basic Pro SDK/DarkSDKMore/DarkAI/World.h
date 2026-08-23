@@ -145,7 +145,7 @@ public:
 	int GetTotalPaths();
 	
 	void AddBeacon ( Beacon* pNewBeacon );
-	void CleanUpWorldBeacons ( float fTimeDelta );
+	void CleanUpWorldBeacons ( float fDelta );
 	
 	float GetTimeDelta ( );
 

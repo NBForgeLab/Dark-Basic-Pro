@@ -338,9 +338,7 @@ void DynamicCollisionNode::Reset( )
 	{
 		while ( left )
 		{
-			AvoidanceObject *pTemp = (AvoidanceObject*) left;
 			left = (DynamicCollisionNode*) ( (AvoidanceObject*)left )->pNextObject;
-			//delete pTemp;
 		}
 	}
 
@@ -834,7 +832,6 @@ void DynamicPathFinder::RemoveObject ( int id, bool bUpdate )
 	{
 		if ( pObject->id == id )
 		{
-			AvoidanceObject *pTemp = pObject;
 			if ( !pPrevObject ) pObjectList = pObject->pNextObject;
 			else pPrevObject->pNextObject = pObject->pNextObject;
 

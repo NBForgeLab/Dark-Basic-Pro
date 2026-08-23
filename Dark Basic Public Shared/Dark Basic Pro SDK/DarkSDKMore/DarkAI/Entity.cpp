@@ -1238,7 +1238,6 @@ float Entity::GetDistTo ( float x, float y, float z ) { return sqrt ( GetSqrDist
 float Entity::GetSqrDistToDest ( )
 {
 	float fX = vecFinalDest.x - GetX ( );
-	float fY = vecFinalDest.y - GetY ( );
 	float fZ = vecFinalDest.z - GetZ ( );
 
 	if ( pContainer->GetID( ) != iDestContainer ) return fX*fX + fZ*fZ + 10000;
@@ -1250,7 +1249,6 @@ float Entity::GetSqrDistToDest ( )
 float Entity::GetSqrDistToTarget ( )
 {
 	float fX = GetTargetX ( ) - GetX ( );
-	float fY = GetTargetY ( ) - GetY ( );
 	float fZ = GetTargetZ ( ) - GetZ ( );
 
 	return fX*fX + fZ*fZ;
@@ -1259,7 +1257,6 @@ float Entity::GetSqrDistToTarget ( )
 float Entity::GetSqrDistTo ( GGVECTOR3 vecPoint )
 {
 	float fX = vecPoint.x - GetX ( );
-	float fY = vecPoint.y - GetY ( );
 	float fZ = vecPoint.z - GetZ ( );
 
 	return fX*fX + fZ*fZ;
@@ -1268,7 +1265,6 @@ float Entity::GetSqrDistTo ( GGVECTOR3 vecPoint )
 float Entity::GetSqrDistTo ( float x, float y, float z )
 {
 	float fX = x - GetX ( );
-	float fY = y - GetY ( );
 	float fZ = z - GetZ ( );
 
 	return fX*fX + fZ*fZ;
@@ -1816,12 +1812,12 @@ float Entity::GetHitSpread ( )
 
 	while ( hIter < sHitFrom_list.end ( ) )
 	{
-		float fAngY = hIter->angY - hPrevIter->angY;
-		if ( fAngY < 0.0f ) fAngY += 360.0f;
+		float fAngYDiff = hIter->angY - hPrevIter->angY;
+		if ( fAngYDiff < 0.0f ) fAngYDiff += 360.0f;
 
-		if ( fAngY > fBiggestAngle )
+		if ( fAngYDiff > fBiggestAngle )
 		{
-			fBiggestAngle = fAngY;
+			fBiggestAngle = fAngYDiff;
 			hBiggestIter = hIter;
 		}
 	}
@@ -2165,17 +2161,17 @@ int Entity::CanSee ( float fX, float fY, float fZ, bool bGround )
 	int iHeight = 1;
 	if ( bIsDucking || bGround ) iHeight = 2;
 
-	bool bHit = false;
+	bool bVisibilityHit = false;
 
 	//choose old or new visibility checks
 	//if ( pWorld->UsingGlobalVisibility( ) ) bHit = pWorld->GlobalVisibilityCheck( fThisX, fThisY + GetHeight( ), fThisZ, fX, fY, fZ, NULL );
 	//else bHit = pContainer->pPathFinder->QuickPolygonsCheckVisible ( fThisX, fThisZ, fX, fZ, iHeight );
 	// 090417 - always use new visibility (even if nothing in AI obstacle world - i.e. new level with simple terrain)
-	bHit = pWorld->GlobalVisibilityCheck( fThisX, fThisY + GetHeight( ), fThisZ, fX, fY, fZ, NULL );
+	bVisibilityHit = pWorld->GlobalVisibilityCheck( fThisX, fThisY + GetHeight( ), fThisZ, fX, fY, fZ, NULL );
 
 	int iViewResult = 0;
 
-	if ( !bHit )
+	if ( !bVisibilityHit )
 	{
 		float fDirX = fX - fThisX;
 		float fDirY = pWorld->UsingGlobalVisibility( ) ? fY - ( fThisY + GetHeight( ) ) : 0;
@@ -2364,9 +2360,9 @@ bool Entity::IsLookingAtObstacle ( float fDist )
 
 		float dist = -1;
 
-		bool bHit = pWorld->GlobalVisibilityCheck( fX, fY, fZ, fX + fDirX, fY, fZ + fDirZ, &dist );
+		bool bObstacleHit = pWorld->GlobalVisibilityCheck( fX, fY, fZ, fX + fDirX, fY, fZ + fDirZ, &dist );
 
-		if ( bHit )
+		if ( bObstacleHit )
 		{
 			dist = dist * ( fDirX*fDirX + fDirZ*fDirZ );
 			if ( dist < fRadius*4 ) return true;	
@@ -2731,9 +2727,7 @@ void Entity::MoveClose ( float fDestX, float fDestY, float fDestZ, float fRange,
 	float fMinRange = fRadius*2;
 	if ( fMinRange > fRange ) fMinRange = fRange;
 	fRange = fRange - fMinRange;
-	
-	int iIterations = 0;
-	
+
 	float fVX, fVZ, fDist, fAng;
 
 	//do
@@ -2927,10 +2921,9 @@ void Entity::CalculateAvoidPosition ( float fDist )
 	vecAvoidPos.y = GetY ( );
 }
 
-void Entity::TurnToAngle ( float fTimeDelta, bool bMoving )
+void Entity::TurnToAngle ( float fTimeDelta, bool bIsMoving )
 {
 	// work out speed of turn and distance to look at destination
-	float fCurrTurnSpeed = fTurnSpeed * fTimeDelta;
 	float x = vecCurrLookAt.x - GetX ( );
 	float z = vecCurrLookAt.z - GetZ ( );
 	float fDist = sqrt ( fabs ( x*x ) + fabs ( z*z ) );
@@ -2953,7 +2946,7 @@ void Entity::TurnToAngle ( float fTimeDelta, bool bMoving )
 	/*
 	float fDifference = fabs ( fDestAngY - GetAngleY( ) );
 	if ( fDifference > 180.0f ) fDifference = 360.0f - fDifference;
-	if ( fDifference <= fCurrTurnSpeed || bMoving == false )
+	if ( fDifference <= fCurrTurnSpeed || bIsMoving == false )
 	{
 		// 080517 - when movement slowed/stopped, use actual object angle for 
 		if ( GetVisible ( dwObjectNumberRef ) == 1 )
@@ -4141,12 +4134,12 @@ void Entity::UpdateMovement ( float fTimeDelta )
 			RebuildDynamicPathFinder( );
 			
 			// dynamically caluclate a dynamic 'on the fly' avoidance path
-			AvoidanceObject *pObject;
-			if ( pDynamicPathFinder->InObject( GetX( ), GetZ( ), &pObject ) )
+			AvoidanceObject *pAvoidObject;
+			if ( pDynamicPathFinder->InObject( GetX( ), GetZ( ), &pAvoidObject ) )
 			{
 				float x;
 				float z;
-				if ( pDynamicPathFinder->GetClosestPoint( pObject, GetX( ), GetZ( ), x, z ) )
+				if ( pDynamicPathFinder->GetClosestPoint( pAvoidObject, GetX( ), GetZ( ), x, z ) )
 				{
 					cAvoidPath.AddPoint( GetX(), 0, GetZ() );
 					cAvoidPath.AddPoint( x, 0, z );
@@ -4186,14 +4179,14 @@ void Entity::UpdateMovement ( float fTimeDelta )
 		// adjust intermediate destination based on nearby entities
 		if ( bAvoiding == false )
 		{
-			float fDiffX = vecCurrDest.x - GetX( );
-			float fDiffZ = vecCurrDest.z - GetZ( );
-			float fDist = fDiffX*fDiffX + fDiffZ*fDiffZ;
-			if ( fDist > 0.00001f )
+			float fAvoidDiffX = vecCurrDest.x - GetX( );
+			float fAvoidDiffZ = vecCurrDest.z - GetZ( );
+			float fAvoidDistSq = fAvoidDiffX*fAvoidDiffX + fAvoidDiffZ*fAvoidDiffZ;
+			if ( fAvoidDistSq > 0.00001f )
 			{
 				// work out new current destination position to place in circle around current AI position
-				float fDirAngle = acos ( fDiffZ / sqrt(fDist) ) * RADTODEG;
-				if ( fDiffX < 0 ) fDirAngle = 360.0f - fDirAngle;
+				float fDirAngle = acos ( fAvoidDiffZ / sqrt(fAvoidDistSq) ) * RADTODEG;
+				if ( fAvoidDiffX < 0 ) fDirAngle = 360.0f - fDirAngle;
 				bool bValid = AdjustDirection ( &fDirAngle );
 				if ( bValid == true )
 				{
@@ -4338,9 +4331,9 @@ void Entity::UpdateMovement ( float fTimeDelta )
 	if ( l_iAvoidMode == 0 )
 	{
 		GGVECTOR3 vecAvgDir( pvecDir[0] );
-		float fDiffX = abs( vecAvgDir.x - vecDir.x );
-		float fDiffZ = abs( vecAvgDir.z - vecDir.z );
-		if ( fDiffX < 0.1f && fDiffZ < 0.1f ) vecDir = vecAvgDir;
+		float fAvgDiffX = abs( vecAvgDir.x - vecDir.x );
+		float fAvgDiffZ = abs( vecAvgDir.z - vecDir.z );
+		if ( fAvgDiffX < 0.1f && fAvgDiffZ < 0.1f ) vecDir = vecAvgDir;
 		else { vecDir.x = 0; vecDir.y = 0; vecDir.z = 0; }
 	}
 
@@ -4892,7 +4885,6 @@ void Entity::ClearCoverPoint()
 	Container* pCont = cWorld.GetContainer(0);
 	if ( !pCont ) return;
 
-	PathFinderAdvanced* pCoverList = NULL;
 	if ( !pCont->pPathFinder ) return;
 
 	sCoverPoint* pItem = pCont->pPathFinder->pCoverPointList;

@@ -948,12 +948,8 @@ bool PathFinderAdvanced::GridSetEntityPosition( float x, float z, int id )
 	int iZ = GridFtoI( z );
 
 	//if ( cGrid.GetPosition( iX, iZ ) >= 0 )
-	{
-		cGrid.SetPosition( iX, iZ, id );
-		return true;
-	}
-
-	return false;
+	cGrid.SetPosition( iX, iZ, id );
+	return true;
 }
 
 void PathFinderAdvanced::GridClearEntityPosition( float x, float z )
@@ -1117,7 +1113,7 @@ bool PathFinderAdvanced::GridUnReservePosition( float x, float z )
 }
 */
 
-int PathFinderAdvanced::GridCheckDirection( int id, float x, float z, float dirX, float dirZ, float destX, float destZ, int ignore, int &iReserved )
+int PathFinderAdvanced::GridCheckDirection( int id, float x, float z, float dirX, float dirZ, float destX, float destZ, int iIgnoreCell, int &iReserved )
 {
 	float length = sqrt(dirX*dirX + dirZ*dirZ);
 
@@ -1183,12 +1179,12 @@ int PathFinderAdvanced::GridCheckDirection( int id, float x, float z, float dirX
 	*/
 	
 	if ( (iX != iX2 || iZ != iZ2) 
-	  && ( cGrid.GetPosition( iX2, iZ2 ) == 0 || (cGrid.GetPosition( iX2, iZ2 ) == -1 && cGrid.GetReserved(iX2,iZ2) == id) || cGrid.GetPosition( iX2, iZ2 ) == ignore ) ) 
+	  && ( cGrid.GetPosition( iX2, iZ2 ) == 0 || (cGrid.GetPosition( iX2, iZ2 ) == -1 && cGrid.GetReserved(iX2,iZ2) == id) || cGrid.GetPosition( iX2, iZ2 ) == iIgnoreCell ) ) 
 	{
 		if ( cGrid.GetPosition( iX2, iZ2 ) == -1 ) iReserved = 2;
 		return 2;
 	}
-	if ( cGrid.GetPosition( iX3, iZ3 ) == 0 || (cGrid.GetPosition( iX3, iZ3 ) == -1 && cGrid.GetReserved(iX3,iZ3) == id) || cGrid.GetPosition( iX3, iZ3 ) == ignore ) 
+	if ( cGrid.GetPosition( iX3, iZ3 ) == 0 || (cGrid.GetPosition( iX3, iZ3 ) == -1 && cGrid.GetReserved(iX3,iZ3) == id) || cGrid.GetPosition( iX3, iZ3 ) == iIgnoreCell ) 
 	{
 		return 3;
 	}
@@ -1311,7 +1307,6 @@ void PathFinderAdvanced::BuildWaypoints( )
 	ClearCoverPoints();
 
 	// vars
-	int howManyCoverPoints = 0;
     //vector<sPolygonData>::iterator pIter = sPolygonData_list.begin ( );
 	vector<sVertexData>::iterator vIter;
 	vector<sVertexData>::iterator vIterPrev;
@@ -2641,7 +2636,6 @@ void PathFinderAdvanced::FindClosestOutsidePoint ( float *pX, float *pY )
 		fVnY = vIter->fNormVY;
 		vIter = pIter->sVertexData_list.begin ( );
 
-		int iCountSide = 0;
 		float fClosestDist = -1.0f;
 		float fClosestX = 0.0f;
 		float fClosestY = 0.0f;
@@ -2687,10 +2681,10 @@ void PathFinderAdvanced::FindClosestOutsidePoint ( float *pX, float *pY )
 			if ( fDotP < 0.0f ) fDotP = 0.0f;
 			if ( fDotP > 1.0f ) fDotP = 1.0f;
 
-			float fDiffX = ( fX + vx*fDotP ) - (*pX);
-			float fDiffY = ( fY + vy*fDotP ) - (*pY);
+			float fSegDiffX = ( fX + vx*fDotP ) - (*pX);
+			float fSegDiffY = ( fY + vy*fDotP ) - (*pY);
 
-			float fDist = fDiffX*fDiffX + fDiffY*fDiffY;
+			float fDist = fSegDiffX*fSegDiffX + fSegDiffY*fSegDiffY;
 			if ( fDist < fClosestDist || fClosestDist < 0.0f )
 			{
 				fClosestDist = fDist;
@@ -3239,9 +3233,9 @@ void PathFinderAdvanced::SearchCoverPoints ( float fSX, float fSY, float fTX, fl
 						float fVY = fTY - pCoverPoint->fY;
 						float length = sqrt(fVX*fVX + fVY*fVY);
 
-						float dotp = (fVX*pCoverPoint->fDirX + fVY*pCoverPoint->fDirY)/length;
+						float dotpCover = (fVX*pCoverPoint->fDirX + fVY*pCoverPoint->fDirY)/length;
 
-						if ( dotp > 0.5f ) 
+						if ( dotpCover > 0.5f ) 
 						{
 							// everything checks out
 							pPoints->AddPoint ( pCoverPoint->fX, 0, pCoverPoint->fY, pCoverPoint->iID );
@@ -3288,17 +3282,17 @@ void PathFinderAdvanced::SearchPeekingPoints ( float fSX, float fSY, float fTX, 
 						float fVX = fTX - pWaypoint->fX;
 						float fVY = fTY - pWaypoint->fY;
 
-						float dotp = fVX*pWaypoint->fVX + fVY*pWaypoint->fVY;
+						float dotpCorner = fVX*pWaypoint->fVX + fVY*pWaypoint->fVY;
 
-						if ( dotp >= 0 ) 
+						if ( dotpCorner >= 0 )
 						{
 							// everything checks out so far, find the correct side of the corner
-							float dirX = pWaypoint->fVY;
-							float dirY = -pWaypoint->fVX;
+							float dirCX = pWaypoint->fVY;
+							float dirCY = -pWaypoint->fVX;
 
 							float ang = acos( pWaypoint->fCAngle );
 							float sign = 1;
-							if ( fVX*dirX + fVY*dirY > 0 )
+							if ( fVX*dirCX + fVY*dirCY > 0 )
 							{
 								ang = -ang;
 								sign = -1;

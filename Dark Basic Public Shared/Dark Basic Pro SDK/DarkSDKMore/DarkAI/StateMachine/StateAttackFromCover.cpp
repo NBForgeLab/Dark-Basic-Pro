@@ -41,10 +41,7 @@ void StateSet::StateAttackFromCover::Enter   ( Entity *pEntity )
 	float fDirZ = pEntity->GetTargetZ( ) - pEntity->GetZ ( );
 
 	float fRange = ( fDirX*fDirX + fDirZ*fDirZ );
-	float fTargetDist = sqrt( fRange );
-
-	bool bFound = false;
-	int iCount = 0;
+	float fTargetDist = sqrtf( fRange );
 
 	int iIndex = -1;
 	float fClosest = 1000000.0f;
@@ -151,7 +148,7 @@ void StateSet::StateAttackFromCover::Execute ( Entity *pEntity )
 			// should the entity dive?
 			if ( pEntity->GetMovePoints() == 2 )
 			{
-				float diff = fabs(pEntity->GetSqrDistToDest() - pEntity->GetDiveRange()*pEntity->GetDiveRange());
+				float diff = fabsf(pEntity->GetSqrDistToDest() - pEntity->GetDiveRange()*pEntity->GetDiveRange());
 				if ( diff < pEntity->GetRadius()*pEntity->GetRadius()/100.0f )
 				{
 					// yes

@@ -30,7 +30,7 @@ public:
 	void SetSound ( int iUrgency, float fSize, Container *pInContainer );
 	void SetHiding ( int iTeam );
 	void SetAlert ( int iInfo );
-	void SetOther ( int iType, int iInfo );
+	void SetOther ( int iTypeInfo, int iInfo );
 
 	bool IsOld ( float fTimeDelta );
 	bool IsSound ( );

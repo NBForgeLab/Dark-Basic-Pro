@@ -55,7 +55,7 @@ void Beacon::SetAlert ( int iInfo )
 	iExtraInfo = iInfo;
 }
 
-void Beacon::SetOther ( int iType, int iInfo )
+void Beacon::SetOther ( int iTypeInfo, int iInfo )
 {
 	iType = 11;
 	iExtraInfo = iInfo;

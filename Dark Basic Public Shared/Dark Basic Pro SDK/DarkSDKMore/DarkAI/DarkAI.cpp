@@ -521,8 +521,9 @@ void AIEndNewObstacle ( int iContainerID, int iHeight, int iObstacleType )
 {
 	if ( CheckAIInit ( )==0 ) return;
 
-	Container *pContainer = CheckContainer ( iContainerID );
-	
+	// validate the container exists
+	CheckContainer ( iContainerID );
+
 	if ( !cWorld.pManualPolygon )
 	{
 		if ( bShowErrors )
@@ -2581,31 +2582,31 @@ LPSTR AIGetEntityState ( int iObjID )
 {
 	if ( CheckAIInit ( )==0 ) return 0;
 
-#pragma warning ( disable : 4312 )	//convert DWORD to 'char *'
-		
 	Entity *pEntity = cWorld.GetEntityCopy ( iObjID );
 	
 	if ( !pEntity )
 	{
 		LPSTR szReturnString = NULL;
 		g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, 30 );
-		strcpy_s ( (char*) szReturnString, 30, "Error! Entity Does Not Exist" );
+		if ( szReturnString )
+		{
+			strcpy_s ( (char*) szReturnString, 30, "Error! Entity Does Not Exist" );
+		}
 		return szReturnString;
 	}
 	
 	const char* szNewString = pEntity->GetStateName ( );
 	
-	DWORD dwSize = (DWORD) strlen ( (char*) szNewString );
+	size_t dwSize = strlen ( szNewString );
 
 	LPSTR szReturnString = NULL;
-	g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, dwSize+1 );
+	g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, static_cast<DWORD>(dwSize + 1) );
 	
-	strcpy_s ( (char*) szReturnString, dwSize+1, szNewString);
+	if ( szReturnString )
+	{
+		strcpy_s ( (char*) szReturnString, dwSize + 1, szNewString );
+	}
 
-	//delete [] szNewString;
-
-#pragma warning ( default : 4312 )
-	
 	return szReturnString;
 }
 
@@ -2613,14 +2614,16 @@ LPSTR AIGetEntityAction ( int iObjID )
 {
 	if ( CheckAIInit ( )==0 ) return 0;
 
-#pragma warning ( disable : 4312 )	//convert DWORD to 'char *'
-		
 	Entity *pEntity = cWorld.GetEntityCopy ( iObjID );
 	
 	if ( !pEntity )
 	{
 		LPSTR szReturnString = NULL;
-		strcpy_s ( (char*) szReturnString, 30, "Error! Entity Does Not Exist" );
+		g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, 30 );
+		if ( szReturnString )
+		{
+			strcpy_s ( (char*) szReturnString, 30, "Error! Entity Does Not Exist" );
+		}
 		return szReturnString;
 	}
 
@@ -2666,15 +2669,16 @@ LPSTR AIGetEntityAction ( int iObjID )
 		strcat_s( szNewString, 255, " And Attacking" );
 	}
 	
-	DWORD dwSize = (DWORD) strlen ( (char*) szNewString );
+	size_t dwSize = strlen ( szNewString );
 
 	LPSTR szReturnString = NULL;
-	g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, dwSize+1 );
+	g_pGlob->CreateDeleteString ( (DWORD_PTR*) &szReturnString, static_cast<DWORD>(dwSize + 1) );
 	
-	strcpy_s ( (char*) szReturnString, dwSize+1, szNewString);
+	if ( szReturnString )
+	{
+		strcpy_s ( (char*) szReturnString, dwSize + 1, szNewString );
+	}
 	delete [] szNewString;
-	
-#pragma warning ( default : 4312 )
 	
 	return szReturnString;
 }
@@ -2771,7 +2775,7 @@ float AIRayCast ( float x, float y, float z, float x2, float y2, float z2 )
 	if ( CheckAIInit ( )==0 ) return 0;
 
 	float dist = 0;
-	bool bHit = cWorld.GlobalVisibilityCheck( x,y,z, x2,y2,z2, &dist );
+	cWorld.GlobalVisibilityCheck( x,y,z, x2,y2,z2, &dist );
 
 	return dist;
 }
@@ -3127,9 +3131,6 @@ int AIEntityMoveToCover ( int iObjID, float x, float z )
 
 	float fRange = ( fDirX*fDirX + fDirZ*fDirZ );
 	float fTargetDist = sqrt( fRange );
-
-	bool bFound = false;
-	int iCount = 0;
 
 	int iIndex = -1;
 	float fClosest = 1000000.0f;

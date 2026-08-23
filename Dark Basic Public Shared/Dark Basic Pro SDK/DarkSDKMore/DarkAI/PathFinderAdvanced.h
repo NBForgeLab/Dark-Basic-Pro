@@ -303,7 +303,7 @@ private:
 	void GridClearUndesirablePosition( float x, float z );
 	//bool GridReservePosition( float x, float z );
 	//bool GridUnReservePosition( float x, float z );
-	int GridCheckDirection( int id, float x, float z, float dirX, float dirZ, float destX, float destZ, int ignore, int &iReserved );
+	int GridCheckDirection( int id, float x, float z, float dirX, float dirZ, float destX, float destZ, int iIgnoreCell, int &iReserved );
 	bool GridCheckDestination( float *x, float *z );
 	void GridMoveEntity( float x, float z, float newX, float newZ );
 

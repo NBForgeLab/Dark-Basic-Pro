@@ -168,8 +168,8 @@ DBPRO_GLOBAL LPSTR GetReturnStringFromWorkString(void)
 	LPSTR pReturnString=NULL;
 	if(m_pWorkString)
 	{
-		DWORD dwSize=strlen(m_pWorkString);
-		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
+		size_t dwSize=strlen(m_pWorkString);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, static_cast<DWORD>(dwSize+1));
 		strcpy(pReturnString, m_pWorkString);
 	}
 	return pReturnString;
@@ -346,7 +346,7 @@ DARKSDK BOOL DB_MemblockFromSound(int mbi, int soundindex)
 	DWORD Duration=0;
 
 	// mike - 300305 - need more info for waveformat
-	WAVEFORMATEX wfx;
+	WAVEFORMATEX wfx{};
 
 	// mike - 300305 - pass in wave structure
 	if(g_MEM_GetSoundData) g_MEM_GetSoundData ( soundindex, &dwBitsPerSecond, &Frequency, &Duration, &pData, &dwDataSize, true, &wfx );
@@ -511,7 +511,6 @@ DARKSDK BOOL DB_MeshFromMemblock(int mbi, int meshid)
 
 		// MEMBLOCK Mesh Data
 		char* pData = gpMemblock[mbi]+12;
-		DWORD dwDataSize = dwVertMax * dwFVFSize;
 
 		// Recreate bitmap from memblock data
 		if(g_MEM_SetMeshData) g_MEM_SetMeshData ( meshid, dwFVF, dwFVFSize, pData, dwVertMax );
@@ -1011,20 +1010,16 @@ DARKSDK void CreateMemblockFromArray( int mbi, DWORD dwAllocation )
 				// Get Array Information
 				LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
 				DWORD* pHeader	= (DWORD*)(pArrayPtr);
-				DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
+				size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 				DWORD dwSizeOfArray = pHeader[10];
 				DWORD dwSizeOfOneDataItem = pHeader[11];
-				DWORD dwTypeValueOfOneDataItem = pHeader[12];
-				DWORD dwInternalIndex = pHeader[13];
-				DWORD dwRefSizeInBytes = dwSizeOfArray * 4;
-				DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
-				dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
-				DWORD* pRef = (DWORD*)(pArrayPtr+dwHeaderSizeInBytes);
-				LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
+				size_t dwRefSizeInBytes = static_cast<size_t>(dwSizeOfArray) * sizeof(uintptr_t);
+				size_t dwFlagSizeInBytes = static_cast<size_t>(dwSizeOfArray) * 1;
+				size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwSizeOfOneDataItem;
 				pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
 				// create memblock
-				gpMemblockSize[mbi] = dwDataSizeInBytes;
+				gpMemblockSize[mbi] = static_cast<DWORD>(dwDataSizeInBytes);
 				//gpMemblock[mbi]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, gpMemblockSize[mbi]);
 				gpMemblock[mbi]=(char*)new char[gpMemblockSize[mbi]];
 				memset ( gpMemblock[mbi], 0, gpMemblockSize[mbi] );
@@ -1056,23 +1051,18 @@ DARKSDK void CreateArrayFromMemblock( DWORD dwAllocation, int mbi )
 		{
 			// obtain array data ptr and size
 			LPSTR pData = NULL;
-			DWORD dwDataSizeInBytes = 0;
 			DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
 			if(dwSizeOfTable>0)
 			{
 				// Get Array Information
 				LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
 				DWORD* pHeader	= (DWORD*)(pArrayPtr);
-				DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
+				size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 				DWORD dwSizeOfArray = pHeader[10];
 				DWORD dwSizeOfOneDataItem = pHeader[11];
-				DWORD dwTypeValueOfOneDataItem = pHeader[12];
-				DWORD dwInternalIndex = pHeader[13];
-				DWORD dwRefSizeInBytes = dwSizeOfArray * 4;
-				DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
-				dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
-				DWORD* pRef = (DWORD*)(pArrayPtr+dwHeaderSizeInBytes);
-				LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
+				size_t dwRefSizeInBytes = static_cast<size_t>(dwSizeOfArray) * sizeof(uintptr_t);
+				size_t dwFlagSizeInBytes = static_cast<size_t>(dwSizeOfArray) * 1;
+				size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwSizeOfOneDataItem;
 				pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
 				// memblock to array

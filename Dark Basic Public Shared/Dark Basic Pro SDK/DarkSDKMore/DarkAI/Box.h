@@ -96,7 +96,6 @@ inline bool Box::InBox(AIPoint* p) const {
 inline int Box::IntersectBox(const AIPoint* p, const Vector* vi, float* dist) const
 {        
     float tminx,tmaxx,tminy,tmaxy;
-    int side=0;           
 
     if (vi->x>=0) {
         tminx = (minx - p->x) *vi->x;

@@ -20,8 +20,6 @@ void StateSet::StateDefend::Execute ( Entity *pEntity )
 {
 	if ( pEntity->ValidTarget( ) )
 	{
-		float fDist = pEntity->GetSqrDistToTarget ( );
-
 		//float fMinimumDist = 16.0f;
 
 		if ( pEntity->IsHit ( ) )

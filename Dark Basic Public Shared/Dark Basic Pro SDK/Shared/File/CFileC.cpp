@@ -69,7 +69,7 @@ DBPRO_GLOBAL BOOL						FileEOF[MAX_FILES];
 DBPRO_GLOBAL LPSTR						pVirtFileEncrypted[MAX_FILES];
 DBPRO_GLOBAL char						filetext[_MAX_PATH];
 DBPRO_GLOBAL struct _finddata_t			filedata;
-DBPRO_GLOBAL long						hInternalFile					= NULL;
+DBPRO_GLOBAL intptr_t					hInternalFile					= NULL;
 DBPRO_GLOBAL int						FileReturnValue					= -1;
 DBPRO_GLOBAL bool						g_bCreateChecklistNow;
 DBPRO_GLOBAL DWORD						g_dwMaxStringSizeInEnum;
@@ -293,7 +293,6 @@ DARKSDK DWORD DB_FileSize(char* Filename)
 	HANDLE hfile = CreateFile(VirtualFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hfile==INVALID_HANDLE_VALUE)
 	{
-		DWORD dwErr = GetLastError();
 		return 0;
 	}
 
@@ -338,29 +337,29 @@ DARKSDK BOOL DB_DeleteFile(char* Filename)
 
 DARKSDK bool rFindFileInSub(char* currentpath, char* searchfile, char* returnpath)
 {
-	struct _finddata_t filedata;
+	struct _finddata_t localdata;
 
 	// Set directory
 	_chdir(currentpath);
 
 	// Find first file in this directory
-	long hFile = _findfirst("*.*", &filedata);
+	intptr_t hFile = _findfirst("*.*", &localdata);
 	if(hFile!=-1L)
 	{
 		// Skip '..'
-		_findnext(hFile, &filedata);
+		_findnext(hFile, &localdata);
 
 		// Start directory scan
-		while(_findnext(hFile, &filedata)==0)
+		while(_findnext(hFile, &localdata)==0)
 		{
 			// Is File or Directory
-			if(filedata.attrib & _A_SUBDIR)
+			if(localdata.attrib & _A_SUBDIR)
 			{
 				// Sub-Directory
 				char gointodir[512];
 				strcpy(gointodir, currentpath);
 				strcat(gointodir, "\\");
-				strcat(gointodir, filedata.name);
+				strcat(gointodir, localdata.name);
 				if(strlen(gointodir)<=255)
 				{
 					if(rFindFileInSub(gointodir, searchfile, returnpath))
@@ -374,7 +373,7 @@ DARKSDK bool rFindFileInSub(char* currentpath, char* searchfile, char* returnpat
 			{
 				// File
 				char checkfilenameA[256];
-				strcpy(checkfilenameA, _strlwr(filedata.name));
+				strcpy(checkfilenameA, _strlwr(localdata.name));
 				if(strcmp(checkfilenameA, searchfile)==0)
 				{
 					// Found File & Path!
@@ -513,7 +512,7 @@ DARKSDK BOOL DB_DeleteDir(char* Dirname)
 
 DARKSDK void EmptyThisDirectoryFirst(char* Dirname)
 {
-	struct _finddata_t filedata;
+	struct _finddata_t localdata;
 
 	// Record old dir
 	char olddir[256];
@@ -523,23 +522,23 @@ DARKSDK void EmptyThisDirectoryFirst(char* Dirname)
 	_chdir(Dirname);
 
 	// Find first file in this directory
-	int res;
-	long hFile = _findfirst("*.*", &filedata);
+	int res{};
+	intptr_t hFile = _findfirst("*.*", &localdata);
 	if(hFile!=-1L)
 	{
-		if(strcmp(filedata.name,".")==0) res = _findnext(hFile, &filedata);
-		if(strcmp(filedata.name,"..")==0) res = _findnext(hFile, &filedata);
+		if(strcmp(localdata.name,".")==0) res = _findnext(hFile, &localdata);
+		if(strcmp(localdata.name,"..")==0) res = _findnext(hFile, &localdata);
 		while(res!=-1)
 		{
-			if(filedata.attrib & _A_SUBDIR)
+			if(localdata.attrib & _A_SUBDIR)
 			{
-				EmptyThisDirectoryFirst(filedata.name);
-				RemoveDirectory(filedata.name);
+				EmptyThisDirectoryFirst(localdata.name);
+				RemoveDirectory(localdata.name);
 			}
 			else
-				DeleteFile(filedata.name);
+				DeleteFile(localdata.name);
 
-			res = _findnext(hFile, &filedata);
+			res = _findnext(hFile, &localdata);
 		}
 		_findclose(hFile);
 	}
@@ -553,7 +552,7 @@ DARKSDK BOOL DB_DeleteDirRecursively(char* Dirname)
 	if(DB_PathExist(Dirname))
 	{
 		EmptyThisDirectoryFirst(Dirname);
-		BOOL bResult = RemoveDirectory(Dirname);
+		RemoveDirectory(Dirname);
 		return TRUE;
 	}
 	else
@@ -747,8 +746,8 @@ DARKSDK LPSTR GetReturnStringFromWorkString(char* WorkString = m_pWorkString)
 	LPSTR pReturnString=NULL;
 	if(WorkString)
 	{
-		DWORD dwSize=strlen(WorkString);
-		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
+		size_t dwSize=strlen(WorkString);
+		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, static_cast<DWORD>(dwSize+1));
 		strcpy(pReturnString, WorkString);
 	}
 	return pReturnString;
@@ -836,8 +835,8 @@ DARKSDK void ChecklistForFiles(void)
 		g_pGlob->checklistqty=0;
 		while(FGetFileReturnValue()!=-1L)
 		{
-			DWORD dwSize = strlen(filedata.name)+1;
-			if(dwSize>g_dwMaxStringSizeInEnum) g_dwMaxStringSizeInEnum=dwSize;
+			size_t dwSize = strlen(filedata.name)+1;
+			if(dwSize>g_dwMaxStringSizeInEnum) g_dwMaxStringSizeInEnum=static_cast<DWORD>(dwSize);
 			if(g_bCreateChecklistNow)
 			{
 				strcpy(g_pGlob->checklist[g_pGlob->checklistqty].string, filedata.name);
@@ -886,9 +885,6 @@ DARKSDK void ChecklistForDrives(void)
 		strcpy(g_pGlob->checklist[c].string, szList[c]);
 	}
 
-	int i = g_pGlob->checklistqty;
-
-	
 	/*
 	char storedrive[_MAX_PATH];
 	getcwd(storedrive, _MAX_PATH);
@@ -918,7 +914,7 @@ DARKSDK void ChecklistForDrives(void)
 			if(!_chdrive( drive ))
 			{
 				wsprintf(filetext, "%c:", drive + 'A' - 1);
-				DWORD dwSize = strlen(filetext)+1;
+				DWORD dwSize = static_cast<DWORD>(strlen(filetext)+1);
 				if(dwSize>g_dwMaxStringSizeInEnum) g_dwMaxStringSizeInEnum=dwSize;
 				if(g_bCreateChecklistNow)
 				{
@@ -1054,7 +1050,7 @@ DARKSDK void WriteByteToFile( DWORD_PTR pFilename, int iPos, int iByte )
 			// Modify byte
 			int offset = iPos;
 			if(offset>=0 && offset<filebuffersize)
-				filebuffer[offset] = iByte;
+				filebuffer[offset] = static_cast<char>(iByte);
 
 			// Write back out again
 			HANDLE hwritefile = CreateFile(FilenameString, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -1252,7 +1248,7 @@ DARKSDK void WriteFilemap ( DWORD_PTR pFilemapname, DWORD dwValue, DWORD_PTR pSt
 	if ( iWriteType==1 )
 	{
 		// Copy data to filemap
-		DWORD dwStringSize = strlen((LPSTR)pString);
+		DWORD dwStringSize = static_cast<DWORD>(strlen((LPSTR)pString));
 		*((DWORD*)lpVoid+1) = dwStringSize;
 		strcpy((LPSTR)lpVoid+8, (LPSTR)pString);
 	}
@@ -1546,7 +1542,7 @@ DARKSDK DWORD ReadString( int f, DWORD_PTR pDestStr )
 
 fileerror:
 
-    return (DWORD_PTR)pReturnString;
+    return static_cast<DWORD>( (DWORD_PTR)pReturnString );
 }
 
 DARKSDK void ReadFileBlockCore(char* FilenameString, int f )
@@ -1661,7 +1657,7 @@ DARKSDK void ReadFileBlock( int f, DWORD_PTR pFilename )
 			// mike - 020206 - addition for vs8
 			int n = 0;
 			//for(int n=strlen(DirString)-1; n>0 ; n--)
-			for(n=strlen(DirString)-1; n>0 ; n--)
+			for(n=static_cast<int>(strlen(DirString))-1; n>0 ; n--)
 				if(DirString[n]=='\\') break;
 			DirString[n+1]=0;
 			MakePathToThisFolder(DirString);
@@ -1721,7 +1717,7 @@ DARKSDK void ReadDirBlock( int f, DWORD_PTR pFilename )
 			// If directory doesn't exist, create one
 			char pNewDir[_MAX_PATH];
 			strcpy(pNewDir, DirString);
-			DWORD dwLength=strlen(pNewDir);
+			size_t dwLength=strlen(pNewDir);
 			if(pNewDir[dwLength-1]!='\\') { pNewDir[dwLength]='\\'; pNewDir[dwLength+1]=0; } 
 			MakePathToThisFolder(pNewDir);
 			chdir(pNewDir);
@@ -1877,13 +1873,13 @@ DARKSDK void WriteString( int f, DWORD_PTR pString )
             if (pString)
             {
                 LPSTR string = (char*)pString;
-                DWORD stringlength=strlen(string);
+                size_t stringlength=strlen(string);
 
                 // 20091129 v75 - IRM - Only write the string if >0 bytes
                 if (stringlength)
                 {
                     // 20091129 v75 - IRM - Write directly from the input data, not using a secondary buffer
-    			    if(WriteFile(File[f], string, stringlength, &bytes, NULL)==0)
+    			    if(WriteFile(File[f], string, static_cast<DWORD>(stringlength), &bytes, NULL)==0)
 	    			    RunTimeWarning(RUNTIMEERROR_CANNOTWRITETOFILE);
                 }
             }
@@ -1971,19 +1967,19 @@ DARKSDK void WriteDirContents(int f, char* newdir, bool bMode, DWORD* pCount, ch
 
 	// Go through dir and write out all files
 	int res=-1;
-	struct _finddata_t filedata;
-	long hLocalFile = _findfirst("*.*", &filedata);
-	if(strcmp(filedata.name,".")==0) res=_findnext(hLocalFile, &filedata);
-	if(strcmp(filedata.name,"..")==0) res=_findnext(hLocalFile, &filedata);
+	struct _finddata_t localdata;
+	intptr_t hLocalFile = _findfirst("*.*", &localdata);
+	if(strcmp(localdata.name,".")==0) res=_findnext(hLocalFile, &localdata);
+	if(strcmp(localdata.name,"..")==0) res=_findnext(hLocalFile, &localdata);
 	while(res!=-1L)
 	{
-		if(FGetActualTypeValue(filedata.attrib)==1)
+		if(FGetActualTypeValue(localdata.attrib)==1)
 		{
 			char thisrelativedir[256];
 			strcpy(thisrelativedir, relativedir);
-			strcat(thisrelativedir, filedata.name);
+			strcat(thisrelativedir, localdata.name);
 			strcat(thisrelativedir, "\\");
-			WriteDirContents(f, filedata.name, bMode, pCount, thisrelativedir);
+			WriteDirContents(f, localdata.name, bMode, pCount, thisrelativedir);
 		}
 		else
 		{
@@ -1993,8 +1989,8 @@ DARKSDK void WriteDirContents(int f, char* newdir, bool bMode, DWORD* pCount, ch
 				DWORD bytes;
 				char string[256];
 				strcpy(string, relativedir);
-				strcat(string, filedata.name);
-				DWORD stringlength=strlen(string)+1;
+				strcat(string, localdata.name);
+				DWORD stringlength=static_cast<DWORD>(strlen(string)+1);
 
 				// Write size of filename first
 				if(WriteFile(File[f], &stringlength, sizeof(stringlength), &bytes, NULL)==0)
@@ -2005,7 +2001,7 @@ DARKSDK void WriteDirContents(int f, char* newdir, bool bMode, DWORD* pCount, ch
 					RunTimeWarning(RUNTIMEERROR_CANNOTWRITETOFILE);
 
 				// Write actual fileblock
-				WriteFileBlockCore(filedata.name, f, 0);
+				WriteFileBlockCore(localdata.name, f, 0);
 			}
 			else
 			{
@@ -2013,7 +2009,7 @@ DARKSDK void WriteDirContents(int f, char* newdir, bool bMode, DWORD* pCount, ch
 				*(pCount)=inc+1;
 			}
 		}
-		res=_findnext(hLocalFile, &filedata);
+		res=_findnext(hLocalFile, &localdata);
 	}
 	_findclose(hLocalFile);
 

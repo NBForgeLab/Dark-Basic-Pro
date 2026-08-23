@@ -239,7 +239,7 @@ inline Polygon2D CalculateConvexHull ( vector<sVertex> sVertex_list )
 	vector<sVertex>::iterator vIter = sVertex_list.begin ( );
 	vector<sVertex>::iterator vIndex = vIter;
 
-	float fMinX;
+	float fMinX{};
 	if ( vIter < sVertex_list.end( ) ) fMinX = (float) vIter->x;
 	
 	while ( vIter < sVertex_list.end ( ) )
@@ -933,7 +933,7 @@ void World::AddObstacleFromObject ( sObject *pObject, int iContainerID, int iHei
 		while( pIntersectionList )
 		{
 			pIntersection = pIntersectionList->pNextSection;
-			Intersection *pLastSection = pIntersectionList;
+			Intersection *pMergeLastSection = pIntersectionList;
 			Intersection *pFirstSection = pIntersectionList;
 			float fSqrRadius = fRadius*fRadius;
 
@@ -984,7 +984,7 @@ void World::AddObstacleFromObject ( sObject *pObject, int iContainerID, int iHei
 						//fputs( infoStr, pInfo );
 
 						Intersection *pTemp = pIntersection;
-						pLastSection->pNextSection = pIntersection->pNextSection;
+						pMergeLastSection->pNextSection = pIntersection->pNextSection;
 						pIntersection = pIntersection->pNextSection;
 						delete pTemp;
 						continue;
@@ -994,7 +994,7 @@ void World::AddObstacleFromObject ( sObject *pObject, int iContainerID, int iHei
 					//fputs( infoStr, pInfo );
 				}
 
-				pLastSection = pIntersection;
+				pMergeLastSection = pIntersection;
 				pIntersection = pIntersection->pNextSection;
 			}
 		
@@ -1517,14 +1517,14 @@ void World::AddBeacon ( Beacon* pNewBeacon )
 	pBeaconList = pNewBeacon;
 }
 
-void World::CleanUpWorldBeacons ( float fTimeDelta )
+void World::CleanUpWorldBeacons ( float fDelta )
 {
 	Beacon *pBeacon = pBeaconList;
 	Beacon *pLastBeacon = 0;
 
 	while ( pBeacon )
 	{
-		bool bDelete = pBeacon->IsOld ( fTimeDelta );
+		bool bDelete = pBeacon->IsOld ( fDelta );
 		
 		if ( bDelete )
 		{

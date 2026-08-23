@@ -38,10 +38,7 @@ void StateSet::StatePeekFromCorner::Enter   ( Entity *pEntity )
 	float fDirZ = pEntity->GetTargetZ( ) - pEntity->GetZ ( );
 
 	float fRange = ( fDirX*fDirX + fDirZ*fDirZ );
-	float fTargetDist = sqrt( fRange );
-
-	bool bFound = false;
-	int iCount = 0;
+	float fTargetDist = sqrtf( fRange );
 
 	int iIndex = -1;
 	float fClosest = 1000000.0f;
@@ -119,7 +116,7 @@ void StateSet::StatePeekFromCorner::Execute ( Entity *pEntity )
 			float dirX = pEntity->GetTargetX() - pEntity->GetX();
 			float dirZ = pEntity->GetTargetZ() - pEntity->GetZ();
 
-			float length = sqrt(dirX*dirX + dirZ*dirZ);
+			float length = sqrtf(dirX*dirX + dirZ*dirZ);
 			if ( length > 0 ) 
 			{
 				dirX /= length;

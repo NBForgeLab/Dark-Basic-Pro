@@ -170,7 +170,7 @@ DARKSDK void InputSomething(LPSTR* pStr)
 	// Create Output String
 	if(pLocalInputWorkString)
 	{
-		DWORD length = strlen(pLocalInputWorkString);
+		size_t length = strlen(pLocalInputWorkString);
 		LPSTR pNewStr = new char[length+1];
 		strcpy(pNewStr, pLocalInputWorkString);
 		(*pStr)=pNewStr;
