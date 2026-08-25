@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Windows.h"
+#include <windows.h>
+#include <cstdint>
 #include "btBulletDynamicsCommon.h"
 #include "D3dx9math.h"
 
@@ -13,9 +14,9 @@ public:
 	static D3DXQUATERNION BT2DX_QUATERNION(const btQuaternion &q);
 	static D3DXMATRIX BT2DX_MATRIX(const btTransform &ms);
 	static D3DXMATRIX ConvertBulletMotionState(const btMotionState &ms);
-	static btVector3 DX_VECTOR3_2BT( D3DXVECTOR3 &v);
-	static D3DXMATRIX ConvertBulletTransform( btTransform *bulletTransformMatrix );
-	static btTransform ConvertD3DXMatrix( D3DXMATRIX *d3dMatrix );
-	static void XPrepareMatrixFromRULP( D3DXMATRIX &matOutput, D3DXVECTOR3 *R, D3DXVECTOR3 *U, D3DXVECTOR3 *L, D3DXVECTOR3 *P );
+	static btVector3 DX_VECTOR3_2BT(const D3DXVECTOR3 &v);
+	static D3DXMATRIX ConvertBulletTransform(const btTransform *bulletTransformMatrix);
+	static btTransform ConvertD3DXMatrix(const D3DXMATRIX *d3dMatrix);
+	static void XPrepareMatrixFromRULP(D3DXMATRIX &matOutput, const D3DXVECTOR3 *R, const D3DXVECTOR3 *U, const D3DXVECTOR3 *L, const D3DXVECTOR3 *P);
 };
 

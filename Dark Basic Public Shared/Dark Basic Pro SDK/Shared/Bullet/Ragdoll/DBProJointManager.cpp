@@ -8,7 +8,7 @@
 #include "DBProJointManager.h"
 #include "DBPro.hpp"
 
-DBProJointManager* jointManager = NULL;//moved to Bullet construct/destruct new DBProJointManager();
+DBProJointManager* jointManager = nullptr;//moved to Bullet construct/destruct new DBProJointManager();
 
 DBProJointManager::DBProJointManager() : BaseItemManager()
 {
@@ -18,12 +18,12 @@ DBProJointManager::~DBProJointManager()
 {
 }
 
-void DBProJointManager::AssertValidJointID(int jointID, LPCSTR message)
+void DBProJointManager::AssertValidJointID(int jointID, const char* message)
 {
-	if(jointManager->GetItem(jointID)==NULL)
+	if(jointManager->GetItem(jointID) == nullptr)
 	{
 		///DBPro::ReportError(message,"Bullet Physics Wrapper");
-		MessageBox(NULL,message,"Bullet Physics Wrapper",MB_OK );
+		MessageBox(nullptr, message, "Bullet Physics Wrapper", MB_OK);
 	}
 }
 
@@ -34,7 +34,7 @@ int DBProJointManager::GetNumberOfJoints()
 
 DBProJoint* DBProJointManager::GetJoint(int jointID)
 {
-	return (DBProJoint*)GetItem(jointID);
+	return static_cast<DBProJoint*>(GetItem(jointID));
 }
 
 int DBProJointManager::AddJoint(btTypedConstraint* constraint)

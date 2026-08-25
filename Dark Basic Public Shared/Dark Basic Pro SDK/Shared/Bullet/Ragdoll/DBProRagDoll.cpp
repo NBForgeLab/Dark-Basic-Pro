@@ -18,7 +18,7 @@ extern DBProJointManager* jointManager;
 extern float gSc;
 
 //Global External variables
-DBProRagDoll* currentDBProRagDoll = NULL;
+DBProRagDoll* currentDBProRagDoll = nullptr;
 
 DBProRagDoll::DBProRagDoll(int ragdollID) : BaseItem(ragdollID)
 {
@@ -55,7 +55,8 @@ DBProRagDoll::~DBProRagDoll()
 	}
 	for ( int i = 0; i < m_ragDollBoneArray.size(); i++)
 	{
-		SAFE_DELETE(m_ragDollBoneArray[i]);
+		delete m_ragDollBoneArray[i];
+		m_ragDollBoneArray[i] = nullptr;
 	}
 	m_ragDollBoneArray.clear();
 }
@@ -84,7 +85,7 @@ void DBProRagDoll::ResetObjectParametersForCulling()
 		sFrame* pFrame = pObject->ppFrameList [ iFrame ];
 
 		sMesh* pMesh = pFrame->pMesh;
-		if(pMesh!=NULL)
+		if(pMesh != nullptr)
 		{
 			DBPro::CalculateMeshBounds(pMesh);
 			btTransform transform = DBProToBullet::GetTransform(m_id);
@@ -269,7 +270,7 @@ void DBProRagDoll::AddHingeJoint(int boneIndex1, int boneIndex2, int limbID, con
 
 	int jointID = jointManager->AddJoint(hingeC);
 	m_joints.push_back(jointID);
-	hingeC = NULL;
+	hingeC = nullptr;
 }
 
 void DBProRagDoll::AddTwistConstraint(int boneIndex1, int boneIndex2, int limbID, const btVector3& jointRotation, const btVector3& jointlimits)
@@ -337,13 +338,13 @@ void DBProRagDoll::AddTwistConstraint(int boneIndex1, int boneIndex2, int limbID
 
 	int jointID = jointManager->AddJoint(coneC);
 	m_joints.push_back(jointID);
-	coneC = NULL;
+	coneC = nullptr;
 }
 
 
 int DBProRagDoll::GetBoneObjID(int boneIndex) 
 {
-	return (boneIndex >= 0 && boneIndex < m_ragDollBoneArray.size()) ? m_ragDollBoneArray[boneIndex]->GetRagDollBoneID() : -1; 
+	return (boneIndex >= 0 && static_cast<size_t>(boneIndex) < m_ragDollBoneArray.size()) ? m_ragDollBoneArray[boneIndex]->GetRagDollBoneID() : -1; 
 } 
 
 bool DBProRagDoll::IsBoneObject(int objectID)

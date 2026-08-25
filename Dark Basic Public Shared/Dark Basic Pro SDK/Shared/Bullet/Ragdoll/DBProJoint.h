@@ -15,6 +15,6 @@ public:
 	btTransform* GetFrameOffsetB();   
 
 private:
-	btTypedConstraint* m_constraint;
+	btTypedConstraint* m_constraint = nullptr;
 };
 

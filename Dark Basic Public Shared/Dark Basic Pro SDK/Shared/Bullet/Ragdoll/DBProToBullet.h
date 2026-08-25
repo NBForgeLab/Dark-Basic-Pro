@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Windows.h"
+#include <windows.h>
+#include <cstdint>
 #include "btBulletDynamicsCommon.h"
 #include "LinearMath\btVector3.h"
 #include "LinearMath\btTransform.h"
@@ -12,10 +13,7 @@ namespace DBProToBullet
 	class DBProVertexData
 	{
 	public:
-		DBProVertexData()
-		{
-
-		}
+		DBProVertexData() = default;
 		~DBProVertexData()
 		{
 			vertexBuffer.clear();
@@ -31,14 +29,10 @@ namespace DBProToBullet
 	btScalar GetObjectDiameter(int objectID);
 	btVector3 GetObjectSize(int objectID);
 	DBProToBullet::DBProVertexData* GetVertexData(int objectID, btScalar scaleFactor, bool bTransform, bool bReverseVertexOrder, bool bMirrorOnXAxis); 
-	//void GetVertexData(int objectID, btAlignedObjectArray<btVector3> & outObjVerts,
-	//btAlignedObjectArray<btVector3> &outObjUVData,  btAlignedObjectArray<btVector3> & outObjNormals, 
-	//bool bTransform, bool bMirrorXAxis /*=false*/);
-	//void GetIndexData(int objectID, btAlignedObjectArray<int> & outObjIndices, bool bReverseOrder);
 	btVector3 GetScale(int objectID); 
 	btTransform GetTransform(int objectID, btScalar scaleFactor = 1.0);
 	btVector3 GetVector3(int vectorID);
-	void AssertValidVector(int vectorID, LPCSTR message);
-	void AssertValidObject(int objectID, LPCSTR message);
+	void AssertValidVector(int vectorID, const char* message);
+	void AssertValidObject(int objectID, const char* message);
 }
 

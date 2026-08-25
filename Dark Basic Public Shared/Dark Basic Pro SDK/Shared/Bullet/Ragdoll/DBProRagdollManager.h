@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Windows.h"
+#include <windows.h>
+#include <cstdint>
 #include "DBProRagDoll.h"
 #include "BaseItemManager.h"
 
@@ -15,10 +16,7 @@ public:
 	DBProRagDoll* GetRagdoll(int ragdollID);
 	void Update(); 
 	int GetIDFromBoneObject(int objectID);
-	static void AssertRagdollExist(int ragdollID, LPCSTR message, bool bExist = true); 
-
-private:
-
+	static void AssertRagdollExist(int ragdollID, const char* message, bool bExist = true); 
 };
 
 extern DBProRagdollManager* ragdollManager;

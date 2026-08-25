@@ -1,23 +1,10 @@
-//#include "StdAfx.h"
 #include "BaseItem.h"
 
-BaseItem::BaseItem(int id)
-{
-	m_id = id;
-}
-
-BaseItem::~BaseItem()
+BaseItem::BaseItem(int id) : m_id(id)
 {
 }
 
-int BaseItem::GetID() const
+int BaseItem::GetID() const noexcept
 {
 	return m_id;
 }
-
-bool BaseItem::operator< (const BaseItem&c) const{ return GetID() < c.GetID(); }
-bool BaseItem::operator> (const BaseItem& c) const{ return GetID() > c.GetID(); }
-bool BaseItem::operator<= (const BaseItem& c) const{ return GetID() <= c.GetID(); }
-bool BaseItem::operator>= (const BaseItem& c) const{ return GetID() >= c.GetID(); }
-bool BaseItem::operator== (const BaseItem& c) const{ return GetID() == c.GetID(); }
-bool BaseItem::operator!= (const BaseItem& c) const{ return GetID() != c.GetID(); }

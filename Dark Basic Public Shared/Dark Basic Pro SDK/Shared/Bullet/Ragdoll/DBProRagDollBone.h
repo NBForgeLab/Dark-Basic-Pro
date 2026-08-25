@@ -29,18 +29,18 @@ public:
 	btScalar boneVolume;
 
 private:
-	int dbproObjectID;
-	int dbproStartLimbID;
-	int dbproEndLimbID;
-	int dbproRagDollBoneID;
-	btScalar diameter;
-	btScalar lengthmod;
-	int collisionGroup;
-	int collisionMask;
-	btVector3 boneNormVec;  
-	btRigidBody* rigidBody;
-	btTypedConstraint* jointConstraint;
-	btCollisionShape* m_collisionShape;
+	int dbproObjectID = 0;
+	int dbproStartLimbID = 0;
+	int dbproEndLimbID = 0;
+	int dbproRagDollBoneID = 0;
+	btScalar diameter = 0;
+	btScalar lengthmod = 0;
+	int collisionGroup = 0;
+	int collisionMask = 0;
+	btVector3 boneNormVec = {};  
+	btRigidBody* rigidBody = nullptr;
+	btTypedConstraint* jointConstraint = nullptr;
+	btCollisionShape* m_collisionShape = nullptr;
 
 private:
 	void CreateBone();

@@ -9,7 +9,7 @@
 #include "DBProRagDoll.h"
 #include "DBPro.hpp"
 
-DBProRagdollManager* ragdollManager = NULL;// now in constructor new DBProRagdollManager();
+DBProRagdollManager* ragdollManager = nullptr;// now in constructor new DBProRagdollManager();
 
 //-------------------------------------
 
@@ -39,15 +39,15 @@ void DBProRagdollManager::DeleteRagdoll(int ragdollID)
 
 DBProRagDoll* DBProRagdollManager::GetRagdoll(int ragdollID)
 {
-	return (DBProRagDoll*)GetItem(ragdollID);
+	return static_cast<DBProRagDoll*>(GetItem(ragdollID));
 }
 
 int DBProRagdollManager::GetIDFromBoneObject(int objectID)
 {
 	for(int i = 0; i < m_data.size(); i++)
 	{
-		DBProRagDoll* ragdoll = (DBProRagDoll*)m_data[i];
-		if(ragdoll->IsBoneObject(objectID))
+		DBProRagDoll* ragdoll = static_cast<DBProRagDoll*>(m_data[i]);
+		if(ragdoll && ragdoll->IsBoneObject(objectID))
 		{
 			return ragdoll->GetID();
 		}
@@ -59,27 +59,30 @@ void DBProRagdollManager::Update()
 {
 	for(int i = 0; i < m_data.size(); i++)
 	{	
-		DBProRagDoll* ragdoll = ((DBProRagDoll*)m_data[i]);
-		if(ragdoll->IsSleeping()==false)
+		DBProRagDoll* ragdoll = static_cast<DBProRagDoll*>(m_data[i]);
+		if(ragdoll)
 		{
-			ragdoll->Update();
-		}
-		else
-		{
-			ragdoll->ResetObjectParametersForCulling();
+			if(!ragdoll->IsSleeping())
+			{
+				ragdoll->Update();
+			}
+			else
+			{
+				ragdoll->ResetObjectParametersForCulling();
+			}
 		}
 	}
 }
 
-void DBProRagdollManager::AssertRagdollExist(int ragdollID, LPCSTR message, bool bExist /*= true*/) 
+void DBProRagdollManager::AssertRagdollExist(int ragdollID, const char* message, bool bExist /*= true*/) 
 {
-	if(bExist && ragdollManager->GetRagdoll(ragdollID)==NULL)
+	if(bExist && ragdollManager->GetRagdoll(ragdollID) == nullptr)
 	{
-		DBPro::ReportError(message,"Bullet Physics Wrapper");
+		DBPro::ReportError(message, "Bullet Physics Wrapper");
 	}
-	else if(!bExist && ragdollManager->GetRagdoll(ragdollID)!=NULL)
+	else if(!bExist && ragdollManager->GetRagdoll(ragdollID) != nullptr)
 	{
-		DBPro::ReportError(message,"Bullet Physics Wrapper");
+		DBPro::ReportError(message, "Bullet Physics Wrapper");
 	}
 }
 

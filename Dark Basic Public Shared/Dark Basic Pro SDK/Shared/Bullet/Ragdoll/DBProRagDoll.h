@@ -51,19 +51,19 @@ private:
 	btAlignedObjectArray<int> m_joints;
 	btAlignedObjectArray<DBProRagDollBone*> m_ragDollBoneArray;
 
-	btScalar m_modelTotalWeight;
-	btScalar m_modelTotalVolume;
-	btScalar m_modelTotalDensity;
-	btScalar m_linearDamping;
-	btScalar m_angularDamping;
-	btScalar m_linearSleepingThresholds;
-	btScalar m_angularSleepingThresholds;
-	btScalar m_deactivationTime; 
-	bool m_bIsStatic;
-	float m_fRadius;
-	float m_fScaledRadius;
-	float m_fScaledLargestRadius;
-	bool m_bNeedsUpdateForCulling;
+	btScalar m_modelTotalWeight = 0;
+	btScalar m_modelTotalVolume = 0;
+	btScalar m_modelTotalDensity = 0;
+	btScalar m_linearDamping = 0.05f;
+	btScalar m_angularDamping = 0.85f;
+	btScalar m_linearSleepingThresholds = 1.6f;
+	btScalar m_angularSleepingThresholds = 2.5f;
+	btScalar m_deactivationTime = 0.8f; 
+	bool m_bIsStatic = false;
+	float m_fRadius = 0.0f;
+	float m_fScaledRadius = 0.0f;
+	float m_fScaledLargestRadius = 0.0f;
+	bool m_bNeedsUpdateForCulling = false;
 };
 
 extern DBProRagDoll* currentDBProRagDoll;

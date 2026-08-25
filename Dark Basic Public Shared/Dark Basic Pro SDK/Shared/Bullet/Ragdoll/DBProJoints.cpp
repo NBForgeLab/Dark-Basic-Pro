@@ -12,15 +12,15 @@ extern btDiscreteDynamicsWorld* g_dynamicsWorld;
 
 struct MyContactResultCallback : public btCollisionWorld::ContactResultCallback
 {
-	btManifoldPoint m_cp;
-	bool m_connected;
-	btScalar m_margin;
-	MyContactResultCallback() :m_connected(false),m_margin(btScalar(0.05))
+	btManifoldPoint m_cp = {};
+	bool m_connected = false;
+	btScalar m_margin = btScalar(0.05);
+
+	MyContactResultCallback() = default;
+
+	btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0, const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override
 	{
-	}
-	virtual   btScalar   addSingleResult(btManifoldPoint& cp,const btCollisionObjectWrapper* colObj0Wrap,int partId0,int index0,const btCollisionObjectWrapper* colObj1Wrap,int partId1,int index1)
-	{
-		if (cp.getDistance()<=m_margin)
+		if (cp.getDistance() <= m_margin)
 		{
 			m_connected = true;
 			m_cp = cp;

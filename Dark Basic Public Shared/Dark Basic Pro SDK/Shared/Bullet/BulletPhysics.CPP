@@ -118,38 +118,38 @@ float fCharacterMaxSlope = 70.0f;
 float g_fWaterLineY = 500.0f;
 
 // Globals
-GlobStruct* g_pGlob = NULL;
-char errStr [ 256 ];
+GlobStruct* g_pGlob = nullptr;
+char errStr [ 256 ] = {};
 
-void HandleError( char* szMessage )
+void HandleError( const char* szMessage )
 {
-	MessageBox( NULL, szMessage, "ODE Error", 0 );
+	MessageBox( nullptr, szMessage, "ODE Error", 0 );
 	exit(0);
 }
 
 // Main Globals
-GlobStruct*						g_pGlobal					= NULL;
-pfnGetObject					g_pfnGetObject				= NULL;
-pfnGetFVFOffsetMap				g_pfnGetFVFOffsetMap		= NULL;
-pfnCalculateMeshBounds			g_pfnCalculateMeshBounds	= NULL;
-pfnCalcObjectWorld				g_pfnCalcObjectWorld		= NULL;
-pfnMakeMeshFromOtherMesh		g_pfnMakeMeshFromOtherMesh	= NULL;
-pfnPositionObject				g_pfnPositionObject			= NULL;
-pfnPositionObject				g_pfnRotateObject			= NULL;
-pfnMakeObjectBox				g_pfnMakeObjectBox			= NULL;
-pfnDeleteObject					g_pfnDeleteObject			= NULL;
+GlobStruct*						g_pGlobal					= nullptr;
+pfnGetObject					g_pfnGetObject				= nullptr;
+pfnGetFVFOffsetMap				g_pfnGetFVFOffsetMap		= nullptr;
+pfnCalculateMeshBounds			g_pfnCalculateMeshBounds	= nullptr;
+pfnCalcObjectWorld				g_pfnCalcObjectWorld		= nullptr;
+pfnMakeMeshFromOtherMesh		g_pfnMakeMeshFromOtherMesh	= nullptr;
+pfnPositionObject				g_pfnPositionObject			= nullptr;
+pfnPositionObject				g_pfnRotateObject			= nullptr;
+pfnMakeObjectBox				g_pfnMakeObjectBox			= nullptr;
+pfnDeleteObject					g_pfnDeleteObject			= nullptr;
 
 // Bullet globals
-btDiscreteDynamicsWorld* g_dynamicsWorld;
+btDiscreteDynamicsWorld* g_dynamicsWorld = nullptr;
 btAlignedObjectArray<btCollisionShape*> g_collisionShapes;
 btAlignedObjectArray<btTriangleIndexVertexArray*> g_indexvertexarrays;
-btDefaultCollisionConfiguration* g_collisionConfiguration;
-btCollisionDispatcher* g_dispatcher;
-btSequentialImpulseConstraintSolver* g_solver;
-btPairCachingGhostObject* m_ghostObject = NULL;
-btKinematicCharacterController* m_character = NULL;
-btAxisSweep3* sweepBP = NULL;
-btAxisSweep3* m_overlappingPairCache = NULL;
+btDefaultCollisionConfiguration* g_collisionConfiguration = nullptr;
+btCollisionDispatcher* g_dispatcher = nullptr;
+btSequentialImpulseConstraintSolver* g_solver = nullptr;
+btPairCachingGhostObject* m_ghostObject = nullptr;
+btKinematicCharacterController* m_character = nullptr;
+btAxisSweep3* sweepBP = nullptr;
+btAxisSweep3* m_overlappingPairCache = nullptr;
 int g_CharacterControlObject = 0;
 
 // ray detect globals
@@ -280,11 +280,9 @@ void PostTickCallback(btDynamicsWorld *world, btScalar timeStep)
 void ODE_Start ( void )
 {
 	// ragdoll system
-	//SAFE_DELETE_ARRAY ( jointManager );
-	SAFE_DELETE ( jointManager );
+	delete jointManager;
 	jointManager = new DBProJointManager();
-	//SAFE_DELETE_ARRAY ( ragdollManager );
-	SAFE_DELETE ( ragdollManager );
+	delete ragdollManager;
 	ragdollManager = new DBProRagdollManager();
 
 	// link to required Basic3D functions
@@ -388,10 +386,10 @@ void DestroyThisObject ( sObjectList* pPhyObject )
 void ODE_End ( void )
 {
 	// ragdoll system termination
-	//SAFE_DELETE_ARRAY ( jointManager );
-	//SAFE_DELETE_ARRAY ( ragdollManager );
-	SAFE_DELETE ( jointManager );
-	SAFE_DELETE ( ragdollManager );
+	delete jointManager;
+	jointManager = nullptr;
+	delete ragdollManager;
+	ragdollManager = nullptr;
 
 	///-----cleanup_start-----
 	if ( g_dynamicsWorld )
@@ -400,19 +398,17 @@ void ODE_End ( void )
 		if (m_character)
 		{
 			g_dynamicsWorld->removeCollisionObject(m_ghostObject);
-			m_ghostObject = NULL;
+			m_ghostObject = nullptr;
 			delete m_character;
-			m_character = NULL;
+			m_character = nullptr;
 		}
 
 		// reset links to regular DBP objects in case any missed
-		//for (int j=g_dynamicsWorld->getNumCollisionObjects()-1; j>=0 ;j--)
-		//	DestroyThisObject ( &g_ObjectList[j] );
-		for (int j=(int)g_ObjectList.size()-1; j>=0 ;j--)
+		for (int j = static_cast<int>(g_ObjectList.size()) - 1; j >= 0; j--)
 			DestroyThisObject ( &g_ObjectList[j] );
 
 		// remove the collision objects from the dynamics world and delete them (any stragglers not deleted by DestroyThisObject)
-		for (int i=g_dynamicsWorld->getNumCollisionObjects()-1; i>=0 ;i--)
+		for (int i = g_dynamicsWorld->getNumCollisionObjects() - 1; i >= 0; i--)
 		{
 			btCollisionObject* obj = g_dynamicsWorld->getCollisionObjectArray()[i];
 			g_dynamicsWorld->removeCollisionObject( obj );
@@ -420,12 +416,12 @@ void ODE_End ( void )
 		}
 
 		//delete collision shapes
-		for (int j=0;j<g_collisionShapes.size();j++)
+		for (int j = 0; j < g_collisionShapes.size(); j++)
 		{
-			if ( g_collisionShapes[j]!=0 )
+			if ( g_collisionShapes[j] != nullptr )
 			{
 				btCollisionShape* shape = g_collisionShapes[j];
-				g_collisionShapes[j] = 0;
+				g_collisionShapes[j] = nullptr;
 				delete shape;
 			}
 		}
@@ -437,20 +433,24 @@ void ODE_End ( void )
 		delete g_dynamicsWorld;
 
 		// free indexvertex arrays (only after world destroyed)
-		for (int j=0;j<g_indexvertexarrays.size();j++)
+		for (int j = 0; j < g_indexvertexarrays.size(); j++)
 		{
 			btTriangleIndexVertexArray* pIndexVertexArray = g_indexvertexarrays[j];
-			SAFE_DELETE ( pIndexVertexArray );
+			delete pIndexVertexArray;
 		}
 		g_indexvertexarrays.clear();
 
 		delete g_solver;
+		g_solver = nullptr;
 		delete m_overlappingPairCache;
+		m_overlappingPairCache = nullptr;
 		delete g_dispatcher;
+		g_dispatcher = nullptr;
 		delete g_collisionConfiguration;
+		g_collisionConfiguration = nullptr;
 
 		// free main var
-		g_dynamicsWorld = NULL;
+		g_dynamicsWorld = nullptr;
 	}
 
 	//next line is optional: it will be cleared by the destructor when the array goes out of scope

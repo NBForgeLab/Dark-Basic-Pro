@@ -29,9 +29,11 @@ DBProRagDollBone::~DBProRagDollBone(void)
 {
 	g_dynamicsWorld->removeRigidBody(rigidBody);
 	DBProMotionState* dbproMotionState = static_cast<DBProMotionState*>(rigidBody->getMotionState());
-	SAFE_DELETE(dbproMotionState); 
-	SAFE_DELETE(rigidBody);
-	SAFE_DELETE(m_collisionShape);
+	delete dbproMotionState;
+	delete rigidBody;
+	delete m_collisionShape;
+	rigidBody = nullptr;
+	m_collisionShape = nullptr;
 	if ( dbproRagDollBoneID > 0 ) DBPro::DeleteObject(dbproRagDollBoneID);
 }
 

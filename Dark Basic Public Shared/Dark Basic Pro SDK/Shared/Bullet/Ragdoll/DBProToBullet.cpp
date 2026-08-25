@@ -164,19 +164,19 @@ namespace DBProToBullet
 	}
 
 
-	void DBProToBullet::AssertValidVector(int vectorID, LPCSTR message)
+	void DBProToBullet::AssertValidVector(int vectorID, const char* message)
 	{
-		if(DBPro::VectorExist(vectorID) == false)
+		if(!DBPro::VectorExist(vectorID))
 		{
-			DBPro::ReportError(message,"Bullet Physics Wrapper");
+			DBPro::ReportError(message, "Bullet Physics Wrapper");
 		}
 	}
 
-	void DBProToBullet::AssertValidObject(int objectID, LPCSTR message)
+	void DBProToBullet::AssertValidObject(int objectID, const char* message)
 	{
-		if(DBPro::ObjectExist(objectID) == false)
+		if(!DBPro::ObjectExist(objectID))
 		{
-			DBPro::ReportError(message,"Bullet Physics Wrapper");
+			DBPro::ReportError(message, "Bullet Physics Wrapper");
 		}
 	}
 }

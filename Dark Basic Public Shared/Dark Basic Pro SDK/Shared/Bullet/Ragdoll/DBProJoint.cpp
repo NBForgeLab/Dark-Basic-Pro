@@ -3,19 +3,18 @@
 
 // externs to globals elsewhere
 extern btDiscreteDynamicsWorld* g_dynamicsWorld;
-#define SAFE_DELETE(x) if(x) { delete x; x=NULL; }
 
-DBProJoint::DBProJoint(int jointID, btTypedConstraint* constraint) : BaseItem(jointID)
+DBProJoint::DBProJoint(int jointID, btTypedConstraint* constraint) : BaseItem(jointID), m_constraint(constraint)
 {
-	m_constraint = constraint;
 }
 
 DBProJoint::~DBProJoint()
 {
-	if(m_constraint != NULL)
+	if(m_constraint != nullptr)
 	{
 		g_dynamicsWorld->removeConstraint(m_constraint);
-		SAFE_DELETE(m_constraint);	
+		delete m_constraint;
+		m_constraint = nullptr;
 	}
 }
 
@@ -33,7 +32,7 @@ btTransform* DBProJoint::GetFrameOffsetA()
 		btGeneric6DofConstraint* pickJoint = static_cast<btGeneric6DofConstraint*>(m_constraint);
 		return &pickJoint->getFrameOffsetA();
 	}
-	return NULL;
+	return nullptr;
 }
 
 //FHB: TODO: handel all types of joints
@@ -45,5 +44,5 @@ btTransform* DBProJoint::GetFrameOffsetB()
 		btGeneric6DofConstraint* pickJoint = static_cast<btGeneric6DofConstraint*>(m_constraint);
 		return &pickJoint->getFrameOffsetB();
 	}
-	return NULL;
+	return nullptr;
 } 
