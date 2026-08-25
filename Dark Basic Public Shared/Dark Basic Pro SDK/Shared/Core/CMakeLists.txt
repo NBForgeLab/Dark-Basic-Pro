@@ -8,10 +8,11 @@ set(CORE_SOURCES
     DBDLLExtCalls.cpp
     DBDLLGDI.cpp
     RenderList.cpp
-    SteamCheckForWorkshop.cpp
+    EncryptedFile.cpp
     globstruct.cpp
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error/CError.cpp"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/DBPCompiler/Encryptor.cpp"
+    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDK/Core/DBDLLCore.rc"
 )
 
 add_library(dbp_plugin_core STATIC ${CORE_SOURCES})

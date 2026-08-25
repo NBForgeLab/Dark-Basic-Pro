@@ -3,37 +3,39 @@
 //
 
 // Common Includes
-#include "windows.h"
+#include <windows.h>
+#include <cstdint>
+#include <cstring>
 #include "DBDLLGDI.h"
 #include "DBDLLEXT.h"
 #include "DBDLLCore.h"
 
 // Global data to store system colors
-DBPRO_GLOBAL bool bColoursCaptured=false;
-DBPRO_GLOBAL DWORD aDefaultSystemColors[30];
+DBPRO_GLOBAL bool bColoursCaptured = false;
+DBPRO_GLOBAL COLORREF aDefaultSystemColors[30] = {};
 
 DARKSDK void CaptureSystemColors ( void )
 {
 	// capture all system colors
-	bColoursCaptured=true;
-	for ( int i=0; i<29; i++)
+	bColoursCaptured = true;
+	for ( int i = 0; i < 29; i++ )
 		aDefaultSystemColors[i] = GetSysColor(i); 
 }
 
 DARKSDK void RestoreSystemColors ( void )
 {
 	// element array
-	if ( bColoursCaptured==true )
+	if ( bColoursCaptured )
 	{
-		int aiSysElements[30];
-		for ( int i=0; i<29; i++)
-			aiSysElements[i]=i;
+		int aiSysElements[30] = {};
+		for ( int i = 0; i < 29; i++ )
+			aiSysElements[i] = i;
 
 		// restore all system colors
 		SetSysColors(28, aiSysElements, aDefaultSystemColors); 
 
 		// reset flag
-		bColoursCaptured=false;
+		bColoursCaptured = false;
 	}
 }
 

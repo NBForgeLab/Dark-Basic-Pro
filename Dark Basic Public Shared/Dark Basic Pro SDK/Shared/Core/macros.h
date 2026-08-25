@@ -1,8 +1,39 @@
 //
-// Common Macros
+// Common Memory Management Utilities (ISO C++20)
 //
 
-//#define SAFE_DELETE(x)			if(x) { delete x; x=NULL; }
-//#define SAFE_CLOSE(x)			if(x) { CloseHandle(x); x=NULL; }
-//#define SAFE_FREE(x)			if(x) { GlobalFree(x); x=NULL; }
-//#define SAFE_DELETE_ARRAY( p )	if ( p ) { delete [ ] ( p );   ( p ) = NULL; }
+#pragma once
+#include <cstdint>
+#include <utility>
+
+template<typename T>
+constexpr void SafeDelete(T*& ptr) noexcept {
+    delete ptr;
+    ptr = nullptr;
+}
+
+template<typename T>
+constexpr void SafeDeleteArray(T*& ptr) noexcept {
+    delete[] ptr;
+    ptr = nullptr;
+}
+
+template<typename T>
+constexpr void SafeRelease(T*& ptr) noexcept {
+    if (ptr) {
+        ptr->Release();
+        ptr = nullptr;
+    }
+}
+
+#ifndef SAFE_RELEASE
+#define SAFE_RELEASE(p) SafeRelease(p)
+#endif
+
+#ifndef SAFE_DELETE
+#define SAFE_DELETE(p) SafeDelete(p)
+#endif
+
+#ifndef SAFE_DELETE_ARRAY
+#define SAFE_DELETE_ARRAY(p) SafeDeleteArray(p)
+#endif

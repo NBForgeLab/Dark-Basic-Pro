@@ -6,6 +6,7 @@
 #define DBDLLCORE_H
 
 // Common Includes
+#include <cstdint>
 #include "windows.h"
 
 // Custom Includes
@@ -29,7 +30,7 @@ extern DARKSDK DWORD InternalProcessMessages();
 
 // Global Internal Data
 extern HWND				g_hWnd						;
-extern LPSTR			g_pVarSpace					;
+extern char*			g_pVarSpace					;
 
 // Global Performance Flag Vars
 extern bool				g_bProcessorFriendly		;
@@ -43,20 +44,20 @@ extern int				g_iY						;
 extern COLORREF			g_colFore					;
 extern COLORREF			g_colBack					;
 extern HBRUSH			g_hBrush					;
-extern DWORD			g_dwScreenWidth				;
-extern DWORD			g_dwScreenHeight			;
-extern DWORD			g_dwWindowWidth				;
-extern DWORD			g_dwWindowHeight			;
+extern uint32_t			g_dwScreenWidth				;
+extern uint32_t			g_dwScreenHeight			;
+extern uint32_t			g_dwWindowWidth				;
+extern uint32_t			g_dwWindowHeight			;
 
 // Global Input Vars
-extern DWORD			g_dwWindowsTextEntrySize	;
-extern LPSTR			g_pWindowsTextEntry			;
-extern DWORD			g_dwWindowsTextEntryPos		;
-extern unsigned char	g_cKeyPressed				;
+extern uint32_t			g_dwWindowsTextEntrySize	;
+extern char*			g_pWindowsTextEntry			;
+extern uint32_t			g_dwWindowsTextEntryPos		;
+extern uint8_t	g_cKeyPressed				;
 extern int				g_iEntryCursorState			;
 
 // Global Data Vars
-extern LPSTR			g_pDataLabelPtr				;
-extern LPSTR			g_pDataLabelEnd				;
+extern char*			g_pDataLabelPtr				;
+extern char*			g_pDataLabelEnd				;
 
 #endif

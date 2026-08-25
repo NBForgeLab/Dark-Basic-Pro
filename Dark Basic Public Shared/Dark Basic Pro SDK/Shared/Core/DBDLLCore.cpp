@@ -7,13 +7,15 @@
 #define WINVER 0x0601
 #include "windows.h"
 #include "math.h"
+#include <cmath>
 #include "time.h"
+#include <cstdint>
 
 // External Includes
 #include "..\error\cerror.h"
 #include "..\..\DarkSDK\Core\resource.h"
 #include "..\..\..\DBPCompiler\Encryptor.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 // Include Memory Manager & Globals
 #include ".\..\MemoryManager\DarkMemoryManager.h"
@@ -44,17 +46,23 @@ extern CRuntimeErrorHandler* g_pErrorHandler;
 // Prototypes
 LPSTR GetTypePatternCore ( LPSTR dwTypeName, DWORD dwTypeIndex );
 DWORD GetNextSyncDelay();
+DARKSDK DWORD ProcessMessagesOnly(void);
+DARKSDK void CreateSingleString(DWORD_PTR* dwVariableSpaceAddress, DWORD dwSize);
+DARKSDK void UpdateFilenameFromVirtualTable( LPSTR szStringAddress );
+DARKSDK void Decrypt( LPSTR szStringAddress );
+DARKSDK void Encrypt( LPSTR szStringAddress );
+DARKSDK void ChangeMouse( DWORD dwCursorID );
 
 // Touch System works under XP and Win7 now
 bool bDetectAndActivateWindows7TouchSystem = false;
 
 // Global Core Vars
-DBPRO_GLOBAL LPSTR			g_pVarSpace					= NULL;
-DBPRO_GLOBAL LPSTR			g_pDataSpace				= NULL;
+DBPRO_GLOBAL char*			g_pVarSpace					= nullptr;
+DBPRO_GLOBAL char*			g_pDataSpace				= nullptr;
 
 // Global Stack Store Vars
-DBPRO_GLOBAL DWORD			g_dwStackStoreSize			= 0;
-DBPRO_GLOBAL DWORD*			g_pStackStore				= NULL;
+DBPRO_GLOBAL uint32_t		g_dwStackStoreSize			= 0;
+DBPRO_GLOBAL uint32_t*		g_pStackStore				= nullptr;
 
 // Global Performance Switches
 DBPRO_GLOBAL bool			g_bAlwaysActiveOff			= false;
@@ -63,45 +71,45 @@ DBPRO_GLOBAL bool			g_bAlwaysActiveOneOff		= false; // leeadd - 201204 - flag to
 DBPRO_GLOBAL bool			g_bSyncOff					= true;
 DBPRO_GLOBAL bool			g_bSceneStarted				= false;
 DBPRO_GLOBAL bool			g_bCanRenderNow				= true;
-DBPRO_GLOBAL DWORD			g_dwSyncMask				= 0xFFFFFFFF;
+DBPRO_GLOBAL uint32_t		g_dwSyncMask				= 0xFFFFFFFF;
 
 // Global Sync Settings
-DBPRO_GLOBAL DWORD			g_dwManualSuperStepSetting	= 0;
-DBPRO_GLOBAL DWORD*         g_pdwSyncRateSetting        = NULL;
-DBPRO_GLOBAL DWORD          g_dwSyncRateSettingSize     = 0;
-DBPRO_GLOBAL DWORD          g_dwSyncRateCurrent         = 0;
+DBPRO_GLOBAL uint32_t		g_dwManualSuperStepSetting	= 0;
+DBPRO_GLOBAL uint32_t*      g_pdwSyncRateSetting        = nullptr;
+DBPRO_GLOBAL uint32_t       g_dwSyncRateSettingSize     = 0;
+DBPRO_GLOBAL uint32_t       g_dwSyncRateCurrent         = 0;
 
 // Global Performance Flags used Internally
 DBPRO_GLOBAL bool			g_bCascadeQuitFlag			= false;
 DBPRO_GLOBAL bool			g_bUseExternalDisplayLayer	= false;
 DBPRO_GLOBAL bool			g_bExternalDisplayActive	= false;
-DBPRO_GLOBAL DWORD			g_dwRecordedTimer			= 0;
+DBPRO_GLOBAL uint32_t		g_dwRecordedTimer			= 0;
 
 // Global Error Handling and Pointers
-DBPRO_GLOBAL LPSTR			g_pCommandLineString		= NULL;
-DBPRO_GLOBAL LPVOID			g_ErrorHandler				= NULL;
-DBPRO_GLOBAL LPVOID			g_EscapeValue				= NULL;
-DBPRO_GLOBAL LPVOID			g_BreakOutPosition			= NULL;
+DBPRO_GLOBAL char*			g_pCommandLineString		= nullptr;
+DBPRO_GLOBAL LPVOID			g_ErrorHandler				= nullptr;
+DBPRO_GLOBAL LPVOID			g_EscapeValue				= nullptr;
+DBPRO_GLOBAL LPVOID			g_BreakOutPosition			= nullptr;
 
 // U71 - added to store structure patterns in core (passed in from EXEBlock)
-DBPRO_GLOBAL DWORD			g_dwStructPatternQty		= 0;
-DBPRO_GLOBAL LPSTR			g_pStructPatternsPtr		= NULL;
+DBPRO_GLOBAL uint32_t		g_dwStructPatternQty		= 0;
+DBPRO_GLOBAL char*			g_pStructPatternsPtr		= nullptr;
 
 // Global Display Vars
-DBPRO_GLOBAL HBITMAP		g_hDisplayBitmap			= NULL;
-DBPRO_GLOBAL HDC			g_hdcDisplay				= NULL;
+DBPRO_GLOBAL HBITMAP		g_hDisplayBitmap			= nullptr;
+DBPRO_GLOBAL HDC			g_hdcDisplay				= nullptr;
 DBPRO_GLOBAL COLORREF		g_colFore					= RGB(255,255,255);
 DBPRO_GLOBAL COLORREF		g_colBack					= RGB(0,0,0);
-DBPRO_GLOBAL HBRUSH			g_hBrush					= NULL;
-DBPRO_GLOBAL DWORD			g_dwScreenWidth				= 0;
-DBPRO_GLOBAL DWORD			g_dwScreenHeight			= 0;
+DBPRO_GLOBAL HBRUSH			g_hBrush					= nullptr;
+DBPRO_GLOBAL uint32_t		g_dwScreenWidth				= 0;
+DBPRO_GLOBAL uint32_t		g_dwScreenHeight			= 0;
 
-DBPRO_GLOBAL HICON			g_hUseIcon					= NULL;
-DBPRO_GLOBAL HCURSOR		g_hUseArrow 				= NULL;
-DBPRO_GLOBAL HCURSOR		g_hUseHourglass 			= NULL;
-DBPRO_GLOBAL HCURSOR		g_hCustomCursors[30];
-DBPRO_GLOBAL HCURSOR		g_ActiveCursor 				= NULL;
-DBPRO_GLOBAL HCURSOR		g_OldCursor 				= NULL;
+DBPRO_GLOBAL HICON			g_hUseIcon					= nullptr;
+DBPRO_GLOBAL HCURSOR		g_hUseArrow 				= nullptr;
+DBPRO_GLOBAL HCURSOR		g_hUseHourglass 			= nullptr;
+DBPRO_GLOBAL HCURSOR		g_hCustomCursors[30]        = {};
+DBPRO_GLOBAL HCURSOR		g_ActiveCursor 				= nullptr;
+DBPRO_GLOBAL HCURSOR		g_OldCursor 				= nullptr;
 
 // Global Draw Order Flags
 DBPRO_GLOBAL bool			g_bDrawAutoStuffFirst		= true;
@@ -110,17 +118,17 @@ DBPRO_GLOBAL bool			g_bDrawEntirelyToCamera		= false;
 DBPRO_GLOBAL bool			g_bDrawQuadInSync			= true; // but quad draw skipped if RenderQuad(0) returns zero
 
 // Global Input Vars
-DBPRO_GLOBAL DWORD			g_dwWindowsTextEntrySize	= 0;
-DBPRO_GLOBAL DWORD			g_dwWindowsTextEntryPos		= 0;
-DBPRO_GLOBAL unsigned char	g_cKeyPressed				= 0;
-DBPRO_GLOBAL unsigned char	g_cInkeyCodeKey				= 0;
+DBPRO_GLOBAL uint32_t		g_dwWindowsTextEntrySize	= 0;
+DBPRO_GLOBAL uint32_t		g_dwWindowsTextEntryPos		= 0;
+DBPRO_GLOBAL uint8_t	g_cKeyPressed				= 0;
+DBPRO_GLOBAL uint8_t	g_cInkeyCodeKey				= 0;
 DBPRO_GLOBAL int			g_iEntryCursorState			= 0;
-DBPRO_GLOBAL WORD			g_wWinKey					= 0;
+DBPRO_GLOBAL uint16_t		g_wWinKey					= 0;
 
 // Global Data Vars
-DBPRO_GLOBAL LPSTR			g_pDataLabelStart			= NULL;
-DBPRO_GLOBAL LPSTR			g_pDataLabelPtr				= NULL;
-DBPRO_GLOBAL LPSTR			g_pDataLabelEnd				= NULL;
+DBPRO_GLOBAL char*			g_pDataLabelStart			= nullptr;
+DBPRO_GLOBAL char*			g_pDataLabelPtr				= nullptr;
+DBPRO_GLOBAL char*			g_pDataLabelEnd				= nullptr;
 
 // Global Security Data
 DBPRO_GLOBAL int			g_iSecurityCode				= 0;
@@ -196,6 +204,15 @@ BOOL WINAPI DllMain( HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			// Must always have at least a one to create a pass
 			g_Glob.dwRedrawCount=1;
 			g_Glob.dwRedrawPhase=0;
+
+			// Assign Function Ptrs to Glob (for other DLLs to use from startup)
+			g_Glob.CreateDeleteString = CreateSingleString;
+			g_Glob.ProcessMessageFunction = ProcessMessagesOnly;
+			g_Glob.PrintStringFunction = PrintString;
+			g_Glob.UpdateFilenameFromVirtualTable = UpdateFilenameFromVirtualTable;
+			g_Glob.Decrypt = Decrypt;
+			g_Glob.Encrypt = Encrypt;
+			g_Glob.ChangeMouseFunction = ChangeMouse;
 
 			// leeprepare - 130104 - U6 GLOBSTRUCT DYNAMIC ARRAY
 			//g_Glob.dwDynMemSize = (DWORD)(1*sizeof(DWORD));
@@ -807,23 +824,23 @@ LRESULT CALLBACK WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 					g_dwWindowsTextEntryPos=0;
 
 			// Key that was pressed
-			g_cKeyPressed = (unsigned char)wParam;
+			g_cKeyPressed = static_cast<unsigned char>(wParam);
 			g_cInkeyCodeKey = g_cKeyPressed;
 
 			// Ensure string is always big enough
-			if(g_Glob.pWindowsTextEntry==NULL)
+			if(g_Glob.pWindowsTextEntry == nullptr)
 			{
 				g_dwWindowsTextEntrySize = 32;
-				g_Glob.pWindowsTextEntry = new char[g_dwWindowsTextEntrySize];
+				g_Glob.pWindowsTextEntry = new char[g_dwWindowsTextEntrySize]();
 				g_dwWindowsTextEntryPos = 0;
 			}
-			if(g_dwWindowsTextEntryPos>g_dwWindowsTextEntrySize-4)
+			if(g_dwWindowsTextEntryPos > g_dwWindowsTextEntrySize - 4)
 			{
 				g_dwWindowsTextEntrySize = g_dwWindowsTextEntrySize * 2;
-				LPSTR pNewString = new char[g_dwWindowsTextEntrySize];
-				strcpy(pNewString, g_Glob.pWindowsTextEntry);
+				char* pNewString = new char[g_dwWindowsTextEntrySize]();
+				strcpy_s(pNewString, g_dwWindowsTextEntrySize, g_Glob.pWindowsTextEntry);
 				delete[] g_Glob.pWindowsTextEntry;
-				g_Glob.pWindowsTextEntry=pNewString;
+				g_Glob.pWindowsTextEntry = pNewString;
 			}
 
 			// leeadd - 020605 - Add/Remove from entry$() string
@@ -1165,7 +1182,7 @@ DARKSDK void EncryptDecrypt( LPSTR szStringAddress, bool bEncryptIfTrue, bool bD
 		okayToProceed = true;
 	else
 	{
-		if ( Steam_CanIUse_W_() || bEncryptIfTrue )
+		if ( bEncryptIfTrue )
 		{
 			if ( ( checkForEncryptName[0] == '_' && checkForEncryptName[1] == 'w' && checkForEncryptName[2] == '_' ) || strstr ( checkForEncryptName , "\\_w_" )  )
 			{
@@ -1566,9 +1583,9 @@ DARKSDK void ConstructPostDisplayItems(HINSTANCE hInstance)
 		if(g_Glob.g_Textmade==false)
 		{
 			g_Glob.g_Textmade=true;
-			g_Text_Constructor( g_Glob.g_GFX );
-			if(g_Text_SetErrorHandler) g_Text_SetErrorHandler(g_ErrorHandler);
 			if(g_Text_PassCoreData) g_Text_PassCoreData( (LPVOID)&g_Glob );
+			if(g_Text_SetErrorHandler) g_Text_SetErrorHandler(g_ErrorHandler);
+			g_Text_Constructor( g_Glob.g_GFX );
 		}
 	}
 
@@ -1577,10 +1594,10 @@ DARKSDK void ConstructPostDisplayItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Imagemade=true;
-		g_Image_Constructor ( g_Glob.g_GFX );
-		if(g_Image_PassSpriteInstance) g_Image_PassSpriteInstance ( g_Glob.g_Sprites );
-		if(g_Image_SetErrorHandler) g_Image_SetErrorHandler( g_ErrorHandler );
 		if(g_Image_PassCoreData) g_Image_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Image_SetErrorHandler) g_Image_SetErrorHandler( g_ErrorHandler );
+		if(g_Image_PassSpriteInstance) g_Image_PassSpriteInstance ( g_Glob.g_Sprites );
+		g_Image_Constructor ( g_Glob.g_GFX );
 		g_Image_SetColorKey  ( 0, 0, 0 );
 //		g_Image_SetMipmapNum ( 1 ); // leefix - 200303 - allow mipmaps
 	}
@@ -1590,9 +1607,9 @@ DARKSDK void ConstructPostDisplayItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Transformsmade=true;
-		g_Transforms_Constructor();
-		if(g_Transforms_SetErrorHandler) g_Transforms_SetErrorHandler( g_ErrorHandler );
 		if(g_Transforms_PassCoreData) g_Transforms_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Transforms_SetErrorHandler) g_Transforms_SetErrorHandler( g_ErrorHandler );
+		g_Transforms_Constructor();
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1601,9 +1618,9 @@ DARKSDK void ConstructPostDisplayItems(HINSTANCE hInstance)
 	{
 		
 		g_Glob.g_Spritesmade=true;
-		g_Sprites_Constructor ( g_Glob.g_GFX, g_Glob.g_Image );
 		if(g_Sprites_PassCoreData) g_Sprites_PassCoreData( (LPVOID)&g_Glob );
 		if(g_Sprites_SetErrorHandler) g_Sprites_SetErrorHandler( g_ErrorHandler );
+		g_Sprites_Constructor ( g_Glob.g_GFX, g_Glob.g_Image );
 		
 	}
 }
@@ -1615,9 +1632,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Inputmade=true;
-		g_Input_Constructor ( hInstance );
-		if(g_Input_SetErrorHandler) g_Input_SetErrorHandler( g_ErrorHandler );
 		if(g_Input_PassCoreData) g_Input_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Input_SetErrorHandler) g_Input_SetErrorHandler( g_ErrorHandler );
+		g_Input_Constructor ( hInstance );
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1625,9 +1642,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Systemmade=true;
-		g_System_Constructor();
-		if(g_System_SetErrorHandler) g_System_SetErrorHandler( g_ErrorHandler );
 		if(g_System_PassCoreData) g_System_PassCoreData( (LPVOID)&g_Glob );
+		if(g_System_SetErrorHandler) g_System_SetErrorHandler( g_ErrorHandler );
+		g_System_Constructor();
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1635,9 +1652,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Soundmade=true;
-		g_Sound_Constructor ( g_Glob.hWnd );
-		if(g_Sound_SetErrorHandler) g_Sound_SetErrorHandler( g_ErrorHandler );
 		if(g_Sound_PassCoreData) g_Sound_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Sound_SetErrorHandler) g_Sound_SetErrorHandler( g_ErrorHandler );
+		g_Sound_Constructor ( g_Glob.hWnd );
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1645,24 +1662,24 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Musicmade=true;
-		g_Music_Constructor ( g_Glob.hWnd );
-		if(g_Music_SetErrorHandler) g_Music_SetErrorHandler( g_ErrorHandler );
 		if(g_Music_PassCoreData) g_Music_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Music_SetErrorHandler) g_Music_SetErrorHandler( g_ErrorHandler );
+		g_Music_Constructor ( g_Glob.hWnd );
 	}
 
 	#ifndef DARKSDK_COMPILE
 	if(g_Glob.g_File && g_Glob.g_Filemade==false)
 	{
 		g_Glob.g_Filemade=true;
-		g_File_Constructor ( hInstance );
-		if(g_File_SetErrorHandler) g_File_SetErrorHandler( g_ErrorHandler );
 		if(g_File_PassCoreData) g_File_PassCoreData( (LPVOID)&g_Glob );
+		if(g_File_SetErrorHandler) g_File_SetErrorHandler( g_ErrorHandler );
+		g_File_Constructor ( hInstance );
 	}
 	#else
 		g_Glob.g_Filemade=true;
-		g_File_Constructor ( );
-		if(g_File_SetErrorHandler) g_File_SetErrorHandler( g_ErrorHandler );
 		if(g_File_PassCoreData) g_File_PassCoreData( (LPVOID)&g_Glob );
+		if(g_File_SetErrorHandler) g_File_SetErrorHandler( g_ErrorHandler );
+		g_File_Constructor ( );
 	#endif
 
 	#ifndef DARKSDK_COMPILE
@@ -1670,9 +1687,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_FTPmade=true;
-		g_FTP_Constructor ( hInstance );
-		if(g_FTP_SetErrorHandler) g_FTP_SetErrorHandler( g_ErrorHandler );
 		if(g_FTP_PassCoreData) g_FTP_PassCoreData( (LPVOID)&g_Glob );
+		if(g_FTP_SetErrorHandler) g_FTP_SetErrorHandler( g_ErrorHandler );
+		g_FTP_Constructor ( hInstance );
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1680,9 +1697,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Memblocksmade=true;
-		g_Memblocks_Constructor ( hInstance );
-		if(g_Memblocks_SetErrorHandler) g_Memblocks_SetErrorHandler( g_ErrorHandler );
 		if(g_Memblocks_PassCoreData) g_Memblocks_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Memblocks_SetErrorHandler) g_Memblocks_SetErrorHandler( g_ErrorHandler );
+		g_Memblocks_Constructor ( hInstance );
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1690,9 +1707,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Animationmade=true;
-		g_Animation_Constructor ( hInstance );
-		if(g_Animation_SetErrorHandler) g_Animation_SetErrorHandler( g_ErrorHandler );
 		if(g_Animation_PassCoreData) g_Animation_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Animation_SetErrorHandler) g_Animation_SetErrorHandler( g_ErrorHandler );
+		g_Animation_Constructor ( hInstance );
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1700,9 +1717,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Bitmapmade=true;
-		g_Bitmap_Constructor ( hInstance );
-		if(g_Bitmap_SetErrorHandler) g_Bitmap_SetErrorHandler( g_ErrorHandler );
 		if(g_Bitmap_PassCoreData) g_Bitmap_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Bitmap_SetErrorHandler) g_Bitmap_SetErrorHandler( g_ErrorHandler );
+		g_Bitmap_Constructor ( hInstance );
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1710,9 +1727,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Multiplayermade=true;
-		g_Multiplayer_Constructor();
-		if(g_Multiplayer_SetErrorHandler) g_Multiplayer_SetErrorHandler( g_ErrorHandler );
 		if(g_Multiplayer_PassCoreData) g_Multiplayer_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Multiplayer_SetErrorHandler) g_Multiplayer_SetErrorHandler( g_ErrorHandler );
+		g_Multiplayer_Constructor();
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1720,9 +1737,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Camera3Dmade=true;
-		g_Camera3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image);
-		if(g_Camera3D_SetErrorHandler) g_Camera3D_SetErrorHandler( g_ErrorHandler );
 		if(g_Camera3D_PassCoreData) g_Camera3D_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Camera3D_SetErrorHandler) g_Camera3D_SetErrorHandler( g_ErrorHandler );
+		g_Camera3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image);
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1730,9 +1747,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Light3Dmade=true;
-		g_Light3D_Constructor(g_Glob.g_GFX);
-		if(g_Light3D_SetErrorHandler) g_Light3D_SetErrorHandler( g_ErrorHandler );
 		if(g_Light3D_PassCoreData) g_Light3D_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Light3D_SetErrorHandler) g_Light3D_SetErrorHandler( g_ErrorHandler );
+		g_Light3D_Constructor(g_Glob.g_GFX);
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1740,9 +1757,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_Matrix3Dmade=true;
-		g_Matrix3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image);
-		if(g_Matrix3D_SetErrorHandler) g_Matrix3D_SetErrorHandler( g_ErrorHandler );
 		if(g_Matrix3D_PassCoreData) g_Matrix3D_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Matrix3D_SetErrorHandler) g_Matrix3D_SetErrorHandler( g_ErrorHandler );
+		g_Matrix3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image);
 	}
 
 	#ifndef DARKSDK_COMPILE
@@ -1750,9 +1767,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 #endif
 	{
 		g_Glob.g_Basic3Dmade=true;
-		g_Basic3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image, g_Glob.g_Vectors, g_Glob.g_Basic3D );
-		if(g_Basic3D_SetErrorHandler) g_Basic3D_SetErrorHandler( g_ErrorHandler );
 		if(g_Basic3D_PassCoreData) g_Basic3D_PassCoreData( (LPVOID)&g_Glob );
+		if(g_Basic3D_SetErrorHandler) g_Basic3D_SetErrorHandler( g_ErrorHandler );
+		g_Basic3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image, g_Glob.g_Vectors, g_Glob.g_Basic3D );
 //		if(g_Basic3D_SendFormats) g_Basic3D_SendFormats ( g_Glob.g_XObject, g_Glob.g_3DSObject, g_Glob.g_MDLObject, g_Glob.g_MD2Object, g_Glob.g_MD3Object, g_Glob.g_PrimObject );
 	}
 
@@ -1761,9 +1778,9 @@ DARKSDK void ConstructPostDLLItems(HINSTANCE hInstance)
 	#endif
 	{
 		g_Glob.g_World3Dmade=true;
-		g_World3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image, g_Glob.g_Camera3D, g_Glob.g_Basic3D );
-		if(g_World3D_SetErrorHandler) g_World3D_SetErrorHandler( g_ErrorHandler );
 		if(g_World3D_PassCoreData) g_World3D_PassCoreData( (LPVOID)&g_Glob );
+		if(g_World3D_SetErrorHandler) g_World3D_SetErrorHandler( g_ErrorHandler );
+		g_World3D_Constructor(g_Glob.g_GFX, g_Glob.g_Image, g_Glob.g_Camera3D, g_Glob.g_Basic3D );
 	}
 
 	if(g_Glob.g_Q2BSP && g_Glob.g_Q2BSPmade==false)
@@ -1971,6 +1988,15 @@ DARKSDK void ChangeMouse( DWORD dwCursorID )
 
 DARKSDK DWORD InitDisplayEx(DWORD dwDisplayType, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, HINSTANCE hInstance, LPSTR pApplicationName, HWND pParentHWND, DWORD dwInExStyle, DWORD dwInStyle)
 {
+	// Assign Function Ptrs to Glob (ensure initialized before any display callbacks)
+	g_Glob.CreateDeleteString = CreateSingleString;
+	g_Glob.ProcessMessageFunction = ProcessMessagesOnly;
+	g_Glob.PrintStringFunction = PrintString;
+	g_Glob.UpdateFilenameFromVirtualTable = UpdateFilenameFromVirtualTable;
+	g_Glob.Decrypt = Decrypt;
+	g_Glob.Encrypt = Encrypt;
+	g_Glob.ChangeMouseFunction = ChangeMouse;
+
 	// dwDisplayType
 	// =============
 	// 0=Hidden Mode
@@ -2148,26 +2174,6 @@ DARKSDK DWORD InitDisplayEx(DWORD dwDisplayType, DWORD dwWidth, DWORD dwHeight, 
 									NULL,
 									hInstance,
 									NULL);
-	}
-
-	//Fire up steam and call steamInit()
-
-	// Steam Multiplayer DLL functions needed
-	HMODULE SteamMultiplayerModule = NULL;
-
-	typedef int		(*t_SteamInit)();
-
-	t_SteamInit Steam_SteamInit = NULL;
-
-	// Setup pointers to Steam functions
-	SteamMultiplayerModule = LoadLibrary ( "SteamMultiplayer.dll" );
-
-	if ( SteamMultiplayerModule )
-	{
-		Steam_SteamInit=(t_SteamInit)GetProcAddress( SteamMultiplayerModule , "?SteamInit@@YAHXZ" );
-
-		if ( Steam_SteamInit )
-			Steam_SteamInit();
 	}
 
 	// Load External DLL Displayer (DirectX/OpenGL/SmegSoft)
@@ -2583,23 +2589,23 @@ DARKSDK void FreeStringsFromArray(DWORD_PTR dwArrayPtr)
 	// Get Array Information
 	if ( dwArrayPtr )
 	{
-		DWORD dwTypeValueOfOneDataItem = *((DWORD*)dwArrayPtr-2);
+		uint32_t dwTypeValueOfOneDataItem = *reinterpret_cast<uint32_t*>(dwArrayPtr - 2 * sizeof(uint32_t));
 		if ( dwTypeValueOfOneDataItem == 2 ) 
 		{
 			// only free strings if array holds string items
-			DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
-			DWORD dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
-			DWORD dwFlagSizeInBytes = dwSizeOfTable * 1;
-			LPSTR* pData = (LPSTR*)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
-			for ( DWORD dwDataOffset=0; dwDataOffset<dwSizeOfTable; dwDataOffset++)
+			size_t dwSizeOfTable = static_cast<size_t>(*reinterpret_cast<uint32_t*>(dwArrayPtr - 4 * sizeof(uint32_t)));
+			size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+			size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
+			char** pData = reinterpret_cast<char**>(reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes);
+			for ( size_t dwDataOffset = 0; dwDataOffset < dwSizeOfTable; dwDataOffset++)
 			{
-				if ( pData [ dwDataOffset ] )
+				if ( pData[dwDataOffset] )
 				{
-					if ( HeapValidate( GetProcessHeap(), 0, pData [ dwDataOffset ] ) )
+					if ( HeapValidate( GetProcessHeap(), 0, pData[dwDataOffset] ) )
 					{
-						delete[] pData [ dwDataOffset ];
+						delete[] pData[dwDataOffset];
 					}
-					pData [ dwDataOffset ] = NULL;
+					pData[dwDataOffset] = nullptr;
 				}
 			}
 		}
@@ -2607,39 +2613,42 @@ DARKSDK void FreeStringsFromArray(DWORD_PTR dwArrayPtr)
 		else if (dwTypeValueOfOneDataItem >= 9)
 		{
 			// Grab a copy of the arrays format string
-			LPSTR UdtFormat = GetTypePatternCore( NULL, dwTypeValueOfOneDataItem );
+			LPSTR UdtFormat = GetTypePatternCore( nullptr, dwTypeValueOfOneDataItem );
 
 			// Search the format string to see if the UDT contains any strings
 			bool ContainsString = false;
-			for ( LPSTR CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
+			if ( UdtFormat )
 			{
-				if (*CurrentItem == 'S')
+				for ( const char* CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
 				{
-					ContainsString = true;
-					break;
+					if (*CurrentItem == 'S')
+					{
+						ContainsString = true;
+						break;
+					}
 				}
 			}
 
 			// If it does, loop through every UDT and release those strings
-			if (ContainsString)
+			if (ContainsString && UdtFormat)
 			{
-				uintptr_t* ArrayPtr = (uintptr_t*)dwArrayPtr;
-				DWORD  ArraySize = ((DWORD*)dwArrayPtr)[-4];
+				uintptr_t* ArrayPtr = reinterpret_cast<uintptr_t*>(dwArrayPtr);
+				size_t ArraySize = static_cast<size_t>(reinterpret_cast<uint32_t*>(dwArrayPtr)[-4]);
 
-				for ( DWORD Position = 0; Position < ArraySize; ++Position )
+				for ( size_t Position = 0; Position < ArraySize; ++Position )
 				{
-					DWORD ItemOffset = 0;
-					for ( LPSTR CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
+					size_t ItemOffset = 0;
+					for ( const char* CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
 					{
 						if (*CurrentItem == 'S')
 						{
 							uintptr_t P = ArrayPtr[ Position ] + ItemOffset;
-							LPSTR strPtr = *(LPSTR*)P;
+							char* strPtr = *reinterpret_cast<char**>(P);
 							if ( strPtr && HeapValidate( GetProcessHeap(), 0, strPtr ) )
 							{
 								delete[] strPtr;
 							}
-							*(LPSTR*)P = NULL;
+							*reinterpret_cast<char**>(P) = nullptr;
 							ItemOffset += sizeof(uintptr_t);            // Strings are pointer size
 						}
 						else if (*CurrentItem == 'O' || *CurrentItem == 'R')
@@ -2676,27 +2685,27 @@ DARKSDK void DeleteArray(DWORD_PTR dwArrayPtr)
 DARKSDK DWORD_PTR ExpandArray(DWORD_PTR dwOldArrayPtr, DWORD dwAddElements)
 {
 	// Get Old ArrayPtr
-	LPSTR pOldArrayPtr = ((LPSTR)dwOldArrayPtr)-HEADERSIZEINBYTES;
+	char* pOldArrayPtr = reinterpret_cast<char*>(dwOldArrayPtr) - HEADERSIZEINBYTES;
 
 	// Old Array Pointers and Data
-	DWORD* pHeader	= (DWORD*)(pOldArrayPtr);
+	uint32_t* pHeader = reinterpret_cast<uint32_t*>(pOldArrayPtr);
 	size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
 
 	// Extract header info
-	DWORD dwOldSizeOfArray = pHeader[10];
-	DWORD dwOldSizeOfOneDataItem = pHeader[11];
-	DWORD dwOldTypeValueOfOneDataItem = pHeader[12];
+	uint32_t dwOldSizeOfArray = pHeader[10];
+	uint32_t dwOldSizeOfOneDataItem = pHeader[11];
+	uint32_t dwOldTypeValueOfOneDataItem = pHeader[12];
 
 	size_t dwOldRefSizeInBytes = static_cast<size_t>(dwOldSizeOfArray) * sizeof(uintptr_t);
 	size_t dwOldFlagSizeInBytes = static_cast<size_t>(dwOldSizeOfArray) * 1;
 	size_t dwOldDataSizeInBytes = static_cast<size_t>(dwOldSizeOfArray) * dwOldSizeOfOneDataItem;
-	uintptr_t* pOldRef = (uintptr_t*)(pOldArrayPtr+dwHeaderSizeInBytes);
-	LPSTR pOldFlag = (LPSTR)(pOldArrayPtr+dwHeaderSizeInBytes+dwOldRefSizeInBytes);
-	LPSTR pOldData = (LPSTR)(pOldArrayPtr+dwHeaderSizeInBytes+dwOldRefSizeInBytes+dwOldFlagSizeInBytes);
+	uintptr_t* pOldRef = reinterpret_cast<uintptr_t*>(pOldArrayPtr + dwHeaderSizeInBytes);
+	char* pOldFlag = pOldArrayPtr + dwHeaderSizeInBytes + dwOldRefSizeInBytes;
+	char* pOldData = pOldArrayPtr + dwHeaderSizeInBytes + dwOldRefSizeInBytes + dwOldFlagSizeInBytes;
 
 	// Create New Size of Array
-	DWORD dwSizeOfArray = dwOldSizeOfArray + dwAddElements;
-	LPSTR pArrayPtr = (LPSTR)CreateArray(dwSizeOfArray, dwOldSizeOfOneDataItem, dwOldTypeValueOfOneDataItem);
+	uint32_t dwSizeOfArray = dwOldSizeOfArray + dwAddElements;
+	char* pArrayPtr = reinterpret_cast<char*>(CreateArray(dwSizeOfArray, dwOldSizeOfOneDataItem, dwOldTypeValueOfOneDataItem));
 
 	// Return ptr to beginning of memory
 	pArrayPtr = pArrayPtr - HEADERSIZEINBYTES;
@@ -2710,46 +2719,47 @@ DARKSDK DWORD_PTR ExpandArray(DWORD_PTR dwOldArrayPtr, DWORD dwAddElements)
 	size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwOldSizeOfOneDataItem;
 
 	// Derive Pointers into New Array
-	uintptr_t* pNewRef		= (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
-	LPSTR      pNewFlag		= (LPSTR )(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
-	LPSTR      pNewData		= (LPSTR )(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
+	uintptr_t* pNewRef = reinterpret_cast<uintptr_t*>(pArrayPtr + dwHeaderSizeInBytes);
+	char*      pNewFlag = pArrayPtr + dwHeaderSizeInBytes + dwRefSizeInBytes;
+	char*      pNewData = pArrayPtr + dwHeaderSizeInBytes + dwRefSizeInBytes + dwFlagSizeInBytes;
 
 	// Clear new data and copy old data to it
 	memset(pNewData, 0, dwDataSizeInBytes);
 	memcpy(pNewData, pOldData, dwOldDataSizeInBytes);
 
 	// Update New Array Refs from Old Array Refs
-	for(DWORD i=0; i<dwOldSizeOfArray; i++)
+	for(uint32_t i = 0; i < dwOldSizeOfArray; i++)
 	{
-		uintptr_t dwOffset = pOldRef[i] - (uintptr_t)pOldData;
-		pNewRef[i] = (uintptr_t)(pNewData + dwOffset);
+		uintptr_t dwOffset = pOldRef[i] - reinterpret_cast<uintptr_t>(pOldData);
+		pNewRef[i] = reinterpret_cast<uintptr_t>(pNewData + dwOffset);
 	}
 
 	// Copy flag states from old to new
 	memcpy(pNewFlag, pOldFlag, dwOldFlagSizeInBytes);
 
 	// Create flags for new part of array
-	memset(pNewFlag+dwOldFlagSizeInBytes, 1, dwFlagSizeInBytes-dwOldFlagSizeInBytes);
+	memset(pNewFlag + dwOldFlagSizeInBytes, 1, dwFlagSizeInBytes - dwOldFlagSizeInBytes);
 
 	// Destroy old array
 	DeleteArray(dwOldArrayPtr);
 
 	// Advance ArrayPtr to First Byte in RefTable
-	pArrayPtr+=dwHeaderSizeInBytes;
+	pArrayPtr += dwHeaderSizeInBytes;
 
 	// Return ArrayPtr
-	return (DWORD_PTR)pArrayPtr;
+	return reinterpret_cast<DWORD_PTR>(pArrayPtr);
 }
 
 DARKSDK void ClearDataBlock(DWORD_PTR dwArrayPtr, DWORD dwIndex, DWORD dwQuantity)
 {
-	DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
-	DWORD dwDataItemSize = *((DWORD*)dwArrayPtr-3);
-	DWORD dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
-	DWORD dwFlagSizeInBytes = dwSizeOfTable * 1;
-	LPSTR pData = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
-	DWORD dwDataOffset = dwIndex * dwDataItemSize;
-	memset(pData+dwDataOffset, 0, dwQuantity * dwDataItemSize);
+	size_t dwSizeOfTable = static_cast<size_t>(*reinterpret_cast<uint32_t*>(dwArrayPtr - 4 * sizeof(uint32_t)));
+	[[maybe_unused]] size_t dwUnusedSizeOfTable = dwSizeOfTable;
+	size_t dwDataItemSize = static_cast<size_t>(*reinterpret_cast<uint32_t*>(dwArrayPtr - 3 * sizeof(uint32_t)));
+	size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+	size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
+	char* pData = reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes;
+	size_t dwDataOffset = static_cast<size_t>(dwIndex) * dwDataItemSize;
+	memset(pData + dwDataOffset, 0, static_cast<size_t>(dwQuantity) * dwDataItemSize);
 }
 
 // ARRAY COMMANDS
@@ -2777,9 +2787,9 @@ DARKSDK DWORD_PTR DimCore(DWORD_PTR dwOldArrayPtr, DWORD dwTypeAndSizeOfElement,
 	if(dwD7>0) iiSize *= dwD7;
 	if(dwD8>0) iiSize *= dwD8;
 	if(dwD9>0) iiSize *= dwD9;
-	DWORD dwSizeOfArray = (DWORD)iiSize;
-	if(dwSizeOfArray!=iiSize)
-		return NULL;
+	DWORD dwSizeOfArray = static_cast<DWORD>(iiSize);
+	if(dwSizeOfArray != iiSize)
+		return 0;
 
 	// Leeadd - 211008 - u71 - new idea for dwTypeAndSizeOfElement
 	// where the first 0-4095 specify a type index (>9 = user types)
@@ -2797,7 +2807,7 @@ DARKSDK DWORD_PTR DimCore(DWORD_PTR dwOldArrayPtr, DWORD dwTypeAndSizeOfElement,
 	if(!dwArrayPtr) return 0;
 
 	// Fill array with dimension size data (D1-D9)
-	DWORD* pHeader = (DWORD*)(((LPSTR)dwArrayPtr)-HEADERSIZEINBYTES);
+	DWORD* pHeader = reinterpret_cast<DWORD*>(reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES);
 	DWORD dwDimOverallSize=dwD1;
 	for(DWORD h=0; h<=8; h++)
 	{
@@ -3153,22 +3163,22 @@ DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr, int iQuantity)
 
 		// Store RefItems(iQuantity) located at end of list
 		uintptr_t* pStoreRefs = new uintptr_t[iQuantity];
-		DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
-		DWORD dwIndexOfFirstRef = dwSizeOfTable-iQuantity;
-		uintptr_t* pRef = (uintptr_t*)dwAllocation;
-		memcpy(pStoreRefs, pRef + dwIndexOfFirstRef, iQuantity*sizeof(uintptr_t));
+		DWORD dwSizeOfTable = *reinterpret_cast<DWORD*>(dwAllocation - 4 * sizeof(DWORD));
+		DWORD dwIndexOfFirstRef = dwSizeOfTable - iQuantity;
+		uintptr_t* pRef = reinterpret_cast<uintptr_t*>(dwAllocation);
+		memcpy(pStoreRefs, pRef + dwIndexOfFirstRef, iQuantity * sizeof(uintptr_t));
 
 		// Shuffle ref table to make space at top
 		size_t dwAmountToShuffle = 0;
-		if(dwSizeOfTable>(DWORD)iQuantity) dwAmountToShuffle=(dwSizeOfTable-iQuantity)*sizeof(uintptr_t);
-		if(dwAmountToShuffle>0) memmove(pRef+iQuantity, pRef, dwAmountToShuffle);
+		if(dwSizeOfTable > static_cast<DWORD>(iQuantity)) dwAmountToShuffle = (dwSizeOfTable - iQuantity) * sizeof(uintptr_t);
+		if(dwAmountToShuffle > 0) memmove(pRef + iQuantity, pRef, dwAmountToShuffle);
 
 		// Copy refitem to top position
-		memcpy(pRef, pStoreRefs, iQuantity*sizeof(uintptr_t));
+		memcpy(pRef, pStoreRefs, iQuantity * sizeof(uintptr_t));
 		delete[] pStoreRefs;
 
 		// Update array index to new item
-		*((DWORD*)dwAllocation-1) = 0;
+		*reinterpret_cast<DWORD*>(dwAllocation - sizeof(DWORD)) = 0;
 
 		// Overwrites current array ptr
 		return dwAllocation;
@@ -3184,41 +3194,41 @@ DARKSDK DWORD_PTR ArrayInsertAtElement(DWORD_PTR dwArrayPtr, int iIndex)
 	try
 	{
 		// If no array, leave now
-		if(dwArrayPtr==NULL) return dwArrayPtr;
+		if(dwArrayPtr == 0) return dwArrayPtr;
 
 		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
-		if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
+		if (!IsArraySingleDim(dwArrayPtr)) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
-		DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
-		if(iIndex<0 || iIndex>=(int)dwSizeOfTable)
+		DWORD dwSizeOfTable = *reinterpret_cast<DWORD*>(dwArrayPtr - 4 * sizeof(DWORD));
+		if(iIndex < 0 || iIndex >= static_cast<int>(dwSizeOfTable))
 		{
 			RunTimeError(RUNTIMEERROR_ARRAYINDEXINVALID);
 			return dwArrayPtr;
 		}
 
 		// Size of insert
-		int iQuantity=1;
+		int iQuantity = 1;
 
 		// Adjust Size Of Entire Array
 		DWORD_PTR dwAllocation = ExpandArray(dwArrayPtr, iQuantity);
 
 		// Store RefItems(iQuantity) located at end of list
 		uintptr_t* pStoreRefs = new uintptr_t[iQuantity];
-		DWORD dwIndexOfFirstRef = dwSizeOfTable-(iQuantity-1);  //leefix-230603-corrected ptr to new item-ref in expanded array
-		uintptr_t* pRef = (uintptr_t*)dwAllocation;
-		memcpy(pStoreRefs, pRef + dwIndexOfFirstRef, iQuantity*sizeof(uintptr_t));
+		DWORD dwIndexOfFirstRef = dwSizeOfTable - (iQuantity - 1);  //leefix-230603-corrected ptr to new item-ref in expanded array
+		uintptr_t* pRef = reinterpret_cast<uintptr_t*>(dwAllocation);
+		memcpy(pStoreRefs, pRef + dwIndexOfFirstRef, iQuantity * sizeof(uintptr_t));
 
 		// Shuffle iIndex to End onwards
 		size_t dwSizeOfLaterChunk = 0;
-		if(dwSizeOfTable>(DWORD)iIndex) dwSizeOfLaterChunk = dwSizeOfTable-iIndex;
-		if(dwSizeOfLaterChunk>0) memmove(pRef+iIndex+iQuantity, pRef+iIndex, dwSizeOfLaterChunk*sizeof(uintptr_t));
+		if(dwSizeOfTable > static_cast<DWORD>(iIndex)) dwSizeOfLaterChunk = dwSizeOfTable - iIndex;
+		if(dwSizeOfLaterChunk > 0) memmove(pRef + iIndex + iQuantity, pRef + iIndex, dwSizeOfLaterChunk * sizeof(uintptr_t));
 
 		// Copy RefItems into space created inside table
-		memcpy(pRef+iIndex, pStoreRefs, iQuantity*sizeof(uintptr_t));
+		memcpy(pRef + iIndex, pStoreRefs, iQuantity * sizeof(uintptr_t));
 		delete[] pStoreRefs;    // Remove memory leak
 
 		// Update array index to new item
-		*((DWORD*)dwAllocation-1) = iIndex;
+		*reinterpret_cast<DWORD*>(dwAllocation - sizeof(DWORD)) = static_cast<DWORD>(iIndex);
 
 		// Overwrites current array ptr
 		return dwAllocation;
@@ -3243,23 +3253,24 @@ DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr, int iIndex)
 		// already empty - silent failure
 		return;
 	}
-	if(iIndex<0 || iIndex>=(int)dwSizeOfTable)
+	if(iIndex < 0 || iIndex >= static_cast<int>(dwSizeOfTable))
 	{
 		RunTimeError(RUNTIMEERROR_ARRAYINDEXINVALID);
 		return;
 	}
 
 	// Prepare pointers
-	DWORD dwDataItemSize = *((DWORD*)dwArrayPtr-3);
+	DWORD dwDataItemSize = *reinterpret_cast<DWORD*>(dwArrayPtr - 3 * sizeof(DWORD));
+	[[maybe_unused]] DWORD dwUnusedItemSize = dwDataItemSize;
 	size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
 	size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
-	uintptr_t* pRef = (uintptr_t*)dwArrayPtr;
-	LPSTR pData = (LPSTR)(((LPSTR)dwArrayPtr)+dwRefSizeInBytes+dwFlagSizeInBytes);
-	DWORD dwOffset = (DWORD)(pRef[iIndex] - (uintptr_t)pData);
+	uintptr_t* pRef = reinterpret_cast<uintptr_t*>(dwArrayPtr);
+	char* pData = reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes;
+	size_t dwOffset = static_cast<size_t>(pRef[iIndex] - reinterpret_cast<uintptr_t>(pData));
 
 	// leeadd - 211008 - u71 - check for strings before remove this element
-	DWORD dwInternalTypeIndex = *((DWORD*)dwArrayPtr-2);
-	LPSTR pPattern = GetTypePatternCore ( NULL, dwInternalTypeIndex );
+	DWORD dwInternalTypeIndex = *reinterpret_cast<DWORD*>(dwArrayPtr - 2 * sizeof(DWORD));
+	LPSTR pPattern = GetTypePatternCore ( nullptr, dwInternalTypeIndex );
 	if ( pPattern )
 	{
 		// go through pattern which matches basic types
@@ -3271,7 +3282,7 @@ DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr, int iIndex)
 			if ( pPattern[n]=='S' )
 			{
 				// U74 - 050509 - delete CORRECT part of block!
-				LPSTR* pStringData = (LPSTR*)(pData+dwOffset+dwTypeInternalOffset);
+				char** pStringData = reinterpret_cast<char**>(pData + dwOffset + dwTypeInternalOffset);
 				if ( *pStringData )
 				{
 					if ( HeapValidate( GetProcessHeap(), 0, *pStringData ) )
@@ -3588,7 +3599,7 @@ DARKSDK BYTE ReadB(void)
 		g_pDataLabelPtr+=10;
 	}
 
-	BYTE dwValue = (BYTE)dData;
+	uint8_t dwValue = static_cast<uint8_t>(dData);
 
 	return dwValue;
 }
@@ -3604,7 +3615,7 @@ DARKSDK WORD ReadW(void)
 		g_pDataLabelPtr+=10;
 	}
 
-	WORD dwValue = (WORD)dData;
+	uint16_t dwValue = static_cast<uint16_t>(dData);
 
 	return dwValue;
 }
@@ -4241,217 +4252,211 @@ DARKSDK DWORD LessEqualLRR(LONGLONG lValueA, LONGLONG lValueB)
 
 DARKSDK DWORD CastLtoF(int iValue)
 {
-	float result = (float)iValue;
+	float result = static_cast<float>(iValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastLtoB(int iValue)
 {
-	unsigned char result = (unsigned char)iValue;
+	uint8_t result = static_cast<uint8_t>(iValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastLtoY(int iValue)
 {
-	unsigned char result = (unsigned char)iValue;
+	uint8_t result = static_cast<uint8_t>(iValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastLtoW(int iValue)
 {
-	WORD result = (WORD)iValue;
+	uint16_t result = static_cast<uint16_t>(iValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastLtoD(int iValue)
 {
-	DWORD result = (DWORD)iValue;
+	DWORD result = static_cast<DWORD>(iValue);
 	return *((DWORD*)&result);
 }
 DARKSDK double CastLtoO(int iValue)
 {
-	return (double)iValue;
+	return static_cast<double>(iValue);
 }
 DARKSDK LONGLONG CastLtoR(int iValue)
 {
-	return (LONGLONG)iValue;
+	return static_cast<LONGLONG>(iValue);
 }
 DARKSDK DWORD CastFtoL(float fValue)
 {
-	int result = (int)fValue;
+	int result = static_cast<int>(fValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastFtoB(float fValue)
 {
-	unsigned char result = (unsigned char)fValue;
+	uint8_t result = static_cast<uint8_t>(fValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastFtoW(float fValue)
 {
-	WORD result = (WORD)fValue;
+	uint16_t result = static_cast<uint16_t>(fValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastFtoD(float fValue)
 {
 	// a maxed out DWORD produces wrong float, so keep it within 4bytes 
-	LONGLONG Long = (LONGLONG)fValue;
+	LONGLONG Long = static_cast<LONGLONG>(fValue);
 	if(Long>4294967295) Long=4294967295;
 
-	DWORD result = (DWORD)Long;
+	DWORD result = static_cast<DWORD>(Long);
 	return *((DWORD*)&result);
 }
 DARKSDK double CastFtoO(float fValue)
 {
-	// LEEFIX - 141102 - FLD is different on AMD processprs, so truncate..
-	return (double)fValue;
-	/*
-	LONGLONG iBig = (LONGLONG)f;
-	double a=(double)iBig/100000.0;
-	return a;
-	*/
+	return static_cast<double>(fValue);
 }
 DARKSDK LONGLONG CastFtoR(float fValue)
 {
-	return (LONGLONG)fValue;
+	return static_cast<LONGLONG>(fValue);
 }
 DARKSDK DWORD CastBtoL(unsigned char cValue)
 {
-	int result = (int)cValue;
+	int result = static_cast<int>(cValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastBtoF(unsigned char cValue)
 {
-	float result = (float)cValue;
+	float result = static_cast<float>(cValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastBtoW(unsigned char cValue)
 {
-	WORD result = (WORD)cValue;
+	uint16_t result = static_cast<uint16_t>(cValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastBtoD(unsigned char cValue)
 {
-	DWORD result = (DWORD)cValue;
+	DWORD result = static_cast<DWORD>(cValue);
 	return *((DWORD*)&result);
 }
 DARKSDK double CastBtoO(unsigned char cValue)
 {
-	return (double)cValue;
+	return static_cast<double>(cValue);
 }
 DARKSDK LONGLONG CastBtoR(unsigned char cValue)
 {
-	return (LONGLONG)cValue;
+	return static_cast<LONGLONG>(cValue);
 }
 DARKSDK DWORD CastWtoL(WORD wValue)
 {
-	int result = (int)wValue;
+	int result = static_cast<int>(wValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastWtoF(WORD wValue)
 {
-	float result = (float)wValue;
+	float result = static_cast<float>(wValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastWtoB(WORD wValue)
 {
-	unsigned char result = (unsigned char)wValue;
+	uint8_t result = static_cast<uint8_t>(wValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastWtoD(WORD wValue)
 {
-	DWORD result = (DWORD)wValue;
+	DWORD result = static_cast<DWORD>(wValue);
 	return *((DWORD*)&result);
 }
 DARKSDK double CastWtoO(WORD wValue)
 {
-	return (double)wValue;
+	return static_cast<double>(wValue);
 }
 DARKSDK LONGLONG CastWtoR(WORD wValue)
 {
-	return (LONGLONG)wValue;
+	return static_cast<LONGLONG>(wValue);
 }
 DARKSDK DWORD CastDtoL(DWORD dwValue)
 {
-	int result = (int)dwValue;
+	int result = static_cast<int>(dwValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastDtoF(DWORD dwValue)
 {
-	float result = (float)dwValue;
+	float result = static_cast<float>(dwValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastDtoB(DWORD dwValue)
 {
-	unsigned char result = (unsigned char)dwValue;
+	uint8_t result = static_cast<uint8_t>(dwValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastDtoW(DWORD dwValue)
 {
-	WORD result = (WORD)dwValue;
+	uint16_t result = static_cast<uint16_t>(dwValue);
 	return *((DWORD*)&result);
 }
 DARKSDK double CastDtoO(DWORD dwValue)
 {
-	return (double)dwValue;
+	return static_cast<double>(dwValue);
 }
 DARKSDK LONGLONG CastDtoR(DWORD dwValue)
 {
-	return (LONGLONG)dwValue;
+	return static_cast<LONGLONG>(dwValue);
 }
 DARKSDK DWORD CastOtoL(double dValue)
 {
-	int result = (int)dValue;
+	int result = static_cast<int>(dValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastOtoF(double dValue)
 {
-	float result = (float)dValue;
+	float result = static_cast<float>(dValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastOtoB(double dValue)
 {
-	unsigned char result = (unsigned char)dValue;
+	uint8_t result = static_cast<uint8_t>(dValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastOtoW(double dValue)
 {
-	WORD result = (WORD)dValue;
+	uint16_t result = static_cast<uint16_t>(dValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastOtoD(double dValue)
 {
-	DWORD result = (DWORD)dValue;
+	DWORD result = static_cast<DWORD>(dValue);
 	return *((DWORD*)&result);
 }
 DARKSDK LONGLONG CastOtoR(double dValue)
 {
-	LONGLONG result = (LONGLONG)dValue;
+	LONGLONG result = static_cast<LONGLONG>(dValue);
 	return result;
 }
 DARKSDK DWORD CastRtoL(LONGLONG lValue)
 {
-	int result = (int)lValue;
+	int result = static_cast<int>(lValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastRtoF(LONGLONG lValue)
 {
-	float result = (float)lValue;
+	float result = static_cast<float>(lValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastRtoB(LONGLONG lValue)
 {
-	unsigned char result = (unsigned char)lValue;
+	uint8_t result = static_cast<uint8_t>(lValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastRtoW(LONGLONG lValue)
 {
-	WORD result = (WORD)lValue;
+	uint16_t result = static_cast<uint16_t>(lValue);
 	return *((DWORD*)&result);
 }
 DARKSDK DWORD CastRtoD(LONGLONG lValue)
 {
-	DWORD result = (DWORD)lValue;
+	DWORD result = static_cast<DWORD>(lValue);
 	return *((DWORD*)&result);
 }
 DARKSDK double CastRtoO(LONGLONG lValue)
 {
-	return (double)lValue;
+	return static_cast<double>(lValue);
 }
 
 // MATHEMATICAL COMMANDS
@@ -4469,88 +4474,76 @@ DB_EXPORT dbReturnFloat_t AbsFF(float fValue)
 
 DARKSDK DWORD IntLF(float fValue)
 {
-	int result = (int)fValue;
+	int result = static_cast<int>(fValue);
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD AcosFF(float fValue)
 {
-	float result = (float)(acos(fValue)*gRadToDeg);
+	float result = static_cast<float>(std::acos(fValue) * gRadToDeg);
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD AsinFF(float fValue)
 {
-	float result = (float)(asin(fValue)*gRadToDeg);
+	float result = static_cast<float>(std::asin(fValue) * gRadToDeg);
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD AtanFF(float fValue)
 {
-	float result = (float)(atan(fValue)*gRadToDeg);
+	float result = static_cast<float>(std::atan(fValue) * gRadToDeg);
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD Atan2FFF(float fA, float fB)
 {
-	float result = (float)(atan2(fA, fB)*gRadToDeg);
+	float result = static_cast<float>(std::atan2(fA, fB) * gRadToDeg);
 	return *((DWORD*)&result);
 }
 
 DARKSDK dbReturnFloat_t CosFF(float fAngle)
 {
 	return dbReturnFloat( db3::Cos(fAngle) );
-	/*
-	float result = (float)cos(fAngle*gDegToRad);
-	return *((DWORD*)&result);
-	//*/
 }
 
 DARKSDK dbReturnFloat_t SinFF(float fAngle)
 {
 	return dbReturnFloat( db3::Sin(fAngle) );
-	/*
-	float result = (float)sin(fAngle*gDegToRad);
-	return *((DWORD*)&result);
-	//*/
 }
 
 DARKSDK dbReturnFloat_t TanFF(float fAngle)
 {
 	return dbReturnFloat( db3::Tan(fAngle) );
-	/*
-	float result = (float)tan(fAngle*gDegToRad);
-	return *((DWORD*)&result);
-	//*/
 }
 
 DARKSDK DWORD HcosFF(float fAngle)
 {
-	float result = (float)cosh(fAngle*gDegToRad);
+	float result = static_cast<float>(std::cosh(fAngle * gDegToRad));
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD HsinFF(float fAngle)
 {
-	float result = (float)sinh(fAngle*gDegToRad);
+	float result = static_cast<float>(std::sinh(fAngle * gDegToRad));
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD HtanFF(float fAngle)
 {
-	float result = (float)tanh(fAngle*gDegToRad);
+	float result = static_cast<float>(std::tanh(fAngle * gDegToRad));
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD SqrtFF(float fValue)
 {
-	float result = (float)sqrt(fValue);
+	float result = static_cast<float>(std::sqrt(fValue));
 	return *((DWORD*)&result);
 }
 
 DARKSDK DWORD ExpFF(float fExp)
 {
-	float result = (float)exp(fExp);
+	float result = static_cast<float>(std::exp(fExp));
 	return *((DWORD*)&result);
 }
 
@@ -4949,7 +4942,7 @@ DARKSDK void SyncRate(int iRate)
 	// the basic MS-per-frame value. Any milliseconds dropped using the calculation
 	// will be evenly distributed within the table.
 	g_dwSyncRateSettingSize = iRate;
-	g_pdwSyncRateSetting = new DWORD[ iRate ];
+	g_pdwSyncRateSetting = new uint32_t[ iRate ];
 
 	DWORD RoundedMS                 =   1000 / iRate;
 	DWORD DroppedTotalMS            =   1000 - (RoundedMS * iRate);
@@ -5051,7 +5044,7 @@ DARKSDK void DrawSpritesLast(void)
 	g_bDrawSpritesFirst=false;
 }
 
-DARKSDK void SaveArray(LPSTR pFilename, DWORD dwAllocation)
+DARKSDK void SaveArray(LPSTR pFilename, DWORD_PTR dwAllocation)
 {
 	// Temp vars
 	DWORD written;
@@ -5140,7 +5133,7 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD dwAllocation)
 	}
 }
 
-DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD dwAllocation)
+DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD_PTR dwAllocation)
 {
 	// Temp vars
 	DWORD readen;
@@ -5258,7 +5251,7 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD dwAllocation)
 	}
 }
 
-DARKSDK void LoadArray( LPSTR szFilename, DWORD dwAllocation )
+DARKSDK void LoadArray( LPSTR szFilename, DWORD_PTR dwAllocation )
 {
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];

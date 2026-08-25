@@ -3,8 +3,9 @@
 //
 
 // Includes
-#define _CRT_SECURE_NO_DEPRECATE
-#include "windows.h"
+#include <windows.h>
+#include <cstdint>
+#include <cstring>
 #include "globstruct.h"
 
 // Global Function Ptr to CreateString in Core ptr passed in
@@ -14,10 +15,10 @@ extern GlobStruct* g_pGlob;
 void GlobExpandChecklist( DWORD iIndex, DWORD dwImminentStringSize )
 {
 	// First must make a checklist if new
-	if(g_pGlob->checklist==NULL)
+	if(g_pGlob->checklist == nullptr)
 	{
 		// Create array of items
-		g_pGlob->dwChecklistArraySize=256;
+		g_pGlob->dwChecklistArraySize = 256;
 		DWORD dwMemSize = g_pGlob->dwChecklistArraySize * sizeof(GlobChecklistStruct);
 		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR*>(&g_pGlob->checklist), dwMemSize);
 		ZeroMemory(g_pGlob->checklist, sizeof(GlobChecklistStruct) * g_pGlob->dwChecklistArraySize);
@@ -29,18 +30,19 @@ void GlobExpandChecklist( DWORD iIndex, DWORD dwImminentStringSize )
 			g_pGlob->checklist[n].dwStringSize = 2;
 			DWORD dwItemMemSize = g_pGlob->checklist[n].dwStringSize;
 			g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR*>(&g_pGlob->checklist[n].string), dwItemMemSize);
-			strcpy(g_pGlob->checklist[n].string, "");
+			if (g_pGlob->checklist[n].string)
+				strcpy_s(g_pGlob->checklist[n].string, dwItemMemSize, "");
 		}
 	}
 
 	// Ensure checklist is big enough
-	if(iIndex>g_pGlob->dwChecklistArraySize-2)
+	if(iIndex > g_pGlob->dwChecklistArraySize - 2)
 	{
 		// Double size of array
-		DWORD dwArraySize=g_pGlob->dwChecklistArraySize*2;
+		DWORD dwArraySize = g_pGlob->dwChecklistArraySize * 2;
 
 		// Make new larger checklist
-		GlobChecklistStruct* pNewArray = NULL;
+		GlobChecklistStruct* pNewArray = nullptr;
 		DWORD dwMemSize = dwArraySize * sizeof(GlobChecklistStruct);
 		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR*>(&pNewArray), dwMemSize);
 		ZeroMemory(pNewArray, sizeof(GlobChecklistStruct) * dwArraySize);
@@ -58,10 +60,11 @@ void GlobExpandChecklist( DWORD iIndex, DWORD dwImminentStringSize )
 		for(; n<dwArraySize; n++)
 		{
 			// Create default blank string
-			pNewArray[n].dwStringSize=2;
+			pNewArray[n].dwStringSize = 2;
 			DWORD dwItemMemSize = pNewArray[n].dwStringSize;
 			g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR*>(&pNewArray[n].string), dwItemMemSize);
-			strcpy(pNewArray[n].string, "");
+			if (pNewArray[n].string)
+				strcpy_s(pNewArray[n].string, dwItemMemSize, "");
 		}
 
 		// Transfer pointers and delete old one
@@ -71,15 +74,16 @@ void GlobExpandChecklist( DWORD iIndex, DWORD dwImminentStringSize )
 	}
 
 	// Ensure string being referenced is big enough
-	if(dwImminentStringSize>g_pGlob->checklist[iIndex].dwStringSize)
+	if(dwImminentStringSize > g_pGlob->checklist[iIndex].dwStringSize)
 	{
 		// Expand string within checklist
-		LPSTR pNewString=NULL;
-		DWORD dwMemSize = dwImminentStringSize+1;
+		LPSTR pNewString = nullptr;
+		DWORD dwMemSize = dwImminentStringSize + 1;
 		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR*>(&pNewString), dwMemSize);
-		strcpy(pNewString, g_pGlob->checklist[iIndex].string);
+		if (pNewString && g_pGlob->checklist[iIndex].string)
+			strcpy_s(pNewString, dwMemSize, g_pGlob->checklist[iIndex].string);
 		g_pGlob->checklist[iIndex].dwStringSize = dwImminentStringSize;
 		g_pGlob->CreateDeleteString(reinterpret_cast<DWORD_PTR*>(&g_pGlob->checklist[iIndex].string), 0);
-		g_pGlob->checklist[iIndex].string=pNewString;
+		g_pGlob->checklist[iIndex].string = pNewString;
 	}
 }

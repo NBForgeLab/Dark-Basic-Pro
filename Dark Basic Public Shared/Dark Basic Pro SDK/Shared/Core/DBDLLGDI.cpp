@@ -3,7 +3,9 @@
 //
 
 // Common Includes
-#include "windows.h"
+#include <windows.h>
+#include <cstdint>
+#include <cstring>
 #include "DBDLLCore.h"
 
 // External Gloobal Data
@@ -12,7 +14,7 @@ extern GlobStruct g_Glob;
 DARKSDK void GDI_CreateDisplay(DWORD dwDisplayType)
 {
 	// Create Display Area
-	g_hdcDisplay = CreateCompatibleDC(NULL);
+	g_hdcDisplay = CreateCompatibleDC(nullptr);
 	g_hDisplayBitmap = CreateCompatibleBitmap(g_hdcDisplay, g_dwScreenWidth, g_dwScreenHeight);
 
 	// Select Default Colour Scheme
@@ -29,17 +31,17 @@ DARKSDK void GDI_DeleteDisplay(void)
 	if(g_hBrush)
 	{
 		DeleteObject(g_hBrush);
-		g_hBrush=NULL;
+		g_hBrush = nullptr;
 	}
 	if(g_hDisplayBitmap)
 	{
 		DeleteObject(g_hDisplayBitmap);
-		g_hDisplayBitmap=NULL;
+		g_hDisplayBitmap = nullptr;
 	}
 	if(g_hdcDisplay)
 	{
 		DeleteDC(g_hdcDisplay);
-		g_hdcDisplay=NULL;
+		g_hdcDisplay = nullptr;
 	}
 }
 
@@ -66,7 +68,7 @@ DARKSDK void GDI_ClearPrintArea(void)
 		SelectObject(g_hdcDisplay, hdcOldBitmap);
 
 		// Update Display
-		InvalidateRect(g_Glob.hWnd, NULL, FALSE);
+		InvalidateRect(g_Glob.hWnd, nullptr, FALSE);
 	}
 }
 
@@ -75,7 +77,7 @@ DARKSDK void GDI_ClearSomeText(int LeftmostToClear, int RightmostToClear)
 	if(g_hdcDisplay)
 	{
 		// Work out Text Details
-		SIZE Size;
+		SIZE Size = {};
 		size_t dwLength = strlen(" ");
 		GetTextExtentPoint32(g_hdcDisplay, " ", static_cast<int>(dwLength), &Size); 
 
@@ -91,7 +93,7 @@ DARKSDK void GDI_ClearSomeText(int LeftmostToClear, int RightmostToClear)
 		SelectObject(g_hdcDisplay, hdcOldBitmap);
 
 		// Update Display
-		InvalidateRect(g_Glob.hWnd, NULL, FALSE);
+		InvalidateRect(g_Glob.hWnd, nullptr, FALSE);
 	}
 }
 
@@ -120,7 +122,7 @@ DARKSDK void GDI_PrintSomething(LPSTR pStr, bool bIncludeCarriageReturn)
 		if(pStr)
 		{
 			// Work out Text Details
-			SIZE Size;
+			SIZE Size = {};
 			size_t dwLength = strlen(pStr);
 			GetTextExtentPoint32(g_hdcDisplay, pStr, static_cast<int>(dwLength), &Size);
 
@@ -137,7 +139,7 @@ DARKSDK void GDI_PrintSomething(LPSTR pStr, bool bIncludeCarriageReturn)
 				g_Glob.iCursorY+=Size.cy;
 
 				// Scroll if reach bottom
-				RECT rc;
+				RECT rc = {};
 				GetClientRect(g_Glob.hWnd, &rc);
 				if(g_Glob.iCursorY>rc.bottom-Size.cy)
 				{
@@ -170,13 +172,16 @@ DARKSDK void GDI_PrintSomething(LPSTR pStr, bool bIncludeCarriageReturn)
 		SelectObject(g_hdcDisplay, hdcOld);
 
 		// Update Display
-		InvalidateRect(g_Glob.hWnd, NULL, FALSE);
+		InvalidateRect(g_Glob.hWnd, nullptr, FALSE);
 	}
 }
 
 DARKSDK SIZE GDI_GetTextSize(LPSTR pText)
 {
-	SIZE s;
-	GetTextExtentPoint32(g_hdcDisplay, pText, static_cast<int>(strlen(pText)), &s);
+	SIZE s = {};
+	if(pText && g_hdcDisplay)
+	{
+		GetTextExtentPoint32(g_hdcDisplay, pText, static_cast<int>(strlen(pText)), &s);
+	}
 	return s;
 }
