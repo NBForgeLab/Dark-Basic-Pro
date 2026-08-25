@@ -269,29 +269,17 @@ DARKSDK void TextConstructor ( HINSTANCE hSetup )
 	}
 	#endif
 
-	m_pD3D = g_GFX_GetDirect3DDevice ( );
+	m_pD3D = g_GFX_GetDirect3DDevice ? g_GFX_GetDirect3DDevice ( ) : nullptr;
 
+	if ( m_pD3D )
+	{
+		// get reference to DX
+		m_pD3D->GetDirect3D(&m_pDX);
 
-	// get reference to DX
-	m_pD3D->GetDirect3D(&m_pDX);
-
-	// now setup font construction using preset defaults
-	//strcpy ( m_strFontName, "arial" );			// attempt to use arial font
-	// mike - 250604 - default to fixedsys font
-	// Bounded copy into the 80-char font-name ABI buffer (replaces unsafe strcpy)
-	memset ( m_strFontName, 0, sizeof ( m_strFontName ) );
-	memcpy ( m_strFontName, "fixedsys", sizeof ( "fixedsys" ) - 1 );
-    m_dwFontHeight         = 12;				// use point size 12
-	m_dwFontFlags          = 0;					// no flags initially
-	m_fTextScale		   = 1.0f;				// normal scale
-	m_iTextCharSet		   = 0;
-
-    m_pTexture             = nullptr;				// set texture pointer to null
-    m_pVB                  = nullptr;				// set vertex buffer to null
-
-	// create state blocks
-	m_pD3D->CreateStateBlock  ( D3DSBT_ALL, &m_pSavedStateBlock );
-	m_pD3D->CreateStateBlock  ( D3DSBT_ALL, &m_pDrawTextStateBlock );
+		// create state blocks
+		m_pD3D->CreateStateBlock  ( D3DSBT_ALL, &m_pSavedStateBlock );
+		m_pD3D->CreateStateBlock  ( D3DSBT_ALL, &m_pDrawTextStateBlock );
+	}
 
 	m_bTextBold			   = false;									// turn bold off
 	m_bTextItalic		   = false;									// turn italic off
@@ -472,8 +460,20 @@ DARKSDK void SetupFont ( void )
 		}
 
 		// create a blank texture for the font
-		if ( FAILED ( hr = m_pD3D->CreateTexture ( m_dwTexWidth, m_dwTexHeight, 1, 0, m_FontFormat, D3DPOOL_MANAGED, &m_pTexture, nullptr ) ) )
-			Error ( "Unable to create font texture in text library" );
+		D3DPOOL pool = D3DPOOL_MANAGED;
+		DWORD usage = 0;
+		if ( FAILED ( hr = m_pD3D->CreateTexture ( m_dwTexWidth, m_dwTexHeight, 1, usage, m_FontFormat, pool, &m_pTexture, nullptr ) ) )
+		{
+			// Fallback for Direct3D9Ex (which forbids D3DPOOL_MANAGED)
+			pool = D3DPOOL_DEFAULT;
+			usage = D3DUSAGE_DYNAMIC;
+			if ( FAILED ( hr = m_pD3D->CreateTexture ( m_dwTexWidth, m_dwTexHeight, 1, usage, m_FontFormat, pool, &m_pTexture, nullptr ) ) )
+			{
+				pool = D3DPOOL_SYSTEMMEM;
+				usage = 0;
+				m_pD3D->CreateTexture ( m_dwTexWidth, m_dwTexHeight, 1, usage, m_FontFormat, pool, &m_pTexture, nullptr );
+			}
+		}
     
 		// and now create a bitmap, what we do is draw
 		// a font onto the bitmap and then later on
@@ -491,56 +491,22 @@ DARKSDK void SetupFont ( void )
 		bmi.bmiHeader.biBitCount    = 32;								// bit depth
 
 		// create a device context and a bitmap for the font
-//		hDC       = CreateCompatibleDC ( nullptr );															// create dc
 		HBITMAP hbmBitmap = CreateDIBSection ( hDC, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&pBitmapBits), nullptr, 0 );
 		dbp::text::ScopeGuard bmpGuard( [hbmBitmap]{ if ( hbmBitmap ) ::DeleteObject( hbmBitmap ); } );		// create bmp
-//		SetMapMode ( hDC, MM_TEXT );																		// set mapping mode x, y
 
+		// create the font
+		DWORD dwBold   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
+		DWORD dwItalic = ( m_bTextItalic ) ? TRUE    : FALSE;			// set italic flag on / off
+		hFont = DB_SetRealTextFont ( hDC, dwBold, dwItalic, m_dwFontHeight, m_strFontName, m_iTextCharSet );
 
-//		// at this point we can now create a font
-//		DWORD textstyle   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
-//		DWORD bItalicFlag = ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
-//		hFont = DB_SetRealTextFont ( hDC, textstyle, bItalicFlag, m_dwFontHeight, m_strFontName, m_iTextCharSet );
+		// and select into device context
+		HGDIOBJ hbmOldBitmap = SelectObject ( hDC, hbmBitmap );
+		SelectObject ( hDC, hFont );
 
-		/*
-		nHeight = -MulDiv ( m_dwFontHeight, ( int ) ( GetDeviceCaps ( hDC, LOGPIXELSY ) * m_fTextScale ), 72 );	// get font height
-		dwBold   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
-		dwItalic = ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
+		// set character colours
+		SetTextColor ( hDC, RGB ( 255, 255, 255 ) );	// text colour is always white
+		SetBkColor   ( hDC, RGB ( 0, 0, 0 ) );			// background is black
 
-		// call create font
-		hFont    = CreateFont 
-							( 
-								nHeight,					// logical height of font
-								0,							// logical average width
-								0,							// angle of escapment
-								0,							// base line orientation
-								dwBold,						// font weight bold / normal
-								dwItalic,					// italic flag
-								false,						// underline flag
-								false,						// strikeout flag
-								DEFAULT_CHARSET,			// character set
-								OUT_DEFAULT_PRECIS,			// default output precision
-								CLIP_DEFAULT_PRECIS,		// default clipping precision
-								ANTIALIASED_QUALITY,		// ask for antialiased quality ( not always possible )
-								VARIABLE_PITCH,				// variable pitch
-								m_strFontName				// font name
-							);
-
-		// check font was created
-		if ( hFont == nullptr )
-			Error ( "Unable to create font in text library" );
-		*/
-
-		// select objects into dc
-		HBITMAP hbmOldBitmap = static_cast<HBITMAP>(SelectObject ( hDC, hbmBitmap ));
-
-		// Colour is merely a mask maker, actual colour is later in code
-		SetTextColor ( hDC, RGB ( 255, 255, 255 ) );
-		SetBkColor   ( hDC, 0x00000000 );				// background colour, black by default
-
-		// set the text properties
-//		SetTextAlign ( hDC, TA_TOP );					// align to top by default
-		
 		// loop through all printable character and output them to the bitmap
 		// also keep track of the corresponding tex coords for each character
 		// LEEFIX - 141102 - Increased font chars to 256 (to include special ascii chars)
@@ -556,8 +522,6 @@ DARKSDK void SetupFont ( void )
 			{
 				dwPush = (size.cy/8);
 				dwAdditional = (size.cy/4);//little edge of italic text
-
-				//size.cx+=dwAdditional;
 
 				// mike - 250604 - adjust for italics
 				size.cx+=m_dwFontHeight / 3 + 5;
@@ -587,40 +551,42 @@ DARKSDK void SetupFont ( void )
 
 		// lock the surface (for 16bit format - 4444)
 		DWORD dwDepth=GetBitDepthFromFormat(m_FontFormat);
-		if(dwDepth==16)
+		if(m_pTexture && dwDepth==16 && pBitmapBits)
 		{
 			DWORD dwUseBack = m_dwBKColor;
 			if(m_bTextOpaque==false) dwUseBack=0;
 
-			m_pTexture->LockRect ( 0, &d3dlr, 0, 0 );
-			pDst16 = ( uint16_t* ) d3dlr.pBits;
-			uint16_t wFore = 0x0fff;
-			uint16_t wBack = 0x0000;
-			if(m_dwBKColor>0)
+			if ( SUCCEEDED( m_pTexture->LockRect ( 0, &d3dlr, 0, 0 ) ) && d3dlr.pBits )
 			{
-				uint8_t bFR = static_cast<uint8_t>(RgbR(m_dwColor)/16); if(bFR>15) bFR=15;
-				uint8_t bFG = static_cast<uint8_t>(RgbG(m_dwColor)/16); if(bFG>15) bFG=15;
-				uint8_t bFB = static_cast<uint8_t>(RgbB(m_dwColor)/16); if(bFB>15) bFB=15;
-				uint8_t bBR = static_cast<uint8_t>(RgbR(dwUseBack)/16); if(bFR>15) bFR=15;
-				uint8_t bBG = static_cast<uint8_t>(RgbG(dwUseBack)/16); if(bBG>15) bBG=15;
-				uint8_t bBB = static_cast<uint8_t>(RgbB(dwUseBack)/16); if(bBB>15) bBB=15;
-				wFore = (bFR<<8) + (bFG<<4) + (bFB);
-				wBack = (bBR<<8) + (bBG<<4) + (bBB);
-			}
-			for ( y = 0; y < m_dwTexHeight; y++ )
-			{
-				for ( x = 0; x < m_dwTexWidth; x++ )
+				pDst16 = ( uint16_t* ) d3dlr.pBits;
+				uint16_t wFore = 0x0fff;
+				uint16_t wBack = 0x0000;
+				if(m_dwBKColor>0)
 				{
-					bAlpha = ( BYTE ) ( ( pBitmapBits [ m_dwTexWidth * y + x ] & 0xff ) >> 4 );
-					
-					if ( bAlpha > 0 )
-						*pDst16++ = ( bAlpha << 12 ) | wFore;
-					else
-						*pDst16++ = wBack;
+					uint8_t bFR = static_cast<uint8_t>(RgbR(m_dwColor)/16); if(bFR>15) bFR=15;
+					uint8_t bFG = static_cast<uint8_t>(RgbG(m_dwColor)/16); if(bFG>15) bFG=15;
+					uint8_t bFB = static_cast<uint8_t>(RgbB(m_dwColor)/16); if(bFB>15) bFB=15;
+					uint8_t bBR = static_cast<uint8_t>(RgbR(dwUseBack)/16); if(bFR>15) bFR=15;
+					uint8_t bBG = static_cast<uint8_t>(RgbG(dwUseBack)/16); if(bBG>15) bBG=15;
+					uint8_t bBB = static_cast<uint8_t>(RgbB(dwUseBack)/16); if(bBB>15) bBB=15;
+					wFore = (bFR<<8) + (bFG<<4) + (bFB);
+					wBack = (bBR<<8) + (bBG<<4) + (bBB);
 				}
+				for ( y = 0; y < m_dwTexHeight; y++ )
+				{
+					for ( x = 0; x < m_dwTexWidth; x++ )
+					{
+						bAlpha = ( BYTE ) ( ( pBitmapBits [ m_dwTexWidth * y + x ] & 0xff ) >> 4 );
+						
+						if ( bAlpha > 0 )
+							*pDst16++ = ( bAlpha << 12 ) | wFore;
+						else
+							*pDst16++ = wBack;
+					}
+				}
+				// unlock the texture
+				m_pTexture->UnlockRect ( 0 );
 			}
-			// unlock the texture
-			m_pTexture->UnlockRect ( 0 );
 		}
 
 		// select out objects (bitmap)
@@ -629,8 +595,6 @@ DARKSDK void SetupFont ( void )
 		// store font, deleting any old one
 		if ( g_hRetainRawTextWriteFont ) DeleteObject ( g_hRetainRawTextWriteFont );
 		g_hRetainRawTextWriteFont = hFont;
-
-		// hbmBitmap and hDC are released automatically by their scope guards
 	}
 
 	if ( GDI_TEXT == true )
@@ -638,39 +602,55 @@ DARKSDK void SetupFont ( void )
 		HFONT		hFont;			// handle to font (retained in g_hRetainRawTextWriteFont)
 		SIZE		size;
 
-		LPDIRECT3DSURFACE9 pBackBuffer = g_pGlob->pCurrentBitmapSurface;
+		LPDIRECT3DSURFACE9 pBackBuffer = (g_pGlob != nullptr) ? g_pGlob->pCurrentBitmapSurface : nullptr;
 		HDC hDC = nullptr;
-		pBackBuffer->GetDC ( &hDC );
-		dbp::text::ScopeGuard dcGuard( [pBackBuffer, hDC]{ pBackBuffer->ReleaseDC ( hDC ); } );
-
-		SetMapMode ( hDC, MM_TEXT );
-
-		DWORD textstyle   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
-		DWORD bItalicFlag = ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
-		hFont = DB_SetRealTextFont ( hDC, textstyle, bItalicFlag, m_dwFontHeight, m_strFontName, m_iTextCharSet );
-
-		SelectObject ( hDC, hFont );
-		
-		// store font, deleting any old one
-
-		if ( g_hRetainRawTextWriteFont ) DeleteObject ( g_hRetainRawTextWriteFont );
-		g_hRetainRawTextWriteFont = hFont;
-
-		TCHAR str [ 2 ] = ( "x" );
-
-		m_fTextScale = 1.0f;
-
-		for ( unsigned short c = 32; c < 256; c++ )
+		bool bReleaseSurfaceDC = false;
+		if ( pBackBuffer != nullptr && SUCCEEDED( pBackBuffer->GetDC ( &hDC ) ) && hDC != nullptr )
 		{
-			str [ 0 ] = static_cast<unsigned char>(c);
-
-			GetTextExtentPoint32 ( hDC, str, 1, &size );
-
-			m_szTexWidth  [ c - 32 ] = static_cast<int>(static_cast<float>(size.cx) / m_fTextScale);
-			m_szTexHeight [ c - 32 ] = m_dwFontHeight;
+			bReleaseSurfaceDC = true;
 		}
-		
-		// hDC released automatically by its scope guard
+		else
+		{
+			hDC = CreateCompatibleDC ( nullptr );
+		}
+
+		if ( hDC != nullptr )
+		{
+			SetMapMode ( hDC, MM_TEXT );
+
+			DWORD textstyle   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
+			DWORD bItalicFlag = ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
+			hFont = DB_SetRealTextFont ( hDC, textstyle, bItalicFlag, m_dwFontHeight, m_strFontName, m_iTextCharSet );
+
+			SelectObject ( hDC, hFont );
+			
+			// store font, deleting any old one
+			if ( g_hRetainRawTextWriteFont ) DeleteObject ( g_hRetainRawTextWriteFont );
+			g_hRetainRawTextWriteFont = hFont;
+
+			TCHAR str [ 2 ] = ( "x" );
+
+			m_fTextScale = 1.0f;
+
+			for ( unsigned short c = 32; c < 256; c++ )
+			{
+				str [ 0 ] = static_cast<unsigned char>(c);
+
+				GetTextExtentPoint32 ( hDC, str, 1, &size );
+
+				m_szTexWidth  [ c - 32 ] = static_cast<int>(static_cast<float>(size.cx) / m_fTextScale);
+				m_szTexHeight [ c - 32 ] = m_dwFontHeight;
+			}
+
+			if ( bReleaseSurfaceDC && pBackBuffer )
+			{
+				pBackBuffer->ReleaseDC ( hDC );
+			}
+			else if ( !bReleaseSurfaceDC )
+			{
+				DeleteDC ( hDC );
+			}
+		}
 	}
 }
 
@@ -684,12 +664,35 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 {
 	// Held in Core, used here..
 	g_pGlob = (GlobStruct*)pGlobPtr;
+	if ( !g_pGlob ) return;
 	g_pCreateDeleteStringFunction = g_pGlob->CreateDeleteString;
 
-	// Choose bext texture and create font and state now
-	ValidateDefaultTextureForFont();
-	SetupFont   ( );
-	SetupStates ( );
+	#ifndef DARKSDK_COMPILE
+	if ( g_pGlob->g_GFX )
+	{
+		g_GFX = g_pGlob->g_GFX;
+		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_GFX, "?GetDirect3DDevice@@YAPEAUIDirect3DDevice9@@XZ" );
+	}
+	#else
+	g_GFX_GetDirect3DDevice = dbGetDirect3DDevice;
+	#endif
+
+	if ( g_GFX_GetDirect3DDevice )
+	{
+		m_pD3D = g_GFX_GetDirect3DDevice();
+		if ( m_pD3D && !m_pDX )
+		{
+			m_pD3D->GetDirect3D(&m_pDX);
+		}
+	}
+
+	if ( m_pD3D )
+	{
+		// Choose best texture and create font and state now
+		ValidateDefaultTextureForFont();
+		SetupFont   ( );
+		SetupStates ( );
+	}
 }
 
 DARKSDK void DeleteFonts ( void )
@@ -757,6 +760,7 @@ DARKSDK void SetTextColor ( int iAlpha, int iRed, int iGreen, int iBlue )
 
 DARKSDK void SetupStates ( void )
 {
+	if ( !m_pD3D ) return;
 	HRESULT hr;
 
     // create vertex buffer
