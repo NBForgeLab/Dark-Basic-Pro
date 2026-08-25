@@ -7,6 +7,7 @@
 // Common Includes
 #include "Declaration.h"
 #include "VarTable.h"
+#include "DBMWriter.h"
 
 // External Class Pointer
 extern CVarTable *g_pVarTable;

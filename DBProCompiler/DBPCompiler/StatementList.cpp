@@ -10,6 +10,8 @@
 #include "LabelTable.h"
 #include "VarTable.h"
 #include "Error.h"
+#include "ICodeGenerator.h"
+#include "DBMWriter.h"
 
 // External Class Pointer
 extern CInstructionTable *g_pInstructionTable;

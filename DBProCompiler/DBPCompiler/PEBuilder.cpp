@@ -9,6 +9,8 @@
 #include "VarTable.h"
 #include "StructTable.h"
 #include "Declaration.h"
+#include "Error.h"
+#include "EXEBlock.h"
 
 class CEXEBlock;
 class CDLLTable;

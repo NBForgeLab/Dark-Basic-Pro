@@ -1,6 +1,6 @@
 #pragma once
 #include "ParserHeader.h"
-
+#include "Str.h"
 #include "PerfMacros.h"
 
 #include <string>
@@ -9,6 +9,9 @@
 #ifdef __AARON_VARTABLEPERF__
 # include <unordered_map>
 #endif
+
+class CStructTable;
+class CResultData;
 
 class CVarTable  
 {
@@ -50,6 +53,15 @@ class CVarTable
 		void SetVarDefaults(void);
 
 		bool			AddVariable(std::string_view name, std::string_view type, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal);
+		bool			AddVariable(std::string_view name, std::string_view type, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, uint32_t* pdwAction, bool bIsGlobal) {
+			DWORD action = pdwAction ? static_cast<DWORD>(*pdwAction) : 0;
+			bool res = AddVariable(name, type, dwArrFlag, dwLineNumber, bFromActualCodeNotFromTypeDefing, pdwAction ? &action : nullptr, bIsGlobal);
+			if (pdwAction) *pdwAction = static_cast<uint32_t>(action);
+			return res;
+		}
+		bool			AddVariable(std::string_view name, std::string_view type, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, std::nullptr_t, bool bIsGlobal) {
+			return AddVariable(name, type, dwArrFlag, dwLineNumber, bFromActualCodeNotFromTypeDefing, static_cast<DWORD*>(nullptr), bIsGlobal);
+		}
 		CVarTable*		FindVariable(std::string_view scope, std::string_view name, DWORD dwArrFlag);
 		CVarTable*		FindVariable(const char* pScope, std::string_view name, DWORD dwArrFlag) {
 			return FindVariable(pScope ? std::string_view(pScope) : std::string_view{}, name, dwArrFlag);

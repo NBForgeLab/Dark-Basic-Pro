@@ -8,7 +8,8 @@
 #include "StatementList.h"
 #include "StructTable.h"
 #include "Error.h"
-#include "CompilerContext.h"
+#include "ICodeGenerator.h"
+#include "ASMWriter.h"
 
 // Declare compiler global pointers defined in dbp_compiler_lib
 extern CStructTable*     g_pStructTable;

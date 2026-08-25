@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "DataTable.h"
+#include "DBMWriter.h"
 #include "StringUtils.h"
 
 // Includes and external ptr for AssociateDLL scan

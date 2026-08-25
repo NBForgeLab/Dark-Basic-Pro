@@ -138,6 +138,9 @@ add_dependencies(DBPCompiler DarkEXE)
 dbp_apply_legacy_cpp_options(DBPCompiler)
 target_compile_definitions(DBPCompiler PRIVATE _WINDOWS NOGETDXVERSIONCODE UNICODE _UNICODE)
 target_link_libraries(DBPCompiler PRIVATE dbp_compiler_lib)
+if(MSVC)
+    target_link_options(DBPCompiler PRIVATE "/STACK:33554432,1048576")
+endif()
 
 # A compiler build is only usable when its host command database, localized
 # diagnostics, and legacy product plug-ins are deployed beside it. Plug-in

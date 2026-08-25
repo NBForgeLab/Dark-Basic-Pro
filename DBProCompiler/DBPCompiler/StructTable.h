@@ -1,5 +1,6 @@
 #pragma once
 #include "ParserHeader.h"
+#include "Str.h"
 #include "TargetABI.h"
 
 #include "PerfMacros.h"
@@ -10,6 +11,9 @@
 # include <unordered_map>
 # include <string>
 #endif
+
+class CDeclaration;
+class CStatement;
 
 class CStructTable  
 {

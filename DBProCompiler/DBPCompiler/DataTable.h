@@ -1,5 +1,6 @@
 #pragma once
 #include "ParserHeader.h"
+#include "Str.h"
 #include "Task.h"
 #include <memory>
 

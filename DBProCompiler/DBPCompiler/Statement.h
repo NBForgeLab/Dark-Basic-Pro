@@ -1,7 +1,9 @@
 #pragma once
 
 // Common Includes
-#include "windows.h"
+#include "ParserHeader.h"
+#include <cstdint>
+#include <string_view>
 #include <memory>
 #include <optional>
 #include <string>

@@ -3,6 +3,13 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "macros.h"
+#include "ParserHeader.h"
+#include "Declaration.h"
+#include "Statement.h"
+#include "StatementList.h"
+#include "ParserResultData.h"
+#include "Error.h"
+#include "Errors.h"
 #include "stdio.h"
 #include "Str.h"
 #include "float.h"
@@ -10,7 +17,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
-
 #include "StructTable.h"
 #include "InstructionTable.h"
 #include "DataTable.h"

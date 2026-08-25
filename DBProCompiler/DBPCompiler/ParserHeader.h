@@ -5,16 +5,16 @@
 #include <cstddef>
 #include "macros.h"
 
-// Custom Includes
-#include "StatementList.h"
-#include "ASMWriter.h"
-#include "DBMWriter.h"
-#include "Error.h"
+// Forward Declarations
+class CError;
+class ICodeGenerator;
+class CDBMWriter;
+class CStatementList;
 
-// Parser Defines
-#define DBMPLACEMENT_TOP		1
-#define DBMPLACEMENT_MIDDLE		2
-#define DBMPLACEMENT_BOTTOM		3
+// Parser Constants
+inline constexpr uint32_t DBMPLACEMENT_TOP		= 1;
+inline constexpr uint32_t DBMPLACEMENT_MIDDLE	= 2;
+inline constexpr uint32_t DBMPLACEMENT_BOTTOM	= 3;
 
 // External Class Pointers
 extern CError*				g_pErrorReport;

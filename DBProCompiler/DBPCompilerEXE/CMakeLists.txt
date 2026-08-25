@@ -43,3 +43,6 @@ target_link_libraries(DarkEXE PRIVATE
     dbghelp
     spdlog::spdlog
 )
+if(MSVC)
+    target_link_options(DarkEXE PRIVATE "/STACK:33554432,1048576")
+endif()

@@ -31,7 +31,7 @@ class CParseInstruction
 		void				SetInstructionRef(CInstructionTableEntry* pRef) { m_pRefInstructionEntry=pRef; }
 		CInstructionTableEntry* GetInstructionRef(void) { return m_pRefInstructionEntry; }
 
-		void				PassStartEndCharForPossibleDebugHook(uint32_t dwS, uint32_t dwE) { m_dwS=dwS; m_dwS=dwE; }
+		void				PassStartEndCharForPossibleDebugHook(uint32_t dwS, uint32_t dwE) { m_dwS=dwS; m_dwE=dwE; }
 
 		bool				ActOnSingleVar(CResultData* pVar, uint32_t dwType, int iDisplacement);
 		bool				ActOnType(CResultData* pVar, CStr* pTypeName, int iDisplacement);

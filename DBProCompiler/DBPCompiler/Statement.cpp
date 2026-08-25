@@ -13,6 +13,8 @@
 #include "StatementList.h"
 #include "Declaration.h"
 #include "Statement.h"
+#include "ICodeGenerator.h"
+#include "ASMWriter.h"
 #include "DBMWriter.h"
 #include "Error.h"
 #include "DBPLogger.h"

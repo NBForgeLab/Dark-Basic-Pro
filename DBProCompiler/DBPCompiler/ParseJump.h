@@ -7,11 +7,11 @@
 #include "Statement.h"
 #include "StatementChain.h"
 
-// Defines
-#define JUMPTYPE_IF				1
-#define JUMPTYPE_GOTO			2
-#define JUMPTYPE_GOSUB			3
-#define	JUMPTYPE_SELECT			4
+// Jump Types
+inline constexpr uint32_t JUMPTYPE_IF		= 1;
+inline constexpr uint32_t JUMPTYPE_GOTO		= 2;
+inline constexpr uint32_t JUMPTYPE_GOSUB	= 3;
+inline constexpr uint32_t JUMPTYPE_SELECT	= 4;
 
 class CParseJump  
 {

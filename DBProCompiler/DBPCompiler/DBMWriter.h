@@ -1,6 +1,7 @@
 #pragma once
 
-#include "windows.h"
+#include <cstdint>
+#include <string_view>
 #include "Str.h"
 #include <vector>
 
@@ -15,7 +16,11 @@ class CDBMWriter
 		bool			OutputDBM(CStr* pDBMStr);
 		DWORD			EatCarriageReturn(void);
 		bool			CheckAndExpandDBMMemory(DWORD dwLengthOfNewAddData);
-		bool			WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMainProgram);
+		bool			WriteProgramAsEXEOrDEBUG(const char* lpEXEFilename, bool bParsingMainProgram);
+		bool			WriteProgramAsEXEOrDEBUG(std::string_view exeFilename, bool bParsingMainProgram) {
+			std::string fn(exeFilename);
+			return WriteProgramAsEXEOrDEBUG(fn.c_str(), bParsingMainProgram);
+		}
 
 		void			SetNewCodeFlag(bool bFlag) { m_bNewCodeToParse=bFlag; }
 		bool			GetNewCodeFlag(void) { return m_bNewCodeToParse; }

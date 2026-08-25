@@ -2,6 +2,9 @@
 //
 //////////////////////////////////////////////////////////////////////
 #include "ParserHeader.h"
+#include "StatementList.h"
+#include "Error.h"
+#include "ICodeGenerator.h"
 #include "CodeGenerationSession.h"
 #include "StructTable.h"
 #include "LabelTable.h"
@@ -110,7 +113,7 @@ bool CDBMWriter::CheckAndExpandDBMMemory(DWORD dwLengthOfNewAddData)
 	return true;
 }
 
-bool CDBMWriter::WriteProgramAsEXEOrDEBUG(LPSTR lpEXEFilename, bool bParsingMainProgram)
+bool CDBMWriter::WriteProgramAsEXEOrDEBUG(const char* lpEXEFilename, bool bParsingMainProgram)
 {
 	// Free any previous usage
 	m_dbmData.clear();

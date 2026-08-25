@@ -5,11 +5,11 @@
 // Custom Includes
 #include "Statement.h"
 
-// Defines
-#define LOOPTYPE_DO				1
-#define LOOPTYPE_WHILE			2
-#define LOOPTYPE_REPEAT			3
-#define LOOPTYPE_FORNEXT		4
+// Loop Types
+inline constexpr uint32_t LOOPTYPE_DO		= 1;
+inline constexpr uint32_t LOOPTYPE_WHILE	= 2;
+inline constexpr uint32_t LOOPTYPE_REPEAT	= 3;
+inline constexpr uint32_t LOOPTYPE_FORNEXT	= 4;
 
 class CParseLoop  
 {

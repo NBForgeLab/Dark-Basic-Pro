@@ -174,14 +174,14 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 
 	uint32_t dwCorrectASMCode = 0;
 	int iOffset = 0;
-	uint32_t dwuint32_tRep=0;
-	uint32_t dwExtrauint32_t=0;
+	uint32_t dwDwordRep=0;
+	uint32_t dwExtraDword=0;
 	uint32_t dwIMMSize=0;
 
 	CStr doubleStr, dword1Str, dword2Str, offset1Str, offset2Str, temp1Str, temp2Str;
 	CStr* pDoubleStr = &doubleStr;
-	CStr* puint32_t1Str = &dword1Str;
-	CStr* puint32_t2Str = &dword2Str;
+	CStr* pdword1Str = &dword1Str;
+	CStr* pdword2Str = &dword2Str;
 	CStr* pOffset1Str = &offset1Str;
 	CStr* pOffset2Str = &offset2Str;
 	CStr* pTemp1Str = &temp1Str;
@@ -190,23 +190,23 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 	switch(dwMode)
 	{
 		case static_cast<uint32_t>(ParamMode::Imm):
-			dwExtrauint32_t=0;
-			dwuint32_tRep = pP->Getuint32_tRepresentation(dwPType, &dwExtrauint32_t);
-			puint32_t1Str->Setuint32_tNumericText(dwuint32_tRep);
-			puint32_t2Str->Setuint32_tNumericText(dwExtrauint32_t);
+			dwExtraDword=0;
+			dwDwordRep = pP->GetDWORDRepresentation(dwPType, &dwExtraDword);
+			pdword1Str->SetDWORDNumericText(dwDwordRep);
+			pdword2Str->SetDWORDNumericText(dwExtraDword);
 			switch(dwPType)
 			{
 				case 8:
 							pTemp1Str->SetText("@$_TEMPA_");
 							pTemp2Str->SetText("@$_TEMPB_");
-							pASMWriter->WriteASMLine2IMM(static_cast<uint32_t>(ASMOp::MOVMEMIMM4), pTemp1Str->GetStr(), puint32_t1Str->GetStr(),2);
-							pASMWriter->WriteASMLine2IMM(static_cast<uint32_t>(ASMOp::MOVMEMIMM4), pTemp2Str->GetStr(), puint32_t2Str->GetStr(),2);
+							pASMWriter->WriteASMLine2IMM(static_cast<uint32_t>(ASMOp::MOVMEMIMM4), pTemp1Str->GetStr(), pdword1Str->GetStr(),2);
+							pASMWriter->WriteASMLine2IMM(static_cast<uint32_t>(ASMOp::MOVMEMIMM4), pTemp2Str->GetStr(), pdword2Str->GetStr(),2);
 							pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVXMM0MEM8), pTemp1Str->GetStr());
 							break;
 
 				case 9:
-							pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRDXIMM4), puint32_t2Str->GetStr());
-							pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXIMM4), puint32_t1Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRDXIMM4), pdword2Str->GetStr());
+							pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXIMM4), pdword1Str->GetStr());
 							break;
 
 				case 3:
@@ -220,7 +220,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 				default:
 							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXIMM1),dwPType);
 							dwIMMSize=dwCorrectASMCode-static_cast<uint32_t>(ASMOp::MOVRAXIMM1);
-							pASMWriter->WriteASMLine2IMM(dwCorrectASMCode, nullptr, puint32_t1Str->GetStr(), dwIMMSize);
+							pASMWriter->WriteASMLine2IMM(dwCorrectASMCode, nullptr, pdword1Str->GetStr(), dwIMMSize);
 							break;
 			}
 			break;
@@ -248,8 +248,8 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 			break;
 
 		case static_cast<uint32_t>(ParamMode::MemOff):
-			pOffset1Str->Setuint32_tNumericText(dwPOffset);
-			pOffset2Str->Setuint32_tNumericText(dwPOffset+4);
+			pOffset1Str->SetNumericText(dwPOffset);
+			pOffset2Str->SetNumericText(dwPOffset+4);
 			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXIMM4), pP->GetStr());
 			switch(dwPType)
 			{
@@ -464,8 +464,8 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 			break;
 
 		case static_cast<uint32_t>(ParamMode::MemOff):
-			pOffset1Str->Setuint32_tNumericText(dwPOffset);
-			pOffset2Str->Setuint32_tNumericText(dwPOffset+4);
+			pOffset1Str->SetNumericText(dwPOffset);
+			pOffset2Str->SetNumericText(dwPOffset+4);
 			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXIMM4), pP->GetStr());
 			switch(dwPType)
 			{

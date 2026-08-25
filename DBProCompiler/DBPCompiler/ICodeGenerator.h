@@ -1,5 +1,6 @@
 #pragma once
-#include "windows.h"
+#include <cstdint>
+#include <string_view>
 #include "Str.h"
 
 class CDeclaration; // Forward declaration
@@ -33,7 +34,10 @@ public:
     virtual DWORD GetCurrentMCPosition(void) = 0;
 
     virtual bool ReportAnyErrorsToCLI(void) = 0;
-    virtual bool PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate) = 0;
+    virtual bool PrepareEXE(const char* pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate) = 0;
+    virtual bool PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate) {
+        return PrepareEXE(static_cast<const char*>(pEXEFilename), bParsingMainProgram, bProceedToUpdate);
+    }
     virtual bool UpdateMCB(DWORD dwProgramSize) = 0;
     virtual bool UpdateMCBRefData(void) = 0;
     virtual bool UpdateDLLData(void) = 0;

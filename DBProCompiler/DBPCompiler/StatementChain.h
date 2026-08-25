@@ -1,6 +1,8 @@
 #pragma once
 #include "ParserHeader.h"
 
+class CStatement;
+
 class CStatementChain  
 {
 	public:

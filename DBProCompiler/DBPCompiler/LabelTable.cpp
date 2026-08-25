@@ -3,6 +3,9 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "LabelTable.h"
+#include "Statement.h"
+#include "StatementList.h"
+#include "DBMWriter.h"
 #include "StringUtils.h"
 #include "time.h"
 
@@ -109,6 +112,11 @@ void CLabelTable::Free(void)
 #ifdef __AARON_LBLTBLPERF__
 	g_Table.clear();
 #endif
+	if ( g_Order.empty() )
+	{
+		delete this;
+		return;
+	}
 	// delete every node tracked in the declaration-order index
 	for ( CLabelTable* pNode : g_Order )
 		delete pNode;

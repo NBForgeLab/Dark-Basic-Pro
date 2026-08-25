@@ -4,9 +4,8 @@
 #include <string_view>
 #include "Str.h"
 #include "Task.h"
+#include "Declaration.h"
 #include <memory>
-
-class CDeclaration;
 
 class CInstructionTableEntry  
 {

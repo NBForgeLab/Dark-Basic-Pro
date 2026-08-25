@@ -1,7 +1,7 @@
 #pragma once
 
 // Common Includes
-#include "windows.h"
+#include "ParserHeader.h"
 #include "RuntimeBundleResolver.h"
 #include "Str.h"
 #include <memory>
@@ -10,20 +10,20 @@
 
 // Internal file-table identifiers (constexpr, type-safe)
 namespace dbp_paths {
-constexpr DWORD MAX = 20;
-constexpr DWORD ROOTPATH = 1;
-constexpr DWORD SETUPFILE = 2;
-constexpr DWORD ERRORSFILE = 3;
-constexpr DWORD PLUGINSFOLDER = 4;
-constexpr DWORD TEMPFOLDER = 5;
-constexpr DWORD TEMPDBMFILE = 6;
-constexpr DWORD TEMPEXBFILE = 7;
-constexpr DWORD TEMPERRORFILE = 8;
-constexpr DWORD DEBUGGERFILE = 9;
-constexpr DWORD WORDSFILE = 10;
-constexpr DWORD PLUGINSUSERFOLDER = 11;
-constexpr DWORD PLUGINSLICENSEDFOLDER = 12;
-constexpr DWORD CURRENTFOLDER = 13;
+constexpr uint32_t MAX = 20;
+constexpr uint32_t ROOTPATH = 1;
+constexpr uint32_t SETUPFILE = 2;
+constexpr uint32_t ERRORSFILE = 3;
+constexpr uint32_t PLUGINSFOLDER = 4;
+constexpr uint32_t TEMPFOLDER = 5;
+constexpr uint32_t TEMPDBMFILE = 6;
+constexpr uint32_t TEMPEXBFILE = 7;
+constexpr uint32_t TEMPERRORFILE = 8;
+constexpr uint32_t DEBUGGERFILE = 9;
+constexpr uint32_t WORDSFILE = 10;
+constexpr uint32_t PLUGINSUSERFOLDER = 11;
+constexpr uint32_t PLUGINSLICENSEDFOLDER = 12;
+constexpr uint32_t CURRENTFOLDER = 13;
 }
 
 #define PATH_MAX 20
@@ -52,100 +52,100 @@ class CompilationInput;
 class CDBPCompiler  
 {
 	public:
-		CDBPCompiler(LPSTR pCompilerFilename);
+		CDBPCompiler(const char* pCompilerFilename);
 		virtual ~CDBPCompiler();
 
 	public:
 		bool			PerformCompileOnProject(void);
 		bool			PrepareCompilationInput(const char* pInputFilename, bool emitFinalSource = false);
 		bool			LoadPreparedSource(void);
-		bool			LoadDBA(LPSTR pDBAFilename);
-		bool			LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize);
-		bool			LoadRawFromMMF(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize);
+		bool			LoadDBA(const char* pDBAFilename);
+		bool			LoadRaw(const char* pDBAFilename, char** ppData, uint32_t* pdwDataSize);
+		bool			LoadRawFromMMF(const char* pDBAFilename, char** ppData, uint32_t* pdwDataSize);
 		bool			UnfoldFileDataIncludes(void);
-		void			EnsureDataMemBugEnough(LPSTR pPtr, DWORD dwPredictSize, LPSTR* pNewData, DWORD* dwNewDataSize, LPSTR* pWritePtrOut);
+		void			EnsureDataMemBugEnough(char* pPtr, uint32_t dwPredictSize, char** pNewData, uint32_t* dwNewDataSize, char** pWritePtrOut);
 		bool			UnfoldFileDataConstants(void);
-		bool			CopyData(LPSTR* ppData, DWORD* pdwDataSize, LPSTR pAdd, DWORD dwAddSize);
-		bool			SeekIncludeToken(LPSTR* ppData, LPSTR pPtrEnd, DWORD* pdwAdvance, LPSTR* ppIncludeFilename);
+		bool			CopyData(char** ppData, uint32_t* pdwDataSize, const char* pAdd, uint32_t dwAddSize);
+		bool			SeekIncludeToken(char** ppData, char* pPtrEnd, uint32_t* pdwAdvance, char** ppIncludeFilename);
 		bool			MakeProgram(void);
 
-		LPSTR			ReplaceTokens(LPSTR pFilename);
+		char*			ReplaceTokens(const char* pFilename);
 
-		bool			ProjectExists(void) { return m_bProjectExists; }
-		bool			LoadProjectFile(LPSTR pFilename);
-		bool			GetAllProjectFields(LPSTR pFilename);
-		LPSTR			GetProjectFile(std::string_view fieldName);
-		LPSTR			GetProjectFile(const char* pFieldName) {
+		bool			ProjectExists(void) const noexcept { return m_bProjectExists; }
+		bool			LoadProjectFile(const char* pFilename);
+		bool			GetAllProjectFields(const char* pFilename);
+		char*			GetProjectFile(std::string_view fieldName);
+		char*			GetProjectFile(const char* pFieldName) {
 			return pFieldName ? GetProjectFile(std::string_view(pFieldName)) : nullptr;
 		}
-		LPSTR			GetProjectMediaRoot(void);
-		LPSTR			GetProjectField(std::string_view fieldName);
-		LPSTR			GetProjectField(const char* pFieldName) {
+		char*			GetProjectMediaRoot(void);
+		char*			GetProjectField(std::string_view fieldName);
+		char*			GetProjectField(const char* pFieldName) {
 			return pFieldName ? GetProjectField(std::string_view(pFieldName)) : nullptr;
 		}
 		bool			GetProjectState(std::string_view fieldName, bool bDefault);
 		bool			GetProjectState(std::string_view fieldName);
 		bool			GetProjectStateMatch(std::string_view fieldName, std::string_view compareStr);
-		DWORD			GetProjectDisplayInfo(std::string_view fieldName, DWORD dwDisplayItem);
+		uint32_t		GetProjectDisplayInfo(std::string_view fieldName, uint32_t dwDisplayItem);
 		bool			FreeProjectFile(void);
 
-		LPSTR			GetProgramName(void);
+		char*			GetProgramName(void);
 
 	public:
-		DWORD			GetFileData(void) { return m_FileDataSize; }
-		LPSTR			GetFilePtr(void) { return m_pFileData; }
+		uint32_t		GetFileData(void) const noexcept { return m_FileDataSize; }
+		char*			GetFilePtr(void) const noexcept { return m_pFileData; }
 
 	public:
 		bool			PathExists(std::string_view path);
 		bool			PathExists(const char* pPath) {
 			return pPath ? PathExists(std::string_view(pPath)) : false;
 		}
-		void			SetInternalFile(DWORD dwFileID, const char* pFilename);
-		LPSTR			GetInternalFile(DWORD dwFileID);
+		void			SetInternalFile(uint32_t dwFileID, const char* pFilename);
+		char*			GetInternalFile(uint32_t dwFileID);
 		bool			FileExists(std::string_view filename);
 		bool			FileExists(const char* pFilename) {
 			return pFilename ? FileExists(std::string_view(pFilename)) : false;
 		}
-		void			GatherAllExternalWords(LPSTR pWordsFile);
-		LPSTR			GetWord ( int iID );
+		void			GatherAllExternalWords(const char* pWordsFile);
+		char*			GetWord ( int iID );
 		bool			EstablishRequiredBaseFiles(void);
-		LPSTR			GetWordString(int id) { return m_pWord[id]; }
+		const char*		GetWordString(int id) const { return m_pWord[id]; }
 
-		bool			GetDebugMode(void) { return m_bDebugModeOn; }
-		bool			GetRuntimeErrorMode(void) { return m_bRuntimeErrorsOn; }
-		bool			GetProduceDBMFile(void) { return m_bProduceDBMFileOn; }
-		bool			GetFullScreenMode(void) { return m_bFullScreenModeOn; }
-		bool			GetFullDesktopMode(void) { return m_bFullDesktopModeOn; }
-		bool			GetDesktopMode(void) { return m_bDesktopModeOn; }
-		DWORD			GetStartDisplayWidth(void) { return m_dwStartDisplayWidth; }
-		DWORD			GetStartDisplayHeight(void) { return m_dwStartDisplayHeight; }
-		DWORD			GetStartDisplayDepth(void) { return m_dwStartDisplayDepth; }
-		bool			GetHiddenMode(void) { return m_bHiddenModeOn; }
-		bool			GetGenerateHelpTxtMode(void) { return m_bGenerateHelpTxtOn; }
-		bool			GetEXEAloneState(void) { return m_bEXEAloneState; }
-		bool			GetEXEInstallerState(void) { return m_bEXEInstallerState; }
-		bool			GetCompressPCKState(void) { return m_bCompressPCKState; }
-		bool			GetInternalMediaState(void) { return m_bInternalMediaState; }
-		bool			GetEncryptionState(void) { return m_bEncryptionState; }
-		bool			GetSpeedOverStabilityFlag(void) { return m_bSpeedOverStabilityState; }
+		bool			GetDebugMode(void) const noexcept { return m_bDebugModeOn; }
+		bool			GetRuntimeErrorMode(void) const noexcept { return m_bRuntimeErrorsOn; }
+		bool			GetProduceDBMFile(void) const noexcept { return m_bProduceDBMFileOn; }
+		bool			GetFullScreenMode(void) const noexcept { return m_bFullScreenModeOn; }
+		bool			GetFullDesktopMode(void) const noexcept { return m_bFullDesktopModeOn; }
+		bool			GetDesktopMode(void) const noexcept { return m_bDesktopModeOn; }
+		uint32_t		GetStartDisplayWidth(void) const noexcept { return m_dwStartDisplayWidth; }
+		uint32_t		GetStartDisplayHeight(void) const noexcept { return m_dwStartDisplayHeight; }
+		uint32_t		GetStartDisplayDepth(void) const noexcept { return m_dwStartDisplayDepth; }
+		bool			GetHiddenMode(void) const noexcept { return m_bHiddenModeOn; }
+		bool			GetGenerateHelpTxtMode(void) const noexcept { return m_bGenerateHelpTxtOn; }
+		bool			GetEXEAloneState(void) const noexcept { return m_bEXEAloneState; }
+		bool			GetEXEInstallerState(void) const noexcept { return m_bEXEInstallerState; }
+		bool			GetCompressPCKState(void) const noexcept { return m_bCompressPCKState; }
+		bool			GetInternalMediaState(void) const noexcept { return m_bInternalMediaState; }
+		bool			GetEncryptionState(void) const noexcept { return m_bEncryptionState; }
+		bool			GetSpeedOverStabilityFlag(void) const noexcept { return m_bSpeedOverStabilityState; }
 		void SetExecutableOutputOverride(std::optional<std::filesystem::path> outputPath);
 		bool PrepareExecutableOutputDirectory(void) const;
 		void SetRuntimeRootOverride(std::optional<std::filesystem::path> runtimeRoot);
 		void SetPackageKeyFile(std::optional<std::filesystem::path> keyFile);
 		const std::optional<std::filesystem::path>& GetPackageKeyFile(void) const;
-		bool ValidateRuntimeBundle(DWORD structurePatternCount);
+		bool ValidateRuntimeBundle(uint32_t structurePatternCount);
 		const ResolvedRuntimeBundle* GetResolvedRuntimeBundle(void) const;
 
 	public:
 		bool			RemoveAndRecordBreakpoints(void);
 		bool			ClearBreakPointList(void);
-		bool			AddToBreakPointList(DWORD dwLine);
+		bool			AddToBreakPointList(uint32_t dwLine);
 		bool			FinishBreakPointList(void);
 
-		DWORD			GetBreakPointIndex(void) { return m_dwBreakpointIndex; }
-		DWORD			GetBreakPointLine(DWORD nIndex) { return m_BreakpointList[nIndex]; }
-		void			IncBreakPointIndex(void) { m_dwBreakpointIndex++; }
-		DWORD			GetBreakPointMax(void) { return m_dwBreakpointMax; }
+		uint32_t		GetBreakPointIndex(void) const noexcept { return m_dwBreakpointIndex; }
+		uint32_t		GetBreakPointLine(uint32_t nIndex) const { return m_BreakpointList[nIndex]; }
+		void			IncBreakPointIndex(void) noexcept { m_dwBreakpointIndex++; }
+		uint32_t		GetBreakPointMax(void) const noexcept { return m_dwBreakpointMax; }
 
 	public:
 
@@ -154,23 +154,23 @@ class CDBPCompiler
 		std::unique_ptr<CStr>	m_pCompilerPathOnly;
 
 		// Original Source File Data for display in debugger
-		DWORD			m_dwOriginalFileDataSize;
+		uint32_t		m_dwOriginalFileDataSize;
 		std::vector<char>	m_OriginalFileData;
 
 		// Main Source File Data for parsing
-		DWORD			m_FileDataSize;
-		LPSTR			m_pFileData;
+		uint32_t		m_FileDataSize;
+		char*			m_pFileData;
 
 		// Project File Data
 		bool			m_bProjectExists;
-		DWORD			m_ProjectFileDataSize;
-		LPSTR			m_pProjectFileData;
+		uint32_t		m_ProjectFileDataSize;
+		char*			m_pProjectFileData;
 
 		// Project Settings
 		std::unique_ptr<CStr>	m_pAbsolutePathToProjectFile;
 		std::unique_ptr<CStr>	m_pRelativePathToProjectFile;
-		LPSTR			m_pFinalDBASource;
-		LPSTR			m_pEXEFilename;
+		char*			m_pFinalDBASource;
+		char*			m_pEXEFilename;
 		bool			m_bSourceIsMMF;
 
 		// Project Compiler Debug Settings
@@ -182,9 +182,9 @@ class CDBPCompiler
 		bool			m_bFullScreenModeOn;
 		bool			m_bFullDesktopModeOn;
 		bool			m_bDesktopModeOn;
-		DWORD			m_dwStartDisplayWidth;
-		DWORD			m_dwStartDisplayHeight;
-		DWORD			m_dwStartDisplayDepth;
+		uint32_t		m_dwStartDisplayWidth;
+		uint32_t		m_dwStartDisplayHeight;
+		uint32_t		m_dwStartDisplayDepth;
 		bool			m_bHiddenModeOn;
 		bool			m_bGenerateHelpTxtOn;
 		bool			m_bEXEAloneState;
@@ -202,16 +202,16 @@ class CDBPCompiler
 		std::unique_ptr<CStr>	m_pInternalFile[PATH_MAX];
 
 		// Breakpoint List Data
-		DWORD			m_dwBreakpointSize;
-		std::vector<DWORD>	m_BreakpointList;
-		DWORD			m_dwBreakpointIndex;
-		DWORD			m_dwBreakpointMax;
+		uint32_t		m_dwBreakpointSize;
+		std::vector<uint32_t>	m_BreakpointList;
+		uint32_t		m_dwBreakpointIndex;
+		uint32_t		m_dwBreakpointMax;
 
 		// External Words Array
 		char			m_pWord[EXTWORDSMAX][_MAX_PATH];
 
 		// Exclusion Files
-		DWORD			g_dwExcludeFilesCount;
+		uint32_t		g_dwExcludeFilesCount;
 		std::string		g_ExcludeFiles [ MAX_EXCLUSIONS ];
 
 		std::unique_ptr<CompilerContext> m_pContext;

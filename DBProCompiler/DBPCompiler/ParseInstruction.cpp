@@ -5,6 +5,10 @@
 // Includes
 #include "VarTable.h"
 #include "StructTable.h"
+#include "Declaration.h"
+#include "Statement.h"
+#include "StatementList.h"
+#include "Error.h"
 #include "InstructionTable.h"
 #include "InstructionTableEntry.h"
 #include "ParserHeader.h"

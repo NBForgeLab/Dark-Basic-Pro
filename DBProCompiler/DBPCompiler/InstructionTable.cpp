@@ -5,6 +5,10 @@
 
 // Includes
 #include "macros.h"
+#include "ParserHeader.h"
+#include "StatementList.h"
+#include "DBMWriter.h"
+#include "Error.h"
 #include "StringUtils.h"
 #include "InstructionTable.h"
 #include "VarTable.h"

@@ -11,6 +11,9 @@
 #include "LabelTable.h"
 #include "VarTable.h"
 #include "StructTable.h"
+#include "StatementList.h"
+#include "DBMWriter.h"
+#include "Error.h"
 #include "DebugInfo.h"
 #include "Errors.h"
 #include "DBPCompiler.h"
@@ -951,7 +954,7 @@ bool CASMWriter::ReportAnyErrorsToCLI(void)
 	return true;
 }
 
-bool CASMWriter::PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bGotNewCode)
+bool CASMWriter::PrepareEXE(const char* pEXEFilename, bool bParsingMainProgram, bool bGotNewCode)
 {
 	db3::CProfile<> prof("CASMWriter::PrepareEXE()");
 
@@ -2063,7 +2066,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAXRBX4), nullptr);
 
 		// Jump over line that sets the flag
-		WriteASMLine(static_cast<DWORD>(ASMOp::JE), "10");
+		WriteASMLine(static_cast<DWORD>(ASMOp::JE), "17");
 
 		// Line that sets the flag to say 'no return'
 		WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ESC_", "3");
@@ -2137,7 +2140,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 			// If runtime error DWORD is not zero, error occurred
 			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXMEM4), "@$_ERR_");
 			WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAX4), "0");
-			WriteASMLine(static_cast<DWORD>(ASMOp::JE), "25");
+			WriteASMLine(static_cast<DWORD>(ASMOp::JE), "39");
 
 			// Work out BREAK Position
 			CStr data("");
@@ -2269,11 +2272,14 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 
 						// leefix - 250604 - u54 - avoid division by zero with RT error
 						WriteASMLine(static_cast<DWORD>(ASMOp::CMPRBX4), "0");
-						WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "15");
+						WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "22");
 
 						// runtime error if not leaped over
 						WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ERR_", "119");
-						WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "3");
+						if(dwTask==static_cast<DWORD>(ASMTask::Mod))
+							WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "8");
+						else
+							WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "5");
 
 						// actual division
 						WriteASMLine(static_cast<DWORD>(ASMOp::CQO), "");
@@ -2408,15 +2414,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 					case static_cast<DWORD>(ASMTask::Mod):
 					{
 						// avoid divide by zero
-// leefix - 350604 - old way was silent skip, new way is runtime error
-//						WriteASMLine(static_cast<DWORD>(ASMOp::CMPRBX4), "0");
-//						WriteASMLine(static_cast<DWORD>(ASMOp::JE), "3");
 						WriteASMLine(static_cast<DWORD>(ASMOp::CMPRBX4), "0");
-						WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "15");
+						WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "22");
 
 						// runtime error if not leaped over
 						WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_ERR_", "119");
-						WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "3");
+						if(dwTask==static_cast<DWORD>(ASMTask::Mod))
+							WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "8");
+						else
+							WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "5");
 						
 						// div rax,rbx
 						WriteASMLine(static_cast<DWORD>(ASMOp::CQO), "");

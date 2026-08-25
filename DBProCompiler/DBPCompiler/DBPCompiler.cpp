@@ -65,7 +65,7 @@ extern DWORD_PTR g_dwEscapeValueMem;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
+CDBPCompiler::CDBPCompiler(const char* pCompilerFilename)
 {
 	// Store Compiler Filename
 	m_pCompilerFilename = std::make_unique<CStr>(pCompilerFilename);
@@ -357,7 +357,7 @@ bool CDBPCompiler::LoadPreparedSource(void)
 	return true;
 }
 
-bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
+bool CDBPCompiler::LoadDBA(const char* pDBAFilename)
 {
 	db3::CProfile<> prof("CDBPCompiler::LoadDBA");
 
@@ -407,7 +407,7 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 	return true;
 }
 
-bool CDBPCompiler::LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize)
+bool CDBPCompiler::LoadRaw(const char* pDBAFilename, char** ppData, uint32_t* pdwDataSize)
 {
 	// Load DBA into memory
 	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pDBAFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -415,7 +415,7 @@ bool CDBPCompiler::LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize
 	{
 		// Create memory and transfer file data to it
 		DWORD dwLoadSize = GetFileSize(hFile, nullptr);
-		LPSTR pLoadData = new char[dwLoadSize + 1]();
+		char* pLoadData = new char[dwLoadSize + 1]();
 	
 		// Transfer Data
 		DWORD BytesRead=0;
@@ -437,7 +437,7 @@ bool CDBPCompiler::LoadRaw(LPSTR pDBAFilename, LPSTR* ppData, DWORD* pdwDataSize
 	return true;
 }
 
-bool CDBPCompiler::LoadRawFromMMF(LPSTR pDBAMMFName, LPSTR* ppData, DWORD* pdwDataSize)
+bool CDBPCompiler::LoadRawFromMMF(const char* pDBAMMFName, char** ppData, uint32_t* pdwDataSize)
 {
 	// Memory to be used to store string sent
 	bool bResult=true;
@@ -494,12 +494,12 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	db3::CProfile<> prof("CDBPCompiler::UnfoldFileDataIncludes");
 
 	// Root FileData
-	LPSTR pRootData=m_pFileData;
-	DWORD dwRootDataSize=m_FileDataSize;
+	char* pRootData=m_pFileData;
+	uint32_t dwRootDataSize=m_FileDataSize;
 
 	// New FileData
-	LPSTR pNewData=nullptr;
-	DWORD dwNewDataSize=0;
+	char* pNewData=nullptr;
+	uint32_t dwNewDataSize=0;
 
 	// Create Include Table Entry (ROOT)
 	g_pIncludeTable = new CIncludeTable;
@@ -511,14 +511,14 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	CopyData(&pNewData, &dwNewDataSize, pRootData, dwRootDataSize);
 
 	// Go through entire data (as it is being built)
-	DWORD dwPtrOffset=0;
+	uint32_t dwPtrOffset=0;
 	while(pNewData && dwPtrOffset < dwNewDataSize)
 	{
 		// Seek #include
-		DWORD dwCount=0;
-		LPSTR pIncludeFilenameRaw = nullptr;
-		LPSTR pPtr = pNewData + dwPtrOffset;
-		LPSTR pPtrEnd = pNewData + dwNewDataSize;
+		uint32_t dwCount=0;
+		char* pIncludeFilenameRaw = nullptr;
+		char* pPtr = pNewData + dwPtrOffset;
+		char* pPtrEnd = pNewData + dwNewDataSize;
 		bool bSeekResult = SeekIncludeToken(&pPtr, pPtrEnd, &dwCount, &pIncludeFilenameRaw);
 		std::unique_ptr<char[]> pIncludeFilename(pIncludeFilenameRaw);
 		if(bSeekResult==false)
@@ -553,8 +553,8 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 			absoluteIncludeFile.AddText(pIncludeFilename.get());
 
 			// Produce single FileData Block from multiple DBA Files
-			LPSTR pData=nullptr;
-			DWORD dwDataSize=0;
+			char* pData=nullptr;
+			uint32_t dwDataSize=0;
 			if(LoadRaw(absoluteIncludeFile.GetStr(), &pData, &dwDataSize))
 			{
 				// Add Raw DBA to end of FileData
@@ -610,7 +610,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 #define TOSTRING(x) __TOSTRING(x)
 #define UNFOLD_MAX_CONSTANT_NAME 2048
 
-void CDBPCompiler::EnsureDataMemBugEnough([[maybe_unused]] LPSTR pPtr, DWORD dwPredictSize, LPSTR* pNewData, DWORD* dwNewDataSize, LPSTR* pWritePtr)
+void CDBPCompiler::EnsureDataMemBugEnough([[maybe_unused]] char* pPtr, uint32_t dwPredictSize, char** pNewData, uint32_t* dwNewDataSize, char** pWritePtr)
 {
 	if((*pWritePtr-*pNewData)+dwPredictSize>*dwNewDataSize)
 	{
@@ -620,10 +620,10 @@ void CDBPCompiler::EnsureDataMemBugEnough([[maybe_unused]] LPSTR pPtr, DWORD dwP
 #else
 # define EXPAND_MULTIPLY_AMOUNT 2
 #endif
-		DWORD dwBiggerSize = (*dwNewDataSize)*EXPAND_MULTIPLY_AMOUNT;
-		LPSTR pBiggerMem = new char[dwBiggerSize + 1]();
+		uint32_t dwBiggerSize = (*dwNewDataSize)*EXPAND_MULTIPLY_AMOUNT;
+		char* pBiggerMem = new char[dwBiggerSize + 1]();
 		memcpy(pBiggerMem, *pNewData, *dwNewDataSize);
-		DWORD dwWriteOffset = static_cast<DWORD>((*pWritePtr)-(*pNewData));
+		uint32_t dwWriteOffset = static_cast<uint32_t>((*pWritePtr)-(*pNewData));
 		SafeDeleteArray(*pNewData);
 		*pNewData=pBiggerMem;
 		*dwNewDataSize=dwBiggerSize;
@@ -799,21 +799,21 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 	int iSpeechMark=0;
 
 	// Create a New Space to expand into
-	DWORD dwNewDataSize = m_FileDataSize + 32768;
-	LPSTR pNewData = new char[dwNewDataSize + 1]();
-	LPSTR pWritePtr = pNewData;
+	uint32_t dwNewDataSize = m_FileDataSize + 32768;
+	char* pNewData = new char[dwNewDataSize + 1]();
+	char* pWritePtr = pNewData;
 
 	// Search Data for instance of constant and replace it with value
 	pPtr = m_pFileData;
 	pPtrEnd = m_pFileData + m_FileDataSize;
-	LPSTR pLastReadPtr = pPtr;
+	char* pLastReadPtr = pPtr;
 	while(pPtr<pPtrEnd)
 	{
 		// Search for comment lines to skip
 		if ( iSpeechMark==0 )
 		{
-			DWORD dwFillWithMarks = 0;
-			LPSTR pFillStart = nullptr;
+			uint32_t dwFillWithMarks = 0;
+			char* pFillStart = nullptr;
 
 			// skip code
 			if(pPtr + 8 <= pPtrEnd && _strnicmp(pPtr, "remstart", 8)==0)
@@ -839,27 +839,27 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 			{
 				pFillStart = pPtr;
 				while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13) pPtr++;
-				dwFillWithMarks = static_cast<DWORD>(pPtr - pFillStart);
+				dwFillWithMarks = static_cast<uint32_t>(pPtr - pFillStart);
 				iSpeechMark=0;
 			}
 			else if(pPtr + 2 <= pPtrEnd && _strnicmp(pPtr, "//", 2)==0)
 			{
 				pFillStart = pPtr;
 				while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13) pPtr++;
-				dwFillWithMarks = static_cast<DWORD>(pPtr - pFillStart);
+				dwFillWithMarks = static_cast<uint32_t>(pPtr - pFillStart);
 				iSpeechMark=0;
 			}
 			else if(pPtr + 4 <= pPtrEnd && _strnicmp(pPtr, "rem ", 4)==0 && (pPtr == m_pFileData || (unsigned char)*(pPtr-1)<=32))
 			{
 				pFillStart = pPtr;
 				while(pPtr<pPtrEnd && *pPtr != 10 && *pPtr != 13) pPtr++;
-				dwFillWithMarks = static_cast<DWORD>(pPtr - pFillStart);
+				dwFillWithMarks = static_cast<uint32_t>(pPtr - pFillStart);
 				iSpeechMark=0;
 			}
 
 			// blank out remark areas now
 			if ( pFillStart && dwFillWithMarks>0 )
-				for ( LPSTR pN=pFillStart; pN<pFillStart+dwFillWithMarks && pN<pPtrEnd; pN++ )
+				for ( char* pN=pFillStart; pN<pFillStart+dwFillWithMarks && pN<pPtrEnd; pN++ )
 					*(pN)=(unsigned char)96; // ` symbol
 		}
 
@@ -873,8 +873,8 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 			{
 				if (pCurrentConst->GetString() && pCurrentConst->GetString()->GetStr())
 				{
-					LPSTR pToken = pCurrentConst->GetString()->GetStr();
-					DWORD dwTokenLength = static_cast<DWORD>(strlen(pToken));
+					char* pToken = pCurrentConst->GetString()->GetStr();
+					uint32_t dwTokenLength = static_cast<uint32_t>(strlen(pToken));
 
 					// Try to match program text with this token
 					if(dwTokenLength > 0 && pPtr + dwTokenLength <= pPtrEnd && _strnicmp(pPtr, pToken, dwTokenLength)==0)
@@ -897,17 +897,17 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 			
 						if(bValidConst==true)
 						{
-							LPCSTR pTokenValue = pCurrentConst->GetString2() ? pCurrentConst->GetString2()->GetStr() : "";
-							DWORD dwTokenValueLength = static_cast<DWORD>(strlen(pTokenValue));
+							const char* pTokenValue = pCurrentConst->GetString2() ? pCurrentConst->GetString2()->GetStr() : "";
+							uint32_t dwTokenValueLength = static_cast<uint32_t>(strlen(pTokenValue));
 
 							// Calculate predicted near end of data space
-							DWORD dwPredictSize = static_cast<DWORD>(pPtr-pLastReadPtr) + dwTokenValueLength + 32;
+							uint32_t dwPredictSize = static_cast<uint32_t>(pPtr-pLastReadPtr) + dwTokenValueLength + 32;
 
 							// Ensure new data size is big enough for addition
 							EnsureDataMemBugEnough(pPtr, dwPredictSize, &pNewData, &dwNewDataSize, &pWritePtr);
 
 							// Copy upto this point
-							DWORD dwWriteSize = static_cast<DWORD>(pPtr-pLastReadPtr);
+							uint32_t dwWriteSize = static_cast<uint32_t>(pPtr-pLastReadPtr);
 							memcpy(pWritePtr, pLastReadPtr, dwWriteSize);
 							pWritePtr+=dwWriteSize;
 
@@ -935,18 +935,18 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 	}
 
 	// Calculate predicted near end of data space
-	DWORD dwPredictSize = static_cast<DWORD>(pPtr-pLastReadPtr) + 32;
+	uint32_t dwPredictSize = static_cast<uint32_t>(pPtr-pLastReadPtr) + 32;
 
 	// Ensure new data size is big enough for addition
 	EnsureDataMemBugEnough(pPtr, dwPredictSize, &pNewData, &dwNewDataSize, &pWritePtr);
 
 	// Copy upto this point
-	DWORD dwWriteSize = static_cast<DWORD>(pPtr-pLastReadPtr);
+	uint32_t dwWriteSize = static_cast<uint32_t>(pPtr-pLastReadPtr);
 	memcpy(pWritePtr, pLastReadPtr, dwWriteSize);
 	pWritePtr+=dwWriteSize;
 
 	// Assign new data as latest file data for next pass (or final task)
-	DWORD dwDataSizeOfNewData = static_cast<DWORD>(pWritePtr-pNewData);
+	uint32_t dwDataSizeOfNewData = static_cast<uint32_t>(pWritePtr-pNewData);
 	SafeDeleteArray(m_pFileData);
 	m_pFileData=pNewData;
 	m_FileDataSize=dwDataSizeOfNewData;
@@ -1016,16 +1016,16 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 	return true;
 }
 
-bool CDBPCompiler::CopyData(LPSTR* ppData, DWORD* pdwDataSize, LPSTR pAdd, DWORD dwAddSize)
+bool CDBPCompiler::CopyData(char** ppData, uint32_t* pdwDataSize, const char* pAdd, uint32_t dwAddSize)
 {
 	// Local vars
-	DWORD dwNewSize = 0;
+	uint32_t dwNewSize = 0;
 
 	// New Size of Data
 	dwNewSize = (*pdwDataSize) + dwAddSize + 2;
 
 	// Create New Data Memory
-	LPSTR pNewData = new char[dwNewSize]();
+	char* pNewData = new char[dwNewSize]();
 	if(pNewData)
 	{
 		// Copy Current
@@ -1081,11 +1081,11 @@ bool CDBPCompiler::CopyData(LPSTR* ppData, DWORD* pdwDataSize, LPSTR pAdd, DWORD
 	return true;
 }
 
-bool CDBPCompiler::SeekIncludeToken(LPSTR* ppPtr, LPSTR pPtrEnd, DWORD* pdwAdvance, LPSTR* ppIncludeFilename)
+bool CDBPCompiler::SeekIncludeToken(char** ppPtr, char* pPtrEnd, uint32_t* pdwAdvance, char** ppIncludeFilename)
 {
 	int iSpeechMark=0;
-	LPSTR pStartPtr = (*ppPtr);
-	LPSTR pPtr = pStartPtr;
+	char* pStartPtr = (*ppPtr);
+	char* pPtr = pStartPtr;
 	while(pPtr<pPtrEnd)
 	{
 		// Search for #INCLUDE token
@@ -1423,19 +1423,19 @@ bool CDBPCompiler::MakeProgram(void)
 	return bResult;
 }
 
-bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
+bool CDBPCompiler::LoadProjectFile(const char* pFilename)
 {
 	// Release any previous usage
 	SafeDeleteArray(m_pProjectFileData);
 
 	// Get last six chars of filename
-	DWORD length = static_cast<DWORD>(strlen(pFilename));
-	//LPSTR pStrExt = new char[7]; //<-- LOL no
+	uint32_t length = static_cast<uint32_t>(strlen(pFilename));
+	//char* pStrExt = new char[7]; //<-- LOL no
 	char pStrExt[7] = { '\0', };
 	if(length>6)
 	{
-		DWORD readn=length-6;
-		DWORD n = 0;
+		uint32_t readn=length-6;
+		uint32_t n = 0;
 		for(n=0; n<6; n++)
 		{
 			pStrExt[n]=pFilename[readn++];
@@ -1517,11 +1517,11 @@ bool CDBPCompiler::FreeProjectFile(void)
 	return true;
 }
 
-LPSTR CDBPCompiler::ReplaceTokens(LPSTR pFilename)
+char* CDBPCompiler::ReplaceTokens(const char* pFilename)
 {
 	CStr newStr("");
-	DWORD dwLen = static_cast<DWORD>(strlen(pFilename));
-	for(DWORD n=0; n<dwLen; n++)
+	uint32_t dwLen = static_cast<uint32_t>(strlen(pFilename));
+	for(uint32_t n=0; n<dwLen; n++)
 	{
 		if(_strnicmp(pFilename+n, "%temp", 5)==0)
 		{
@@ -1530,17 +1530,22 @@ LPSTR CDBPCompiler::ReplaceTokens(LPSTR pFilename)
 		}
 		newStr.AddChar(*(pFilename+n));
 	}
+	char* pResult = nullptr;
 	if(newStr.Length()>0)
 	{
-		delete[] pFilename;
-		pFilename = new char[newStr.Length()+1];
-		snprintf(pFilename, newStr.Length()+1, "%s", newStr.GetStr());
-		pFilename[newStr.Length()]=0;
+		pResult = new char[newStr.Length()+1];
+		snprintf(pResult, newStr.Length()+1, "%s", newStr.GetStr());
+		pResult[newStr.Length()]=0;
 	}
-	return pFilename;
+	else
+	{
+		pResult = new char[dwLen+1];
+		snprintf(pResult, dwLen+1, "%s", pFilename);
+	}
+	return pResult;
 }
 
-bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
+bool CDBPCompiler::GetAllProjectFields(const char* pFilename)
 {
 	// Project or direct file
 	if(ProjectExists()==true)
@@ -1681,11 +1686,11 @@ bool CDBPCompiler::GetProjectStateMatch(std::string_view fieldName, std::string_
 	return bState;
 }
 
-DWORD CDBPCompiler::GetProjectDisplayInfo(std::string_view fieldName, DWORD dwDisplayItem)
+uint32_t CDBPCompiler::GetProjectDisplayInfo(std::string_view fieldName, uint32_t dwDisplayItem)
 {
-	DWORD dwDisplayData=0;
+	uint32_t dwDisplayData=0;
 	std::unique_ptr<char[]> pStateOwner(GetProjectField(fieldName));
-	LPSTR pState = pStateOwner.get();
+	char* pState = pStateOwner.get();
 	if(pState)
 	{
 		// U75 - 260210 - old editor used 0,0 for window resolution
@@ -1698,23 +1703,23 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(std::string_view fieldName, DWORD dwDi
 		if(dwDisplayItem==1 || dwDisplayItem==2)
 		{
 			// U75 - 260210 - old editor or new editor
-			DWORD w = 0, h = 0;
+			uint32_t w = 0, h = 0;
 			if ( bOldStyleResolution==true )
-				sscanf_s(pState, "%lu,%lu", &w, &h);
+				sscanf_s(pState, "%u,%u", &w, &h);
 			else
-				sscanf_s(pState, "%lux%lu", &w, &h);
+				sscanf_s(pState, "%ux%u", &w, &h);
 			if(dwDisplayItem==1) dwDisplayData=w;
 			if(dwDisplayItem==2) dwDisplayData=h;
 		}
 		else
 		{
 			// U75 - 260210 - old editor or new editor
-			DWORD w, h;
+			uint32_t w = 0, h = 0;
 			char depth[32];
 			if ( bOldStyleResolution==true )
-				sscanf_s(pState, "%lu,%lu,%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
+				sscanf_s(pState, "%u,%u,%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
 			else
-				sscanf_s(pState, "%lux%lux%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
+				sscanf_s(pState, "%ux%ux%31s", &w, &h, depth, static_cast<unsigned int>(_countof(depth)));
 			if(dbp::iequals(depth, "16")) dwDisplayData=16;
 			if(dbp::iequals(depth, "16M")) dwDisplayData=32;
 		}
@@ -1728,7 +1733,7 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(std::string_view fieldName, DWORD dwDi
 	return dwDisplayData;
 }
 
-LPSTR CDBPCompiler::GetProjectFile(std::string_view fieldName)
+char* CDBPCompiler::GetProjectFile(std::string_view fieldName)
 {
 	// Find filename
 	std::unique_ptr<char[]> pFileOnly(GetProjectField(fieldName));
@@ -1739,16 +1744,16 @@ LPSTR CDBPCompiler::GetProjectFile(std::string_view fieldName)
 	TempStr.AddText(pFileOnly.get());
 
 	// Create new string
-	LPSTR pFullFile = new char[TempStr.Length()+1];
+	char* pFullFile = new char[TempStr.Length()+1];
 	snprintf(pFullFile, TempStr.Length()+1, "%s", TempStr.GetStr());
 
 	// Return new string
 	return pFullFile;
 }
 
-LPSTR CDBPCompiler::GetProjectMediaRoot(void)
+char* CDBPCompiler::GetProjectMediaRoot(void)
 {
-	LPSTR pConfiguredRoot = GetProjectField("media root path");
+	char* pConfiguredRoot = GetProjectField("media root path");
 	std::unique_ptr<char[]> pConfiguredRootOwner(pConfiguredRoot);
 	std::filesystem::path root;
 	if(pConfiguredRoot && pConfiguredRoot[0] != 0)
@@ -1765,12 +1770,12 @@ LPSTR CDBPCompiler::GetProjectMediaRoot(void)
 	std::string text = root.lexically_normal().string();
 	if(!text.empty() && text.back() != '\\' && text.back() != '/')
 		text.push_back(std::filesystem::path::preferred_separator);
-	LPSTR pResult = new char[text.size() + 1];
+	char* pResult = new char[text.size() + 1];
 	snprintf(pResult, text.size()+1, "%s", text.c_str());
 	return pResult;
 }
 
-LPSTR CDBPCompiler::GetProjectField(std::string_view fieldName)
+char* CDBPCompiler::GetProjectField(std::string_view fieldName)
 {
 	if (m_pProjectFileData == nullptr || m_ProjectFileDataSize == 0 || fieldName.empty())
 	{
@@ -1834,13 +1839,13 @@ LPSTR CDBPCompiler::GetProjectField(std::string_view fieldName)
 	return nullptr;
 }
 
-void CDBPCompiler::SetInternalFile(DWORD dwFileID, const char* pFilename)
+void CDBPCompiler::SetInternalFile(uint32_t dwFileID, const char* pFilename)
 {
 	if(!m_pInternalFile[dwFileID]) m_pInternalFile[dwFileID] = std::unique_ptr<CStr>(new CStr(""));
 	m_pInternalFile[dwFileID]->SetText(pFilename);
 }
 
-LPSTR CDBPCompiler::GetInternalFile(DWORD dwFileID)
+char* CDBPCompiler::GetInternalFile(uint32_t dwFileID)
 {
 	if(m_pInternalFile[dwFileID])
 		return m_pInternalFile[dwFileID]->GetStr();
@@ -1873,7 +1878,7 @@ bool CDBPCompiler::PathExists(std::string_view path)
 	return std::filesystem::exists(p, ec) && std::filesystem::is_directory(p, ec);
 }
 
-void CDBPCompiler::GatherAllExternalWords(LPSTR pWordsFile)
+void CDBPCompiler::GatherAllExternalWords(const char* pWordsFile)
 {
 	// Read All External Words From Words File
 	int id=0;
@@ -1891,7 +1896,7 @@ void CDBPCompiler::GatherAllExternalWords(LPSTR pWordsFile)
 	}
 }
 
-LPSTR CDBPCompiler::GetWord ( int iID )
+char* CDBPCompiler::GetWord ( int iID )
 {
 	return m_pWord [ iID ];
 }
@@ -2223,7 +2228,7 @@ bool CDBPCompiler::ClearBreakPointList(void)
 	return true;
 }
 
-bool CDBPCompiler::AddToBreakPointList(DWORD dwLine)
+bool CDBPCompiler::AddToBreakPointList(uint32_t dwLine)
 {
 	if(m_dwBreakpointIndex<m_dwBreakpointSize)
 	{
@@ -2261,10 +2266,10 @@ void CDBPCompiler::SetExecutableOutputOverride(
 		: std::string();
 }
 
-LPSTR CDBPCompiler::GetProgramName(void)
+char* CDBPCompiler::GetProgramName(void)
 {
 	return m_executableOutputOverride
-		? const_cast<LPSTR>(m_executableOutputOverrideText.c_str())
+		? const_cast<char*>(m_executableOutputOverrideText.c_str())
 		: m_pEXEFilename;
 }
 
@@ -2303,7 +2308,7 @@ CDBPCompiler::GetPackageKeyFile(void) const
 	return m_packageKeyFile;
 }
 
-bool CDBPCompiler::ValidateRuntimeBundle(DWORD structurePatternCount)
+bool CDBPCompiler::ValidateRuntimeBundle(uint32_t structurePatternCount)
 {
 	const RuntimeSelection selection{
 		m_runtimeRootOverride,

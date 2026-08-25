@@ -1,5 +1,6 @@
 #pragma once
 #include "ParserHeader.h"
+#include "Str.h"
 #include "Task.h"
 
 #include "PerfMacros.h"
@@ -10,6 +11,8 @@
 # include <unordered_map>
 # include <string>
 #endif
+
+class CStatement;
 
 class CLabelTable  
 {

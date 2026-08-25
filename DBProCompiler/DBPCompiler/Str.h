@@ -1,6 +1,6 @@
 #pragma once
 
-#include "windows.h"
+#include "ParserHeader.h"
 #include <memory>
 #include <vector>
 #include <string_view>
@@ -106,6 +106,15 @@ class CStr: public db3::TObject<CStr>
 		bool		IsTextRValue(void) const;
 
 		DWORD		GetDWORDRepresentation(DWORD dwTypeValue, DWORD* dwExtraDWORD) const;
+		uint32_t	GetDWORDRepresentation(uint32_t dwTypeValue, uint32_t* pdwExtra) const {
+			DWORD extra = pdwExtra ? static_cast<DWORD>(*pdwExtra) : 0;
+			DWORD res = GetDWORDRepresentation(static_cast<DWORD>(dwTypeValue), &extra);
+			if (pdwExtra) *pdwExtra = static_cast<uint32_t>(extra);
+			return static_cast<uint32_t>(res);
+		}
+		DWORD		GetDWORDRepresentation(int dwTypeValue, std::nullptr_t) const {
+			return GetDWORDRepresentation(static_cast<DWORD>(dwTypeValue), static_cast<DWORD*>(nullptr));
+		}
 		bool		IsIntegerBiggerThanDWORD(void) const;
 		bool		IsFloatBiggerThanDWORD(void) const;
 

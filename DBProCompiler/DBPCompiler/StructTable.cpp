@@ -3,6 +3,13 @@
 //////////////////////////////////////////////////////////////////////
 
 // Common Includes
+#include "ParserHeader.h"
+#include "Declaration.h"
+#include "Statement.h"
+#include "StatementList.h"
+#include "DBMWriter.h"
+#include "Error.h"
+#include "Errors.h"
 #include "StructTable.h"
 #include "StringUtils.h"
 
@@ -70,6 +77,11 @@ void CStructTable::Free(void)
 #ifdef __AARON_STRUCPERF__
 	g_Table.clear();
 #endif
+	if ( g_Order.empty() )
+	{
+		delete this;
+		return;
+	}
 	// delete every node tracked in the declaration-order index
 	for ( CStructTable* pNode : g_Order )
 		delete pNode;

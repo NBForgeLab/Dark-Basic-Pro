@@ -2,6 +2,13 @@
 //
 //////////////////////////////////////////////////////////////////////
 
+#include "ParserHeader.h"
+#include "Statement.h"
+#include "StatementList.h"
+#include "Error.h"
+#include "ICodeGenerator.h"
+#include "ASMWriter.h"
+#include "DBMWriter.h"
 #include "ParseJump.h"
 #include "ParseInstruction.h"
 #include "InstructionTable.h"

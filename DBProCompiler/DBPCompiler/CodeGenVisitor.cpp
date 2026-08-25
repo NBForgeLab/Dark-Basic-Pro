@@ -2,6 +2,8 @@
 #include "ASTNodes.h"
 #include "VarTable.h"
 #include "ASMWriter.h"
+#include "DBMWriter.h"
+#include "Error.h"
 #include "DBPLogger.h"
 
 extern CVarTable* g_pVarTable;

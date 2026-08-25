@@ -1854,7 +1854,7 @@ void CEXEBlock::FreeUptoDisplay(void)
 void CEXEBlock::Free(void)
 {
 	// [CORE] Close any memory created for glob (allocated with new char[])
-	if ( g_pGlob ) if ( g_pGlob->pDynMemPtr ) SAFE_DELETE_ARRAY ( g_pGlob->pDynMemPtr );
+	if ( g_pGlob && g_pGlob->pDynMemPtr ) SafeDeleteArray ( g_pGlob->pDynMemPtr );
 
 	// [EXE] Free Up Data Allocations (from Load)
 	Clear();

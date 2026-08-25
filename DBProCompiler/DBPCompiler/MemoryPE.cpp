@@ -214,18 +214,16 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, std::string_view
                     const char* funcName = (const char*)importName->Name;
                     
                     // IAT Redirection / Hook Interception for memory loaded modules
-                    if (isKernel32) {
-                        if (strcmp(funcName, "CreateFileW") == 0) proc = (FARPROC)Hook_CreateFileW;
-                        else if (strcmp(funcName, "CreateFileA") == 0) proc = (FARPROC)Hook_CreateFileA;
-                        else if (strcmp(funcName, "ReadFile") == 0) proc = (FARPROC)Hook_ReadFile;
-                        else if (strcmp(funcName, "GetFileSize") == 0) proc = (FARPROC)Hook_GetFileSize;
-                        else if (strcmp(funcName, "SetFilePointer") == 0) proc = (FARPROC)Hook_SetFilePointer;
-                        else if (strcmp(funcName, "SetFilePointerEx") == 0) proc = (FARPROC)Hook_SetFilePointerEx;
-                        else if (strcmp(funcName, "CloseHandle") == 0) proc = (FARPROC)Hook_CloseHandle;
-                        else if (strcmp(funcName, "GetProcAddress") == 0) proc = (FARPROC)Hook_GetProcAddress;
-                        else if (strcmp(funcName, "LoadLibraryA") == 0) proc = (FARPROC)Hook_LoadLibraryA;
-                        else if (strcmp(funcName, "LoadLibraryW") == 0) proc = (FARPROC)Hook_LoadLibraryW;
-                    }
+                    if (strcmp(funcName, "CreateFileW") == 0) proc = (FARPROC)Hook_CreateFileW;
+                    else if (strcmp(funcName, "CreateFileA") == 0) proc = (FARPROC)Hook_CreateFileA;
+                    else if (strcmp(funcName, "ReadFile") == 0) proc = (FARPROC)Hook_ReadFile;
+                    else if (strcmp(funcName, "GetFileSize") == 0) proc = (FARPROC)Hook_GetFileSize;
+                    else if (strcmp(funcName, "SetFilePointer") == 0) proc = (FARPROC)Hook_SetFilePointer;
+                    else if (strcmp(funcName, "SetFilePointerEx") == 0) proc = (FARPROC)Hook_SetFilePointerEx;
+                    else if (strcmp(funcName, "CloseHandle") == 0) proc = (FARPROC)Hook_CloseHandle;
+                    else if (strcmp(funcName, "GetProcAddress") == 0) proc = (FARPROC)Hook_GetProcAddress;
+                    else if (strcmp(funcName, "LoadLibraryA") == 0) proc = (FARPROC)Hook_LoadLibraryA;
+                    else if (strcmp(funcName, "LoadLibraryW") == 0) proc = (FARPROC)Hook_LoadLibraryW;
                     
                     if (!proc) {
                         proc = IsMemoryModule(hImport) ? GetProcAddress(hImport, funcName) : ::GetProcAddress(hImport, funcName);
@@ -356,6 +354,7 @@ FARPROC MemoryPE::GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
             baseAddress + functions[functionIndex]);
     }
     
+    // 1. Exact match
     for (DWORD i = 0; i < exports->NumberOfNames; i++) {
         const char* name = (const char*)(baseAddress + names[i]);
         if (strcmp(name, lpProcName) == 0) {
@@ -363,6 +362,21 @@ FARPROC MemoryPE::GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
             if (functionIndex >= exports->NumberOfFunctions) return nullptr;
             return reinterpret_cast<FARPROC>(
                 baseAddress + functions[functionIndex]);
+        }
+    }
+
+    // 2. Mangling compatibility fallback: Handle 32-bit (YAPA) vs 64-bit (YAPEA) / undecorated match
+    const char* atAt = strstr(lpProcName, "@@");
+    if (lpProcName[0] == '?' && atAt) {
+        size_t baseLen = (atAt - lpProcName) + 2;
+        for (DWORD i = 0; i < exports->NumberOfNames; i++) {
+            const char* name = (const char*)(baseAddress + names[i]);
+            if (strncmp(name, lpProcName, baseLen) == 0) {
+                const DWORD functionIndex = ordinals[i];
+                if (functionIndex >= exports->NumberOfFunctions) return nullptr;
+                return reinterpret_cast<FARPROC>(
+                    baseAddress + functions[functionIndex]);
+            }
         }
     }
     return nullptr;

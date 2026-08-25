@@ -1,5 +1,4 @@
 #pragma once
-#include "windows.h"
 #include "DebugInfo.h"
 
 // Forward declarations
@@ -28,25 +27,25 @@ public:
     void Cleanup();
     void ReplaceErrorReport(CError* pNewReport);
 
-    CEXEBlock*			pEXE;
-    CDBPCompiler*		pDBPCompiler;
-    CError*				pErrorReport;
-    ICodeGenerator*		pASMWriter;
-    CDBMWriter*			pDBMWriter;
-    CStructTable*		pStructTable;
-    CStatementList*		pStatementList;
-    CInstructionTable*	pInstructionTable;
-    CLabelTable*		pLabelTable;
-    CDataTable*			pDataTable;
-    CDataTable*			pStringTable;
-    CDataTable*			pDLLTable;
-    CDataTable*			pCommandTable;
-    CVarTable*			pVarTable;
-    CIncludeTable*		pIncludeTable;
-    CDataTable*			pConstantsTable;
-    CDebugInfo*         pDebugInfo;
+    CEXEBlock*			pEXE = nullptr;
+    CDBPCompiler*		pDBPCompiler = nullptr;
+    CError*				pErrorReport = nullptr;
+    ICodeGenerator*		pASMWriter = nullptr;
+    CDBMWriter*			pDBMWriter = nullptr;
+    CStructTable*		pStructTable = nullptr;
+    CStatementList*		pStatementList = nullptr;
+    CInstructionTable*	pInstructionTable = nullptr;
+    CLabelTable*		pLabelTable = nullptr;
+    CDataTable*			pDataTable = nullptr;
+    CDataTable*			pStringTable = nullptr;
+    CDataTable*			pDLLTable = nullptr;
+    CDataTable*			pCommandTable = nullptr;
+    CVarTable*			pVarTable = nullptr;
+    CIncludeTable*		pIncludeTable = nullptr;
+    CDataTable*			pConstantsTable = nullptr;
+    CDebugInfo*         pDebugInfo = nullptr;
 
 private:
-    bool                m_bOwnsInstructionTable;
-    bool                m_bOwnsErrorReport;
+    bool                m_bOwnsInstructionTable = false;
+    bool                m_bOwnsErrorReport = false;
 };

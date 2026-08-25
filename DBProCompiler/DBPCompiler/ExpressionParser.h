@@ -1,5 +1,5 @@
 #pragma once
-#include <windows.h>
+#include "ParserHeader.h"
 #include <string_view>
 
 class CStatement;

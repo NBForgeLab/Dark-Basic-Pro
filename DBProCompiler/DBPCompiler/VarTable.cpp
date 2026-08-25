@@ -3,10 +3,14 @@
 //////////////////////////////////////////////////////////////////////
 
 // Custom Includes
+#include "ParserHeader.h"
 #include "StatementList.h"
 #include "StringUtils.h"
 #include "StructTable.h"
 #include "VarTable.h"
+#include "DBMWriter.h"
+#include "Error.h"
+#include "Errors.h"
 #include "DBPLogger.h"
 #include "time.h"
 
@@ -133,6 +137,11 @@ void CVarTable::Free(void)
 #ifdef __AARON_VARTABLEPERF__
 	g_Table.clear();
 #endif
+	if ( g_Order.empty() )
+	{
+		delete this;
+		return;
+	}
 	// delete every node tracked in the declaration-order index
 	for ( CVarTable* pNode : g_Order )
 		delete pNode;

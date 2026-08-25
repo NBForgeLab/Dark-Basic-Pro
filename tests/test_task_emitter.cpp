@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cstdint>
 #include "../DBProCompiler/DBPCompiler/TaskEmitter.h"
 
 TEST(TaskEmitterTest, InitialStateIsClean) {
@@ -8,7 +9,7 @@ TEST(TaskEmitterTest, InitialStateIsClean) {
 
 TEST(TaskEmitterTest, DetermineASMCallResolvesTypes) {
     CTaskEmitter emitter;
-    constexpr DWORD baseOpcode = 100;
+    constexpr uint32_t baseOpcode = 100;
 
     EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 4), baseOpcode);
     EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 6), baseOpcode + 1);

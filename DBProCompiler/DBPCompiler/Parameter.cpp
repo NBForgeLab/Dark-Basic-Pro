@@ -1,8 +1,11 @@
 // Parameter.cpp: implementation of the CParameter class.
 //
 //////////////////////////////////////////////////////////////////////
-#include "InstructionTable.h"
 #include "ParserHeader.h"
+#include "Statement.h"
+#include "StatementList.h"
+#include "InstructionTable.h"
+#include "Error.h"
 #include "DataTable.h"
 #include "VarTable.h"
 

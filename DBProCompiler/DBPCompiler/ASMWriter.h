@@ -1,7 +1,7 @@
 #pragma once
 
 // Common Includes
-#include "windows.h"
+#include <cstdint>
 #include "macros.h"
 #include <vector>
 #include <string>
@@ -467,7 +467,7 @@ class CASMWriter : public ICodeGenerator
 		DWORD GetCurrentMCPosition(void) override;
 
 		bool ReportAnyErrorsToCLI(void) override;
-		bool PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate) override;
+		bool PrepareEXE(const char* pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate) override;
 		bool UpdateMCB(DWORD dwProgramSize) override;
 		bool UpdateMCBRefData(void) override;
 		bool UpdateDLLData(void) override;
