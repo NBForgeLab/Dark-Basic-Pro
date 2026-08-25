@@ -4596,8 +4596,9 @@ D3DFORMAT CObjectManager::GetValidStencilBufferFormat ( D3DFORMAT BackBufferForm
 								D3DFMT_D24X4S4,
 							};
 
-	LPDIRECT3D9 m_pDX;
-	m_pD3D->GetDirect3D(&m_pDX);
+	LPDIRECT3D9 m_pDX = nullptr;
+	if ( m_pD3D ) m_pD3D->GetDirect3D(&m_pDX);
+	if ( !m_pDX ) return D3DFMT_D24S8;
 
 	for ( int iTemp = 0; iTemp < 29; iTemp++ )
 	{
