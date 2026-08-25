@@ -73,8 +73,8 @@ BEGIN
     IDS_STRING114           "LM Set Ambient Light%FFF%?LMSetAmbientLight@@YAXMMM@Z%Red, Green, Blue"
     IDS_STRING115           "LM Add Custom Point Light%FFFFFFFFF%?LMAddCustomPointLight@@YAXMMMMMMMMM@Z%PosX, PosY, PosZ, Radius, Zero Range, Attenuation, Red, Green, Blue"
     IDS_STRING116           "LM Build Light Maps Thread%LFL%?LMBuildLightMapsThread@@YAXHMH@Z%Texture Size, Quality, Blur Radius"
-    IDS_STRING117           "LM Get Percent[%F%?LMGetPercent@@YAKXZ%"
-    IDS_STRING118           "LM Get Status[%S%?LMGetStatus@@YAKK@Z%"
+    IDS_STRING117           "LM Get Percent[%F%?LMGetPercent@@YAMXZ%"
+    IDS_STRING118           "LM Get Status[%S%?LMGetStatus@@YAPEADXZ%"
     IDS_STRING119           "LM Get Complete[%L%?LMGetComplete@@YAHXZ%"
     IDS_STRING120           "LM Add Light Map Object%LL%?LMAddLightMapObject@@YAXHH@Z%Object Number, Base Stage"
     IDS_STRING121           "LM Add Transparent Collision Object%LL%?LMAddTransparentCollisionObject@@YAXHH@Z%Object Number, Transparency Mode"
@@ -82,7 +82,7 @@ BEGIN
     IDS_STRING123           "LM Set Shadow Power%F%?LMSetShadowPower@@YAXM@Z%Power"
     IDS_STRING124           "LM Set Ambient Occlusion On%LFL%?LMSetAmbientOcclusionOn@@YAXHMH@Z%Num Of Rays, Ray Distance, Pattern"
     IDS_STRING125           "LM Set Ambient Occlusion Off%0%?LMSetAmbientOcclusionOff@@YAXXZ%"
-    IDS_STRING126           "LM Set Light Map Name%S%?LMSetLightMapName@@YAXK@Z%Filename"
+    IDS_STRING126           "LM Set Light Map Name%S%?LMSetLightMapName@@YAX_K@Z%Filename"
     IDS_STRING127           "LM Add Light Map Object%LLL%?LMAddLightMapObject@@YAXHHH@Z%Object Number, Base Stage, Dynamic Light Mode"
 END
 
@@ -95,7 +95,7 @@ BEGIN
     IDS_STRING132           "LM Add Light Map Object%LLLL%?LMAddLightMapObject@@YAXHHHH@Z%Object Number, Base Stage, Dynamic Light Mode, Flat Shaded"
     IDS_STRING133           "LM Build Light Maps Thread%LFLL%?LMBuildLightMapsThread@@YAXHMHH@Z%Texture Size, Quality, Blur Radius, Num Threads"
     IDS_STRING134           "LM Build Light Maps%LFLL%?LMBuildLightMaps@@YAXHMHH@Z%Texture Size, Quality, Blur Radius, Num Threads"
-    IDS_STRING135           "LM Set Light Map Folder%S%?LMSetLightMapFolder@@YAXK@Z%Filename"
+    IDS_STRING135           "LM Set Light Map Folder%S%?LMSetLightMapFolder@@YAXPEAD@Z%Filename"
     IDS_STRING136           "LM Set Light Map File Format%L%?LMSetLightMapFileFormat@@YAXH@Z%Format index"
     IDS_STRING137           "LM Complete Light Maps%0%?LMCompleteLightMaps@@YAXXZ%"
     IDS_STRING138           "LM Set Light Map Start Number%L%?LMSetLightMapStartNumber@@YAXH@Z%File Index Number"

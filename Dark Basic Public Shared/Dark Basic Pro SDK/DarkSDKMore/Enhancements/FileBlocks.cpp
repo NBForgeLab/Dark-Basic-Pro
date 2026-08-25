@@ -167,7 +167,7 @@ void RestoreDirectory ( void )
 
 void GetZipName ( int iID, char* szFileName )
 {
-	for ( int i = strlen ( szFileName ), c = 0; i > 0; i--, c++ )
+	for ( int i = static_cast<int>( strlen ( szFileName ) ), c = 0; i > 0; i--, c++ )
 	{
 		if ( szFileName [ i ] == '.' )
 		{

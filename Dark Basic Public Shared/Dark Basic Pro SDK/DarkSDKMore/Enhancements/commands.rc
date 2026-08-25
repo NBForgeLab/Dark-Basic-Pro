@@ -161,14 +161,14 @@ END
 
 STRINGTABLE 
 BEGIN
-    96                      "GET PROCESSOR VENDOR$[%SL%?GetProcessorVendor@@YAKKH@Z%ID"
+    96                      "GET PROCESSOR VENDOR$[%SL%?GetProcessorVendor@@YA_K_KH@Z%ID"
     97                      "GET PROCESSOR TYPE ID[%LL%?GetProcessorTypeID@@YAHH@Z%ID"
     98                      "GET PROCESSOR FAMILY ID[%LL%?GetProcessorFamilyID@@YAHH@Z%ID"
     99                      "GET PROCESSOR MODEL ID[%LL%?GetProcessorModelID@@YAHH@Z%ID"
     100                     "GET PROCESSOR STEPPING ID[%LL%?GetProcessorSteppingID@@YAHH@Z%ID"
-    101                     "GET PROCESSOR BRAND$[%SL%?GetProcessorBrand@@YAKKH@Z%ID"
-    102                     "GET PROCESSOR PLATFORM$[%SL%?GetProcessorPlatform@@YAKKH@Z%ID"
-    103                     "GET PROCESSOR NAME$[%SL%?GetProcessorName@@YAKKH@Z%ID"
+    101                     "GET PROCESSOR BRAND$[%SL%?GetProcessorBrand@@YA_K_KH@Z%ID"
+    102                     "GET PROCESSOR PLATFORM$[%SL%?GetProcessorPlatform@@YA_K_KH@Z%ID"
+    103                     "GET PROCESSOR NAME$[%SL%?GetProcessorName@@YA_K_KH@Z%ID"
     104                     "GET PROCESSOR FREQUENCY[%LL%?GetProcessorFrequency@@YAHH@Z%ID"
     105                     "GET PROCESSOR ON CHIP FEATURES%L%?GetProcessorOnChipFeatures@@YAXH@Z%ID"
     106                     "GET PROCESSOR POWER MANAGEMENT%L%?GetProcessorPowerManagement@@YAXH@Z%ID"
@@ -186,24 +186,24 @@ BEGIN
     114                     "GET DRIVE USED SPACE[%LLL%?GetDriveUsedSpace@@YAHHH@Z%ID"
     115                     "GET DRIVE FREE SPACE[%LLL%?GetDriveFreeSpace@@YAHHH@Z%ID"
     116                     "GET DRIVE FILE LENGTH SUPPORT[%LL%?GetDriveFileLengthSupport@@YAHH@Z%ID"
-    117                     "GET DRIVE SERIAL$[%SL%?GetDriveSerial@@YAKKH@Z%ID"
-    118                     "GET DRIVE FILE SYSTEM$[%SL%?GetDriveFileSystem@@YAKKH@Z%ID"
+    117                     "GET DRIVE SERIAL$[%SL%?GetDriveSerial@@YA_K_KH@Z%ID"
+    118                     "GET DRIVE FILE SYSTEM$[%SL%?GetDriveFileSystem@@YA_K_KH@Z%ID"
     119                     "GET CD COUNT[%L%?GetCDCount@@YAHXZ%"
-    120                     "GET CD LETTER$[%SL%?GetCDLetter@@YAKKH@Z%ID"
-    121                     "GET COMPUTER NAME$[%S%?GetComputerNameExA@@YAKK@Z"
-    122                     "GET USER NAME$[%S%?GetUserNameEx@@YAKK@Z%"
+    120                     "GET CD LETTER$[%SL%?GetCDLetter@@YA_K_KH@Z%ID"
+    121                     "GET COMPUTER NAME$[%S%?GetComputerNameEx@@YA_K_K@Z"
+    122                     "GET USER NAME$[%S%?GetUserNameEx@@YA_K_K@Z%"
     123                     "GET DISPLAY WIDTH[%L%?GetDisplayWidth@@YAHXZ%"
     124                     "GET DISPLAY HEIGHT[%L%?GetDisplayHeight@@YAHXZ%"
     125                     "GET DISPLAY DEPTH[%L%?GetDisplayDepth@@YAHXZ%"
     126                     "GET DISPLAY REFRESH RATE[%L%?GetDisplayRefreshRate@@YAHXZ%"
-    127                     "OPEN FILE DIALOG[%SSSS%?OpenFileDialog@@YAKKKKK@Z%Directory, Filter, Title"
+    127                     "OPEN FILE DIALOG[%SSSS%?OpenFileDialog@@YA_K_K000@Z%Directory, Filter, Title"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING128           "SAVE FILE DIALOG[%SSSS%?SaveFileDialog@@YAKKKKK@Z%Directory, Filter, Title"
-    IDS_STRING129           "GET WEB CLIENT$[%S%?GetWebClient@@YAKXZ%"
-    IDS_STRING130           "GET IP ADDRESS$[%S%?GetIPAddress@@YAKXZ%"
+    IDS_STRING128           "SAVE FILE DIALOG[%SSSS%?SaveFileDialog@@YA_K_K000@Z%Directory, Filter, Title"
+    IDS_STRING129           "GET WEB CLIENT$[%S%?GetWebClient@@YA_KXZ%"
+    IDS_STRING130           "GET IP ADDRESS$[%S%?GetIPAddress@@YA_KXZ%"
     IDS_STRING131           "GET VOICE API[%L%?GetVoiceAPI@@YAHXZ%"
     IDS_STRING132           "GET VOICE LIST%0%?GetVoiceList@@YAXXZ%"
     IDS_STRING133           "SET VOICE%L%?SetVoice@@YAXH@Z%Voice Index"
@@ -221,19 +221,19 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING144           "CREATE FILE BLOCK%LS%?CreateFileBlock@@YAXHK@Z%id, filename"
+    IDS_STRING144           "CREATE FILE BLOCK%LS%?CreateFileBlock@@YAXHPEAD@Z%id, filename"
     IDS_STRING145           "DELETE FILE BLOCK%L%?DeleteFileBlock@@YAXH@Z%ID"
-    IDS_STRING146           "SET FILE BLOCK KEY%LS%?SetFileBlockKey@@YAXHK@Z%ID, Key"
+    IDS_STRING146           "SET FILE BLOCK KEY%LS%?SetFileBlockKey@@YAXHPEAD@Z%ID, Key"
     IDS_STRING147           "SET FILE BLOCK COMPRESSION%LL%?SetFileBlockCompression@@YAXHH@Z%ID, Flag"
-    IDS_STRING148           "ADD FILE TO BLOCK%LS%?AddFileToBlock@@YAXHK@Z%ID, File"
+    IDS_STRING148           "ADD FILE TO BLOCK%LS%?AddFileToBlock@@YAXHPEAD@Z%ID, File"
     IDS_STRING149           "ADD OBJECT TO BLOCK%LLS%?AddObjectToBlock@@YAXHHK@Z%id, object, filename"
     IDS_STRING150           "ADD IMAGE TO BLOCK%LLS%?AddImageToBlock@@YAXHHK@Z%id, object, filename"
     IDS_STRING151           "ADD BITMAP TO BLOCK%LLS%?AddBitmapToBlock@@YAXHHK@Z%id, bitmap, filename"
     IDS_STRING152           "SAVE FILE BLOCK%L%?SaveFileBlock@@YAXH@Z%id"
-    IDS_STRING153           "OPEN FILE BLOCK%SL%?OpenFileBlock@@YAXKH@Z%File, ID"
-    IDS_STRING154           "OPEN FILE BLOCK%SLS%?OpenFileBlock@@YAXKHK@Z%File, ID, Key"
+    IDS_STRING153           "OPEN FILE BLOCK%SL%?OpenFileBlock@@YAXPEADH@Z%File, ID"
+    IDS_STRING154           "OPEN FILE BLOCK%SLS%?OpenFileBlock@@YAXPEADHPEBD@Z%File, ID, Key"
     IDS_STRING155           "PERFORM CHECKLIST FOR FILE BLOCK DATA%L%?PerformCheckListForFileBlockData@@YAXH@Z%ID"
-    IDS_STRING156           "EXTRACT FILE FROM BLOCK%LSS%?ExtractFileFromBlock@@YAXHKK@Z%id, filename, path"
+    IDS_STRING156           "EXTRACT FILE FROM BLOCK%LSS%?ExtractFileFromBlock@@YAXHPEBD0@Z%id, filename, path"
     IDS_STRING157           "LOAD OBJECT FROM BLOCK%LSL%?LoadObjectFromBlock@@YAXHKH@Z%ID, File, Object"
     IDS_STRING158           "LOAD BITMAP FROM BLOCK%LSL%?LoadBitmapFromBlock@@YAXHKH@Z%ID, File, Bitmap"
     IDS_STRING159           "LOAD IMAGE FROM BLOCK%LSL%?LoadImageFromBlock@@YAXHKH@Z%ID, File, Image"
@@ -276,7 +276,7 @@ BEGIN
     IDS_STRING188           "WAIT FOR FILE MAP EVENT%L%?SetEventAndWait@@YAXH@Z%"
     IDS_STRING189           "CLOSE FILE BLOCK%L%?CloseFileBlock@@YAXH@Z%id"
     IDS_STRING190           "GET DATA FILE EXISTS[%LL%?GetDataFileExists@@YAHH@Z%ID"
-    IDS_STRING191           "GET DRIVE SERIAL$[%SLL%?GetDriveSerial@@YAKKHH@Z%ID, UniqueCode"
+    IDS_STRING191           "GET DRIVE SERIAL$[%SLL%?GetDriveSerial@@YA_K_KHH@Z%ID, UniqueCode"
 END
 
 #endif    // English (U.S.) resources

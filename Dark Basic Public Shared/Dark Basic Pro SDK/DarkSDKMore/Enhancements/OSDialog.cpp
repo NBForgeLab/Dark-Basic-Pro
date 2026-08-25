@@ -34,7 +34,7 @@
 		SAVE FILE DIALOG[%SSSS%?SaveFileDialog@@YAKKKKK@Z%Directory, Filter, Title
 */
 
-DWORD OpenFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitle )
+DWORD_PTR OpenFileDialog ( DWORD_PTR dwReturn, DWORD_PTR dwDir, DWORD_PTR dwFilter, DWORD_PTR dwTitle )
 {
 	OPENFILENAME	ofn;
 	char			szFile [ 260 ];
@@ -55,10 +55,10 @@ DWORD OpenFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitl
 	
 	GetOpenFileName ( &ofn );
 
-	return ( DWORD ) SetupString ( ofn.lpstrFile );
+	return ( DWORD_PTR ) SetupString ( ofn.lpstrFile );
 }
 
-DWORD SaveFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitle )
+DWORD_PTR SaveFileDialog ( DWORD_PTR dwReturn, DWORD_PTR dwDir, DWORD_PTR dwFilter, DWORD_PTR dwTitle )
 {
 	OPENFILENAME	ofn;
 	char			szFile [ 260 ];
@@ -79,7 +79,7 @@ DWORD SaveFileDialog ( DWORD dwReturn, DWORD dwDir, DWORD dwFilter, DWORD dwTitl
 	
 	GetSaveFileName ( &ofn );
 
-	return ( DWORD ) SetupString ( ofn.lpstrFile );
+	return ( DWORD_PTR ) SetupString ( ofn.lpstrFile );
 }
 
 ////////////////////////////////////////////////////////////////////

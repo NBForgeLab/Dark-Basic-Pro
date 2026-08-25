@@ -410,15 +410,15 @@ DWORD GetDriveSerial ( DWORD dwReturn, int iID, int iUniqueCode )
 	}
 
 	// return the string
-	return ( DWORD ) SetupString ( szSerialB );
+	return ( DWORD_PTR ) SetupString ( szSerialB );
 }
 
-DWORD GetDriveSerial ( DWORD dwReturn, int iID )
+DWORD_PTR GetDriveSerial ( DWORD_PTR dwReturn, int iID )
 {
 	return GetDriveSerial ( dwReturn, iID, 0 );
 }
 
-DWORD GetDriveFileSystem ( DWORD dwReturn, int iID )
+DWORD_PTR GetDriveFileSystem ( DWORD_PTR dwReturn, int iID )
 {
 	if ( !CheckHardDriveID ( iID ) )
 		return 0;
@@ -429,13 +429,13 @@ DWORD GetDriveFileSystem ( DWORD dwReturn, int iID )
 	if ( GetVolumeInformation ( g_HardDiskLetters [ iID ], NULL, 0, NULL, NULL, NULL, szFS, 256 ) )
 		sprintf ( szFileSystem, "%s", szFS );
 	
-	return ( DWORD ) SetupString ( szFileSystem );
+	return ( DWORD_PTR ) SetupString ( szFileSystem );
 }
 
 int GetCDCount ( void )
 {
 	int iCount = 0;
-	
+
 	for ( int iCounter = 0; iCounter < MAX_HARD_DRIVE; iCounter++ )
 	{
 		if ( GetDriveType ( g_HardDiskLetters [ iCounter] ) == DRIVE_CDROM )
@@ -445,17 +445,10 @@ int GetCDCount ( void )
 	return iCount;
 }
 
-DWORD GetCDLetter ( DWORD dwReturn, int iNTHCDIndex )
+DWORD_PTR GetCDLetter ( DWORD_PTR dwReturn, int iNTHCDIndex )
 {
 	if ( !CheckHardDriveID ( iNTHCDIndex ) )
 		return 0;
-
-	/* mikes old code for this
-	char szLetter [ 4 ] = "";
-	for ( int iCounter = 0; iCounter < MAX_HARD_DRIVE; iCounter++ )
-		if ( GetDriveType ( g_HardDiskLetters [ iCounter ] ) == DRIVE_CDROM )
-			strcpy ( szLetter, g_HardDiskLetters [ iCounter ] );
-	*/
 
 	// default is no letter
 	char szLetter [ 4 ] = "";
@@ -480,7 +473,7 @@ DWORD GetCDLetter ( DWORD dwReturn, int iNTHCDIndex )
 	}
 
 	// return string
-	return ( DWORD ) SetupString ( szLetter );
+	return ( DWORD_PTR ) SetupString ( szLetter );
 }
 
 ////////////////////////////////////////////////////////////////////

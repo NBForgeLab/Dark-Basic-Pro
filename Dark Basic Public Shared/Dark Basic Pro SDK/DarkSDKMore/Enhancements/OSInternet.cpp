@@ -38,7 +38,7 @@
 	GET IP ADDRESS$[%S%?GetIPAddress@@YAKXZ%
 */
 
-DWORD GetWebClient ( void )
+DWORD_PTR GetWebClient ( void )
 {
 	char	  szBuffer [ 256 ];
 	HINSTANCE hBrowser = LoadLibrary ( "shdocvw.dll" );
@@ -70,10 +70,10 @@ DWORD GetWebClient ( void )
 
 	FreeLibrary ( hBrowser );
 
-	return ( DWORD ) SetupString ( szBuffer );
+	return ( DWORD_PTR ) SetupString ( szBuffer );
 }
 
-DWORD GetIPAddress ( void )
+DWORD_PTR GetIPAddress ( void )
 {
 	WORD		wVersionRequested;
 	PHOSTENT	hostinfo;
@@ -103,7 +103,7 @@ DWORD GetIPAddress ( void )
 		return 0;
 	}
 	
-	return ( DWORD ) SetupString ( szName );
+	return ( DWORD_PTR ) SetupString ( szName );
 }
 
 ////////////////////////////////////////////////////////////////////

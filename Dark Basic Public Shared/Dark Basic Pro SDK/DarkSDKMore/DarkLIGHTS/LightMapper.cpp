@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include "Thread.h"
 
-#define DLLEXPORT 
+#define DLLEXPORT __declspec(dllexport)
 
 #include "CollisionTreeLightmapper.h"
 #include "LMObject.h"

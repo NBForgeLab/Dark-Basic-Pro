@@ -1,0 +1,8 @@
+; SteamMultiplayer stub export alias table.
+; The Core resolves these exact (32-bit-mangled) names via GetProcAddress.
+; Each is aliased to an undecorated extern "C" implementation in steam_stub.cpp.
+
+EXPORTS
+?SteamInit@@YAHXZ=SteamInitImpl
+?SteamGetWorkshopItemPathDLL@@YAXPAD@Z=SteamGetWorkshopItemPathDLLImpl
+?SteamIsWorkshopLoadingOnDLL@@YAHXZ=SteamIsWorkshopLoadingOnDLLImpl

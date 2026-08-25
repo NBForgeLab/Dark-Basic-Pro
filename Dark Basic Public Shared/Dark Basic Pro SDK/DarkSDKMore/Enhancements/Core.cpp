@@ -117,7 +117,7 @@ void Destructor ( void )
 char* ENHANCEMENTSSetupString ( const char* szInput )
 {
 	char* pReturn = NULL;
-	DWORD dwSize  = strlen ( szInput );
+	DWORD dwSize  = static_cast<DWORD>( strlen ( szInput ) );
 	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
 	if ( !pReturn )
 	{

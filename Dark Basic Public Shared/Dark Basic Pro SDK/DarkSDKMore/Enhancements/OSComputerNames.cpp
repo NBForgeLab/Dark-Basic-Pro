@@ -34,24 +34,24 @@
 	GET USER NAME$[%S%?GetUserNameEx@@YAKK@Z%
 */
 
-DWORD GetComputerNameEx ( DWORD dwReturn )
+DWORD_PTR GetComputerNameEx ( DWORD_PTR dwReturn )
 {
 	char  szBuffer [ 256 ] = "";
 	DWORD dwSize           = 256;
 
 	GetComputerName ( szBuffer, &dwSize );
 	
-	return ( DWORD ) SetupString ( szBuffer );
+	return ( DWORD_PTR ) SetupString ( szBuffer );
 }
 
-DWORD GetUserNameEx ( DWORD dwReturn )
+DWORD_PTR GetUserNameEx ( DWORD_PTR dwReturn )
 {
 	char  szBuffer [ 256 ] = "";
 	DWORD dwSize           = 256;
 
 	GetUserName ( szBuffer, &dwSize );
 	
-	return ( DWORD ) SetupString ( szBuffer );
+	return ( DWORD_PTR ) SetupString ( szBuffer );
 }
 
 ////////////////////////////////////////////////////////////////////

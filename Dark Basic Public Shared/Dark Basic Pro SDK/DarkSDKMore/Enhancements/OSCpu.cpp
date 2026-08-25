@@ -22,9 +22,9 @@ int GetProcessorCount ( void )
 	return 1;
 }
 
-DWORD GetProcessorVendor ( DWORD dwReturn, int iID )
+DWORD_PTR GetProcessorVendor ( DWORD_PTR dwReturn, int iID )
 {
-	return ( DWORD ) SetupString ( g_CPU.GetVendorID ( ) );
+	return ( DWORD_PTR ) SetupString ( g_CPU.GetVendorID ( ) );
 }
 
 int GetProcessorTypeID ( int iID )
@@ -88,28 +88,25 @@ int GetProcessorSteppingID ( int iID )
 	return atoi ( pString );
 }
 
-DWORD GetProcessorBrand ( DWORD dwReturn, int iID )
+DWORD_PTR GetProcessorBrand ( DWORD_PTR dwReturn, int iID )
 {
-	return ( DWORD ) SetupString ( g_CPU.GetVendorString ( ) );
+	return ( DWORD_PTR ) SetupString ( g_CPU.GetVendorString ( ) );
 }
 
-DWORD GetProcessorPlatform ( DWORD dwReturn, int iID )
+DWORD_PTR GetProcessorPlatform ( DWORD_PTR dwReturn, int iID )
 {
-	
 	char* szString = GetOS ( );
 
-	DWORD dwA = ( DWORD ) SetupString ( szString );
+	DWORD_PTR dwA = ( DWORD_PTR ) SetupString ( szString );
 
 	SAFE_DELETE_ARRAY ( szString );
 
 	return dwA;
-
-	return ( DWORD ) SetupString ( GetOS ( ) );
 }
 
-DWORD GetProcessorName ( DWORD dwReturn, int iID )
+DWORD_PTR GetProcessorName ( DWORD_PTR dwReturn, int iID )
 {
-	return ( DWORD ) SetupString ( g_CPU.GetExtendedProcessorName ( ) );
+	return ( DWORD_PTR ) SetupString ( g_CPU.GetExtendedProcessorName ( ) );
 }
 
 int GetProcessorFrequency ( int iID )
