@@ -2266,7 +2266,7 @@ void dbEndBSP ( void )
 
 void dbLoadBSP ( char* szFilename, char* szMap )
 {
-	LoadEx ( ( DWORD ) szFilename, ( DWORD ) szMap );
+	LoadEx ( ( DWORD_PTR ) szFilename, ( DWORD_PTR ) szMap );
 }
 
 void dbSetBSPCamera ( int iID )

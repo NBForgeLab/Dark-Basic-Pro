@@ -1,16 +1,17 @@
 #include "cenhancedmatrixc.h"
+#include <cstdint>
 #include ".\..\error\cerror.h"
 #include ".\..\core\globstruct.h"
 
 // Global Shared Data Pointer (passed in from core)
-GlobStruct*				g_pGlob							= NULL;
+GlobStruct*				g_pGlob							= nullptr;
 
 //////////////////////////////////////////////////////////////////////////
 // setup /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 typedef IDirect3DDevice9* ( *GFX_GetDirect3DDevicePFN ) ( void );
-HINSTANCE				g_GFX;							// for dll loading
-GFX_GetDirect3DDevicePFN	g_GFX_GetDirect3DDevice;	// get pointer to D3D device
+HINSTANCE				g_GFX							= nullptr;	// for dll loading
+GFX_GetDirect3DDevicePFN	g_GFX_GetDirect3DDevice		= nullptr;	// get pointer to D3D device
 //////////////////////////////////////////////////////////////////////////
 
 //
@@ -19,31 +20,30 @@ GFX_GetDirect3DDevicePFN	g_GFX_GetDirect3DDevice;	// get pointer to D3D device
 
 typedef float			        ( *CAMERA_GetFloatPFN   ) ( int );
 typedef void					( *CAMERA3D_RetVoidParamFloat4PFN ) ( float, float, float, float );
-CAMERA_GetFloatPFN				g_Camera_GetXPosition;
-CAMERA_GetFloatPFN				g_Camera_GetYPosition;
-CAMERA_GetFloatPFN				g_Camera_GetZPosition;
-CAMERA3D_RetVoidParamFloat4PFN	g_Camera_SetAutoCam;		
-int								g_Camera_ID;
+CAMERA_GetFloatPFN				g_Camera_GetXPosition			= nullptr;
+CAMERA_GetFloatPFN				g_Camera_GetYPosition			= nullptr;
+CAMERA_GetFloatPFN				g_Camera_GetZPosition			= nullptr;
+CAMERA3D_RetVoidParamFloat4PFN	g_Camera_SetAutoCam				= nullptr;		
+int								g_Camera_ID						= 0;
 
 //////////////////////////////////////////////////////////////////////////
 // image /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 typedef LPDIRECT3DTEXTURE9	( *IMAGE_RetLPD3DTEX9ParamIntPFN )  ( int );
-IMAGE_RetLPD3DTEX9ParamIntPFN	g_Image_GetPointer;
+IMAGE_RetLPD3DTEX9ParamIntPFN	g_Image_GetPointer				= nullptr;
 
 CEnhancedMatrixManager		m_EnhancedMatrixManager;
-tagEnhancedMatrixData*		m_ptr;
-unsigned char*				m_pData;
-LPDIRECT3DDEVICE9			m_pD3D;
-CMode*						m_pMode;
+tagEnhancedMatrixData*		m_ptr							= nullptr;
+unsigned char*				m_pData							= nullptr;
+LPDIRECT3DDEVICE9			m_pD3D							= nullptr;
+CMode*						m_pMode							= nullptr;
 
 extern tagObjectPos* m_pPos;
 
 void Constructor ( HINSTANCE hSetup, HINSTANCE hImage, HINSTANCE hCamera )
 {
-	//m_pEnhancedMatrixManager = pEnhancedMatrixManager;
-	m_ptr					 = NULL;
-	m_pData					 = NULL;
+	m_ptr					 = nullptr;
+	m_pData					 = nullptr;
 
 	if ( !hSetup || !hImage )
 	{
@@ -71,8 +71,11 @@ void Constructor ( HINSTANCE hSetup, HINSTANCE hImage, HINSTANCE hCamera )
 
 void Destructor ( void )
 {
-	SAFE_DELETE ( m_pData );
-	SAFE_DELETE ( m_pMode );
+	delete[] m_pData;
+	m_pData = nullptr;
+
+	delete m_pMode;
+	m_pMode = nullptr;
 }
 
 void RefreshD3D ( int iMode )
@@ -104,13 +107,13 @@ void SetErrorHandler ( LPVOID pErrorHandlerPtr )
 
 bool UpdatePtr ( int iID )
 {
-	m_ptr  = NULL;
+	m_ptr  = nullptr;
 	m_ptr  = m_EnhancedMatrixManager.GetData ( iID );
 
-	if ( m_ptr == NULL )
+	if ( m_ptr == nullptr )
 		return false;
 
-	m_pPos = ( tagObjectPos* ) m_ptr;
+	m_pPos = reinterpret_cast<tagObjectPos*>(m_ptr);
 
 	return true;
 }
@@ -140,10 +143,10 @@ bool MakeFromData ( int iID, LPSTR pHeightMap, int iSize, int iPoolSize, float f
 
 	m_pData = new unsigned char [ MAP_SIZE * MAP_SIZE * sizeof ( unsigned char ) ];
 
-	if ( m_pData == NULL )
+	if ( m_pData == nullptr )
 		return false;
 
-	if ( pHeightMap == NULL )
+	if ( pHeightMap == nullptr )
 		return false;
 
 	// copy height map data
@@ -183,23 +186,22 @@ bool Make ( int iID, char* szHeightMap, int iSize )
 	memset ( &m_Data, 0, sizeof ( m_Data ) );
 	m_Data.pD3D = m_pD3D;
 
-	FILE *fp;
-
 	m_pData = new unsigned char [ MAP_SIZE * MAP_SIZE * sizeof ( unsigned char ) ];
 
-	if ( m_pData == NULL )
+	if ( m_pData == nullptr )
 		return false;
 
-	fp = fopen ( szHeightMap, "rb" );
+	FILE *fp = nullptr;
+	fopen_s( &fp, szHeightMap, "rb" );
 
-	if ( fp == NULL )
+	if ( fp == nullptr )
 	{
-		SAFE_DELETE ( m_pData );
-		fclose ( fp );
+		delete[] m_pData;
+		m_pData = nullptr;
+		return false;
 	}
 
 	fread ( m_pData, 1, ( MAP_SIZE * MAP_SIZE ), fp );
-
 	fclose ( fp );
 
 	m_Data.m_pMode = new CQuadTrees ( );
@@ -230,23 +232,22 @@ bool Make ( int iID, char* szHeightMap, int iSize, int iPoolSize, float fMinReso
 	memset ( &m_Data, 0, sizeof ( m_Data ) );
 	m_Data.pD3D = m_pD3D;
 
-	FILE *fp;
-
 	m_pData = new unsigned char [ MAP_SIZE * MAP_SIZE * sizeof ( unsigned char ) ];
 
-	if ( m_pData == NULL )
+	if ( m_pData == nullptr )
 		return false;
 
-	fp = fopen ( szHeightMap, "rb" );
+	FILE *fp = nullptr;
+	fopen_s( &fp, szHeightMap, "rb" );
 
-	if ( fp == NULL )
+	if ( fp == nullptr )
 	{
-		SAFE_DELETE ( m_pData );
-		fclose ( fp );
+		delete[] m_pData;
+		m_pData = nullptr;
+		return false;
 	}
 
 	fread ( m_pData, 1, ( MAP_SIZE * MAP_SIZE ), fp );
-
 	fclose ( fp );
 
 	m_Data.m_pMode = new CQuadTrees ( );
@@ -329,7 +330,7 @@ void MakeTerrainCore ( int iID, SDK_LPSTR szHeightMap, int iPoolSize, float fMin
 						DWORD dwGreen = ((( dwCol ) >>  16 ) & 0xFF );
 						DWORD dwBlue  = ((( dwCol ) >>  8  ) & 0xFF );
 						float fIntensity = ((float)(dwRed) + (float)(dwGreen) + (float)(dwBlue)) / (255*3);
-						unsigned char bByte = (unsigned char)(255*fIntensity);
+						uint8_t bByte = static_cast<uint8_t>(255*fIntensity);
 						pHeightMap[(y*iWidth)+x]=bByte;
 						pPtr+=3;
 					}
@@ -343,20 +344,29 @@ void MakeTerrainCore ( int iID, SDK_LPSTR szHeightMap, int iPoolSize, float fMin
 				}
 
 				// free byte map of heightdata
-				SAFE_DELETE(pHeightMap);
+				delete[] pHeightMap;
+				pHeightMap = nullptr;
 
 				// unlock surface
 				pDestSurface->UnlockRect();
 			}
 
 			// release surface when done
-			SAFE_RELEASE(pDestSurface);
+			if (pDestSurface)
+			{
+				pDestSurface->Release();
+				pDestSurface = nullptr;
+			}
 		}
 		else
 		{
 			// Failed to load heightmap
 			RunTimeError ( RUNTIMEERROR_TERRAINFAILEDCREATE );
-			SAFE_RELEASE(pDestSurface);
+			if (pDestSurface)
+			{
+				pDestSurface->Release();
+				pDestSurface = nullptr;
+			}
 			return;
 		}
 	}

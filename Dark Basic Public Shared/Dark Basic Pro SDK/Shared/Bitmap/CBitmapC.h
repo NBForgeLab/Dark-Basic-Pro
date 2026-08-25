@@ -30,9 +30,7 @@
 	#define DBPRO_GLOBAL static
 #endif
 
-#define SAFE_DELETE( p )       { if ( p ) { delete ( p );       ( p ) = NULL; } }
-#define SAFE_RELEASE( p )      { if ( p ) { ( p )->Release ( ); ( p ) = NULL; } }
-#define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
+#include "..\Core\macros.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -46,18 +44,18 @@
 
 struct tagData
 {
-	LPDIRECT3DSURFACE9		lpSurface;					// render target surface
-	LPDIRECT3DSURFACE9		lpDepth;					// render target depthbuffer
+	LPDIRECT3DSURFACE9		lpSurface  = nullptr;		// render target surface
+	LPDIRECT3DSURFACE9		lpDepth    = nullptr;		// render target depthbuffer
 
-	int						iWidth;						// width of texture
-	int						iHeight;					// height of texture
-	int						iDepth;						// depth of texture
+	int						iWidth     = 0;				// width of texture
+	int						iHeight    = 0;				// height of texture
+	int						iDepth     = 0;				// depth of texture
 
-	int						iMirrored;					// mirror
-	int						iFlipped;					// flip
-	int						iFadeValue;					// fade of fade setting
+	int						iMirrored  = 0;				// mirror
+	int						iFlipped   = 0;				// flip
+	int						iFadeValue = 0;				// fade of fade setting
 
-	bool					bLocked;					// is locked
+	bool					bLocked    = false;			// is locked
 	D3DLOCKED_RECT			d3dlr;						// information structure
 
 	char					szLongFilename  [ 256 ];	// long filename  e.g. "c:\\images\\a.bmp"

@@ -187,8 +187,8 @@ DARKSDK int  				GetExistEx					( int iID );											// does image exist
 
 DARKSDK void  				SetColorKey					( int iR, int iG, int iB );		// set image color key
 //DARKSDK void  				SaveIconFromImage			( LPSTR pFilename, int iID );
-DARKSDK DWORD 				LoadIcon					( LPSTR pFilename );
-DARKSDK void  				FreeIcon					( DWORD dwIconHandle );
+DARKSDK DWORD_PTR 			LoadIcon					( LPSTR pFilename );
+DARKSDK void  				FreeIcon					( DWORD_PTR dwIconHandle );
 
 DARKSDK void 				GetImageData				( int iID, DWORD* dwWidth, DWORD* dwHeight, DWORD* dwDepth, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
 DARKSDK void 				SetImageData				( int iID, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, LPSTR pData, DWORD dwDataSize );
@@ -211,8 +211,8 @@ DARKSDK void 				SetImageAutoMipMap			( int iGenerateMipMaps );
 
 		void  				dbSetImageColorKey			( int iR, int iG, int iB );
 		void  				dbSaveIconFromImage			( char* pFilename, int iID );
-		DWORD 				dbLoadIcon					( char* pFilename );
-		void  				dbFreeIcon					( DWORD dwIconHandle );
+		DWORD_PTR 			dbLoadIcon					( char* pFilename );
+		void  				dbFreeIcon					( DWORD_PTR dwIconHandle );
 
 		void 				dbGetImageData				( int iID, DWORD* dwWidth, DWORD* dwHeight, DWORD* dwDepth, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
 		void 				dbSetImageData				( int iID, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, LPSTR pData, DWORD dwDataSize );

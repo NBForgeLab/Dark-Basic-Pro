@@ -127,7 +127,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING1             "LOAD BITMAP%SL%?LoadBitmapA@@YAXPADH@Z%Filename,Bitmap Number"
+    IDS_STRING1             "LOAD BITMAP%SL%?LoadBitmapA@@YAXPEADH@Z%Filename,Bitmap Number"
     IDS_STRING2             "CREATE BITMAP%LLL%?CreateBitmap@@YAXHHH@Z%Bitmap Number,Width,Height"
     IDS_STRING3             "COPY BITMAP%LL%?CopyBitmap@@YAXHH@Z%From Bitmap,To Bitmap"
     IDS_STRING4             "COPY BITMAP%LLLLLLLLLL%?CopyBitmapEx@@YAXHHHHHHHHHH@Z%From Bitmap,Left,Top,Right,Bottom,To Bitmap,Left,Top,Right,Bottom"
@@ -136,7 +136,7 @@ BEGIN
     IDS_STRING7             "MIRROR BITMAP%L%?MirrorBitmap@@YAXH@Z%Bitmap Number"
     IDS_STRING8             "FADE BITMAP%LL%?FadeBitmap@@YAXHH@Z%Bitmap Number,Fade Value"
     IDS_STRING9             "BLUR BITMAP%LL%?BlurBitmap@@YAXHH@Z%Bitmap Number,Blur Value"
-    IDS_STRING10            "SAVE BITMAP%SL%?SaveBitmap@@YAXPADH@Z%Filename,Bitmap Number"
+    IDS_STRING10            "SAVE BITMAP%SL%?SaveBitmap@@YAXPEADH@Z%Filename,Bitmap Number"
     IDS_STRING11            "SET CURRENT BITMAP%L%?SetCurrentBitmap@@YAXH@Z%Bitmap Number"
     IDS_STRING12            "CURRENT BITMAP[%L%?CurrentBitmap@@YAHXZ"
     IDS_STRING13            "BITMAP EXIST[%LL%?BitmapExist@@YAHH@Z%Bitmap Number"
@@ -149,8 +149,8 @@ BEGIN
     IDS_STRING16            "BITMAP DEPTH[%LL%?BitmapDepth@@YAHH@Z%Bitmap Number"
     IDS_STRING17            "BITMAP MIRRORED[%LL%?BitmapMirrored@@YAHH@Z%Bitmap Number"
     IDS_STRING18            "BITMAP FLIPPED[%LL%?BitmapFlipped@@YAHH@Z%Bitmap Number"
-    IDS_STRING19            "LOAD BITMAP%S%?LoadBitmapEx@@YAXPAD@Z%Filename"
-    IDS_STRING20            "SAVE BITMAP%S%?SaveBitmapEx@@YAXPAD@Z%Filename"
+    IDS_STRING19            "LOAD BITMAP%S%?LoadBitmapEx@@YAXPEAD@Z%Filename"
+    IDS_STRING20            "SAVE BITMAP%S%?SaveBitmapEx@@YAXPEAD@Z%Filename"
     IDS_STRING21            "BITMAP EXIST[%L%?BitmapExist@@YAHXZ%Bitmap Number"
     IDS_STRING22            "BITMAP WIDTH[%L%?BitmapWidth@@YAHXZ%Bitmap Number"
     IDS_STRING23            "BITMAP HEIGHT[%L%?BitmapHeight@@YAHXZ%Bitmap Number"

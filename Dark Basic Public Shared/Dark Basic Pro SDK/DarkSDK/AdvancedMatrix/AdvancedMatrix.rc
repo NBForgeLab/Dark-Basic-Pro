@@ -49,7 +49,7 @@ BEGIN
             VALUE "FileDescription", "Dark Basic Professional DLL"
             VALUE "FileVersion", "V1.0"
             VALUE "InternalName", "Dark Basic Professional DLL"
-            VALUE "LegalCopyright", "Copyright © 2002"
+            VALUE "LegalCopyright", "Copyright ï¿½ 2002"
             VALUE "LegalTrademarks", "DarkBASIC"
             VALUE "OriginalFilename", "DBProAnimationDebug.dll"
             VALUE "ProductName", "Dark Basic Professional DLL"
@@ -108,7 +108,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING1             "MAKE TERRAIN%LS%?Make@@YAXHK@Z%Terrain Number, Heightmap Filename"
+    IDS_STRING1             "MAKE TERRAIN%LS%?Make@@YAXH_K@Z%Terrain Number, Heightmap Filename"
     IDS_STRING3             "POSITION TERRAIN%LFFF%?SetPosition@@YAXHMMM@Z%Terrain Number, X, Y, Z"
     IDS_STRING4             "DELETE TERRAIN%L%?Delete@@YAXH@Z%Terrain Number"
     IDS_STRING5             "TERRAIN EXIST[%LL%?GetExist@@YAHH@Z%Terrain Number"

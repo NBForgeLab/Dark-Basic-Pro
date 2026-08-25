@@ -29,7 +29,7 @@ namespace
 {
     float EulerWrapAngle(float Angle)
     {
-        float NewAngle = fmod(Angle, 360.0f);
+        float NewAngle = fmodf(Angle, 360.0f);
         if (NewAngle < 0.0f)
             NewAngle+=360.0f;
         return NewAngle;

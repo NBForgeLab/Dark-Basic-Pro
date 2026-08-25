@@ -124,7 +124,7 @@ BEGIN
     IDS_STRING9             "MAKE MESH FROM MEMBLOCK%LL%?CreateMeshFromMemblock@@YAXHH@Z%Mesh Number, Memblock Number"
     IDS_STRING10            "MAKE SOUND FROM MEMBLOCK%LL%?CreateSoundFromMemblock@@YAXHH@Z%Sound Number, Memblock Number"
     IDS_STRING11            "DELETE MEMBLOCK%L%?DeleteMemblock@@YAXH@Z%Memblock Number"
-    IDS_STRING12            "GET MEMBLOCK PTR[%DL%?GetMemblockPtr@@YAKH@Z%Memblock Number"
+    IDS_STRING12            "GET MEMBLOCK PTR[%RL%?GetMemblockPtr@@YAPEADH@Z%Memblock Number"
     IDS_STRING13            "GET MEMBLOCK SIZE[%LL%?GetMemblockSize@@YAHH@Z%Memblock Number"
     IDS_STRING14            "MAKE MEMBLOCK%LL%?MakeMemblock@@YAXHH@Z%Memblock Number, Size in Bytes"
     IDS_STRING15            "MEMBLOCK EXIST[%LL%?MemblockExist@@YAHH@Z%Memblock Number"
@@ -140,8 +140,8 @@ BEGIN
     IDS_STRING21            "WRITE MEMBLOCK DWORD%LLD%?WriteMemblockDWord@@YAXHHK@Z%Memblock Number, Position, DWord"
     IDS_STRING22            "WRITE MEMBLOCK FLOAT%LLF%?WriteMemblockFloat@@YAXHHM@Z%Memblock Number, Position, Float"
     IDS_STRING23            "WRITE MEMBLOCK WORD%LLL%?WriteMemblockWord@@YAXHHH@Z%Memblock Number, Position, Word"
-    IDS_STRING24            "MAKE MEMBLOCK FROM ARRAY%LH%?CreateMemblockFromArray@@YAXHK@Z%Memblock Number, Array Name(0)"
-    IDS_STRING25            "MAKE ARRAY FROM MEMBLOCK%HL%?CreateArrayFromMemblock@@YAXKH@Z%Array Name(0), Memblock Number"
+    IDS_STRING24            "MAKE MEMBLOCK FROM ARRAY%LH%?CreateMemblockFromArray@@YAXH_K@Z%Memblock Number, Array Name(0)"
+    IDS_STRING25            "MAKE ARRAY FROM MEMBLOCK%HL%?CreateArrayFromMemblock@@YAX_KH@Z%Array Name(0), Memblock Number"
 END
 
 #endif    // English (U.K.) resources

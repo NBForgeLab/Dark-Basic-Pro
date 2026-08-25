@@ -13,6 +13,10 @@
 #include ".\..\error\cerror.h"
 #include ".\..\core\globstruct.h"
 
+// Keep our exported command name literal ('DeleteFile') instead of letting the
+// windows.h macro redirect it to DeleteFileA; the .rc table binds ?DeleteFile@@YAX_K@Z.
+#undef DeleteFile
+
 #pragma comment ( lib, "wininet.lib" )
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +74,7 @@ DARKSDK LPSTR GetReturnStringFromWorkString(void)
 	LPSTR pReturnString=NULL;
 	if(m_pWorkString)
 	{
-		DWORD dwSize=strlen(m_pWorkString);
+		DWORD dwSize=static_cast<DWORD>(strlen(m_pWorkString));
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
@@ -254,7 +258,7 @@ DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_P
 		lpPostData = const_cast<char*>("");
 
 	// default HTTP comm strings
-	DWORD dwPostDataSize = strlen ( lpPostData );
+	DWORD dwPostDataSize = static_cast<DWORD> ( strlen ( lpPostData ) );
 	LPSTR pHeader = new char[256];
 	wsprintf ( pHeader, "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n", dwPostDataSize );
 	DWORD dwHeaderSize = -1L;
@@ -267,8 +271,8 @@ DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_P
 
 	// make new string
 	LPSTR pReturnString = NULL;
-	DWORD dwSize = strlen(g_pFeedbackAreaString);
-	if ( pReturnData ) dwSize = strlen(pReturnData);
+	DWORD dwSize = static_cast<DWORD>(strlen(g_pFeedbackAreaString));
+	if ( pReturnData ) dwSize = static_cast<DWORD>(strlen(pReturnData));
 	g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 	if ( pReturnData ) 
 		strcpy ( pReturnString, pReturnData );
@@ -331,12 +335,12 @@ void PassCoreDataFTP ( LPVOID pGlobPtr )
 
 void dbFTPConnect ( char* szString, char* szString2, char* szString3, int iUseWindow )
 {
-	ConnectEx ( ( DWORD ) szString, ( DWORD ) szString2, ( DWORD ) szString3, iUseWindow );
+	ConnectEx ( ( DWORD_PTR ) szString, ( DWORD_PTR ) szString2, ( DWORD_PTR ) szString3, iUseWindow );
 }
 
 void dbFTPConnect ( char* szString, char* szString2, char* szString3 )
 {
-	Connect ( ( DWORD ) szString, ( DWORD ) szString2, ( DWORD ) szString3 );
+	Connect ( ( DWORD_PTR ) szString, ( DWORD_PTR ) szString2, ( DWORD_PTR ) szString3 );
 }
 
 void dbFTPDisconnect ( void )
@@ -351,27 +355,27 @@ void dbFTPDisconnect ( int iFlag )
 
 void dbFTPSetDir ( char* szString )
 {
-	SetDir ( ( DWORD ) szString );
+	SetDir ( ( DWORD_PTR ) szString );
 }
 
 void dbFTPPutFile ( char* szString )
 {
-	PutFile ( ( DWORD ) szString );
+	PutFile ( ( DWORD_PTR ) szString );
 }
 
 void dbFTPGetFile ( char* szString, char* szString2 )
 {
-	GetFile ( ( DWORD ) szString, ( DWORD ) szString2 );
+	GetFile ( ( DWORD_PTR ) szString, ( DWORD_PTR ) szString2 );
 }
 
 void dbFTPGetFile ( char* szString, char* szString2, int iFlag )
 {
-	GetFile ( ( DWORD ) szString, ( DWORD ) szString2, iFlag );
+	GetFile ( ( DWORD_PTR ) szString, ( DWORD_PTR ) szString2, iFlag );
 }
 
 void dbFTPDeleteFile ( char* szString )
 {
-	DeleteFile ( ( DWORD ) szString );
+	DeleteFile ( ( DWORD_PTR ) szString );
 }
 
 void dbFTPFindFirst ( void )

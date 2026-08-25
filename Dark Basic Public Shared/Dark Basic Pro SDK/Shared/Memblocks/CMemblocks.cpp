@@ -7,7 +7,8 @@
 	#define INITGUID
 #endif
 
-#include <windows.h> 
+#include <windows.h>
+#include <cstdint>
 #include ".\..\error\cerror.h"
 #include ".\..\core\globstruct.h"
 #include ".\..\core\DBDLLArray.h"
@@ -78,22 +79,21 @@ DARKSDK void Constructor ( void )
 	// Clear Memblock Structures
 	for(int m=0; m<MEMBLOCKSIZE; m++)
 	{
-		gpMemblockSize[m]=0;
-		gpMemblock[m]=NULL;
+		gpMemblockSize[m] = 0;
+		gpMemblock[m] = nullptr;
 	}
 }
 
 DARKSDK void Destructor ( void )
 {
 	// Ensure all memblocks are released
-	for(int m=0; m<MEMBLOCKSIZE; m++)
+	for(int m = 0; m < MEMBLOCKSIZE; m++)
 	{
 		if(gpMemblock[m])
 		{
-			//GlobalFree(gpMemblock[m]);
-			delete gpMemblock[m];
-			gpMemblockSize[m]=0;
-			gpMemblock[m]=NULL;
+			delete[] gpMemblock[m];
+			gpMemblockSize[m] = 0;
+			gpMemblock[m] = nullptr;
 		}
 	}
 }
@@ -192,25 +192,22 @@ DARKSDK BOOL DB_MemblockFromBitmap(int mbi, int bitmapindex)
 		// lee - 220206 - u60 - Free any old memblock
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblock[mbi] = nullptr;
 		}
 
 		// Make memblock from bitmap data
-		gpMemblockSize[mbi] = (sizeof(DWORD)*3) + dwDataSize;
-		//gpMemblock[mbi]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, gpMemblockSize[mbi]);
-		gpMemblock[mbi]=(char*)new char[gpMemblockSize[mbi]];
-		memset ( gpMemblock[mbi], 0, gpMemblockSize[mbi] );
+		gpMemblockSize[mbi] = (sizeof(uint32_t) * 3) + dwDataSize;
+		gpMemblock[mbi] = new char[gpMemblockSize[mbi]]();
 		if(gpMemblock[mbi])
 		{
 			// Bitmap Header (DWORD x3)
-			*((DWORD*)gpMemblock[mbi]+0)=dwWidth;
-			*((DWORD*)gpMemblock[mbi]+1)=dwHeight;
-			*((DWORD*)gpMemblock[mbi]+2)=dwDepth;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 0) = dwWidth;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 4) = dwHeight;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 8) = dwDepth;
 
 			// Bitmap Data
-			char* pMem = gpMemblock[mbi]+12;
+			char* pMem = gpMemblock[mbi] + 12;
 			memcpy(pMem, pData, dwDataSize);
 		}
 		else
@@ -270,25 +267,22 @@ DARKSDK BOOL DB_MemblockFromImage(int mbi, int imageindex)
 		// lee - 220206 - u60 - Free any old memblock
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblock[mbi] = nullptr;
 		}
 
 		// Make memblock from image data
-		gpMemblockSize[mbi] = (sizeof(DWORD)*3) + dwDataSize;
-		//gpMemblock[mbi]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, gpMemblockSize[mbi]);
-		gpMemblock[mbi]=(char*)new char[gpMemblockSize[mbi]];
-		memset ( gpMemblock[mbi], 0, gpMemblockSize[mbi] );
+		gpMemblockSize[mbi] = (sizeof(uint32_t) * 3) + dwDataSize;
+		gpMemblock[mbi] = new char[gpMemblockSize[mbi]]();
 		if(gpMemblock[mbi])
 		{
 			// Image Header (DWORD x3)
-			*((DWORD*)gpMemblock[mbi]+0)=dwWidth;
-			*((DWORD*)gpMemblock[mbi]+1)=dwHeight;
-			*((DWORD*)gpMemblock[mbi]+2)=dwDepth;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 0) = dwWidth;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 4) = dwHeight;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 8) = dwDepth;
 
 			// Image Data
-			char* pMem = gpMemblock[mbi]+12;
+			char* pMem = gpMemblock[mbi] + 12;
 			memcpy(pMem, pData, dwDataSize);
 		}
 		else
@@ -358,16 +352,13 @@ DARKSDK BOOL DB_MemblockFromSound(int mbi, int soundindex)
 		// lee - 220206 - u60 - Free any old memblock
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblock[mbi] = nullptr;
 		}
 
 		// mike - 300305 - updated sound layout
-		gpMemblockSize[mbi] = (sizeof(DWORD)*7) + dwDataSize;
-		//gpMemblock[mbi]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, gpMemblockSize[mbi]);
-		gpMemblock[mbi]=(char*)new char[gpMemblockSize[mbi]];
-		memset ( gpMemblock[mbi], 0, gpMemblockSize[mbi] );
+		gpMemblockSize[mbi] = (sizeof(uint32_t) * 7) + dwDataSize;
+		gpMemblock[mbi] = new char[gpMemblockSize[mbi]]();
 
 		if(gpMemblock[mbi])
 		{
@@ -464,22 +455,19 @@ DARKSDK BOOL DB_MemblockFromMesh(int mbi, int meshid)
 		// lee - 220206 - u60 - Free any old memblock
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblock[mbi] = nullptr;
 		}
 
 		// Make memblock from Mesh data
-		gpMemblockSize[mbi] = (sizeof(DWORD)*3) + dwDataSize;
-		//gpMemblock[mbi] = (char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, gpMemblockSize[mbi]);
-		gpMemblock[mbi]=(char*)new char[gpMemblockSize[mbi]];
-		memset ( gpMemblock[mbi], 0, gpMemblockSize[mbi] );
+		gpMemblockSize[mbi] = (sizeof(uint32_t) * 3) + dwDataSize;
+		gpMemblock[mbi] = new char[gpMemblockSize[mbi]]();
 		if(gpMemblock[mbi])
 		{
 			// Mesh Header (DWORD x3)
-			*((DWORD*)gpMemblock[mbi]+0)=dwFVF;
-			*((DWORD*)gpMemblock[mbi]+1)=dwFVFSize;
-			*((DWORD*)gpMemblock[mbi]+2)=dwVertMax;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 0) = dwFVF;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 4) = dwFVFSize;
+			*reinterpret_cast<uint32_t*>(gpMemblock[mbi] + 8) = dwVertMax;
 
 			// Mesh Data
 			char* pMem = gpMemblock[mbi]+12;
@@ -557,13 +545,12 @@ DARKSDK void MakeMemblock( int mbi, int size )
 
 DARKSDK void DeleteMemblock( int mbi )
 {
-	if(mbi>=1 && mbi<=257)
+	if(mbi >= 1 && mbi <= 257)
 	{
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblock[mbi] = nullptr;
 		}
 		else
 			RunTimeError(RUNTIMEERROR_MEMBLOCKNOTEXIST);
@@ -585,7 +572,7 @@ DARKSDK int MemblockExist( int mbi )
 	return res;
 }
 
-DARKSDK DWORD GetMemblockPtr( int mbi )
+DARKSDK LPSTR GetMemblockPtr( int mbi )
 {
 	char* ptr=NULL;
 	if(mbi>=1 && mbi<=257)
@@ -598,7 +585,7 @@ DARKSDK DWORD GetMemblockPtr( int mbi )
 	else
 		RunTimeError(RUNTIMEERROR_MEMBLOCKRANGEILLEGAL);
 
-	return (DWORD)(char*)ptr;
+	return ptr;
 }
 
 DARKSDK int GetMemblockSize( int mbi )
@@ -670,7 +657,7 @@ DARKSDK void WriteMemblockByte( int mbi, int pos, int data )
 				if(data>=0 && data<=255)
 				{
 					// Write byte
-					*(gpMemblock[mbi]+pos)=(unsigned char)data;
+					*(gpMemblock[mbi]+pos)=static_cast<uint8_t>(data);
 				}
 				else
 					RunTimeError(RUNTIMEERROR_MEMBLOCKNOTABYTE);
@@ -687,7 +674,7 @@ DARKSDK void WriteMemblockByte( int mbi, int pos, int data )
 
 DARKSDK int ReadMemblockByte( int mbi, int pos )
 {
-	unsigned char data=0;
+	uint8_t data=0;
 	if(mbi>=1 && mbi<=257)
 	{
 		if(gpMemblock[mbi])
@@ -706,7 +693,7 @@ DARKSDK int ReadMemblockByte( int mbi, int pos )
 	else
 		RunTimeError(RUNTIMEERROR_MEMBLOCKRANGEILLEGAL);
 
-	return (int)data;
+	return data;
 }
 
 DARKSDK void WriteMemblockWord( int mbi, int pos, int data )
@@ -720,7 +707,7 @@ DARKSDK void WriteMemblockWord( int mbi, int pos, int data )
 				if(data>=0 && data<=65535)
 				{
 					// Write WORD
-					*(WORD*)((gpMemblock[mbi]+pos))=(unsigned short)data;
+					*(uint16_t*)((gpMemblock[mbi]+pos))=static_cast<uint16_t>(data);
 				}
 				else
 					RunTimeError(RUNTIMEERROR_MEMBLOCKNOTAWORD);
@@ -737,7 +724,7 @@ DARKSDK void WriteMemblockWord( int mbi, int pos, int data )
 
 DARKSDK int ReadMemblockWordLLL( int mbi, int pos )
 {
-	unsigned short data=0;
+	uint16_t data=0;
 	if(mbi>=1 && mbi<=257)
 	{
 		if(gpMemblock[mbi])
@@ -745,7 +732,7 @@ DARKSDK int ReadMemblockWordLLL( int mbi, int pos )
 			if(pos>=0 && pos<(int)gpMemblockSize[mbi]-1)
 			{
 				// Read WORD
-				data = *(unsigned short*)((gpMemblock[mbi]+pos));
+				data = *(uint16_t*)((gpMemblock[mbi]+pos));
 			}
 			else
 				RunTimeError(RUNTIMEERROR_MEMBLOCKOUTSIDERANGE);
@@ -756,7 +743,7 @@ DARKSDK int ReadMemblockWordLLL( int mbi, int pos )
 	else
 		RunTimeError(RUNTIMEERROR_MEMBLOCKRANGEILLEGAL);
 
-	return (int)data;
+	return data;
 }
 
 DARKSDK void WriteMemblockDWord( int mbi, int pos, DWORD data )
@@ -807,7 +794,7 @@ DARKSDK DWORD ReadMemblockDWord( int mbi, int pos )
 	else
 		RunTimeError(RUNTIMEERROR_MEMBLOCKRANGEILLEGAL);
 
-	return (int)data;
+	return data;
 }
 
 DARKSDK void WriteMemblockFloat( int mbi, int pos, float data )
@@ -995,7 +982,7 @@ DARKSDK void CreateImageFromMemblock( int imageindex, int mbi )
 		RunTimeError(RUNTIMEERROR_IMAGEILLEGALNUMBER);	
 }
 
-DARKSDK void CreateMemblockFromArray( int mbi, DWORD dwAllocation )
+DARKSDK void CreateMemblockFromArray( int mbi, DWORD_PTR dwAllocation )
 {
 	if(mbi>=1 && mbi<=257)
 	{
@@ -1045,7 +1032,7 @@ DARKSDK void CreateMemblockFromArray( int mbi, DWORD dwAllocation )
 		RunTimeError(RUNTIMEERROR_MEMBLOCKRANGEILLEGAL);
 }
 
-DARKSDK void CreateArrayFromMemblock( DWORD dwAllocation, int mbi )
+DARKSDK void CreateArrayFromMemblock( DWORD_PTR dwAllocation, int mbi )
 {
 	if(mbi>=1 && mbi<=257)
 	{
@@ -1090,31 +1077,29 @@ DARKSDK void CreateArrayFromMemblock( DWORD dwAllocation, int mbi )
 
 DARKSDK LPSTR ExtMakeMemblock ( int mbi, DWORD size )
 {
-	if(mbi>=1 && mbi<=257)
+	if(mbi >= 1 && mbi <= 257)
 	{
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblockSize[mbi]=0;
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblockSize[mbi] = 0;
+			gpMemblock[mbi] = nullptr;
 		}
 	}
 	MakeMemblock ( mbi, size );
-	LPSTR pMem=gpMemblock[mbi];
+	LPSTR pMem = gpMemblock[mbi];
 	return pMem;
 }
 
 DARKSDK void  ExtFreeMemblock ( int mbi )
 {
-	if(mbi>=1 && mbi<=257)
+	if(mbi >= 1 && mbi <= 257)
 	{
 		if(gpMemblock[mbi])
 		{
-			//GlobalFree(gpMemblock[mbi]);
-			delete gpMemblock[mbi];
-			gpMemblockSize[mbi]=0;
-			gpMemblock[mbi]=NULL;
+			delete[] gpMemblock[mbi];
+			gpMemblockSize[mbi] = 0;
+			gpMemblock[mbi] = nullptr;
 		}
 	}
 }
@@ -1231,7 +1216,7 @@ int dbMemblockExist ( int mbi )
 	return MemblockExist ( mbi );
 }
 
-DWORD dbGetMemblockPtr ( int mbi )
+LPSTR dbGetMemblockPtr ( int mbi )
 {
 	return GetMemblockPtr ( mbi );
 }
@@ -1333,12 +1318,12 @@ void dbMakeImageFromMemblock ( int imageid, int mbi )
 	CreateImageFromMemblock ( imageid, mbi );
 }
 
-void dbMakeMemblockFromArray ( int mbi, DWORD arrayptr )
+void dbMakeMemblockFromArray ( int mbi, DWORD_PTR arrayptr )
 {
 	CreateMemblockFromArray	( mbi, arrayptr );
 }
 
-void dbMakeArrayFromMemblock ( DWORD arrayptr, int mbi )
+void dbMakeArrayFromMemblock ( DWORD_PTR arrayptr, int mbi )
 {
 	CreateArrayFromMemblock ( arrayptr, mbi );
 }

@@ -6,7 +6,7 @@
 //#define _CRT_SECURE_NO_DEPRECATE
 
 #include "CommonC.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 #ifdef DARKSDK_COMPILE
 	#include ".\..\..\..\DarkGDK\Code\Include\DarkSDKDisplay.h"
@@ -483,7 +483,7 @@ DARKSDK_DLL void PassCoreData ( LPVOID pGlobPtr )
 		if ( g_pGlob->g_Memblocks )
 		{
 			g_Memblock_GetMemblockExist = ( MEMBLOCKS_GetMemblockExist ) GetProcAddress ( g_pGlob->g_Memblocks, "?MemblockExist@@YAHH@Z" );
-			g_Memblock_GetMemblockPtr = ( MEMBLOCKS_GetMemblockPtr ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAKH@Z" );
+			g_Memblock_GetMemblockPtr = ( MEMBLOCKS_GetMemblockPtr ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAPEADH@Z" );
 			g_Memblock_GetMemblockSize = ( MEMBLOCKS_GetMemblockSize ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockSize@@YAHH@Z" );
 			g_Memblock_MemblockFromImage = ( MEMBLOCKS_MemblockFromMedia ) GetProcAddress ( g_pGlob->g_Memblocks, "?CreateMemblockFromImage@@YAXHH@Z" );
 			g_Memblock_MemblockFromBitmap = ( MEMBLOCKS_MemblockFromMedia ) GetProcAddress ( g_pGlob->g_Memblocks, "?CreateMemblockFromBitmap@@YAXHH@Z" );

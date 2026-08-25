@@ -3,8 +3,8 @@
 CData::CData ( )
 {
 	// constructor
-	m_current	= NULL;	// point current to nothing
-	m_start		= NULL;	// point start to nothing
+	m_current	= nullptr;	// point current to nothing
+	m_start		= nullptr;	// point start to nothing
 	m_count	= 0;		// set to 0
 }
 
@@ -44,9 +44,6 @@ void CData::Add ( int num, VOID* pbData, int iOverwrite, int iSort )
 	//		* does a node with the given id already exist, replace it?
 	//		* where should the id go? resort the list if necessary
 	link* newlink = new link;	// create a new link
-
-	if ( newlink == NULL )
-		return;
 
 	// check if the node needs to be inserted between
 	// some other existing nodes (basically sort the list)
@@ -97,7 +94,7 @@ void CData::Add ( int num, VOID* pbData, int iOverwrite, int iSort )
 	}
 	
 	// check for insertion at start
-	if ( iStart == m_count && m_start != NULL )
+	if ( iStart == m_count && m_start != nullptr )
 		iFound = 2;
 
 	// HACK
@@ -112,7 +109,7 @@ void CData::Add ( int num, VOID* pbData, int iOverwrite, int iSort )
 			newlink->data = pbData;		// store pointer to data
 			
 			newlink->prev = m_current;	// set the previous link
-			newlink->next = NULL;		// make sure next initially points to nothing
+			newlink->next = nullptr;		// make sure next initially points to nothing
 				
 			// when we have more than 1 node
 			// set the previous nodes next link
@@ -127,7 +124,7 @@ void CData::Add ( int num, VOID* pbData, int iOverwrite, int iSort )
 			if ( m_count == 0 )
 			{
 				m_start = newlink;		// get a pointer to the start node
-				newlink->next = NULL;	// next will point to nothing
+				newlink->next = nullptr;	// next will point to nothing
 			}
 			
 			// increment the link count
@@ -162,7 +159,7 @@ void CData::Add ( int num, VOID* pbData, int iOverwrite, int iSort )
 			newlink->data      = pbData;
 
 			newlink->next      = m_start;
-			newlink->prev      = NULL;
+			newlink->prev      = nullptr;
 
 			m_start->prev      = newlink;
 			m_start            = newlink;
@@ -210,9 +207,9 @@ void CData::Delete ( int iID )
 		return;
 
 	// node is at the end of the list
-	if ( get->next == NULL && get->prev )
+	if ( get->next == nullptr && get->prev )
 	{
-		get->prev->next = NULL;	// set next pointer to null
+		get->prev->next = nullptr;	// set next pointer to null
 
 		// U75 - 110310 - note: data mem actually deleted externally of this delete function
 		delete get;				// delete the node
@@ -240,9 +237,9 @@ void CData::Delete ( int iID )
 	}
 
 	// node is at the start of the list
-	if ( get->prev == NULL && get->next )
+	if ( get->prev == nullptr && get->next )
 	{
-		get->next->prev = NULL;	// set the next link nodes prev to null
+		get->next->prev = nullptr;	// set the next link nodes prev to null
 		m_start = get->next;		// get the new start pos of list
 				
 		// U75 - 110310 - note: data mem actually deleted externally of this delete function
@@ -253,10 +250,10 @@ void CData::Delete ( int iID )
 	}
 
 	// the only node in the list
-	if ( get->prev == NULL && get->next == NULL )
+	if ( get->prev == nullptr && get->next == nullptr )
 	{
-		m_current		= NULL;	// point current to nothing
-		m_start		= NULL;	// point start to nothing
+		m_current		= nullptr;	// point current to nothing
+		m_start		= nullptr;	// point start to nothing
 
 		// U75 - 110310 - note: data mem actually deleted externally of this delete function
 		delete get;
@@ -281,14 +278,11 @@ void CData::Delete ( int iID )
 
 VOID* CData::Get ( int iID )
 {
-	// value to return
-	int temp = NULL;
-
 	// get a pointer to the start of the list
 	link* check = m_start;
 
 	// get a pointer to the location
-	for ( temp = 0; temp < m_count; temp++ )
+	for ( int temp = 0; temp < m_count; temp++ )
 	{
 		if ( check->id == iID )
 			return check->data;
@@ -296,7 +290,7 @@ VOID* CData::Get ( int iID )
 		check = check->next;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int	CData::Count ( void )
@@ -321,7 +315,7 @@ void CData::DeleteAll ( void )
 			delete select;
 	}
 	
-	m_current	= NULL;	// point current to nothing
-	m_start		= NULL;	// point start to nothing
+	m_current	= nullptr;	// point current to nothing
+	m_start		= nullptr;	// point start to nothing
 	m_count	= 0;		// set to 0
 }

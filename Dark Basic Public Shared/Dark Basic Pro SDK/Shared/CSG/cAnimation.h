@@ -24,11 +24,12 @@
 //#pragma comment ( lib, "dxerr8.lib" )
 
 #include <d3d8.h>
-#include <math.h>
-#include <D3DX8.h>
+#include <cmath>
+#include <cstdint>
+#include <d3dx8.h>
 
 #define WIN32_LEAN_AND_MEAN
-#include < windows.h >
+#include <windows.h>
 
 #include "sFrame.h"
 #include "sAnimationSet.h"
@@ -40,10 +41,8 @@ extern LPDIRECT3DDEVICE8	m_pD3D;
 // DEFINES ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 #define DARKSDK __declspec ( dllexport )
-#define SAFE_DELETE( p )       { if ( p ) { delete ( p );       ( p ) = NULL; } }
-#define SAFE_RELEASE( p )      { if ( p ) { ( p )->Release ( ); ( p ) = NULL; } }
-#define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
-#define GXRELEASE(_p) do       { if ((_p) != NULL) {(_p)->Release(); (_p) = NULL;} } while (0)
+#include "..\Core\macros.h"
+#define GXRELEASE(_p) do       { if ((_p) != nullptr) {(_p)->Release(); (_p) = nullptr;} } while (0)
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -54,9 +53,9 @@ extern LPDIRECT3DDEVICE8	m_pD3D;
 class cAnimation 
 {
 	public:
-		long			m_NumAnimations;
-		sAnimationSet*	m_AnimationSet;
-		sFrame*			m_pFrame;
+		long			m_NumAnimations = 0;
+		sAnimationSet*	m_AnimationSet  = nullptr;
+		sFrame*			m_pFrame        = nullptr;
 		
 		cAnimation  ( );
 		~cAnimation ( );
@@ -66,14 +65,14 @@ class cAnimation
 		void           ParseXFileData ( IDirectXFileData* DataObj, sAnimationSet* ParentAnim, sAnimation* CurrentAnim );
 
 		long           GetNumAnimations ( void );
-		sAnimationSet* GetAnimationSet  ( char* Name = NULL );
-		unsigned long  GetLength        ( char* Name = NULL );
+		sAnimationSet* GetAnimationSet  ( char* Name = nullptr );
+		unsigned long  GetLength        ( char* Name = nullptr );
 
 		BOOL           Load ( char* Filename, sFrame* pFrame );
 		BOOL           Free ( void );
 
 		BOOL           MapToMesh ( void );
-		BOOL           SetLoop   ( BOOL ToLoop, char *Name = NULL );
+		BOOL           SetLoop   ( BOOL ToLoop, char *Name = nullptr );
 };
 
 class cSpecialEffect;

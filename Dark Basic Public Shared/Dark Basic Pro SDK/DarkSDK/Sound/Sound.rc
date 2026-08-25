@@ -110,8 +110,8 @@ STRINGTABLE
 BEGIN
     IDS_STRING1             "CLONE SOUND%LL%?CloneSound@@YAXHH@Z%Destination Sound,Source Sound"
     IDS_STRING2             "DELETE SOUND%L%?DeleteSound@@YAXH@Z%Sound Number"
-    IDS_STRING3             "LOAD 3DSOUND%SL%?Load3DSound@@YAXPADH@Z%Filename,Sound Number"
-    IDS_STRING4             "LOAD SOUND%SL%?LoadSound@@YAXPADH@Z%Filename,Sound Number"
+    IDS_STRING3             "LOAD 3DSOUND%SL%?Load3DSound@@YAXPEADH@Z%Filename,Sound Number"
+    IDS_STRING4             "LOAD SOUND%SL%?LoadSound@@YAXPEADH@Z%Filename,Sound Number"
     IDS_STRING5             "LOOP SOUND%L%?LoopSound@@YAXH@Z%Sound Number"
     IDS_STRING6             "PAUSE SOUND%L%?PauseSound@@YAXH@Z%Sound Number"
     IDS_STRING7             "PLAY SOUND%L%?PlaySoundA@@YAXH@Z%Sound Number"
@@ -121,7 +121,7 @@ BEGIN
     IDS_STRING11            "RECORD SOUND%L%?RecordSound@@YAXH@Z%Sound Number"
     IDS_STRING12            "RESUME SOUND%L%?ResumeSound@@YAXH@Z%Sound Number"
     IDS_STRING13            "ROTATE LISTENER%FFF%?RotateListener@@YAXMMM@Z%X,Y,Z"
-    IDS_STRING14            "SAVE SOUND%SL%?SaveSound@@YAXPADH@Z%Filename,Sound Number"
+    IDS_STRING14            "SAVE SOUND%SL%?SaveSound@@YAXPEADH@Z%Filename,Sound Number"
     IDS_STRING15            "SET SOUND PAN%LL%?SetSoundPan@@YAXHH@Z%Sound Number,Pan Value"
 END
 
@@ -152,17 +152,17 @@ BEGIN
     IDS_STRING34            "SOUND SPEED[%LL%?GetSoundSpeed@@YAHH@Z%Sound Number"
     IDS_STRING35            "SOUND TYPE[%LL%?GetSoundType@@YAHH@Z%Sound Number"
     IDS_STRING36            "SOUND VOLUME[%LL%?GetSoundVolume@@YAHH@Z%Sound Number"
-    IDS_STRING37            "LOAD SOUND%SLL%?LoadSound@@YAXPADHH@Z%Filename, Sound Number, Flag"
+    IDS_STRING37            "LOAD SOUND%SLL%?LoadSound@@YAXPEADHH@Z%Filename, Sound Number, Flag"
     IDS_STRING38            "LOOP SOUND%LL%?LoopSound@@YAXHH@Z%Sound Number,Start Position"
     IDS_STRING39            "LOOP SOUND%LLL%?LoopSound@@YAXHHH@Z%Sound Number,Start Position,End Position"
     IDS_STRING40            "LOOP SOUND%LLLL%?LoopSound@@YAXHHHH@Z%Sound Number,Start Position,End Position,Initial Position"
     IDS_STRING41            "RECORD SOUND%LL%?RecordSound@@YAXHH@Z%Sound Number, Duration"
     IDS_STRING42            "SCALE LISTENER%F%?ScaleListener@@YAXM@Z%Scaling Factor"
     IDS_STRING43            "SET EAX%L%?SetEAX@@YAXH@Z%Preset Effect Value"
-    IDS_STRING44            "LOAD 3DSOUND%SLL%?Load3DSound@@YAXPADHH@Z%Filename,Sound Number,Silent Fail"
-    IDS_STRING45            "LOAD SOUND%SLLL%?LoadSound@@YAXPADHHH@Z%Filename,Sound Number,Flag,Silent Fail"
-    IDS_STRING46            "LOAD SOUND%SLLLL%?LoadSound@@YAXPADHHHH@Z%Filename,Sound Number,Flag,Silent Fail, Global Sound Flag"
-    IDS_STRING47            "LOAD 3DSOUND%SLLL%?Load3DSound@@YAXPADHHH@Z%Filename,Sound Number,Silent Fail, Global Sound Flag"
+    IDS_STRING44            "LOAD 3DSOUND%SLL%?Load3DSound@@YAXPEADHH@Z%Filename,Sound Number,Silent Fail"
+    IDS_STRING45            "LOAD SOUND%SLLL%?LoadSound@@YAXPEADHHH@Z%Filename,Sound Number,Flag,Silent Fail"
+    IDS_STRING46            "LOAD SOUND%SLLLL%?LoadSound@@YAXPEADHHHH@Z%Filename,Sound Number,Flag,Silent Fail, Global Sound Flag"
+    IDS_STRING47            "LOAD 3DSOUND%SLLL%?Load3DSound@@YAXPEADHHH@Z%Filename,Sound Number,Silent Fail, Global Sound Flag"
 END
 
 #endif    // English (U.K.) resources

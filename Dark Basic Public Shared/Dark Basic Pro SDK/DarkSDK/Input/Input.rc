@@ -191,7 +191,7 @@ BEGIN
     IDS_STRING65            "CONTROL DEVICE Z[%L%?ControlDeviceZ@@YAHXZ"
     IDS_STRING66            "CHANGE MOUSE%L%?ChangeMouse@@YAXH@Z%Cursor Number"
     IDS_STRING67            "WRITE STRING TO REGISTRY%SSS%?WriteToRegistryS@@YAXPEAD0_K@Z%Folder Name, Key Name, String"
-    IDS_STRING68            "GET REGISTRY$[%SSS%?GetRegistryS@@YA_K_KPEAD0@Z%Folder Name, Key Name"
+    IDS_STRING68            "GET REGISTRY$[%SSS%?GetRegistryS@@YA_K_KPEAD1@Z%Folder Name, Key Name"
     IDS_STRING69            "ENTRY$[%SL%?GetEntryEx@@YA_K_KH@Z%Auto Backspace Mode"
     IDS_STRING70            "SET CONTROL DEVICE%SL%?SetControlDeviceEx@@YAX_KH@Z%Device Name$, Device Index"
     IDS_STRING71            "GET KEY STATE[%LL%?GetKeyStateEx@@YAHH@Z%Virtual key"
@@ -207,7 +207,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING80            "GET REGISTRY$[%SSSL%?GetRegistrySL@@YA_K_KPEAD0H@Z%Folder Name, Key Name, Current User Mode"
+    IDS_STRING80            "GET REGISTRY$[%SSSL%?GetRegistrySL@@YA_K_KPEAD1H@Z%Folder Name, Key Name, Current User Mode"
 END
 
 #endif    // English (U.K.) resources

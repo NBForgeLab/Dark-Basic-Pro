@@ -13,7 +13,7 @@
 #include <direct.h>
 #include <vector>
 #include <map>
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 #ifdef DARKSDK_COMPILE
 	#include ".\..\..\..\DarkGDK\Code\Include\DarkSDKDisplay.h"
@@ -42,7 +42,7 @@ namespace
 
     typedef IDirect3DDevice9*			( *GFX_GetDirect3DDevicePFN ) ( void );
 	typedef int							( *MEMBLOCKS_GetMemblockExist   ) ( int );
-	typedef DWORD						( *MEMBLOCKS_GetMemblockPtr   ) ( int );
+	typedef LPSTR						( *MEMBLOCKS_GetMemblockPtr   ) ( int );
 	typedef DWORD						( *MEMBLOCKS_GetMemblockSize  ) ( int );
 
     typedef void  						( *SPRITE_RetVoidParamInt3PFN ) ( int, int, int, float, float, int );
@@ -254,7 +254,7 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 	if ( g_pGlob->g_Memblocks )
 	{
 		g_Memblock_GetMemblockExist = ( MEMBLOCKS_GetMemblockExist ) GetProcAddress ( g_pGlob->g_Memblocks, "?MemblockExist@@YAHH@Z" );
-		g_Memblock_GetMemblockPtr = ( MEMBLOCKS_GetMemblockPtr ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAKH@Z" );
+		g_Memblock_GetMemblockPtr = ( MEMBLOCKS_GetMemblockPtr ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAPEADH@Z" );
 		g_Memblock_GetMemblockSize = ( MEMBLOCKS_GetMemblockSize ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockSize@@YAHH@Z" );
 	}
 
@@ -367,7 +367,7 @@ void GetFileInMemory ( LPSTR szFilename, LPVOID* ppFileInMemoryData, DWORD* pdwF
 		strcat ( pPath, "\\" );
 		strcat ( pPath, szFilename );
 		strcat ( pFile, "" );
-		for ( int n=strlen(pPath); n>0; n-- )
+		for ( int n=static_cast<int>(strlen(pPath)); n>0; n-- )
 		{
 			if ( pPath[n]=='\\' || pPath[n]=='/' )
 			{
@@ -400,7 +400,7 @@ void GetFileInMemory ( LPSTR szFilename, LPVOID* ppFileInMemoryData, DWORD* pdwF
 			if ( pFinalRelPathAndFile [ strlen(pFinalRelPathAndFile)-1 ]!='\\' )
 			{
 				// add folder divide at end of path string
-				int iLen = strlen(pFinalRelPathAndFile);
+				int iLen = static_cast<int>(strlen(pFinalRelPathAndFile));
 				pFinalRelPathAndFile [ iLen+0 ] = '\\';
 				pFinalRelPathAndFile [ iLen+1 ] = 0;
 			}
@@ -740,11 +740,6 @@ DARKSDK void SetImageAutoMipMap ( int iGenerateMipMaps )
 		g_dwMipMapGenMode = D3DX_FROM_FILE;
 }
 
-bool CheckForWorkshopFile ( char* szFilename )
-{
-	return false;
-}
-
 DARKSDK bool LoadFullTex ( const char* szFilename, LPDIRECT3DTEXTURE9* pImage, D3DXIMAGE_INFO* info, int iFullTexturePlateMode, int iDivideTextureSize )
 {
 	// Uses actual or virtual file..
@@ -793,7 +788,7 @@ DARKSDK bool FindInternalImage ( const char* szFilename, int* pImageID )
 {
 	if ( szFilename && szFilename[0] )
 	{
-    	int iFindFilenameLength = strlen(szFilename);
+    	int iFindFilenameLength = static_cast<int>(strlen(szFilename));
 
 		ImagePtr pCheck = m_List.begin();
 		while ( pCheck != m_List.end() && pCheck->first < 0)
@@ -1876,15 +1871,15 @@ DARKSDK void TransferImage ( int iDestImgID, int iSrcImageID, int iTransferMode,
 						// first get the pixel to work on
 						DWORD dwPixelValue = *(DWORD*)pSrc;
 						float fTexSelectorV = ((dwPixelValue & 0x00000FF))/255.0f;
-						float fTexSelectorCol1 = (0.25f-fabs(fTexSelectorV-0.00))*4.0f;
+						float fTexSelectorCol1 = (0.25f-fabsf(fTexSelectorV-0.00f))*4.0f;
 						if ( fTexSelectorCol1 < 0 ) fTexSelectorCol1 = 0;
-						float fTexSelectorCol2 = (0.25f-fabs(fTexSelectorV-0.25))*4.0f;
+						float fTexSelectorCol2 = (0.25f-fabsf(fTexSelectorV-0.25f))*4.0f;
 						if ( fTexSelectorCol2 < 0 ) fTexSelectorCol2 = 0;
-						float fTexSelectorCol3 = (0.25f-fabs(fTexSelectorV-0.50))*4.0f;
+						float fTexSelectorCol3 = (0.25f-fabsf(fTexSelectorV-0.50f))*4.0f;
 						if ( fTexSelectorCol3 < 0 ) fTexSelectorCol3 = 0;
-						float fTexSelectorCol4 = (0.25f-fabs(fTexSelectorV-0.75))*4.0f;
+						float fTexSelectorCol4 = (0.25f-fabsf(fTexSelectorV-0.75f))*4.0f;
 						if ( fTexSelectorCol4 < 0 ) fTexSelectorCol4 = 0;
-						float fTexSelectorCol5 = (0.25f-fabs(fTexSelectorV-1.00))*4.0f;
+						float fTexSelectorCol5 = (0.25f-fabsf(fTexSelectorV-1.00f))*4.0f;
 						if ( fTexSelectorCol5 < 0 ) fTexSelectorCol5 = 0;
 
 						// get reference into memblock mini-texture lookup
@@ -1896,25 +1891,25 @@ DARKSDK void TransferImage ( int iDestImgID, int iSrcImageID, int iTransferMode,
 
 						// get weighted contrib from each pot
 						DWORD dwTexPartD1 = *(pMemBlockPot+(2*16)+(tz*4)+tx);
-						int texpartd1r = ((dwTexPartD1 & 0x00FF0000) >> 16) * fTexSelectorCol1;
-						int texpartd1g = ((dwTexPartD1 & 0x0000FF00) >> 8 ) * fTexSelectorCol1;
-						int texpartd1b = ((dwTexPartD1 & 0x000000FF)      ) * fTexSelectorCol1;
+						int texpartd1r = static_cast<int>(((dwTexPartD1 & 0x00FF0000) >> 16) * fTexSelectorCol1);
+						int texpartd1g = static_cast<int>(((dwTexPartD1 & 0x0000FF00) >> 8 ) * fTexSelectorCol1);
+						int texpartd1b = static_cast<int>(((dwTexPartD1 & 0x000000FF)      ) * fTexSelectorCol1);
 						DWORD dwTexPartD2 = *(pMemBlockPot+(3*16)+(tz*4)+tx);
-						int texpartd2r = ((dwTexPartD2 & 0x00FF0000) >> 16) * fTexSelectorCol2;
-						int texpartd2g = ((dwTexPartD2 & 0x0000FF00) >> 8 ) * fTexSelectorCol2;
-						int texpartd2b = ((dwTexPartD2 & 0x000000FF)      ) * fTexSelectorCol2;
+						int texpartd2r = static_cast<int>(((dwTexPartD2 & 0x00FF0000) >> 16) * fTexSelectorCol2);
+						int texpartd2g = static_cast<int>(((dwTexPartD2 & 0x0000FF00) >> 8 ) * fTexSelectorCol2);
+						int texpartd2b = static_cast<int>(((dwTexPartD2 & 0x000000FF)      ) * fTexSelectorCol2);
 						DWORD dwTexPartD3 = *(pMemBlockPot+(4*16)+(tz*4)+tx);
-						int texpartd3r = ((dwTexPartD3 & 0x00FF0000) >> 16) * fTexSelectorCol3;
-						int texpartd3g = ((dwTexPartD3 & 0x0000FF00) >> 8 ) * fTexSelectorCol3;
-						int texpartd3b = ((dwTexPartD3 & 0x000000FF)      ) * fTexSelectorCol3;
+						int texpartd3r = static_cast<int>(((dwTexPartD3 & 0x00FF0000) >> 16) * fTexSelectorCol3);
+						int texpartd3g = static_cast<int>(((dwTexPartD3 & 0x0000FF00) >> 8 ) * fTexSelectorCol3);
+						int texpartd3b = static_cast<int>(((dwTexPartD3 & 0x000000FF)      ) * fTexSelectorCol3);
 						DWORD dwTexPartD4 = *(pMemBlockPot+(5*16)+(tz*4)+tx);
-						int texpartd4r = ((dwTexPartD4 & 0x00FF0000) >> 16) * fTexSelectorCol4;
-						int texpartd4g = ((dwTexPartD4 & 0x0000FF00) >> 8 ) * fTexSelectorCol4;
-						int texpartd4b = ((dwTexPartD4 & 0x000000FF)      ) * fTexSelectorCol4;
+						int texpartd4r = static_cast<int>(((dwTexPartD4 & 0x00FF0000) >> 16) * fTexSelectorCol4);
+						int texpartd4g = static_cast<int>(((dwTexPartD4 & 0x0000FF00) >> 8 ) * fTexSelectorCol4);
+						int texpartd4b = static_cast<int>(((dwTexPartD4 & 0x000000FF)      ) * fTexSelectorCol4);
 						DWORD dwTexPartD5 = *(pMemBlockPot+(1*16)+(tz*4)+tx);
-						int texpartd5r = ((dwTexPartD5 & 0x00FF0000) >> 16) * fTexSelectorCol5;
-						int texpartd5g = ((dwTexPartD5 & 0x0000FF00) >> 8 ) * fTexSelectorCol5;
-						int texpartd5b = ((dwTexPartD5 & 0x000000FF)      ) * fTexSelectorCol5;
+						int texpartd5r = static_cast<int>(((dwTexPartD5 & 0x00FF0000) >> 16) * fTexSelectorCol5);
+						int texpartd5g = static_cast<int>(((dwTexPartD5 & 0x0000FF00) >> 8 ) * fTexSelectorCol5);
+						int texpartd5b = static_cast<int>(((dwTexPartD5 & 0x000000FF)      ) * fTexSelectorCol5);
 
 						// combine to a single colour
 						int diffusemapr = texpartd1r+texpartd2r+texpartd3r+texpartd4r+texpartd5r;
@@ -2217,16 +2212,16 @@ DARKSDK bool FileExist ( LPSTR szFilename )
 		return false;
 }
 
-DARKSDK DWORD LoadIcon ( LPSTR pFilename )
+DARKSDK DWORD_PTR LoadIcon ( LPSTR pFilename )
 {
 	// load icon
 	HICON hIconHandle = (HICON)LoadImage ( NULL, pFilename, IMAGE_ICON, 48, 48, LR_LOADFROMFILE );
 
 	// complete
-	return (DWORD)hIconHandle;
+	return (DWORD_PTR)hIconHandle;
 }
 
-DARKSDK void FreeIcon ( DWORD dwIcon )
+DARKSDK void FreeIcon ( DWORD_PTR dwIcon )
 {
 	// free icon handle
     CloseHandle ( (HICON)dwIcon );
@@ -2392,7 +2387,7 @@ void OpenImageBlock	( char* szFilename, int iMode )
 	if ( g_iImageBlockRootPath [ strlen(g_iImageBlockRootPath)-1 ]!='\\' )
 	{
 		// add folder divide at end of path string
-		int iLen = strlen(g_iImageBlockRootPath);
+		int iLen = static_cast<int>(strlen(g_iImageBlockRootPath));
 		g_iImageBlockRootPath [ iLen+0 ] = '\\';
 		g_iImageBlockRootPath [ iLen+1 ] = 0;
 	}
@@ -2592,13 +2587,13 @@ void CloseImageBlock ( void )
 		DWORD dwWrittenBytes = 0;
 
 		// write file list
-		int iListMax = g_ImageBlockListFile.size ( );
+		int iListMax = static_cast<int>( g_ImageBlockListFile.size ( ) );
 		WriteFile ( hFile, &iListMax, sizeof(int), &dwWrittenBytes, NULL );
 		for ( int i = 0; i < iListMax; i++ )
 		{
 			// write filename length and string
 			LPSTR pListPtr = g_ImageBlockListFile [ i ];
-			DWORD dwFilenameLength = strlen(pListPtr)+1;
+			DWORD dwFilenameLength = static_cast<DWORD>(strlen(pListPtr))+1;
 			WriteFile ( hFile, &dwFilenameLength, sizeof(DWORD), &dwWrittenBytes, NULL );
 			WriteFile ( hFile, pListPtr, dwFilenameLength, &dwWrittenBytes, NULL );
 
@@ -2667,7 +2662,7 @@ void PerformChecklistForImageBlockFiles ( void )
 			if ( !pListPtr ) continue;
 
 			// Add to checklist
-			DWORD dwSize = strlen(pListPtr);
+			DWORD dwSize = static_cast<DWORD>(strlen(pListPtr));
 			if(dwSize>dwMaxStringSizeInEnum) dwMaxStringSizeInEnum=dwSize;
 			if(bCreateChecklistNow)
 			{
@@ -2861,12 +2856,12 @@ void dbSaveIconFromImage ( char* pFilename, int iID )
 	//SaveIconFromImage ( pFilename, iID );
 }
 
-DWORD dbLoadIcon ( char* pFilename )
+DWORD_PTR dbLoadIcon ( char* pFilename )
 {
 	return LoadIcon ( pFilename );
 }
 
-void dbFreeIcon ( DWORD dwIconHandle )
+void dbFreeIcon ( DWORD_PTR dwIconHandle )
 {
 	FreeIcon ( dwIconHandle );
 }

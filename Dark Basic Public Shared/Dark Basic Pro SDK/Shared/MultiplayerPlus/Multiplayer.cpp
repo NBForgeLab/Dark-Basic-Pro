@@ -96,7 +96,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef int						( *MEMBLOCKS_GetMemblockExist   ) ( int );
-typedef DWORD					( *MEMBLOCKS_GetMemblockPtr		) ( int );
+typedef LPSTR					( *MEMBLOCKS_GetMemblockPtr		) ( int );
 typedef DWORD					( *MEMBLOCKS_GetMemblockSize	) ( int );
 typedef void					( *MEMBLOCKS_MemblockFromMedia	) ( int, int );
 typedef void					( *MEMBLOCKS_MediaFromMemblock	) ( int, int );
@@ -203,7 +203,7 @@ void ReceiveCoreDataPtr	( LPVOID pCore )
 	#ifndef DARKSDK_COMPILE
 		// memblock DLL ptrs
 		g_Memblock_GetMemblockExist		= ( MEMBLOCKS_GetMemblockExist	) GetProcAddress ( g_pGlob->g_Memblocks, "?MemblockExist@@YAHH@Z" );
-		g_Memblock_GetMemblockPtr		= ( MEMBLOCKS_GetMemblockPtr	) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAKH@Z" );
+		g_Memblock_GetMemblockPtr		= ( MEMBLOCKS_GetMemblockPtr	) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAPEADH@Z" );
 		g_Memblock_GetMemblockSize		= ( MEMBLOCKS_GetMemblockSize	) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockSize@@YAHH@Z" );
 		g_Memblock_MemblockFromImage	= ( MEMBLOCKS_MemblockFromMedia ) GetProcAddress ( g_pGlob->g_Memblocks, "?CreateMemblockFromImage@@YAXHH@Z" );
 		g_Memblock_MemblockFromBitmap	= ( MEMBLOCKS_MemblockFromMedia ) GetProcAddress ( g_pGlob->g_Memblocks, "?CreateMemblockFromBitmap@@YAXHH@Z" );
@@ -1627,7 +1627,7 @@ HRESULT GetHostnamePortString( TCHAR* str, LPDIRECTPLAY8ADDRESS pAddress, DWORD 
 }
 
 
-DWORD MultiplayerGetIPAddress ( void )
+DWORD_PTR MultiplayerGetIPAddress ( void )
 {
 	// work vars
 	HRESULT hr = S_OK; 

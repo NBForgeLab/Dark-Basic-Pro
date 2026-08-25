@@ -9,7 +9,7 @@
 #include "CdPlayer.h"
 #include "MusicPlayer.h"
 #include "MidiPlayer.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 #pragma comment(lib, "quartz.lib")
 #pragma comment(lib, "winmm.lib")

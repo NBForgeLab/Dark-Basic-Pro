@@ -405,7 +405,7 @@ DARKSDK int DMEMAvailable(void)
 	FreeLibrary(gdi32Handle);
 
 	// Pass dedicated memory used back to DBP
-	Memory = dedicatedBytesUsed / 1024 / 1024;
+	Memory = static_cast<int>(dedicatedBytesUsed / 1024 / 1024);
 	return Memory;
 }
 
@@ -456,7 +456,7 @@ DARKSDK int SMEMAvailable( int iMode )
 		{
 			GetProcessMemoryInfo( hProcess, &pmc, sizeof(pmc) );
 			CloseHandle( hProcess );
-			return pmc.PagefileUsage / 1024;
+			return static_cast<int>( pmc.PagefileUsage / 1024 );
 		}
 	}
 }
@@ -492,14 +492,14 @@ DARKSDK void ExitPrompt(DWORD_PTR pString, DWORD_PTR pString2)
 	LPSTR pReturnString=NULL;
 	if(pString)
 	{
-		DWORD dwSize=strlen((LPSTR)pString);
+		DWORD dwSize=static_cast<DWORD>(strlen((LPSTR)pString));
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		g_pGlob->pExitPromptString = pReturnString;
 		strcpy(pReturnString, (LPSTR)pString);
 	}
 	if(pString2)
 	{
-		DWORD dwSize=strlen((LPSTR)pString2);
+		DWORD dwSize=static_cast<DWORD>(strlen((LPSTR)pString2));
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		g_pGlob->pExitPromptString2 = pReturnString;
 		strcpy(pReturnString, (LPSTR)pString2);
@@ -632,7 +632,7 @@ DARKSDK DWORD_PTR ChecklistString( DWORD_PTR pDestStr, int iIndex )
 	LPSTR pReturnString=NULL;
 	if(g_pGlob->checklist[iIndex-1].string)
 	{
-		DWORD dwSize=strlen(g_pGlob->checklist[iIndex-1].string);
+		DWORD dwSize=static_cast<DWORD>(strlen(g_pGlob->checklist[iIndex-1].string));
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, g_pGlob->checklist[iIndex-1].string);
 	}

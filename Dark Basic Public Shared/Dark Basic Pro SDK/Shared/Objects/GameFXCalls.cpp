@@ -269,7 +269,7 @@ DARKSDK void GFFlushLightMapLights					( void )
 
 DARKSDK void GFCreateLightMaps						( int iLMSize, int iLMQuality, LPSTR dwPathForLightMaps )
 {
-	CreateLightMaps	( iLMSize, iLMQuality, (DWORD)dwPathForLightMaps );
+	CreateLightMaps	( iLMSize, iLMQuality, (DWORD_PTR)dwPathForLightMaps );
 }
 
 // Shadows

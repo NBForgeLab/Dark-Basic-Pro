@@ -4,10 +4,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 #include "cbitmapc.h"
+#include <cstdint>
 #include ".\..\error\cerror.h"
 #include ".\..\core\globstruct.h"
 #include ".\..\camera\ccameradatac.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 #ifdef DARKSDK_COMPILE
 	#include ".\..\..\..\DarkGDK\Code\Include\DarkSDKDisplay.h"
@@ -359,15 +360,11 @@ DARKSDK LPDIRECT3DSURFACE9 MakeFormat ( int iID, int iWidth, int iHeight, D3DFOR
 	HRESULT		hr;					// used for error checking
 	
 	// create a new block of memory
-	test = new tagData;
-	memset(test, 0, sizeof(tagData));
+	test = new tagData();
 
 	// check the memory was created
-	if ( test == NULL )
-		return NULL;
-
-	// clear out the memory
-	memset ( test, 0, sizeof ( test ) );
+	if ( test == nullptr )
+		return nullptr;
 
 	// video or system bitmap
 	if ( g_bOffscreenBitmap )
@@ -375,28 +372,30 @@ DARKSDK LPDIRECT3DSURFACE9 MakeFormat ( int iID, int iWidth, int iHeight, D3DFOR
 		// create system surface for bitmap
 		// U69 - 010508 - cannot draw to system bitmaps (not a render target, and vid bitmaps are SLOW)
 		// but we cannot stard messing with existing functionality! hr = m_pD3D->CreateRenderTarget( iWidth, iHeight, g_CommonSurfaceFormat, D3DMULTISAMPLE_NONE, 0, FALSE, &test->lpSurface, NULL);
-		hr = m_pD3D->CreateOffscreenPlainSurface( iWidth, iHeight, g_CommonSurfaceFormat, D3DPOOL_SYSTEMMEM, &test->lpSurface, NULL);
+		hr = m_pD3D->CreateOffscreenPlainSurface( iWidth, iHeight, g_CommonSurfaceFormat, D3DPOOL_SYSTEMMEM, &test->lpSurface, nullptr);
 		if ( FAILED ( hr ) )
 		{
-			if ( g_bSupressErrorMessage==false )
+			if ( g_bSupressErrorMessage == false )
 				Error ( "Failed to create new bitmap" );
-			SAFE_DELETE(test);
-			return NULL;
+			delete test;
+			test = nullptr;
+			return nullptr;
 		}
 
 		// no depth buffer for system bitmaps
-		test->lpDepth = NULL;
+		test->lpDepth = nullptr;
 	}
 	else
 	{
 		// create video surface for bitmap
-		hr = m_pD3D->CreateRenderTarget( iWidth, iHeight, g_CommonSurfaceFormat, D3DMULTISAMPLE_NONE, 0, TRUE, &test->lpSurface, NULL);
+		hr = m_pD3D->CreateRenderTarget( iWidth, iHeight, g_CommonSurfaceFormat, D3DMULTISAMPLE_NONE, 0, TRUE, &test->lpSurface, nullptr);
 		if ( FAILED ( hr ) )
 		{
-			if ( g_bSupressErrorMessage==false )
+			if ( g_bSupressErrorMessage == false )
 				Error ( "Failed to create new bitmap" );
-			SAFE_DELETE(test);
-			return NULL;
+			delete test;
+			test = nullptr;
+			return nullptr;
 		}
 
 		// use backbuffer to determine common D3DFORMAT
@@ -544,7 +543,7 @@ DARKSDK void DirectMirror(LPDIRECT3DSURFACE9 pFromSurface, DWORD Width, DWORD He
 				pFromPtr -= g_CSBPP;
 				if(g_CSBPP==2)
 				{
-					WORD wStore = *((WORD*)pToPtr);
+					uint16_t wStore = *((WORD*)pToPtr);
 					*(WORD*)pToPtr = *((WORD*)pFromPtr);
 					*(WORD*)pFromPtr = wStore;
 				}
@@ -574,10 +573,10 @@ DARKSDK void DirectFlip(LPDIRECT3DSURFACE9 pFromSurface, DWORD Width, DWORD Heig
 	D3DLOCKED_RECT d3dlrFrom;
 	if(SUCCEEDED(hRes=pFromSurface->LockRect ( &d3dlrFrom, &FromRect, 0 ) ) )
 	{
-		DWORD* pBuffer = new DWORD[Width];
-		LPSTR pToPtr = (LPSTR)d3dlrFrom.pBits;
-		LPSTR pFromPtr = (LPSTR)d3dlrFrom.pBits + (d3dlrFrom.Pitch*Height);
-		for(DWORD y=0; y<Height/2; y++)
+		uint32_t* pBuffer = new uint32_t[Width];
+		char* pToPtr = reinterpret_cast<char*>(d3dlrFrom.pBits);
+		char* pFromPtr = reinterpret_cast<char*>(d3dlrFrom.pBits) + (d3dlrFrom.Pitch*Height);
+		for(uint32_t y = 0; y < Height / 2; y++)
 		{
 			pFromPtr -= d3dlrFrom.Pitch;
 			memcpy(pBuffer, pToPtr, Width*g_CSBPP);
@@ -586,7 +585,8 @@ DARKSDK void DirectFlip(LPDIRECT3DSURFACE9 pFromSurface, DWORD Width, DWORD Heig
 			pToPtr += d3dlrFrom.Pitch;
 		}
 		pFromSurface->UnlockRect();
-		SAFE_DELETE(pBuffer);
+		delete[] pBuffer;
+		pBuffer = nullptr;
 	}
 }
 

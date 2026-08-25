@@ -210,10 +210,10 @@ int CSpriteManager::Update ( void ) const
         }
 
         // Render the draw list
-        RenderDrawList ( &m_SpriteDrawList[0], m_SpriteDrawList.size(), m_FilterMode );
+        RenderDrawList ( &m_SpriteDrawList[0], static_cast<int>(m_SpriteDrawList.size()), m_FilterMode );
     }
 
-    return m_SortedSpriteList.size();
+    return static_cast<int>( m_SortedSpriteList.size() );
 }
 
 

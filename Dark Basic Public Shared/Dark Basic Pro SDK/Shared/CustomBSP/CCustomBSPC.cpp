@@ -1,4 +1,5 @@
 #include <direct.h>
+#include <cstdint>
 #include "CCustomBSPC.h"
 #include "collision.h"
 #include ".\..\error\cerror.h"
@@ -7,51 +8,51 @@
 #include ".\..\core\globstruct.h"
 
 // Global Shared Data Pointer (passed in from core)
-GlobStruct*						g_pGlob							= NULL;
+GlobStruct*						g_pGlob							= nullptr;
 
-RetD3DFunctionPointerPFN	g_Setup_GetDirect3DDevice;
-CAMERA_Int1Float3PFN		g_Camera_Position;
-CAMERA_GetFloatPFN			g_Camera_GetXPosition;
-CAMERA_GetFloatPFN			g_Camera_GetYPosition;
-CAMERA_GetFloatPFN			g_Camera_GetZPosition;
-CAMERA_Int1Float3PFN		g_Object_Position;
-CAMERA_GetFloatPFN			g_Object_GetXPosition;
-CAMERA_GetFloatPFN			g_Object_GetYPosition;
-CAMERA_GetFloatPFN			g_Object_GetZPosition;
+RetD3DFunctionPointerPFN	g_Setup_GetDirect3DDevice		= nullptr;
+CAMERA_Int1Float3PFN		g_Camera_Position				= nullptr;
+CAMERA_GetFloatPFN			g_Camera_GetXPosition			= nullptr;
+CAMERA_GetFloatPFN			g_Camera_GetYPosition			= nullptr;
+CAMERA_GetFloatPFN			g_Camera_GetZPosition			= nullptr;
+CAMERA_Int1Float3PFN		g_Object_Position				= nullptr;
+CAMERA_GetFloatPFN			g_Object_GetXPosition			= nullptr;
+CAMERA_GetFloatPFN			g_Object_GetYPosition			= nullptr;
+CAMERA_GetFloatPFN			g_Object_GetZPosition			= nullptr;
 
 
 
-LPDIRECT3DDEVICE9	 m_pD3D;
+LPDIRECT3DDEVICE9	 m_pD3D									= nullptr;
 
-PLANE2				FrustumPlanes [ 6 ];
-BOOL				DontFrustumReject;
-POLYGON*			PolygonArray;
-NODE*				NodeArray;
-LEAF*				LeafArray;
-PLANE*				PlaneArray;
-BYTE*				PVSData;
-LPDIRECT3DTEXTURE9*	lpTextureSurface;
-WORD				NumberOfTextures;
-POLYGON**			pTexturePolygonList;
+PLANE2				FrustumPlanes [ 6 ]						= {};
+BOOL				DontFrustumReject						= FALSE;
+POLYGON*			PolygonArray							= nullptr;
+NODE*				NodeArray								= nullptr;
+LEAF*				LeafArray								= nullptr;
+PLANE*				PlaneArray								= nullptr;
+uint8_t*			PVSData									= nullptr;
+LPDIRECT3DTEXTURE9*	lpTextureSurface						= nullptr;
+uint16_t			NumberOfTextures						= 0;
+POLYGON**			pTexturePolygonList						= nullptr;
 
-long				BytesPerSet;
-long				NumberOfPolygons;
-long				NumberOfNodes;
-long				NumberOfLeafs;
-long				NumberOfPlanes;
-long				MAXNUMBEROFNODES;
-long				MAXNUMBEROFPLANES;
-long				MAXNUMBEROFPOLYGONS;
-long				MAXNUMBEROFLEAFS;
+int32_t				BytesPerSet								= 0;
+int32_t				NumberOfPolygons						= 0;
+int32_t				NumberOfNodes							= 0;
+int32_t				NumberOfLeafs							= 0;
+int32_t				NumberOfPlanes							= 0;
+int32_t				MAXNUMBEROFNODES						= 0;
+int32_t				MAXNUMBEROFPLANES						= 0;
+int32_t				MAXNUMBEROFPOLYGONS						= 0;
+int32_t				MAXNUMBEROFLEAFS						= 0;
 
-long				PVSCompressedSize = 0;
-char				( *TextureLUT ) [ 21 ];
+int32_t				PVSCompressedSize						= 0;
+char				( *TextureLUT ) [ 21 ]					= nullptr;
 
 
 // Internal Data Globals
 CCollisionManager			g_Col;
 int							gCurrentCamera	= 0;
-DWORD						g_dwCameraCullMode;
+uint32_t					g_dwCameraCullMode = 0;
 
 void Constructor ( HINSTANCE hSetup, HINSTANCE hImage, HINSTANCE hCamera, HINSTANCE hObject )
 {
@@ -135,7 +136,7 @@ bool Load ( char* szFilename )
 	char lpBSPPath[256];
 	strcpy(lpBSPPath, "");
 	strcpy(lpBSPFile, szFilename);
-	for(DWORD i=strlen(szFilename); i>0; i--)
+	for(DWORD i=static_cast<DWORD>(strlen(szFilename)); i>0; i--)
 	{
 		if(szFilename[i]=='\\' || szFilename[i]=='/')
 		{
@@ -219,7 +220,8 @@ bool Load ( char* szFilename )
 			p->VertexList[c].tu		= vertTemp[c].tu;
 			p->VertexList[c].tv		= vertTemp[c].tv;
 		}
-		delete vertTemp;
+		delete[] vertTemp;
+		vertTemp = nullptr;
 
 		fread ( &p->NumberOfIndices, sizeof ( WORD       ), 1,                   stream );
 		p->Indices = new WORD [ p->NumberOfIndices ];
@@ -751,8 +753,8 @@ void DrawTree ( long leaf )
 		{
 			for ( i = 0; i < 8; i++ )
 			{
-				BYTE mask	= 1 << i;
-				BYTE pvs	= *PVSPointer;
+				uint8_t mask	= 1 << i;
+				uint8_t pvs	= *PVSPointer;
 				
 				if ( pvs & mask )
 				{
@@ -782,7 +784,7 @@ void DrawTree ( long leaf )
 		{
 			// we have hit a zero so read in the next byte and see how long the run of zeros is
 			PVSPointer++;
-			BYTE RunLength = *PVSPointer;
+			uint8_t RunLength = *PVSPointer;
 			PVSPointer++;
 			currentleaf += RunLength * 8;
 		}
@@ -1312,12 +1314,17 @@ void DeletePolygonArray ( void )
 {
 	for ( long i = 0; i < NumberOfPolygons; i++ )
 	{
-		delete PolygonArray [ i ].VertexList;
-		delete PolygonArray [ i ].Indices;
+		delete[] PolygonArray [ i ].VertexList;
+		PolygonArray [ i ].VertexList = nullptr;
+		delete[] PolygonArray [ i ].Indices;
+		PolygonArray [ i ].Indices = nullptr;
 	}
 
-	if ( NumberOfPolygons )
+	if ( PolygonArray )
+	{
 		free ( PolygonArray );
+		PolygonArray = nullptr;
+	}
 
 	NumberOfPolygons = 0;
 }
@@ -1325,7 +1332,7 @@ void DeletePolygonArray ( void )
 
 void LoadTextures ( void )
 {
-	char TextureName [ 25 ];
+	char TextureName [ 25 ] = {};
 	
 	lpTextureSurface    = new LPDIRECT3DTEXTURE9 [ NumberOfTextures ];
 	pTexturePolygonList = new POLYGON*           [ NumberOfTextures ];
@@ -1334,7 +1341,7 @@ void LoadTextures ( void )
 
 	for ( UINT i = 0; i < NumberOfTextures; i++ )
 	{
-		strcpy ( TextureName, TextureLUT [ i ] );
+		strcpy_s ( TextureName, sizeof(TextureName), TextureLUT [ i ] );
 
 
 		D3DXCreateTextureFromFile ( m_pD3D, TextureName, &lpTextureSurface [ i ] );

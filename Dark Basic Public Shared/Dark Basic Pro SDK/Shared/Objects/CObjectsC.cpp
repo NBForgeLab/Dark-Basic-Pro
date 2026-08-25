@@ -9,7 +9,8 @@
 //#define _CRT_SECURE_NO_DEPRECATE
 #pragma warning(disable:4800)
 #include "CObjectsNewC.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include <cstdint>
+#include ".\..\Core\EncryptedFile.h"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -262,11 +263,6 @@ DARKSDK_DLL void LoadCore ( SDK_LPSTR szFilename, int iID, int iDBProMode, int i
 			CreateNewOrSharedEffect ( pMesh, true );
 		}
 	}
-}
-
-bool CheckForWorkshopFile ( char* [[maybe_unused]] szFilename )
-{
-	return false;
 }
 
 DARKSDK_DLL void Load ( SDK_LPSTR szFilename, int iID )
@@ -2654,7 +2650,7 @@ DARKSDK_DLL void MakeCone ( int iID, float fSize )
 	float fy0            = ( 90.0f - ( float ) D3DXToDegree ( atan ( fHeight / fSize ) ) ) / 90.0f;
 	int	  iVertex        = 0;
 	int	  iIndex         = 0;
-	WORD  wVertexIndex   = 0;
+	uint16_t  wVertexIndex   = 0;
 
 	// for each segment, add a triangle to the sides triangle list
 	for ( int iCurrentSegment = 0; iCurrentSegment <= iSegments; iCurrentSegment++ )
@@ -6663,13 +6659,13 @@ DARKSDK_DLL int IntersectAll ( int iPrimaryStart, int iPrimaryEnd, float fX, flo
 			if ( iSkipGridRefFromX > 1023 ) iSkipGridRefFromX=1023;
 			if ( iSkipGridRefFromZ < 0 ) iSkipGridRefFromZ=0;
 			if ( iSkipGridRefFromZ > 1023 ) iSkipGridRefFromZ=1023;
-			WORD wTargetX = fNewX/10.0f;
-			WORD wTargetZ = fNewZ/10.0f;
+			uint16_t wTargetX = fNewX/10.0f;
+			uint16_t wTargetZ = fNewZ/10.0f;
 			DWORD dwSkipGridValue = g_dwSkipGrid[iSkipGridRefFromX][iSkipGridRefFromZ];
 			if ( dwSkipGridValue > 0 )
 			{
-				WORD wRefX = (dwSkipGridValue & 0xFFFF0000) >> 16;
-				WORD wRefZ = (dwSkipGridValue & 0x0000FFFF);
+				uint16_t wRefX = (dwSkipGridValue & 0xFFFF0000) >> 16;
+				uint16_t wRefZ = (dwSkipGridValue & 0x0000FFFF);
 				if ( wRefX==wTargetX && wRefZ==wTargetZ )
 				{
 					// this target was found to be blocked from this coordinate
@@ -6921,8 +6917,8 @@ DARKSDK_DLL int IntersectAll ( int iPrimaryStart, int iPrimaryEnd, float fX, flo
 	if ( iSkipGridRefFromX > 1023 ) iSkipGridRefFromX=1023;
 	if ( iSkipGridRefFromZ < 0 ) iSkipGridRefFromZ=0;
 	if ( iSkipGridRefFromZ > 1023 ) iSkipGridRefFromZ=1023;
-	WORD wTargetX = fNewX/10.0f;
-	WORD wTargetZ = fNewZ/10.0f;
+	uint16_t wTargetX = fNewX/10.0f;
+	uint16_t wTargetZ = fNewZ/10.0f;
 	DWORD dwSkipGridValue = (wTargetX<<16) + (wTargetZ);
 	g_dwSkipGrid[iSkipGridRefFromX][iSkipGridRefFromZ] = dwSkipGridValue;
 	g_iSkipGridResult[iSkipGridRefFromX][iSkipGridRefFromZ] = iHitValue;
@@ -8430,9 +8426,9 @@ DARKSDK_DLL int GetIndexData ( int iIndex )
 	return g_pCurrentVertexDataMesh->pIndices [ iIndex ];
 }
 
-DARKSDK_DLL DWORD GetVertexDataPtr ( void )
+DARKSDK_DLL DWORD_PTR GetVertexDataPtr ( void )
 {
-	return (DWORD)g_pCurrentVertexDataMesh;
+	return (DWORD_PTR)g_pCurrentVertexDataMesh;
 }
 
 // Misc Commands
@@ -9421,7 +9417,7 @@ DARKSDK_DLL int GetLimbTexture ( int iID, int iLimbID )
 	return GetLimbTextureEx ( iID, iLimbID, 0 );
 }
 
-DARKSDK_DLL int GetLimbTexturePtr ( int iID, int iLimbID )
+DARKSDK_DLL DWORD_PTR GetLimbTexturePtr ( int iID, int iLimbID )
 {
 	// check the object exists
 	if ( !ConfirmObjectAndLimb ( iID, iLimbID ) )
@@ -9432,10 +9428,10 @@ DARKSDK_DLL int GetLimbTexturePtr ( int iID, int iLimbID )
 	if ( !pMesh )
 		return 0;
 
-	// return ptr as int (for determining texture matching)
-	int iPtrValue = 0;
+	// return ptr (for determining texture matching)
+	DWORD_PTR iPtrValue = 0;
 	if ( pMesh->pTextures )
-		iPtrValue = (int)pMesh->pTextures [ 0 ].pTexturesRef;
+		iPtrValue = (DWORD_PTR)pMesh->pTextures [ 0 ].pTexturesRef;
 	return iPtrValue;
 }
 
@@ -10165,7 +10161,7 @@ DARKSDK_DLL SDK_FLOAT GetVertexShaderVersion ( void )
 	float fVersion = 0.0f;
 	if(m_Caps.MaxStreams>0)
 	{
-		unsigned char sub = *((LPSTR)(&m_Caps.VertexShaderVersion));
+		uint8_t sub = *((LPSTR)(&m_Caps.VertexShaderVersion));
 		fVersion = *((LPSTR)(&m_Caps.VertexShaderVersion)+1);
 		fVersion += ((float)sub/10.0f);
 	}
@@ -10177,7 +10173,7 @@ DARKSDK_DLL SDK_FLOAT GetPixelShaderVersion ( void )
 	float fVersion = 0.0f;
 	if(m_Caps.MaxStreams>0)
 	{
-		unsigned char sub = *((LPSTR)(&m_Caps.PixelShaderVersion));
+		uint8_t sub = *((LPSTR)(&m_Caps.PixelShaderVersion));
 		fVersion = *((LPSTR)(&m_Caps.PixelShaderVersion)+1);
 		fVersion += ((float)sub/10.0f);
 	}
@@ -10682,23 +10678,23 @@ DARKSDK void SetLegacyMode ( int iUseLegacy )
 
 void dbLoadObject ( char* szFilename, int iID )
 {
-	Load ( ( DWORD ) szFilename, iID );
+	Load ( ( SDK_LPSTR ) szFilename, iID );
 }
 
 void dbLoadObject ( char* szFilename, int iID, int iDBProMode )
 {
-	Load ( ( DWORD ) szFilename, iID, iDBProMode );
+	Load ( ( SDK_LPSTR ) szFilename, iID, iDBProMode );
 }
 
 // mike - 181206 - expose full load object function for GDK
 void dbLoadObject ( char* szFilename, int iID, int iDBProMode, int iDivideTextureSize )
 {
-	Load ( ( DWORD ) szFilename, iID, iDBProMode, iDivideTextureSize );
+	Load ( ( SDK_LPSTR ) szFilename, iID, iDBProMode, iDivideTextureSize );
 }
 
 void dbSaveObject ( char* szFilename, int iID )
 {
-	Save ( ( DWORD ) szFilename, iID );
+	Save ( ( SDK_LPSTR ) szFilename, iID );
 }
 
 void dbDeleteObject ( int iID )
@@ -11329,7 +11325,7 @@ void dbSetVertexShaderStream ( int iID, int iStreamPos, int iData, int iDataType
 
 void dbCreateVertexShaderFromFile ( int iID, char* szFile )
 {
-	CreateVertexShaderFromFile ( iID, ( DWORD ) szFile );
+	CreateVertexShaderFromFile ( iID, ( SDK_LPSTR ) szFile );
 }
 
 void dbSetVertexShaderVector ( int iID, DWORD dwRegister, int iVector, DWORD dwConstantCount )
@@ -11359,7 +11355,7 @@ void dbSetPixelShaderOff ( int iID )
 
 void dbCreatePixelShaderFromFile ( int iID, char* szFile )
 {
-	CreatePixelShaderFromFile ( iID, ( DWORD ) szFile );
+	CreatePixelShaderFromFile ( iID, ( SDK_LPSTR ) szFile );
 }
 
 void dbDeletePixelShader ( int iShader )

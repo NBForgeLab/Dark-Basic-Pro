@@ -37,7 +37,7 @@
 #define SDK_TRUE 1
 #define SDK_FALSE 0
 #define SDK_FLOAT DWORD
-#define SDK_LPSTR DWORD
+#define SDK_LPSTR DWORD_PTR
 #define SDK_RETFLOAT(f) *(DWORD*)&f 
 #define SDK_RETSTR DWORD_PTR pDestStr,
 

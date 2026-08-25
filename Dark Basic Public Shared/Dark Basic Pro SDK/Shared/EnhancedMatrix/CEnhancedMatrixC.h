@@ -15,14 +15,15 @@
 #include ".\modes\cmodec.h"
 #include ".\modes\quadtrees\cquadtreesc.h"
 
-#include < d3d9.h >
-#include < D3dx9tex.h >
-#include < D3dx9core.h >
-#include < basetsd.h >
-#include < stdio.h >
-#include < math.h >
-#include < D3DX9.h >
-#include < d3d9types.h >
+#include <d3d9.h>
+#include <d3dx9tex.h>
+#include <d3dx9core.h>
+#include <basetsd.h>
+#include <cstdio>
+#include <cmath>
+#include <cstdint>
+#include <d3dx9.h>
+#include <d3d9types.h>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>  
@@ -33,9 +34,7 @@
 // DEFINES ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 #define DARKSDK __declspec ( dllexport )
-#define SAFE_DELETE( p )       { if ( p ) { delete ( p );       ( p ) = NULL; } }
-#define SAFE_RELEASE( p )      { if ( p ) { ( p )->Release ( ); ( p ) = NULL; } }
-#define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
+#include "..\Core\macros.h"
 //////////////////////////////////////////////////////////////////////////////////
 
 // SDK DEFINES (DBPRO/SDK)
@@ -43,7 +42,7 @@
 #if DB_PRO
  #define SDK_BOOL int
  #define SDK_FLOAT DWORD
- #define SDK_LPSTR DWORD
+ #define SDK_LPSTR DWORD_PTR
  #define SDK_RETFLOAT(f) *(DWORD*)&f 
  #define SDK_RETSTR DWORD_PTR pDestStr,
 #else

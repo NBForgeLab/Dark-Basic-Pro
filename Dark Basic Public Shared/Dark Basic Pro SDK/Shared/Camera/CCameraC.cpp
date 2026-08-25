@@ -40,7 +40,7 @@ typedef D3DXVECTOR3				( *GetVectorPFN )						( int );
 typedef void					( *SetVectorPFN )						( int, float, float, float );
 typedef int						( *GetExistPFN )						( int );
 
-DBPRO_GLOBAL GlobStruct*					g_pGlob							= NULL;
+DBPRO_GLOBAL GlobStruct*					g_pGlob							= nullptr;
 DBPRO_GLOBAL int							m_iRenderCamera					= 0;
 DBPRO_GLOBAL int							m_iCurrentCamera				= 0;
 DBPRO_GLOBAL bool							m_bAutoCamState					= true;
@@ -48,31 +48,31 @@ DBPRO_GLOBAL bool							m_bActivateBackdrop				= true;
 DBPRO_GLOBAL float							lastmovetargetx					= 0.0f;
 DBPRO_GLOBAL float							lastmovetargety					= 0.0f;
 DBPRO_GLOBAL float							lastmovetargetz					= 0.0f;
-DBPRO_GLOBAL HINSTANCE						g_GFX;
-DBPRO_GLOBAL GFX_GetDirect3DDevicePFN		g_GFX_GetDirect3DDevice;
-DBPRO_GLOBAL BASIC3D_GetInternalDataPFN		g_Basic3D_GetInternalData;
-DBPRO_GLOBAL sObject*						m_Object_Ptr;
-DBPRO_GLOBAL IMAGE_RetVoidParamIntPFN		g_Image_Delete;	
-DBPRO_GLOBAL IMAGE_RetVoidParamInt3D3DFPFN	g_Image_MakeRenderTarget;
-DBPRO_GLOBAL IMAGE_RetVoidParamInt3D3DFPFN	g_Image_MakeJustFormat;
-DBPRO_GLOBAL IMAGE_RetBoolParamIntPFN		g_Image_GetExist;
-DBPRO_GLOBAL IMAGE_RetVoidParamGetICUBEIPFN	g_Image_GetCubeFace;
-DBPRO_GLOBAL IMAGE_RetLPD3DTEX9ParamIntPFN	g_Image_GetPointer;
-DBPRO_GLOBAL GetVectorPFN					g_Types_GetVector;
-DBPRO_GLOBAL SetVectorPFN					g_Types_SetVector;
-DBPRO_GLOBAL GetExistPFN					g_Types_GetExist;
+DBPRO_GLOBAL HINSTANCE						g_GFX							= nullptr;
+DBPRO_GLOBAL GFX_GetDirect3DDevicePFN		g_GFX_GetDirect3DDevice			= nullptr;
+DBPRO_GLOBAL BASIC3D_GetInternalDataPFN		g_Basic3D_GetInternalData		= nullptr;
+DBPRO_GLOBAL sObject*						m_Object_Ptr					= nullptr;
+DBPRO_GLOBAL IMAGE_RetVoidParamIntPFN		g_Image_Delete					= nullptr;	
+DBPRO_GLOBAL IMAGE_RetVoidParamInt3D3DFPFN	g_Image_MakeRenderTarget		= nullptr;
+DBPRO_GLOBAL IMAGE_RetVoidParamInt3D3DFPFN	g_Image_MakeJustFormat			= nullptr;
+DBPRO_GLOBAL IMAGE_RetBoolParamIntPFN		g_Image_GetExist				= nullptr;
+DBPRO_GLOBAL IMAGE_RetVoidParamGetICUBEIPFN	g_Image_GetCubeFace				= nullptr;
+DBPRO_GLOBAL IMAGE_RetLPD3DTEX9ParamIntPFN	g_Image_GetPointer				= nullptr;
+DBPRO_GLOBAL GetVectorPFN					g_Types_GetVector				= nullptr;
+DBPRO_GLOBAL SetVectorPFN					g_Types_SetVector				= nullptr;
+DBPRO_GLOBAL GetExistPFN					g_Types_GetExist				= nullptr;
 DBPRO_GLOBAL CCameraManager					m_CameraManager;
-DBPRO_GLOBAL tagCameraData*					m_ptr;
-DBPRO_GLOBAL LPDIRECT3DDEVICE9				m_pD3D;
-DBPRO_GLOBAL LPDIRECT3D9					m_pDX;
+DBPRO_GLOBAL tagCameraData*					m_ptr							= nullptr;
+DBPRO_GLOBAL LPDIRECT3DDEVICE9				m_pD3D							= nullptr;
+DBPRO_GLOBAL LPDIRECT3D9					m_pDX							= nullptr;
 DBPRO_GLOBAL bool							g_bCameraOutputToImage			= false;
-DBPRO_GLOBAL LPDIRECT3DSURFACE9				m_pImageDepthSurface;
-DBPRO_GLOBAL DWORD							m_dwImageDepthWidth;
-DBPRO_GLOBAL DWORD							m_dwImageDepthHeight;
+DBPRO_GLOBAL LPDIRECT3DSURFACE9				m_pImageDepthSurface			= nullptr;
+DBPRO_GLOBAL uint32_t						m_dwImageDepthWidth				= 0;
+DBPRO_GLOBAL uint32_t						m_dwImageDepthHeight			= 0;
 DBPRO_GLOBAL int							g_iCameraHasClipPlane			= 0;		// added 310506 - u62
-DBPRO_GLOBAL DWORD							g_dwMaxUserClipPlanes			= 0;		// added 310506 - u62
-DBPRO_GLOBAL tagCameraData*					g_pStereoscopicCameraUpdated	= NULL;		// added 180508 - u69
-DBPRO_GLOBAL IDirect3DTexture9*				g_pStereoscopicFinalTexture		= NULL;		// U7.0 - 180608 - WOW autostereo
+DBPRO_GLOBAL uint32_t						g_dwMaxUserClipPlanes			= 0;		// added 310506 - u62
+DBPRO_GLOBAL tagCameraData*					g_pStereoscopicCameraUpdated	= nullptr;		// added 180508 - u69
+DBPRO_GLOBAL IDirect3DTexture9*				g_pStereoscopicFinalTexture		= nullptr;		// U7.0 - 180608 - WOW autostereo
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -249,7 +249,11 @@ DARKSDK void DestructorD3D ( void )
 	FreeTextureBackdrop();
 
 	// release ref
-	SAFE_RELEASE(m_pDX);
+	if (m_pDX)
+	{
+		m_pDX->Release();
+		m_pDX = nullptr;
+	}
 }
 
 DARKSDK void Destructor ( void )
@@ -1413,17 +1417,17 @@ DARKSDK void SetCamerasToStereoscopic ( int iStereoscopicMode, int iCameraL, int
 
 	// Open image surface for continual usage
 	m_ptrR->pCameraToStereoImageBackTexture->GetSurfaceLevel( 0, &m_ptrR->pCameraToStereoImageBackSurface );
-	if ( m_ptrR->pCameraToStereoImageBackSurface==NULL )
+	if ( m_ptrR->pCameraToStereoImageBackSurface == nullptr )
 	{
-		SAFE_RELEASE ( m_ptrR->pCameraToStereoImageBackTexture );
-		SAFE_RELEASE ( m_ptrR->pCameraToStereoImageFrontTexture );
+		if (m_ptrR->pCameraToStereoImageBackTexture) { m_ptrR->pCameraToStereoImageBackTexture->Release(); m_ptrR->pCameraToStereoImageBackTexture = nullptr; }
+		if (m_ptrR->pCameraToStereoImageFrontTexture) { m_ptrR->pCameraToStereoImageFrontTexture->Release(); m_ptrR->pCameraToStereoImageFrontTexture = nullptr; }
 		return;
 	}
 	m_ptrR->pCameraToStereoImageFrontTexture->GetSurfaceLevel( 0, &m_ptrR->pCameraToStereoImageFrontSurface );
-	if ( m_ptrR->pCameraToStereoImageFrontSurface==NULL )
+	if ( m_ptrR->pCameraToStereoImageFrontSurface == nullptr )
 	{
-		SAFE_RELEASE ( m_ptrR->pCameraToStereoImageBackTexture );
-		SAFE_RELEASE ( m_ptrR->pCameraToStereoImageFrontTexture );
+		if (m_ptrR->pCameraToStereoImageBackTexture) { m_ptrR->pCameraToStereoImageBackTexture->Release(); m_ptrR->pCameraToStereoImageBackTexture = nullptr; }
+		if (m_ptrR->pCameraToStereoImageFrontTexture) { m_ptrR->pCameraToStereoImageFrontTexture->Release(); m_ptrR->pCameraToStereoImageFrontTexture = nullptr; }
 		return;
 	}
 

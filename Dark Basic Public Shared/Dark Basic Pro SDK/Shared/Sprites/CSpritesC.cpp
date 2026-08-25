@@ -8,7 +8,7 @@
 #include ".\..\error\cerror.h"
 #include "ImageSupport.h"
 #include ".\..\core\globstruct.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 #ifdef DARKSDK_COMPILE
 	#include ".\..\..\..\DarkGDK\Code\Include\DarkSDKDisplay.h"

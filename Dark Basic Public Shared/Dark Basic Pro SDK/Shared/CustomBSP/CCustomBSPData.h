@@ -1,6 +1,8 @@
 #ifndef _CCUSTOMBSPDATA_H_
 #define _CCUSTOMBSPDATA_H_
 
+#include <cstdint>
+
 const int			CP_FRONT	= 1001;			// in front of plane
 const int			CP_BACK		= 1002;			// behind plane
 const int			CP_ONPLANE	= 1003;			// on plane
@@ -82,20 +84,20 @@ extern LEAF*				LeafArray;
 extern PLANE*				PlaneArray;
 extern BYTE*				PVSData;
 extern LPDIRECT3DTEXTURE9*	lpTextureSurface;
-extern WORD				NumberOfTextures;
+extern uint16_t			NumberOfTextures;
 extern POLYGON**			pTexturePolygonList;
 
-extern long				BytesPerSet;
-extern long				NumberOfPolygons;
-extern long				NumberOfNodes;
-extern long				NumberOfLeafs;
-extern long				NumberOfPlanes;
-extern long				MAXNUMBEROFNODES;
-extern long				MAXNUMBEROFPLANES;
-extern long				MAXNUMBEROFPOLYGONS;
-extern long				MAXNUMBEROFLEAFS;
+extern int32_t				BytesPerSet;
+extern int32_t				NumberOfPolygons;
+extern int32_t				NumberOfNodes;
+extern int32_t				NumberOfLeafs;
+extern int32_t				NumberOfPlanes;
+extern int32_t				MAXNUMBEROFNODES;
+extern int32_t				MAXNUMBEROFPLANES;
+extern int32_t				MAXNUMBEROFPOLYGONS;
+extern int32_t				MAXNUMBEROFLEAFS;
 
-extern long				PVSCompressedSize;
+extern int32_t				PVSCompressedSize;
 extern char				( *TextureLUT ) [ 21 ];
 
 #endif _CCUSTOMBSPDATA_H_

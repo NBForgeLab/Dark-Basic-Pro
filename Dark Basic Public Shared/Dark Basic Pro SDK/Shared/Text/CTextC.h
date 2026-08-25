@@ -27,9 +27,7 @@
 	#define DBPRO_GLOBAL static
 #endif
 
-#define SAFE_DELETE( p )       { if ( p ) { delete ( p );       ( p ) = NULL; } }
-#define SAFE_RELEASE( p )      { if ( p ) { ( p )->Release ( ); ( p ) = NULL; } }
-#define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
+#include "..\Core\macros.h"
 
 #define MAX_NUM_VERTICES 50 * 6
 #define D3DFVF_FONT2DVERTEX ( D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1)
@@ -48,7 +46,7 @@
 struct FONT2DVERTEX 
 { 
 	D3DXVECTOR4 p;
-	DWORD		color;
+	uint32_t	color;
 	float		tu;
 	float		tv;
 };

@@ -222,7 +222,7 @@ typedef IDirect3DDevice9*				( *GFX_GetDirect3DDevicePFN )	( void );
 
 // Used to call memblockDLL for memblock return ptr function
 typedef int						( *MEMBLOCKS_GetMemblockExist   ) ( int );
-typedef DWORD					( *MEMBLOCKS_GetMemblockPtr   ) ( int );
+typedef LPSTR					( *MEMBLOCKS_GetMemblockPtr   ) ( int );
 typedef DWORD					( *MEMBLOCKS_GetMemblockSize  ) ( int );
 typedef void					( *MEMBLOCKS_MemblockFromMedia ) ( int, int );
 typedef void					( *MEMBLOCKS_MediaFromMemblock ) ( int, int );

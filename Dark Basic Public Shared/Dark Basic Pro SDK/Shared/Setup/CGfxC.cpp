@@ -156,7 +156,7 @@ DBPRO_GLOBAL int							m_iGammaBlue;
 DBPRO_GLOBAL int							m_iGammaGreen;
 
 DBPRO_GLOBAL LPDIRECT3DSURFACE9				g_pBackBuffer = NULL;	//globals for locking backbuffer (commands)
-DBPRO_GLOBAL DWORD							g_dwSurfacePtr = 0;
+DBPRO_GLOBAL DWORD_PTR						g_dwSurfacePtr = 0;
 DBPRO_GLOBAL DWORD							g_dwSurfaceWidth = 0;
 DBPRO_GLOBAL DWORD							g_dwSurfaceHeight = 0;
 DBPRO_GLOBAL DWORD							g_dwSurfaceDepth = 0;
@@ -866,7 +866,7 @@ DARKSDK BOOL CALLBACK EnumWindowsProc ( HWND hwnd, LPARAM lParam )
 {
 	char szBuffer [ MAX_PATH ];
 	GetWindowText ( hwnd, szBuffer, MAX_PATH );
-	int iResult = strspn ( szBuffer, g_szMainWindow );
+	int iResult = static_cast<int>( strspn ( szBuffer, g_szMainWindow ) );
 	if ( iResult )
 		EnumChildWindows ( hwnd, EnumChildProc, 0 );
 
@@ -1137,7 +1137,7 @@ static LPSTR GetReturnStringFromWorkString(void)
 	LPSTR pReturnString=NULL;
 	if(m_pWorkString)
 	{
-		DWORD dwSize=strlen(m_pWorkString);
+		DWORD dwSize=static_cast<DWORD>(strlen(m_pWorkString));
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
 		strcpy(pReturnString, m_pWorkString);
 	}
@@ -2065,12 +2065,10 @@ DARKSDK bool SetDisplayMode ( int iWidth, int iHeight, int iDepth, int iMode, in
 	// animation directshow needs multithreading (degrades performance though)
 	// 040414 - Reloaded wants performance at the most of DS and we dont need backbuffer grab functionality!
 	// m_iProcess		    |= D3DCREATE_MULTITHREADED;
-	//if ( iLockable )
-	//	m_dwFlags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-	//else
-	//	m_dwFlags = 0;
-	//m_dwFlags = 0;
-	m_dwFlags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	if ( iLockable && !m_bZBuffer )
+		m_dwFlags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	else
+		m_dwFlags = 0;
 
 	// now setup the device
 	if ( Setup ( ) )
@@ -2412,10 +2410,10 @@ BOOL Is_Win_Vista_Or_Later ()
 
    // Initialize the condition mask.
 
-   VER_SET_CONDITION( dwlConditionMask, VER_MAJORVERSION, op );
-   VER_SET_CONDITION( dwlConditionMask, VER_MINORVERSION, op );
-   VER_SET_CONDITION( dwlConditionMask, VER_SERVICEPACKMAJOR, op );
-   VER_SET_CONDITION( dwlConditionMask, VER_SERVICEPACKMINOR, op );
+   VER_SET_CONDITION( dwlConditionMask, VER_MAJORVERSION, static_cast<BYTE>(op) );
+   VER_SET_CONDITION( dwlConditionMask, VER_MINORVERSION, static_cast<BYTE>(op) );
+   VER_SET_CONDITION( dwlConditionMask, VER_SERVICEPACKMAJOR, static_cast<BYTE>(op) );
+   VER_SET_CONDITION( dwlConditionMask, VER_SERVICEPACKMINOR, static_cast<BYTE>(op) );
 
    // Perform the test.
 
@@ -2694,41 +2692,17 @@ DARKSDK void GetValidStencilBufferFormat ( void )
 	#endif
 
 	// create the list in order of precedence
-	D3DFORMAT	list [ ] =
-							{
-								D3DFMT_D24S8, //GeForce4 top choice
-								D3DFMT_R8G8B8,
-								D3DFMT_A8R8G8B8,
-								D3DFMT_X8R8G8B8,
-								D3DFMT_R5G6B5,
-								D3DFMT_X1R5G5B5,
-								D3DFMT_A1R5G5B5,
-								D3DFMT_A4R4G4B4,
-								D3DFMT_R3G3B2,
-								D3DFMT_A8,
-								D3DFMT_A8R3G3B2,
-								D3DFMT_X4R4G4B4,
-								D3DFMT_A8P8,
-								D3DFMT_P8,
-								D3DFMT_L8,
-								D3DFMT_A8L8,
-								D3DFMT_A4L4,
-								D3DFMT_V8U8,
-								D3DFMT_L6V5U5,
-								D3DFMT_X8L8V8U8,
-								D3DFMT_Q8W8V8U8,
-								D3DFMT_V16U16,
-								D3DFMT_D16_LOCKABLE,
-								D3DFMT_D32,
-								D3DFMT_D15S1,
-								D3DFMT_D16,
-								D3DFMT_D24X8,
-								D3DFMT_D24X4S4,
-								D3DFMT_D24FS8,
-								D3DFMT_D32F_LOCKABLE,
-								D3DFMT_D32_LOCKABLE,
-								D3DFMT_S8_LOCKABLE
-							};
+	// create the list of depth/stencil formats in order of precedence
+	static const D3DFORMAT list[] =
+	{
+		D3DFMT_D24S8,
+		D3DFMT_D24X8,
+		D3DFMT_D16,
+		D3DFMT_D24FS8,
+		D3DFMT_D32,
+		D3DFMT_D15S1,
+		D3DFMT_D24X4S4
+	};
 
 	#if DEBUG_MODE
 		fwrite ( 
@@ -2739,7 +2713,7 @@ DARKSDK void GetValidStencilBufferFormat ( void )
 			   );
 	#endif
 
-	for ( int iTemp = 0; iTemp < 32; iTemp++ )
+	for ( size_t iTemp = 0; iTemp < sizeof(list) / sizeof(list[0]); iTemp++ )
 	{
 		// Verify that the depth format exists first
 		if ( SUCCEEDED ( m_pD3D->CheckDeviceFormat( m_uAdapterChoice,
@@ -2803,13 +2777,13 @@ DARKSDK int Create ( HWND hWnd, D3DPRESENT_PARAMETERS* d3dpp )
 {
 	// 190315 - trace display start-up issues
 	char pDisplayErrTrace[2048];
-	strcpy ( pDisplayErrTrace, "" );
+	strcpy_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "" );
 
 	HRESULT			hr;
 	D3DDISPLAYMODE	d3dmode;
 	memset ( &d3dmode, 0, sizeof ( d3dmode  ) );
 	m_pD3D->GetAdapterDisplayMode ( 0, &d3dmode );
-	wsprintf ( pDisplayErrTrace, "%sW%dH%dD%dR%d", pDisplayErrTrace, d3dmode.Width, d3dmode.Height, d3dmode.Format, d3dmode.RefreshRate );
+	sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%sW%dH%dD%dR%d", pDisplayErrTrace, d3dmode.Width, d3dmode.Height, d3dmode.Format, d3dmode.RefreshRate );
 
 	// End scene before any release (just in case)
 	End();
@@ -2833,18 +2807,24 @@ DARKSDK int Create ( HWND hWnd, D3DPRESENT_PARAMETERS* d3dpp )
 			m_uAdapterChoice = m_iForceAdapterOrdinal;
 		}
 	}
-	if ( pDevType==D3DDEVTYPE_HAL ) wsprintf ( pDisplayErrTrace, "%s HAL", pDisplayErrTrace );
-	if ( pDevType==D3DDEVTYPE_REF ) wsprintf ( pDisplayErrTrace, "%s REF", pDisplayErrTrace );
+	if ( pDevType==D3DDEVTYPE_HAL ) sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%s HAL", pDisplayErrTrace );
+	if ( pDevType==D3DDEVTYPE_REF ) sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%s REF", pDisplayErrTrace );
 
-	// no depth format detected, default to at D3DFMT_D24S8 (standard)
-	if ( d3dpp->AutoDepthStencilFormat==0 )
+	// no depth format detected, default to D3DFMT_D24S8 (standard)
+	if ( d3dpp->AutoDepthStencilFormat==0 && d3dpp->EnableAutoDepthStencil )
 	{
-		d3dpp->AutoDepthStencilFormat = D3DFMT_D24X8;
-		wsprintf ( pDisplayErrTrace, "%sD3DFMT_D24X8_ADDED", pDisplayErrTrace );
+		d3dpp->AutoDepthStencilFormat = D3DFMT_D24S8;
+		sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%s D3DFMT_D24S8_ADDED", pDisplayErrTrace );
 	}
 
 	// create device
-	wsprintf ( pDisplayErrTrace, "%s A=%d P=%d D�DPP=%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d-%d", pDisplayErrTrace, m_uAdapterChoice, m_iProcess, d3dpp->BackBufferCount, d3dpp->BackBufferWidth, d3dpp->BackBufferHeight, d3dpp->AutoDepthStencilFormat, d3dpp->BackBufferFormat, d3dpp->EnableAutoDepthStencil, d3dpp->Flags, d3dpp->FullScreen_RefreshRateInHz, d3dpp->hDeviceWindow, d3dpp->MultiSampleQuality, d3dpp->MultiSampleType, d3dpp->PresentationInterval, d3dpp->SwapEffect, d3dpp->Windowed );
+	sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%s A=%u P=%d D3DPP=%u-%u-%u-%d-%d-%d-%lu-%u-%p-%lu-%d-%u-%d-%d",
+		pDisplayErrTrace, m_uAdapterChoice, m_iProcess,
+		d3dpp->BackBufferCount, d3dpp->BackBufferWidth, d3dpp->BackBufferHeight,
+		d3dpp->AutoDepthStencilFormat, d3dpp->BackBufferFormat, (int)d3dpp->EnableAutoDepthStencil,
+		d3dpp->Flags, d3dpp->FullScreen_RefreshRateInHz, (void*)d3dpp->hDeviceWindow,
+		d3dpp->MultiSampleQuality, (int)d3dpp->MultiSampleType, d3dpp->PresentationInterval,
+		(int)d3dpp->SwapEffect, (int)d3dpp->Windowed );
 	if(g_pGlob) g_pGlob->iSoftwareVP = 0;
 	if ( FAILED ( hr = m_pD3D->CreateDevice (	m_uAdapterChoice,						// use default adapter
 												pDevType,								// hardware mode
@@ -3720,7 +3700,7 @@ DARKSDK void PerformChecklistForGraphicsCards ( void )
 			}
 			else
 			{
-				DWORD dwLength=strlen(m_pInfo [ iTemp ].szName);
+				DWORD dwLength=static_cast<DWORD>(strlen(m_pInfo [ iTemp ].szName));
 				if(dwLength>g_dwMaxStringSizeInEnum)
 					g_dwMaxStringSizeInEnum=dwLength;
 			}
@@ -4411,7 +4391,7 @@ DARKSDK void LockBackbuffer(void)
 			if(hRes==D3D_OK)
 			{
 				int BitDepth=GetBitDepthFromFormat(ddsd.Format);
-				g_dwSurfacePtr=(DWORD)d3dlockedrect.pBits;
+				g_dwSurfacePtr=(DWORD_PTR)d3dlockedrect.pBits;
 				g_dwSurfaceWidth=ddsd.Width;
 				g_dwSurfaceHeight=ddsd.Height;
 				g_dwSurfaceDepth=BitDepth;
@@ -4427,7 +4407,7 @@ DARKSDK void UnlockBackbuffer(void)
 	{
 		// Free locked surface
 		g_pBackBuffer->UnlockRect();
-		g_dwSurfacePtr=NULL;
+		g_dwSurfacePtr=0;
 		g_dwSurfaceWidth=0;
 		g_dwSurfaceHeight=0;
 		g_dwSurfaceDepth=0;
@@ -4438,9 +4418,9 @@ DARKSDK void UnlockBackbuffer(void)
 	}
 }
 
-DARKSDK DWORD GetBackbufferPtr()
+DARKSDK DWORD_PTR GetBackbufferPtr()
 {
-	DWORD pReturnValue=-1;
+	DWORD_PTR pReturnValue = 0;
 	if(g_dwSurfacePtr)
 		pReturnValue = g_dwSurfacePtr;
 
@@ -4998,7 +4978,7 @@ void dbSetEmulationOff ( void )
 
 void dbSetGraphicsCard ( char* szCardname )
 {
-	SetGraphicsCard ( ( DWORD ) szCardname );
+	SetGraphicsCard ( ( DWORD_PTR ) szCardname );
 }
 
 void dbSetWindowOn ( void )
@@ -5091,7 +5071,7 @@ void dbUnlockBackbuffer ( void )
 	UnlockBackbuffer ( );
 }
 
-DWORD dbGetBackbufferPtr ( void )
+DWORD_PTR dbGetBackbufferPtr ( void )
 {
 	return GetBackbufferPtr ( );
 }

@@ -105,7 +105,7 @@ DARKSDK void	Dot						( int iX, int iY, DWORD dwColor );
 DARKSDK void	BoxGradient				( int iLeft, int iTop, int iRight, int iBottom, DWORD dw1, DWORD dw2, DWORD dw3, DWORD dw4 );
 DARKSDK void	Lock					( void );
 DARKSDK void	Unlock					( void );
-DARKSDK DWORD	GetPixelPtr				( void );
+DARKSDK LPSTR	GetPixelPtr				( void );
 DARKSDK DWORD	GetPixelPitch			( void );
 
 #ifdef DARKSDK_COMPILE
@@ -126,7 +126,7 @@ DARKSDK DWORD	GetPixelPitch			( void );
 		void	dbBox					( int iLeft, int iTop, int iRight, int iBottom, DWORD dw1, DWORD dw2, DWORD dw3, DWORD dw4 );
 		void	dbLockPixels			( void );
 		void	dbUnLockPixels			( void );
-		DWORD	dbGetPixelsPointer		( void );
+		LPSTR	dbGetPixelsPointer		( void );
 		DWORD	dbGetPixelsPitch		( void );
 		void	dbCopyArea				( int iDestX, int iDestY, int iWidth, int iHeight, int iSourceX, int iSourceY );
 

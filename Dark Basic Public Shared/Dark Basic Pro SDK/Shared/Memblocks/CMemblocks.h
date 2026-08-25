@@ -31,9 +31,7 @@
 	#define DBPRO_GLOBAL static
 #endif
 
-#define SAFE_DELETE( p )       { if ( p ) { delete ( p );       ( p ) = nullptr; } }
-#define SAFE_RELEASE( p )      { if ( p ) { ( p )->Release ( ); ( p ) = nullptr; } }
-#define SAFE_DELETE_ARRAY( p ) { if ( p ) { delete [ ] ( p );   ( p ) = nullptr; } }
+#include "..\Core\macros.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +70,7 @@ DARKSDK LPSTR	ExtGetMemblockPtr			( int mbi );
 DARKSDK void	MakeMemblock				( int mbi, int size );
 DARKSDK void	DeleteMemblock				( int mbi );
 DARKSDK int		MemblockExist				( int mbi );
-DARKSDK DWORD	GetMemblockPtr				( int mbi );
+DARKSDK LPSTR	GetMemblockPtr				( int mbi );
 DARKSDK int		GetMemblockSize				( int mbi );
 DARKSDK void	CopyMemblock				( int mbiF, int mbiT, int posF, int posT, int size );
 DARKSDK void	WriteMemblockByte			( int mbi, int pos, int data );
@@ -92,8 +90,8 @@ DARKSDK void	CreateMemblockFromSound		( int mbi, int soundindex );
 DARKSDK void	CreateSoundFromMemblock		( int soundindex, int mbi );
 DARKSDK void	CreateMemblockFromImage		( int mbi, int imageid );
 DARKSDK void	CreateImageFromMemblock		( int imageid, int mbi );
-DARKSDK void	CreateMemblockFromArray		( int mbi, DWORD arrayptr );
-DARKSDK void	CreateArrayFromMemblock		( DWORD arrayptr, int mbi );
+DARKSDK void	CreateMemblockFromArray		( int mbi, DWORD_PTR arrayptr );
+DARKSDK void	CreateArrayFromMemblock		( DWORD_PTR arrayptr, int mbi );
 
 #ifdef DARKSDK_COMPILE
 		void	dbReturnMemblockPtrs		( LPVOID* pSizeArray, LPVOID* pDataArray );
@@ -107,7 +105,7 @@ DARKSDK void	CreateArrayFromMemblock		( DWORD arrayptr, int mbi );
 		void	dbMakeMemblock				( int mbi, int size );
 		void	dbDeleteMemblock			( int mbi );
 		int		dbMemblockExist				( int mbi );
-		DWORD	dbGetMemblockPtr			( int mbi );
+		LPSTR	dbGetMemblockPtr			( int mbi );
 		int		dbGetMemblockSize			( int mbi );
 		void	dbCopyMemblock				( int mbiF, int mbiT, int posF, int posT, int size );
 		void	dbWriteMemblockByte			( int mbi, int pos, int data );
@@ -127,8 +125,8 @@ DARKSDK void	CreateArrayFromMemblock		( DWORD arrayptr, int mbi );
 		void	dbMakeSoundFromMemblock		( int soundindex, int mbi );
 		void	dbMakeMemblockFromImage		( int mbi, int imageid );
 		void	dbMakeImageFromMemblock		( int imageid, int mbi );
-		void	dbMakeMemblockFromArray		( int mbi, DWORD arrayptr );
-		void	dbMakeArrayFromMemblock		( DWORD arrayptr, int mbi );
+		void	dbMakeMemblockFromArray		( int mbi, DWORD_PTR arrayptr );
+		void	dbMakeArrayFromMemblock		( DWORD_PTR arrayptr, int mbi );
 
 		// lee - 300706 - GDK fixes
 		void	dbWriteMemblockByte			( int mbi, int pos, unsigned char data );

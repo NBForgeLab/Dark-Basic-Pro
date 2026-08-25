@@ -172,7 +172,7 @@ DARKSDK DWORD_PTR MultiplayerGetPlayerName( DWORD_PTR pDestStr, int iID );
 DARKSDK DWORD			MultiplayerGetPlayerID						( int iID );
 DARKSDK DWORD			MultiplayerGetID							( void );
 
-DARKSDK	DWORD			MultiplayerGetIPAddress						( void );
+DARKSDK	DWORD_PTR		MultiplayerGetIPAddress						( void );
 
 DARKSDK	int				MultiplayerGetConnection					( void );
 DARKSDK int				MultiplayerGetQueueSize						( int );

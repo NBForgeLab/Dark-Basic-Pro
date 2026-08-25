@@ -147,7 +147,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_STRING32            "CREATE ANIMATED SPRITE%LSLLL%?CreateAnimatedSprite@@YAXHPADHHH@Z%Sprite Number, Filename, Across, Down, Image Number"
+    IDS_STRING32            "CREATE ANIMATED SPRITE%LSLLL%?CreateAnimatedSprite@@YAXHPEADHHH@Z%Sprite Number, Filename, Across, Down, Image Number"
     IDS_STRING33            "SET SPRITE TEXTURE COORD%LLFF%?SetTextureCoordinates@@YAXHHMM@Z%Sprite Number, Vertex Index, UValue, VValue"
     IDS_STRING34            "PLAY SPRITE%LLLL%?Play@@YAXHHHH@Z%Sprite Number, Start Frame, End Frame, Delay Value"
     IDS_STRING35            "SET SPRITE FRAME%LL%?SetFrame@@YAXHH@Z%Sprite Number, Frame Value"

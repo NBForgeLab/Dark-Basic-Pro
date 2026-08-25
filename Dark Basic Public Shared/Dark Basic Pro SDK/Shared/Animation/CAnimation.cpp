@@ -1906,7 +1906,7 @@ void RefreshD3DAnimation ( int iMode )
 
 void dbLoadAnimation ( char* szFilename, int iIndex )
 {
-	LoadAnimation ( ( DWORD ) szFilename, iIndex );
+	LoadAnimation ( ( DWORD_PTR ) szFilename, iIndex );
 }
 
 void dbDeleteAnimation ( int animindex )

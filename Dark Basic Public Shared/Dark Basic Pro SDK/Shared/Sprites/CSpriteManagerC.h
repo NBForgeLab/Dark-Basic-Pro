@@ -46,7 +46,7 @@ class CSpriteManager
 
 		bool  Add	        ( tagSpriteData* pData, int iID );
 		bool  Delete        ( int iID );
-		int   Count         ( void ) const          { return m_List.size();  }
+		int   Count         ( void ) const          { return static_cast<int>( m_List.size() );  }
 
 		void  DrawImmediate ( tagSpriteData* pData );
 

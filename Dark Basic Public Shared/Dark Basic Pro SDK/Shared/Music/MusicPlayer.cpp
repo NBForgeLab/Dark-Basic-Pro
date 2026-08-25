@@ -99,7 +99,7 @@ namespace DBP_Music
 					        IID_IGraphBuilder, (void **)&pGraphBuilder);
         if (SUCCEEDED(hr))
         {
-            DWORD dwLength = strlen(szFilename)+1;
+            DWORD dwLength = static_cast<DWORD>(strlen(szFilename))+1;
             wchar_t* pWideStr = new wchar_t[dwLength];
             MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, szFilename, -1, pWideStr, dwLength*2);
 

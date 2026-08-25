@@ -152,8 +152,8 @@ DARKSDK void 				RotateImage						( int iID, int iAngle );											// delete a
 DARKSDK int  				GetImageExistEx					( int iID );											// does image exist
 
 DARKSDK void  				SetImageColorKey					( int iR, int iG, int iB );		// set image color key
-DARKSDK DWORD 				LoadIcon					( LPSTR pFilename );
-DARKSDK void  				FreeIcon					( DWORD dwIconHandle );
+DARKSDK DWORD_PTR 			LoadIcon					( LPSTR pFilename );
+DARKSDK void  				FreeIcon					( DWORD_PTR dwIconHandle );
 
 DARKSDK void 				GetImageData				( int iID, DWORD* dwWidth, DWORD* dwHeight, DWORD* dwDepth, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
 DARKSDK void 				SetImageData				( int iID, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, LPSTR pData, DWORD dwDataSize );

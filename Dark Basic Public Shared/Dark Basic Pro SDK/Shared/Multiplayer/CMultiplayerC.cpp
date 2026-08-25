@@ -55,7 +55,7 @@ DBPRO_GLOBAL bool					gbAlwaysHaveFocus				= false;
 
 // Used to call memblockDLL for memblock return ptr function
 typedef int						( *MEMBLOCKS_GetMemblockExist   ) ( int );
-typedef DWORD					( *MEMBLOCKS_GetMemblockPtr   ) ( int );
+typedef LPSTR					( *MEMBLOCKS_GetMemblockPtr   ) ( int );
 typedef DWORD					( *MEMBLOCKS_GetMemblockSize  ) ( int );
 typedef void					( *MEMBLOCKS_MemblockFromMedia ) ( int, int );
 typedef void					( *MEMBLOCKS_MediaFromMemblock ) ( int, int );
@@ -161,7 +161,7 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 	#ifndef DARKSDK_COMPILE
 		// memblock DLL ptrs
 		g_Memblock_GetMemblockExist = ( MEMBLOCKS_GetMemblockExist ) GetProcAddress ( g_pGlob->g_Memblocks, "?MemblockExist@@YAHH@Z" );
-		g_Memblock_GetMemblockPtr = ( MEMBLOCKS_GetMemblockPtr ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAKH@Z" );
+		g_Memblock_GetMemblockPtr = ( MEMBLOCKS_GetMemblockPtr ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockPtr@@YAPEADH@Z" );
 		g_Memblock_GetMemblockSize = ( MEMBLOCKS_GetMemblockSize ) GetProcAddress ( g_pGlob->g_Memblocks, "?GetMemblockSize@@YAHH@Z" );
 		g_Memblock_MemblockFromImage = ( MEMBLOCKS_MemblockFromMedia ) GetProcAddress ( g_pGlob->g_Memblocks, "?CreateMemblockFromImage@@YAXHH@Z" );
 		g_Memblock_MemblockFromBitmap = ( MEMBLOCKS_MemblockFromMedia ) GetProcAddress ( g_pGlob->g_Memblocks, "?CreateMemblockFromBitmap@@YAXHH@Z" );
@@ -1426,7 +1426,7 @@ void AlwaysActiveOff(void)
 // New Multiplayer Commands
 //
 
-DARKSDK int MagicNetGame(DWORD lpGameName, DWORD lpPlayerName, int PlayerMax, int FlagNum )
+DARKSDK int MagicNetGame(DWORD_PTR lpGameName, DWORD_PTR lpPlayerName, int PlayerMax, int FlagNum )
 {
 	// Player Num is returned
 	int iPlayerNumber=0;
@@ -1703,7 +1703,7 @@ int dbNetGameNowHosting(void)
 
 int dbDefaultNetGame(char* lpGameName, char* lpPlayerName, int PlayerMax, int FlagNum )
 {
-	return MagicNetGame( ( DWORD ) lpGameName,  ( DWORD ) lpPlayerName,  PlayerMax, FlagNum );
+	return MagicNetGame( ( DWORD_PTR ) lpGameName,  ( DWORD_PTR ) lpPlayerName,  PlayerMax, FlagNum );
 }
 
 int dbNetBufferSize(void)

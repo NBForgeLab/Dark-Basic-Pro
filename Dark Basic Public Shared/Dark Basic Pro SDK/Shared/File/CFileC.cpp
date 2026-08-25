@@ -18,7 +18,7 @@
 #include ".\..\core\globstruct.h"
 #include "winioctl.h"
 #include "shlobj.h"
-#include ".\..\Core\SteamCheckForWorkshop.h"
+#include ".\..\Core\EncryptedFile.h"
 
 // 20091129 v75 - IRM - Provide automatically expanding buffer when reading strings
 #include <vector>
@@ -64,26 +64,26 @@ DBPRO_GLOBAL char						g_HardDiskLetters [ MAX_HARD_DRIVE ] [ 4 ] =
 																						"u:\\",	"v:\\",	"w:\\",	"x:\\",	"y:\\",	"z:\\"
 																					};
 DBPRO_GLOBAL int						g_iHardDriveCount = 0;
-DBPRO_GLOBAL HANDLE						ghExecuteFileProcess			= NULL;
+DBPRO_GLOBAL HANDLE						ghExecuteFileProcess			= nullptr;
 #define					MAX_FILES	64
-DBPRO_GLOBAL HANDLE						File[MAX_FILES];
-DBPRO_GLOBAL BOOL						FileEOF[MAX_FILES];
-DBPRO_GLOBAL LPSTR						pVirtFileEncrypted[MAX_FILES];
-DBPRO_GLOBAL char						filetext[_MAX_PATH];
-DBPRO_GLOBAL struct _finddata_t			filedata;
-DBPRO_GLOBAL intptr_t					hInternalFile					= NULL;
+DBPRO_GLOBAL HANDLE						File[MAX_FILES] = {};
+DBPRO_GLOBAL BOOL						FileEOF[MAX_FILES] = {};
+DBPRO_GLOBAL char*						pVirtFileEncrypted[MAX_FILES] = {};
+DBPRO_GLOBAL char						filetext[_MAX_PATH] = {};
+DBPRO_GLOBAL struct _finddata_t			filedata = {};
+DBPRO_GLOBAL intptr_t					hInternalFile					= -1;
 DBPRO_GLOBAL int						FileReturnValue					= -1;
-DBPRO_GLOBAL bool						g_bCreateChecklistNow;
-DBPRO_GLOBAL DWORD						g_dwMaxStringSizeInEnum;
-DBPRO_GLOBAL char						m_pWorkString[1024];
-DBPRO_GLOBAL GlobStruct*				g_pGlob							= NULL;
-DBPRO_GLOBAL PTR_FuncCreateStr			g_pCreateDeleteStringFunction	= NULL;
+DBPRO_GLOBAL bool						g_bCreateChecklistNow           = false;
+DBPRO_GLOBAL DWORD						g_dwMaxStringSizeInEnum         = 0;
+DBPRO_GLOBAL char						m_pWorkString[1024]             = {};
+DBPRO_GLOBAL GlobStruct*				g_pGlob							= nullptr;
+DBPRO_GLOBAL PTR_FuncCreateStr			g_pCreateDeleteStringFunction	= nullptr;
 
-DBPRO_GLOBAL RetVoidMakeMemblock		g_MEM_Make						= NULL;
-DBPRO_GLOBAL RetVoidFreeMemblock		g_MEM_Free						= NULL;
-DBPRO_GLOBAL RetVoidGetMemblockSize		g_MEM_GetSize					= NULL;
-DBPRO_GLOBAL RetVoidSetMemblockSize		g_MEM_SetSize					= NULL;
-DBPRO_GLOBAL RetVoidGetMemblockPtr		g_MEM_GetPtr					= NULL;
+DBPRO_GLOBAL RetVoidMakeMemblock		g_MEM_Make						= nullptr;
+DBPRO_GLOBAL RetVoidFreeMemblock		g_MEM_Free						= nullptr;
+DBPRO_GLOBAL RetVoidGetMemblockSize		g_MEM_GetSize					= nullptr;
+DBPRO_GLOBAL RetVoidSetMemblockSize		g_MEM_SetSize					= nullptr;
+DBPRO_GLOBAL RetVoidGetMemblockPtr		g_MEM_GetPtr					= nullptr;
 
 // Memblock Array Strcutre
 //#define					MEMBLOCKSIZE 258
@@ -398,6 +398,8 @@ DARKSDK bool rFindFileInSub(char* currentpath, char* searchfile, char* returnpat
 
 DARKSDK BOOL DB_FindFileInSubPath(char* filename, char* returnpath)
 {
+	BOOL bResult = FALSE;
+
 	// Get current directory
 	char path[256];
 	_getcwd(path, 256);
@@ -486,7 +488,7 @@ DARKSDK BOOL DB_PathExist(char* OriginalPathname)
 		return FALSE;
 
 	// If file a directory
-	if(Attribs | FILE_ATTRIBUTE_DIRECTORY)
+	if(Attribs & FILE_ATTRIBUTE_DIRECTORY)
 		return TRUE;
 
 	// Not a directory
@@ -1051,7 +1053,7 @@ DARKSDK void WriteByteToFile( DWORD_PTR pFilename, int iPos, int iByte )
 
 			// Write back out again
 			HANDLE hwritefile = CreateFile(FilenameString, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if(hreadfile!=INVALID_HANDLE_VALUE)
+			if(hwritefile!=INVALID_HANDLE_VALUE)
 			{
 				// Write mem to file
 				DWORD byteswritten;
@@ -1382,7 +1384,7 @@ DARKSDK int ReadByte( int f )
 		if(File[f]!=NULL)
 		{
 			// Read from file
-			unsigned char data;
+			uint8_t data;
 			if(ReadFile(File[f], &data, sizeof(data), &bytes, NULL)==0)
 				RunTimeWarning(RUNTIMEERROR_CANNOTREADFROMFILE);
 			if(bytes==0) FileEOF[f]=TRUE;
@@ -1407,7 +1409,7 @@ DARKSDK int ReadWord( int f )
 		if(File[f]!=NULL)
 		{
 			// Read from file
-			WORD data;
+			uint16_t data;
 			if(ReadFile(File[f], &data, sizeof(data), &bytes, NULL)==0)
 				RunTimeWarning(RUNTIMEERROR_CANNOTREADFROMFILE);
 			if(bytes==0) FileEOF[f]=TRUE;
@@ -1493,7 +1495,7 @@ DARKSDK DWORD ReadString( int f, DWORD_PTR pDestStr )
 	{
 		if(File[f]!=NULL)
 		{
-			unsigned char c=0;
+			uint8_t c=0;
             DWORD bytes;
             std::vector<char> WorkString;
 
@@ -1774,7 +1776,7 @@ DARKSDK void WriteByte( int f, int iValue )
 		if(File[f]!=NULL)
 		{
 			// Write to file
-			unsigned char data = (unsigned char)iValue;
+			uint8_t data = static_cast<uint8_t>(iValue);
 			if(WriteFile(File[f], &data, sizeof(data), &bytes, NULL)==0)
 				RunTimeWarning(RUNTIMEERROR_CANNOTWRITETOFILE);
 		}
@@ -1793,7 +1795,7 @@ DARKSDK void WriteWord( int f, int iValue )
 		if(File[f]!=NULL)
 		{
 			// Write to file
-			WORD data = (WORD)iValue;
+			uint16_t data = static_cast<uint16_t>(iValue);
 			if(WriteFile(File[f], &data, sizeof(data), &bytes, NULL)==0)
 				RunTimeWarning(RUNTIMEERROR_CANNOTWRITETOFILE);
 		}
@@ -2489,10 +2491,10 @@ DWORD dbReadFilemapValue ( char* pFilemapname )
 
 char* dbReadFilemapString ( char* pFilemapname )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = ReadFilemapString ( NULL, (DWORD_PTR)pFilemapname );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = ReadFilemapString ( 0, reinterpret_cast<DWORD_PTR>(pFilemapname) );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }
@@ -2626,20 +2628,20 @@ void dbMakeFileFromMemblock	( int f, int mbi )
 
 char* dbGetDir ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = GetDir ( NULL );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = GetDir ( 0 );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }
 
 char* dbGetFileName ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = GetFileName ( NULL );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = GetFileName ( 0 );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }
@@ -2651,37 +2653,37 @@ int dbGetFileType ( void )
 
 char* dbGetFileDate ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = GetFileDate ( NULL );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = GetFileDate ( 0 );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }
 
 char* dbGetFileCreation ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = GetFileCreation ( NULL );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = GetFileCreation ( 0 );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }
 
 int dbFileExist ( char* pFilename )
 {
-	return FileExist ( (DWORD_PTR)pFilename );
+	return FileExist ( reinterpret_cast<DWORD_PTR>(pFilename) );
 }
 
 int dbFileSize ( char* pFilename )
 {
-	return FileSize ( (DWORD_PTR)pFilename );
+	return FileSize ( reinterpret_cast<DWORD_PTR>(pFilename) );
 }
 
 int dbPathExist ( char* pFilename )
 {
-	return PathExist ( (DWORD_PTR)pFilename );
+	return PathExist ( reinterpret_cast<DWORD_PTR>(pFilename) );
 }
 
 int dbFileOpen ( int f )
@@ -2696,20 +2698,20 @@ int dbFileEnd ( int f )
 
 char* dbAppname ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Appname ( NULL );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = Appname ( 0 );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }
 
 char* dbWindir ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Windir ( NULL );
+	static char* szReturn = nullptr;
+	DWORD_PTR    dwReturn = Windir ( 0 );
 
-	szReturn = ( char* ) dwReturn;
+	szReturn = reinterpret_cast<char*>(dwReturn);
 
 	return szReturn;
 }

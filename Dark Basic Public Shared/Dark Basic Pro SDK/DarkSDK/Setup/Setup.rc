@@ -107,7 +107,7 @@ BEGIN
     IDS_STRING1             "SCREEN FPS[%L%?GetDisplayFPS@@YAHXZ"
     IDS_STRING2             "LOCK BACKBUFFER%0%?LockBackbuffer@@YAXXZ"
     IDS_STRING3             "UNLOCK BACKBUFFER%0%?UnlockBackbuffer@@YAXXZ"
-    IDS_STRING4             "GET BACKBUFFER PTR[%L%?GetBackbufferPtr@@YAKXZ"
+    IDS_STRING4             "GET BACKBUFFER PTR[%R%?GetBackbufferPtr@@YA_KXZ"
     IDS_STRING5             "GET BACKBUFFER WIDTH[%L%?GetBackbufferWidth@@YAHXZ"
     IDS_STRING6             "GET BACKBUFFER HEIGHT[%L%?GetBackbufferHeight@@YAHXZ"
     IDS_STRING7             "GET BACKBUFFER DEPTH[%L%?GetBackbufferDepth@@YAHXZ"

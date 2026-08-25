@@ -48,7 +48,7 @@
 #if DB_PRO
  #define SDK_BOOL int
  #define SDK_FLOAT DWORD
- #define SDK_LPSTR DWORD
+ #define SDK_LPSTR DWORD_PTR
  #define SDK_RETFLOAT(f) *(DWORD*)&f 
  #define SDK_RETSTR DWORD_PTR pDestStr,
 #else

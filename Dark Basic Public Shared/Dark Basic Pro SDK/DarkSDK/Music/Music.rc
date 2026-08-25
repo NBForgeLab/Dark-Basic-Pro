@@ -112,7 +112,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_STRING1             "LOAD MUSIC%SL%?LoadMusic@@YAXPADH@Z%Filename,Music Number"
+    IDS_STRING1             "LOAD MUSIC%SL%?LoadMusic@@YAXPEADH@Z%Filename,Music Number"
     IDS_STRING2             "LOOP MUSIC%L%?LoopMusic@@YAXH@Z%Music Number"
     IDS_STRING3             "DELETE MUSIC%L%?DeleteMusic@@YAXH@Z%Music Number"
     IDS_STRING4             "LOAD CDMUSIC%LL%?LoadCDMusic@@YAXHH@Z%Track Number,Music Number"

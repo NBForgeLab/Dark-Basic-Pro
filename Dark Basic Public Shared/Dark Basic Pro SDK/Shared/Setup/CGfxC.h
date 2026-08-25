@@ -246,7 +246,7 @@ DARKSDK void  				WindowToBack						( DWORD_PTR pTitleString );
 
 DARKSDK void  				LockBackbuffer						( void );
 DARKSDK void  				UnlockBackbuffer					( void );
-DARKSDK DWORD 				GetBackbufferPtr					( void );
+DARKSDK DWORD_PTR 			GetBackbufferPtr					( void );
 DARKSDK int   				GetBackbufferWidth					( void );
 DARKSDK int   				GetBackbufferHeight					( void );
 DARKSDK int   				GetBackbufferDepth					( void );
@@ -312,7 +312,7 @@ DARKSDK int					GetDirectXRefreshRate					( void );
 
 		void  				dbLockBackbuffer					( void );
 		void  				dbUnlockBackbuffer					( void );
-		DWORD 				dbGetBackbufferPtr					( void );
+		DWORD_PTR 			dbGetBackbufferPtr					( void );
 		int   				dbGetBackbufferWidth				( void );
 		int   				dbGetBackbufferHeight				( void );
 		int   				dbGetBackbufferDepth				( void );

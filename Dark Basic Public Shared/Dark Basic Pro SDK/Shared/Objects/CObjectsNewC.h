@@ -373,7 +373,7 @@ DARKSDK SDK_FLOAT	GetVertexDataU				( int iVertex );
 DARKSDK SDK_FLOAT	GetVertexDataU				( int iVertex, int iIndex );
 DARKSDK SDK_FLOAT	GetVertexDataV				( int iVertex );
 DARKSDK SDK_FLOAT	GetVertexDataV				( int iVertex, int iIndex );
-DARKSDK DWORD		GetVertexDataPtr			( void );
+DARKSDK DWORD_PTR	GetVertexDataPtr			( void );
 
 // Misc
 DARKSDK void		SetFastBoundsCalculation	( int iMode );
@@ -482,7 +482,7 @@ DARKSDK SDK_FLOAT GetLimbYDirection ( int iID, int iLimbID );
 DARKSDK SDK_FLOAT GetLimbZDirection ( int iID, int iLimbID );
 DARKSDK int GetLimbTextureEx ( int iID, int iLimbID, int iTextureStage );
 DARKSDK int GetLimbTexture ( int iID, int iLimbID );
-DARKSDK int GetLimbTexturePtr ( int iID, int iLimbID );
+DARKSDK DWORD_PTR GetLimbTexturePtr ( int iID, int iLimbID );
 DARKSDK int GetLimbVisible ( int iID, int iLimbID );
 DARKSDK int GetLimbLink ( int iID, int iLimbID );
 DARKSDK int GetLimbPolygonCount ( int iID, int iLimbID );
@@ -500,7 +500,7 @@ DARKSDK int   GetStatistic				( int iCode );
 DARKSDK int   GetTNLAvailable			( void );
 
 // new limb commands
-DARKSDK SDK_LPSTR	GetLimbName					  ( DWORD pDestStr, int iID, int iLimbID );
+DARKSDK SDK_LPSTR	GetLimbName					  ( SDK_RETSTR int iID, int iLimbID );
 DARKSDK int			GetLimbCount				  ( int iID );
 DARKSDK SDK_FLOAT	GetLimbScaleX				  ( int iID, int iLimbID );
 DARKSDK SDK_FLOAT	GetLimbScaleY				  ( int iID, int iLimbID );

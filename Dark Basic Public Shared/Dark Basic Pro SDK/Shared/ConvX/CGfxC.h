@@ -224,7 +224,7 @@ DARKSDK HWND				GetWindowHandle						( void );
 
 DARKSDK void  				LockBackbuffer						( void );
 DARKSDK void  				UnlockBackbuffer					( void );
-DARKSDK DWORD 				GetBackbufferPtr					( void );
+DARKSDK DWORD_PTR 			GetBackbufferPtr					( void );
 DARKSDK int   				GetBackbufferWidth					( void );
 DARKSDK int   				GetBackbufferHeight					( void );
 DARKSDK int   				GetBackbufferDepth					( void );

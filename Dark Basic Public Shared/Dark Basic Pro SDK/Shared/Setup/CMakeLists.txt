@@ -1,6 +1,7 @@
 project(DBPPluginSetup LANGUAGES C CXX)
 
 set(SETUP_SOURCES
+    "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDK/Setup/Setup.rc"
     CGfxC.cpp
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core/globstruct.cpp"
     "${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error/CError.cpp"

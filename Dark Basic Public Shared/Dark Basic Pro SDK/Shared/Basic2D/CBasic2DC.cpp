@@ -785,9 +785,9 @@ DARKSDK void Dot ( int iX, int iY, DWORD dwColor )
 	}
 }
 
-DARKSDK DWORD GetPixelPtr ( void )
+DARKSDK LPSTR GetPixelPtr ( void )
 {
-	return (DWORD)m_pData;
+	return (LPSTR)m_pData;
 }
 
 DARKSDK DWORD GetPixelPitch ( void )
@@ -946,7 +946,7 @@ void dbUnLockPixels ( void )
 	Unlock ( );
 }
 
-DWORD dbGetPixelsPointer ( void )
+LPSTR dbGetPixelsPointer ( void )
 {
 	return GetPixelPtr ( );
 }

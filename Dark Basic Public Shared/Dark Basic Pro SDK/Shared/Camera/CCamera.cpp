@@ -3,7 +3,7 @@
 CCamera::CCamera ( CCameraManager* pCameraManager )
 {
 	m_CameraManager = pCameraManager;
-	m_ptr           = NULL;
+	m_ptr           = nullptr;
 }
 
 CCamera::~CCamera ( )
@@ -13,10 +13,10 @@ CCamera::~CCamera ( )
 
 bool CCamera::UpdatePtr ( int iID )
 {
-	m_ptr  = NULL;
-	m_ptr  = m_CameraManager->GetData ( iID );
+	m_ptr = nullptr;
+	m_ptr = m_CameraManager->GetData ( iID );
 
-	if ( m_ptr == NULL )
+	if ( m_ptr == nullptr )
 		return false;
 
 	return true;

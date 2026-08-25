@@ -7,6 +7,7 @@
 // INCLUDE COMMON ////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 #include "CommonC.h"
+#include <cstdint>
 
 // hacked in for now to get to see shadow mapping
 #include "ShadowMapping\cShadowMaps.h"
@@ -4406,7 +4407,7 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 						LPVOID pIndexSourceData = pMesh->pIndices;
 						for ( DWORD i=0; i<pMesh->dwIndexCount; i++ )
 						{
-							WORD wReadAs16BIT = *((WORD*)pIndexSourceData+i);
+							uint16_t wReadAs16BIT = *((WORD*)pIndexSourceData+i);
 							*((DWORD*)pDestIndexPtr+i) = pStampBufferPtr->dwVertexCount + wReadAs16BIT;
 						}
 					}

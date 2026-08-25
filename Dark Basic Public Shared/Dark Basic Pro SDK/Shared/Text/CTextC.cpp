@@ -1,5 +1,13 @@
 #include "ctextc.h"
-#include "stdio.h"
+#include <cstdio>
+#include <cstring>
+#include <cstdint>
+#include <cstdlib>
+#include <bit>
+#include <cctype>
+#include <algorithm>
+#include <string>
+#include <string_view>
 #include ".\..\error\cerror.h"
 #include ".\..\core\globstruct.h"
 
@@ -15,32 +23,32 @@
 typedef IDirect3DDevice9* ( *GFX_GetDirect3DDevicePFN ) ( void );
 
 // main globals
-DBPRO_GLOBAL LPDIRECT3D9				m_pDX								= NULL;					// pointer to dx
-DBPRO_GLOBAL LPDIRECT3DDEVICE9			m_pD3D								= NULL;					// pointer to direct3d interface
+DBPRO_GLOBAL LPDIRECT3D9				m_pDX								= nullptr;				// pointer to dx
+DBPRO_GLOBAL LPDIRECT3DDEVICE9			m_pD3D								= nullptr;				// pointer to direct3d interface
 DBPRO_GLOBAL D3DFORMAT					m_FontFormat						= D3DFMT_UNKNOWN;		// default format
-DBPRO_GLOBAL TCHAR						m_strFontName [ 80 ]				= "";					// font name
-DBPRO_GLOBAL DWORD						m_dwFontHeight						= 0;					// font height
-DBPRO_GLOBAL DWORD						m_dwFontFlags						= 0;					// font flags
-DBPRO_GLOBAL LPDIRECT3DTEXTURE9			m_pTexture							= NULL;					// texture
-DBPRO_GLOBAL LPDIRECT3DVERTEXBUFFER9	m_pVB								= NULL;					// vertex buffer
-DBPRO_GLOBAL DWORD						m_dwTexWidth						= 0;					// texture width
-DBPRO_GLOBAL DWORD						m_dwTexHeight						= 0;					// texture height
+DBPRO_GLOBAL TCHAR						m_strFontName [ 80 ]				= {};					// font name
+DBPRO_GLOBAL uint32_t					m_dwFontHeight						= 0;					// font height
+DBPRO_GLOBAL uint32_t					m_dwFontFlags						= 0;					// font flags
+DBPRO_GLOBAL LPDIRECT3DTEXTURE9			m_pTexture							= nullptr;				// texture
+DBPRO_GLOBAL LPDIRECT3DVERTEXBUFFER9	m_pVB								= nullptr;				// vertex buffer
+DBPRO_GLOBAL uint32_t					m_dwTexWidth						= 0;					// texture width
+DBPRO_GLOBAL uint32_t					m_dwTexHeight						= 0;					// texture height
 DBPRO_GLOBAL FLOAT						m_fTextScale						= 0.0f;					// text scale
-DBPRO_GLOBAL FLOAT						m_fTexCoords [ 256 - 32 ] [ 4 ];							// texture coods
-DBPRO_GLOBAL int						m_szTexWidth [ 256 - 32 ];									// letter sizes
-DBPRO_GLOBAL int						m_szTexHeight [ 256 - 32 ];									// letter sizes
-DBPRO_GLOBAL IDirect3DStateBlock9*		m_pSavedStateBlock					= NULL;					// dx8->dx9
-DBPRO_GLOBAL IDirect3DStateBlock9*		m_pDrawTextStateBlock				= NULL;					// state block
-DBPRO_GLOBAL tagObjectPos*				m_pPosText								= NULL;					// position pointer
-DBPRO_GLOBAL bool						GDI_TEXT							= 0;					// text type
-DBPRO_GLOBAL PTR_FuncCreateStr			g_pCreateDeleteStringFunction		= NULL;					// delete string
-DBPRO_GLOBAL DWORD						dwDEFAULTCHARSET					= ANSI_CHARSET;			// character set
-DBPRO_GLOBAL HFONT						g_hRetainRawTextWriteFont			= NULL;					// raw font
+DBPRO_GLOBAL FLOAT						m_fTexCoords [ 256 - 32 ] [ 4 ]		= {};					// texture coods
+DBPRO_GLOBAL int						m_szTexWidth [ 256 - 32 ]			= {};					// letter sizes
+DBPRO_GLOBAL int						m_szTexHeight [ 256 - 32 ]			= {};					// letter sizes
+DBPRO_GLOBAL IDirect3DStateBlock9*		m_pSavedStateBlock					= nullptr;				// dx8->dx9
+DBPRO_GLOBAL IDirect3DStateBlock9*		m_pDrawTextStateBlock				= nullptr;				// state block
+DBPRO_GLOBAL tagObjectPos*				m_pPosText							= nullptr;				// position pointer
+DBPRO_GLOBAL bool						GDI_TEXT							= false;				// text type
+DBPRO_GLOBAL PTR_FuncCreateStr			g_pCreateDeleteStringFunction		= nullptr;				// delete string
+DBPRO_GLOBAL uint32_t					dwDEFAULTCHARSET					= ANSI_CHARSET;			// character set
+DBPRO_GLOBAL HFONT						g_hRetainRawTextWriteFont			= nullptr;				// raw font
 DBPRO_GLOBAL bool						g_bWideCharacterSet					= false;				// unicode
 
 // font properties
-DBPRO_GLOBAL DWORD						m_dwColor							= 0;					// colour
-DBPRO_GLOBAL DWORD						m_dwBKColor							= 0;					// bk colour
+DBPRO_GLOBAL uint32_t					m_dwColor							= 0;					// colour
+DBPRO_GLOBAL uint32_t					m_dwBKColor							= 0;					// bk colour
 DBPRO_GLOBAL bool						m_bTextBold							= false;				// bold flag
 DBPRO_GLOBAL bool						m_bTextItalic						= false;				// italic flag
 DBPRO_GLOBAL bool						m_bTextOpaque						= false;				// bold flag
@@ -50,17 +58,17 @@ DBPRO_GLOBAL int						m_iY								= 0;					// y pos
 
 // local checklist work vars
 DBPRO_GLOBAL bool						g_bCreateChecklistNow				= false;				// create checklist
-DBPRO_GLOBAL DWORD						g_dwMaxStringSizeInEnum				= 0;					// maximum string size
-DBPRO_GLOBAL DWORD						m_dwWorkStringSize					= 0;					// string size
-DBPRO_GLOBAL LPSTR						m_pWorkString						= NULL;					// work string
-DBPRO_GLOBAL LPSTR                      m_szTokenString                     = NULL;                 // splitting by token
-DBPRO_GLOBAL DWORD                      m_dwTokenStringSize                 = 0;
+DBPRO_GLOBAL uint32_t					g_dwMaxStringSizeInEnum				= 0;					// maximum string size
+DBPRO_GLOBAL uint32_t					m_dwWorkStringSize					= 0;					// string size
+DBPRO_GLOBAL char*						m_pWorkString						= nullptr;				// work string
+DBPRO_GLOBAL char*						m_szTokenString                     = nullptr;              // splitting by token
+DBPRO_GLOBAL uint32_t					m_dwTokenStringSize                 = 0;
 
 // function pointers
-DBPRO_GLOBAL HINSTANCE					g_GFX								= 0;					// for dll loading
-DBPRO_GLOBAL GFX_GetDirect3DDevicePFN	g_GFX_GetDirect3DDevice				= NULL;					// get pointer to D3D device
+DBPRO_GLOBAL HINSTANCE					g_GFX								= nullptr;				// for dll loading
+DBPRO_GLOBAL GFX_GetDirect3DDevicePFN	g_GFX_GetDirect3DDevice				= nullptr;				// get pointer to D3D device
 
-DBPRO_GLOBAL GlobStruct*				g_pGlob								= NULL;					// glob struct
+DBPRO_GLOBAL GlobStruct*				g_pGlob								= nullptr;				// glob struct
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -75,27 +83,107 @@ bool UpdateTextPtr ( int iID )
 	return UpdatePtr ( iID );
 }
 
-DARKSDK void ValidateWorkStringBySize ( DWORD dwSize )
+DARKSDK void ValidateWorkStringBySize ( uint32_t dwSize )
 {
-    // u74b7 - delete m_pWorkString as an array
 	// free string that is too small
 	if ( m_pWorkString )
-		if ( m_dwWorkStringSize<dwSize )
-			SAFE_DELETE_ARRAY(m_pWorkString);
+	{
+		if ( m_dwWorkStringSize < dwSize )
+		{
+			delete[] m_pWorkString;
+			m_pWorkString = nullptr;
+		}
+	}
 
 	// create new work string of good size
-	if ( m_pWorkString==NULL )
+	if ( m_pWorkString == nullptr )
 	{
-		m_dwWorkStringSize = dwSize+1;
+		m_dwWorkStringSize = dwSize + 1;
 		m_pWorkString = new char[m_dwWorkStringSize];
 		memset ( m_pWorkString, 0, m_dwWorkStringSize );
 	}
 }
 
-DARKSDK void ValidateWorkString(LPSTR pString)
+DARKSDK void ValidateWorkString(const char* pString)
 {
 	// Size from string
-	if ( pString ) ValidateWorkStringBySize ( strlen(pString)+1 );
+	if ( pString ) ValidateWorkStringBySize ( static_cast<uint32_t>(strlen(pString) + 1) );
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+// MODERN C++20 SUPPORT //////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////
+
+namespace dbp::text
+{
+    // Bounds-checked replacement for the unsafe strcpy/sprintf writes into the
+    // legacy engine work buffer (m_pWorkString). Guarantees a null-terminated
+    // string and never overruns the allocated capacity. ABI/behavior preserved.
+    inline void set_work_string( std::string_view value ) noexcept
+    {
+        ValidateWorkStringBySize( static_cast<uint32_t>( value.size() + 1 ) );
+        if ( m_pWorkString )
+        {
+            if ( !value.empty() )
+                std::memcpy( m_pWorkString, value.data(), value.size() );
+            m_pWorkString[ value.size() ] = '\0';
+        }
+    }
+
+    // Single tiny scope-exit guard.
+    template <typename F>
+    struct ScopeGuard
+    {
+        F m_cleanup;
+        explicit ScopeGuard( F cleanup ) noexcept : m_cleanup( cleanup ) {}
+        ~ScopeGuard() noexcept { m_cleanup(); }
+        ScopeGuard( const ScopeGuard& ) = delete;
+        ScopeGuard& operator=( const ScopeGuard& ) = delete;
+    };
+    template <typename F> ScopeGuard( F ) -> ScopeGuard<F>;
+
+    // Windows character-set identifiers. Enumerator values mirror the Win32
+    // *_CHARSET macros exactly, so comparing against the engine's stored charset
+    // integers (dwDEFAULTCHARSET / m_iTextCharSet) stays ABI-safe.
+    enum class CharSet : uint32_t
+    {
+        Ansi        = ANSI_CHARSET,         // 0
+        ShiftJis    = SHIFTJIS_CHARSET,     // 128
+        Hangul      = HANGUL_CHARSET,       // 129
+        Gb2312      = GB2312_CHARSET,       // 134
+        ChineseBig5 = CHINESEBIG5_CHARSET,  // 136
+    };
+
+    // Packed text-style bits returned by TextStyle()/dbTextStyle().
+    // Italic = 1, Bold = 2, matching the legacy bit layout exactly.
+    enum class TextStyleFlag : int
+    {
+        None   = 0,
+        Italic = 1,
+        Bold   = 2,
+    };
+
+    // Tokenizer continuation state for FirstToken/NextToken. The engine drives
+    // these commands single-threaded, so a single shared scan pointer matches
+    // strtok's original contract without using the C-runtime's hidden global.
+    static char* g_tokenCtx = nullptr;
+
+    // strtok-equivalent tokenizer with explicit continuation state.
+    static char* next_token( char* str, const char* delim )
+    {
+        if ( str ) g_tokenCtx = str;
+        if ( !g_tokenCtx || !*g_tokenCtx ) { g_tokenCtx = nullptr; return nullptr; }
+
+        // skip leading delimiters
+        while ( *g_tokenCtx && std::strchr( delim, *g_tokenCtx ) ) ++g_tokenCtx;
+        if ( !*g_tokenCtx ) { g_tokenCtx = nullptr; return nullptr; }
+
+        char* start = g_tokenCtx;
+        while ( *g_tokenCtx && !std::strchr( delim, *g_tokenCtx ) ) ++g_tokenCtx;
+        if ( *g_tokenCtx ) { *g_tokenCtx = '\0'; ++g_tokenCtx; }
+        else { g_tokenCtx = nullptr; }
+        return start;
+    }
 }
 
 DARKSDK void ValidateDefaultTextureForFont(void)
@@ -190,14 +278,16 @@ DARKSDK void TextConstructor ( HINSTANCE hSetup )
 	// now setup font construction using preset defaults
 	//strcpy ( m_strFontName, "arial" );			// attempt to use arial font
 	// mike - 250604 - default to fixedsys font
-	strcpy ( m_strFontName, "fixedsys" );			// attempt to use arial font
+	// Bounded copy into the 80-char font-name ABI buffer (replaces unsafe strcpy)
+	memset ( m_strFontName, 0, sizeof ( m_strFontName ) );
+	memcpy ( m_strFontName, "fixedsys", sizeof ( "fixedsys" ) - 1 );
     m_dwFontHeight         = 12;				// use point size 12
 	m_dwFontFlags          = 0;					// no flags initially
 	m_fTextScale		   = 1.0f;				// normal scale
 	m_iTextCharSet		   = 0;
 
-    m_pTexture             = NULL;				// set texture pointer to null
-    m_pVB                  = NULL;				// set vertex buffer to null
+    m_pTexture             = nullptr;				// set texture pointer to null
+    m_pVB                  = nullptr;				// set vertex buffer to null
 
 	// create state blocks
 	m_pD3D->CreateStateBlock  ( D3DSBT_ALL, &m_pSavedStateBlock );
@@ -212,9 +302,8 @@ DARKSDK void TextConstructor ( HINSTANCE hSetup )
 	m_iY			       = 0;										// initial y pos
 
 	// setup position
-	SAFE_DELETE(m_pPosText);
-	m_pPosText = new tagObjectPos;
-	memset ( m_pPosText, 0, sizeof ( tagObjectPos ) );
+	delete m_pPosText;
+	m_pPosText = new tagObjectPos();
 
 	if ( !m_pPosText )
 		Error ( "Unable to allocate memory for positional data in text library" );
@@ -232,21 +321,21 @@ DARKSDK void TextConstructor ( HINSTANCE hSetup )
     {
         m_dwTokenStringSize = 100;
         m_szTokenString = new char[ 100 ];
-		memset ( m_szTokenString, 0, sizeof(m_szTokenString) );
+		memset ( m_szTokenString, 0, m_dwTokenStringSize );
     }
 }
 
 DARKSDK int RgbR ( DWORD iRGB )
 {
-	return (int)((iRGB & 0x00FF0000) >> 16);
+	return static_cast<int>((iRGB & 0x00FF0000) >> 16);
 }
 DARKSDK  int RgbG ( DWORD iRGB )
 {
-	return (int)((iRGB & 0x0000FF00) >> 8);
+	return static_cast<int>((iRGB & 0x0000FF00) >> 8);
 }
 DARKSDK  int RgbB ( DWORD iRGB )
 {
-	return (int)((iRGB & 0x000000FF) );
+	return static_cast<int>((iRGB & 0x000000FF) );
 }
 
 DARKSDK int GetBitDepthFromFormat(D3DFORMAT Format)
@@ -278,26 +367,26 @@ DARKSDK int GetBitDepthFromFormat(D3DFORMAT Format)
 // Realtext Functions
 DARKSDK HFONT DB_SetRealTextFont(HDC hdc, DWORD textstyle, DWORD bItalicFlag, int fontsize, char* fontname, int inter)
 {
-	HFONT hFont = NULL;
+	HFONT hFont = nullptr;
 	if(inter==0)
 	{
 		// Get Real(Available) Font Height Used
 		if(dwDEFAULTCHARSET==ANSI_CHARSET)
 		{
-			hFont = CreateFont( (int)(fontsize*m_fTextScale), 0, 0, 0, textstyle, bItalicFlag, FALSE, FALSE, dwDEFAULTCHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY,VARIABLE_PITCH, fontname);
+			hFont = CreateFont( static_cast<int>(fontsize*m_fTextScale), 0, 0, 0, textstyle, bItalicFlag, false, false, dwDEFAULTCHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY,VARIABLE_PITCH, fontname);
 		}
 		else
 		{
 			int FontHeight=0;
-			FontHeight=-MulDiv(fontsize, (int)(GetDeviceCaps(hdc, LOGPIXELSY) * m_fTextScale), 72); 
-			hFont = CreateFont( FontHeight, 0, 0, 0, textstyle, bItalicFlag, FALSE, FALSE, dwDEFAULTCHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY,VARIABLE_PITCH, fontname);
+			FontHeight=-MulDiv(fontsize, static_cast<int>(GetDeviceCaps(hdc, LOGPIXELSY) * m_fTextScale), 72); 
+			hFont = CreateFont( FontHeight, 0, 0, 0, textstyle, bItalicFlag, false, false, dwDEFAULTCHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY,VARIABLE_PITCH, fontname);
 			
 		}
 	}
 	else
 	{
 		hFont = CreateFont(	fontsize, 0, 0, 0,
-									textstyle, bItalicFlag, FALSE, FALSE,
+									textstyle, bItalicFlag, false, false,
 									inter,
 									OUT_DEFAULT_PRECIS,
 									CLIP_DEFAULT_PRECIS,
@@ -305,14 +394,17 @@ DARKSDK HFONT DB_SetRealTextFont(HDC hdc, DWORD textstyle, DWORD bItalicFlag, in
 									VARIABLE_PITCH,
 									fontname);
 
-		if(dwDEFAULTCHARSET!=(DWORD)inter)
+		if(dwDEFAULTCHARSET!=static_cast<DWORD>(inter))
 		{
 			dwDEFAULTCHARSET=inter;
 		}
 	}
 
 	// work out if wide character text (japanese, korean, chinese/trad)
-	if ( dwDEFAULTCHARSET==128 || dwDEFAULTCHARSET==129 || dwDEFAULTCHARSET==134 || dwDEFAULTCHARSET==136 ) 
+	if ( dwDEFAULTCHARSET == static_cast<uint32_t>( dbp::text::CharSet::ShiftJis )    ||
+	     dwDEFAULTCHARSET == static_cast<uint32_t>( dbp::text::CharSet::Hangul )     ||
+	     dwDEFAULTCHARSET == static_cast<uint32_t>( dbp::text::CharSet::Gb2312 )     ||
+	     dwDEFAULTCHARSET == static_cast<uint32_t>( dbp::text::CharSet::ChineseBig5 ) )
 		g_bWideCharacterSet = true;
 	else
 		g_bWideCharacterSet = false;
@@ -331,9 +423,7 @@ DARKSDK void SetupFont ( void )
 		
 		DWORD*      pBitmapBits;	// pointer to bitmap data
 		BITMAPINFO	bmi;			// bitmap info structure
-		HDC			hDC;			// handle to device context
-		HBITMAP		hbmBitmap;		// handle to bitmap
-		HFONT		hFont;			// handle to font
+		HFONT		hFont;			// handle to font (retained in g_hRetainRawTextWriteFont)
 
 		DWORD		x = 0;
 		DWORD		y = 0;
@@ -345,12 +435,14 @@ DARKSDK void SetupFont ( void )
 		BYTE			bAlpha;
 
 		// leefix - 300205 - texture plate size isdependant on the size of the font
-		hDC					= CreateCompatibleDC ( NULL );	
+		HDC hDC = CreateCompatibleDC ( nullptr );
+		dbp::text::ScopeGuard hdcGuard( [hDC]{ if ( hDC ) ::DeleteDC( hDC ); } );
 		SetMapMode ( hDC, MM_TEXT );																		// set mapping mode x, y
 		DWORD textstyle		= ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
-		DWORD bItalicFlag	= ( m_bTextItalic ) ? TRUE    : FALSE;			// set italic flag on / off
+		DWORD bItalicFlag	= ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
 		hFont = DB_SetRealTextFont ( hDC, textstyle, bItalicFlag, m_dwFontHeight, m_strFontName, m_iTextCharSet );
-		HFONT hbmOldFont = (HFONT)SelectObject ( hDC, hFont );
+		HGDIOBJ hbmOldFont = ::SelectObject ( hDC, hFont );
+		dbp::text::ScopeGuard fontGuard( [hDC, hbmOldFont]{ ::SelectObject ( hDC, hbmOldFont ); } );
 		SetTextAlign ( hDC, TA_TOP );
 		GetTextExtentPoint32 ( hDC, "g", 1, &size );
 
@@ -380,7 +472,7 @@ DARKSDK void SetupFont ( void )
 		}
 
 		// create a blank texture for the font
-		if ( FAILED ( hr = m_pD3D->CreateTexture ( m_dwTexWidth, m_dwTexHeight, 1, 0, m_FontFormat, D3DPOOL_MANAGED, &m_pTexture, NULL ) ) )
+		if ( FAILED ( hr = m_pD3D->CreateTexture ( m_dwTexWidth, m_dwTexHeight, 1, 0, m_FontFormat, D3DPOOL_MANAGED, &m_pTexture, nullptr ) ) )
 			Error ( "Unable to create font texture in text library" );
     
 		// and now create a bitmap, what we do is draw
@@ -399,14 +491,15 @@ DARKSDK void SetupFont ( void )
 		bmi.bmiHeader.biBitCount    = 32;								// bit depth
 
 		// create a device context and a bitmap for the font
-//		hDC       = CreateCompatibleDC ( NULL );															// create dc
-		hbmBitmap = CreateDIBSection   ( hDC, &bmi, DIB_RGB_COLORS, ( VOID** ) &pBitmapBits, NULL, 0 );		// create bmp
+//		hDC       = CreateCompatibleDC ( nullptr );															// create dc
+		HBITMAP hbmBitmap = CreateDIBSection ( hDC, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&pBitmapBits), nullptr, 0 );
+		dbp::text::ScopeGuard bmpGuard( [hbmBitmap]{ if ( hbmBitmap ) ::DeleteObject( hbmBitmap ); } );		// create bmp
 //		SetMapMode ( hDC, MM_TEXT );																		// set mapping mode x, y
 
 
 //		// at this point we can now create a font
 //		DWORD textstyle   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
-//		DWORD bItalicFlag = ( m_bTextItalic ) ? TRUE    : FALSE;			// set italic flag on / off
+//		DWORD bItalicFlag = ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
 //		hFont = DB_SetRealTextFont ( hDC, textstyle, bItalicFlag, m_dwFontHeight, m_strFontName, m_iTextCharSet );
 
 		/*
@@ -434,12 +527,12 @@ DARKSDK void SetupFont ( void )
 							);
 
 		// check font was created
-		if ( hFont == NULL )
+		if ( hFont == nullptr )
 			Error ( "Unable to create font in text library" );
 		*/
 
 		// select objects into dc
-		HBITMAP hbmOldBitmap = (HBITMAP)SelectObject ( hDC, hbmBitmap );
+		HBITMAP hbmOldBitmap = static_cast<HBITMAP>(SelectObject ( hDC, hbmBitmap ));
 
 		// Colour is merely a mask maker, actual colour is later in code
 		SetTextColor ( hDC, RGB ( 255, 255, 255 ) );
@@ -453,7 +546,7 @@ DARKSDK void SetupFont ( void )
 		// LEEFIX - 141102 - Increased font chars to 256 (to include special ascii chars)
 		for ( unsigned short c = 32; c < 256; c++ )
 		{
-			str [ 0 ] = (unsigned char)c;
+			str [ 0 ] = static_cast<unsigned char>(c);
 
 			GetTextExtentPoint32 ( hDC, str, 1, &size );
 
@@ -476,13 +569,13 @@ DARKSDK void SetupFont ( void )
 				y += size.cy + 2;
 			}
 
-			ExtTextOut ( hDC, x + dwPush + 0, y + 0, ETO_OPAQUE, NULL, str, 1, NULL );
+			ExtTextOut ( hDC, x + dwPush + 0, y + 0, ETO_OPAQUE, nullptr, str, 1, nullptr );
 
 			m_fTexCoords [ c - 32 ] [ 0 ] = ( ( float ) ( x + 0           ) ) / m_dwTexWidth;
 			m_fTexCoords [ c - 32 ] [ 1 ] = ( ( float ) ( y + 0           ) ) / m_dwTexHeight;
 			m_fTexCoords [ c - 32 ] [ 2 ] = ( ( float ) ( x + 0 + size.cx + 1 ) ) / m_dwTexWidth;
 			m_fTexCoords [ c - 32 ] [ 3 ] = ( ( float ) ( y + 0 + size.cy + 1 ) ) / m_dwTexHeight;
-			m_szTexWidth [ c - 32 ] = (int)((float)(size.cx - dwAdditional) / m_fTextScale);
+			m_szTexWidth [ c - 32 ] = static_cast<int>(static_cast<float>(size.cx - dwAdditional) / m_fTextScale);
 			m_szTexHeight [ c - 32 ] = size.cy;
 
 			// mike - 250704 - use this for foreign language DB Pro text
@@ -500,17 +593,17 @@ DARKSDK void SetupFont ( void )
 			if(m_bTextOpaque==false) dwUseBack=0;
 
 			m_pTexture->LockRect ( 0, &d3dlr, 0, 0 );
-			pDst16 = ( WORD* ) d3dlr.pBits;
-			WORD wFore = 0x0fff;
-			WORD wBack = 0x0000;
+			pDst16 = ( uint16_t* ) d3dlr.pBits;
+			uint16_t wFore = 0x0fff;
+			uint16_t wBack = 0x0000;
 			if(m_dwBKColor>0)
 			{
-				BYTE bFR = RgbR(m_dwColor)/16; if(bFR>15) bFR=15;
-				BYTE bFG = RgbG(m_dwColor)/16; if(bFG>15) bFG=15;
-				BYTE bFB = RgbB(m_dwColor)/16; if(bFB>15) bFB=15;
-				BYTE bBR = RgbR(dwUseBack)/16; if(bFR>15) bFR=15;
-				BYTE bBG = RgbG(dwUseBack)/16; if(bBG>15) bBG=15;
-				BYTE bBB = RgbB(dwUseBack)/16; if(bBB>15) bBB=15;
+				uint8_t bFR = static_cast<uint8_t>(RgbR(m_dwColor)/16); if(bFR>15) bFR=15;
+				uint8_t bFG = static_cast<uint8_t>(RgbG(m_dwColor)/16); if(bFG>15) bFG=15;
+				uint8_t bFB = static_cast<uint8_t>(RgbB(m_dwColor)/16); if(bFB>15) bFB=15;
+				uint8_t bBR = static_cast<uint8_t>(RgbR(dwUseBack)/16); if(bFR>15) bFR=15;
+				uint8_t bBG = static_cast<uint8_t>(RgbG(dwUseBack)/16); if(bBG>15) bBG=15;
+				uint8_t bBB = static_cast<uint8_t>(RgbB(dwUseBack)/16); if(bBB>15) bBB=15;
 				wFore = (bFR<<8) + (bFG<<4) + (bFB);
 				wBack = (bBR<<8) + (bBG<<4) + (bBB);
 			}
@@ -530,32 +623,30 @@ DARKSDK void SetupFont ( void )
 			m_pTexture->UnlockRect ( 0 );
 		}
 
-		// select out objects
+		// select out objects (bitmap)
 		SelectObject ( hDC, hbmOldBitmap );
-		SelectObject ( hDC, hbmOldFont );
 
 		// store font, deleting any old one
 		if ( g_hRetainRawTextWriteFont ) DeleteObject ( g_hRetainRawTextWriteFont );
 		g_hRetainRawTextWriteFont = hFont;
 
-		// now clean up objects
-		DeleteObject ( hbmBitmap );
-		DeleteDC     ( hDC );
+		// hbmBitmap and hDC are released automatically by their scope guards
 	}
 
 	if ( GDI_TEXT == true )
 	{
-		HDC			hDC;			// handle to device context
-		HFONT		hFont;			// handle to font
+		HFONT		hFont;			// handle to font (retained in g_hRetainRawTextWriteFont)
 		SIZE		size;
 
 		LPDIRECT3DSURFACE9 pBackBuffer = g_pGlob->pCurrentBitmapSurface;
+		HDC hDC = nullptr;
 		pBackBuffer->GetDC ( &hDC );
+		dbp::text::ScopeGuard dcGuard( [pBackBuffer, hDC]{ pBackBuffer->ReleaseDC ( hDC ); } );
 
 		SetMapMode ( hDC, MM_TEXT );
 
 		DWORD textstyle   = ( m_bTextBold   ) ? FW_BOLD : FW_NORMAL;		// set bold flag on / off
-		DWORD bItalicFlag = ( m_bTextItalic ) ? TRUE    : FALSE;			// set italic flag on / off
+		DWORD bItalicFlag = ( m_bTextItalic ) ? true    : false;			// set italic flag on / off
 		hFont = DB_SetRealTextFont ( hDC, textstyle, bItalicFlag, m_dwFontHeight, m_strFontName, m_iTextCharSet );
 
 		SelectObject ( hDC, hFont );
@@ -571,15 +662,15 @@ DARKSDK void SetupFont ( void )
 
 		for ( unsigned short c = 32; c < 256; c++ )
 		{
-			str [ 0 ] = (unsigned char)c;
+			str [ 0 ] = static_cast<unsigned char>(c);
 
 			GetTextExtentPoint32 ( hDC, str, 1, &size );
 
-			m_szTexWidth  [ c - 32 ] = (int)((float)(size.cx) / m_fTextScale);
+			m_szTexWidth  [ c - 32 ] = static_cast<int>(static_cast<float>(size.cx) / m_fTextScale);
 			m_szTexHeight [ c - 32 ] = m_dwFontHeight;
 		}
 		
-		pBackBuffer->ReleaseDC ( hDC );
+		// hDC released automatically by its scope guard
 	}
 }
 
@@ -605,8 +696,7 @@ DARKSDK void DeleteFonts ( void )
 {
 	if ( m_pTexture )
 	{
-		m_pTexture->Release ( );
-		m_pTexture = NULL;
+		if ( m_pTexture ) { m_pTexture->Release(); m_pTexture = nullptr; }
 	}
 }
 
@@ -614,19 +704,19 @@ DARKSDK void DeleteStates ( void )
 {
 	if ( m_pVB )
 	{
-		m_pVB->Release ( );
-		m_pVB = NULL;
+		if ( m_pVB ) { m_pVB->Release(); m_pVB = nullptr; }
 	}
 }
 
 DARKSDK void TextDestructor ( void )
 {
-    // u74b7 - delete token temp string
-	SAFE_DELETE_ARRAY( m_szTokenString );
-    // u74b7 - delete m_pWorkString as an array
-	SAFE_DELETE_ARRAY( m_pWorkString );
+	delete[] m_szTokenString;
+	m_szTokenString = nullptr;
+	delete[] m_pWorkString;
+	m_pWorkString = nullptr;
 
-	SAFE_DELETE(m_pPosText);
+	delete m_pPosText;
+	m_pPosText = nullptr;
 	DeleteFonts();
 	DeleteStates();
 
@@ -634,27 +724,15 @@ DARKSDK void TextDestructor ( void )
 	if ( g_hRetainRawTextWriteFont )
 	{
 		DeleteObject ( g_hRetainRawTextWriteFont );
-		g_hRetainRawTextWriteFont=NULL;
+		g_hRetainRawTextWriteFont = nullptr;
 	}
 
 	// Release state blocks
-	if ( m_pSavedStateBlock )
-	{
-		m_pSavedStateBlock->Release();
-		m_pSavedStateBlock=NULL;
-	}
-	if ( m_pDrawTextStateBlock )
-	{
-		m_pDrawTextStateBlock->Release();
-		m_pDrawTextStateBlock=NULL;
-	}
+	if ( m_pSavedStateBlock ) { m_pSavedStateBlock->Release(); m_pSavedStateBlock = nullptr; }
+	if ( m_pDrawTextStateBlock ) { m_pDrawTextStateBlock->Release(); m_pDrawTextStateBlock = nullptr; }
 
 	// Release references
-	if(m_pDX)
-	{
-		m_pDX->Release();
-		m_pDX=NULL;
-	}
+	if ( m_pDX ) { m_pDX->Release(); m_pDX = nullptr; }
 }
 
 DARKSDK void RefreshD3D ( int iMode )
@@ -682,12 +760,12 @@ DARKSDK void SetupStates ( void )
 	HRESULT hr;
 
     // create vertex buffer
-    if ( FAILED ( hr = m_pD3D->CreateVertexBuffer ( MAX_NUM_VERTICES * sizeof ( FONT2DVERTEX ), D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &m_pVB, NULL ) ) )
+    if ( FAILED ( hr = m_pD3D->CreateVertexBuffer ( MAX_NUM_VERTICES * sizeof ( FONT2DVERTEX ), D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &m_pVB, nullptr ) ) )
         Error ( "Unable to create vertex buffer for text library" );
     
 	// leefix-060803-release stateblocks
-	SAFE_RELEASE ( m_pSavedStateBlock );
-	SAFE_RELEASE ( m_pDrawTextStateBlock );
+	if ( m_pSavedStateBlock ) { m_pSavedStateBlock->Release(); m_pSavedStateBlock = nullptr; }
+	if ( m_pDrawTextStateBlock ) { m_pDrawTextStateBlock->Release(); m_pDrawTextStateBlock = nullptr; }
 
 	// create the state blocks for rendering text
     for ( UINT which = 0; which < 2; which++ )
@@ -699,22 +777,22 @@ DARKSDK void SetupStates ( void )
 		// Text can be transparent
 		if(m_bTextOpaque==true)
 		{
-			m_pD3D->SetRenderState ( D3DRS_ALPHABLENDENABLE,			FALSE );
+			m_pD3D->SetRenderState ( D3DRS_ALPHABLENDENABLE,			false );
 		}
 		else
 		{
-			m_pD3D->SetRenderState ( D3DRS_ALPHABLENDENABLE,			TRUE );
+			m_pD3D->SetRenderState ( D3DRS_ALPHABLENDENABLE,			true );
 		}
         m_pD3D->SetRenderState ( D3DRS_SRCBLEND,					D3DBLEND_SRCALPHA );
         m_pD3D->SetRenderState ( D3DRS_DESTBLEND,					D3DBLEND_INVSRCALPHA );
         m_pD3D->SetRenderState ( D3DRS_FILLMODE,					D3DFILL_SOLID );
         m_pD3D->SetRenderState ( D3DRS_CULLMODE,					D3DCULL_CCW );
-        m_pD3D->SetRenderState ( D3DRS_ZENABLE,						FALSE );
-        m_pD3D->SetRenderState ( D3DRS_STENCILENABLE,				FALSE );
-        m_pD3D->SetRenderState ( D3DRS_CLIPPING,					TRUE );
-        m_pD3D->SetRenderState ( D3DRS_VERTEXBLEND,					FALSE );
-        m_pD3D->SetRenderState ( D3DRS_INDEXEDVERTEXBLENDENABLE,	FALSE );
-        m_pD3D->SetRenderState ( D3DRS_FOGENABLE,					FALSE );
+        m_pD3D->SetRenderState ( D3DRS_ZENABLE,						false );
+        m_pD3D->SetRenderState ( D3DRS_STENCILENABLE,				false );
+        m_pD3D->SetRenderState ( D3DRS_CLIPPING,					true );
+        m_pD3D->SetRenderState ( D3DRS_VERTEXBLEND,					false );
+        m_pD3D->SetRenderState ( D3DRS_INDEXEDVERTEXBLENDENABLE,	false );
+        m_pD3D->SetRenderState ( D3DRS_FOGENABLE,					false );
 
         m_pD3D->SetTextureStageState ( 0, D3DTSS_COLOROP,				D3DTOP_MODULATE );
         m_pD3D->SetTextureStageState ( 0, D3DTSS_COLORARG1,				D3DTA_TEXTURE );
@@ -773,12 +851,20 @@ DARKSDK int CALLBACK EnumFontFamProc(ENUMLOGFONT FAR *lpelf, NEWTEXTMETRIC FAR *
 	LPSTR pFontName=lpelf->elfLogFont.lfFaceName;
 	if(pFontName)
 	{
-		DWORD dwSize=strlen(pFontName)+1;
+		DWORD dwSize=static_cast<DWORD>(strlen(pFontName))+1;
 		if(dwSize>g_dwMaxStringSizeInEnum) g_dwMaxStringSizeInEnum=dwSize;
 		if(g_bCreateChecklistNow)
 		{
 			// New checklist item
-			strcpy(g_pGlob->checklist[g_pGlob->checklistqty].string, pFontName);
+			// Bounded copy into the engine-managed checklist string buffer.
+			// Capacity (dwStringSize) is guaranteed >= name length by GlobExpandChecklist.
+			LPSTR pCheckStr = g_pGlob->checklist[g_pGlob->checklistqty].string;
+			DWORD dwCap = g_pGlob->checklist[g_pGlob->checklistqty].dwStringSize;
+			if ( pCheckStr && dwCap > 0 )
+			{
+				std::strncpy( pCheckStr, pFontName, dwCap - 1 );
+				pCheckStr[ dwCap - 1 ] = 0;
+			}
 		}
 		g_pGlob->checklistqty++;
 	}
@@ -788,15 +874,18 @@ DARKSDK int CALLBACK EnumFontFamProc(ENUMLOGFONT FAR *lpelf, NEWTEXTMETRIC FAR *
 DARKSDK void Text ( int iX, int iY, char* szText )
 {
 	// only if string given
-	if(szText==NULL)
+	if(szText==nullptr)
 		return;
 
 	if ( GDI_TEXT == true )
 	{
-		HDC hDC;
 		LPDIRECT3DSURFACE9 pBackBuffer = g_pGlob->pCurrentBitmapSurface;
+		HDC hDC = nullptr;
 		pBackBuffer->GetDC ( &hDC );
-		HFONT hbmOldFont = (HFONT)SelectObject ( hDC, g_hRetainRawTextWriteFont );
+		dbp::text::ScopeGuard dcGuard( [pBackBuffer, hDC]{ pBackBuffer->ReleaseDC ( hDC ); } );
+		// select the retained font for this draw; scope guard restores the previous object
+		HGDIOBJ hbmOldFont = ::SelectObject ( hDC, g_hRetainRawTextWriteFont );
+		dbp::text::ScopeGuard fontGuard( [hDC, hbmOldFont]{ ::SelectObject ( hDC, hbmOldFont ); } );
 		SetTextColor ( hDC, RGB ( RgbR(m_dwColor),RgbG(m_dwColor),RgbB(m_dwColor) ) );
 		SetBkColor   ( hDC, RGB ( RgbR(m_dwBKColor),RgbG(m_dwBKColor),RgbB(m_dwBKColor) ) );
 		SetTextAlign ( hDC, TA_LEFT );
@@ -809,9 +898,8 @@ DARKSDK void Text ( int iX, int iY, char* szText )
 		else
 			SetBkMode ( hDC, OPAQUE );
 
-        ExtTextOut ( hDC, iX, iY, dwOpaqueMode, NULL, szText, strlen(szText), NULL );
-		SelectObject ( hDC, hbmOldFont );
-		pBackBuffer->ReleaseDC ( hDC );
+        ExtTextOut ( hDC, iX, iY, dwOpaqueMode, nullptr, szText, static_cast<UINT>(strlen(szText)), nullptr );
+		// font and hDC restored/released automatically by their scope guards
 
 		// complete
 		return;
@@ -825,10 +913,12 @@ DARKSDK void Text ( int iX, int iY, char* szText )
 	if ( g_bWideCharacterSet && g_hRetainRawTextWriteFont && bRenderingToCamera==false )
 	{
 		// direct write of wide character text
-		HDC hDC;
 		LPDIRECT3DSURFACE9 pBackBuffer = g_pGlob->pCurrentBitmapSurface;
+		HDC hDC = nullptr;
 		pBackBuffer->GetDC ( &hDC );
-	    HFONT hbmOldFont = (HFONT)SelectObject ( hDC, g_hRetainRawTextWriteFont );
+		dbp::text::ScopeGuard dcGuard( [pBackBuffer, hDC]{ pBackBuffer->ReleaseDC ( hDC ); } );
+	    HGDIOBJ hbmOldFont = ::SelectObject ( hDC, g_hRetainRawTextWriteFont );
+	    dbp::text::ScopeGuard fontGuard( [hDC, hbmOldFont]{ ::SelectObject ( hDC, hbmOldFont ); } );
 		SetTextColor ( hDC, RGB ( RgbR(m_dwColor),RgbG(m_dwColor),RgbB(m_dwColor) ) );
 		SetBkColor   ( hDC, RGB ( RgbR(m_dwBKColor),RgbG(m_dwBKColor),RgbB(m_dwBKColor) ) );
 		SetTextAlign ( hDC, TA_TOP );
@@ -841,19 +931,18 @@ DARKSDK void Text ( int iX, int iY, char* szText )
 		else
 			SetBkMode ( hDC, OPAQUE );
 
-        ExtTextOut ( hDC, iX, iY, dwOpaqueMode, NULL, szText, strlen(szText), NULL );
-		SelectObject ( hDC, hbmOldFont );
-		pBackBuffer->ReleaseDC ( hDC );
+        ExtTextOut ( hDC, iX, iY, dwOpaqueMode, nullptr, szText, static_cast<UINT>(strlen(szText)), nullptr );
+		// font and hDC restored/released automatically by their scope guards
 
 		// complete
 		return;
 	}
 
-	float			fStartX			= (float)iX;
-	float			fX				= (float)iX;
-	float			fY				= (float)iY;
+	float			fStartX			= static_cast<float>(iX);
+	float			fX				= static_cast<float>(iX);
+	float			fY				= static_cast<float>(iY);
 
-	FONT2DVERTEX*	pVertices		= NULL;
+	FONT2DVERTEX*	pVertices		= nullptr;
     DWORD			dwNumTriangles	= 0;
 
 	// setup renderstates
@@ -862,17 +951,17 @@ DARKSDK void Text ( int iX, int iY, char* szText )
 	m_pSavedStateBlock->Capture();
 	m_pDrawTextStateBlock->Apply();
 
-    m_pD3D->SetVertexShader   ( NULL );
+    m_pD3D->SetVertexShader   ( nullptr );
     m_pD3D->SetFVF   ( D3DFVF_FONT2DVERTEX );
 
     m_pD3D->SetStreamSource   ( 0, m_pVB, 0, sizeof ( FONT2DVERTEX ) );
 
 	// fill vertex buffer
-    m_pVB->Lock ( 0, 0, ( VOID** )&pVertices, D3DLOCK_DISCARD );
+    m_pVB->Lock ( 0, 0, (void**)&pVertices, D3DLOCK_DISCARD );
 
-    while ( *(LPSTR)szText )
+    while ( *szText )
     {
-        unsigned char c = *(LPSTR)szText++;
+        uint8_t c = *szText++;
 
         if ( c == ('\n') )
         {
@@ -910,9 +999,9 @@ DARKSDK void Text ( int iX, int iY, char* szText )
 
             m_pD3D->DrawPrimitive ( D3DPT_TRIANGLELIST, 0, dwNumTriangles );
 
-            pVertices = NULL;
+            pVertices = nullptr;
 
-            m_pVB->Lock ( 0, 0, ( VOID** ) &pVertices, D3DLOCK_DISCARD );
+            m_pVB->Lock ( 0, 0, (void**)&pVertices, D3DLOCK_DISCARD );
             dwNumTriangles = 0L;
         }
 
@@ -935,12 +1024,14 @@ DARKSDK void SetTextFont ( char* szTypeface, int iCharacterSet )
 	// If not setup, exit
 	if ( GDI_TEXT == false )
 	{
-		if(m_pTexture==NULL) return;
+		if(m_pTexture==nullptr) return;
 	}
 
 
+	const size_t nameLen = std::strlen( szTypeface );
+	const size_t copyLen = ( nameLen < ( sizeof( m_strFontName ) - 1 ) ) ? nameLen : ( sizeof( m_strFontName ) - 1 );
 	memset ( m_strFontName, 0, sizeof ( m_strFontName ) );
-	memcpy ( m_strFontName, (LPSTR)szTypeface, sizeof ( char ) * strlen ( (LPSTR)szTypeface ) );
+	memcpy ( m_strFontName, szTypeface, copyLen );
 	m_iTextCharSet = iCharacterSet;
 	Recreate ( );
 }
@@ -963,12 +1054,13 @@ void Print ( char* szText )
 
 DARKSDK  LPSTR GetReturnStringFromWorkString(void)
 {
-	LPSTR pReturnString=NULL;
+	LPSTR pReturnString=nullptr;
 	if(m_pWorkString)
 	{
-		DWORD dwSize=strlen(m_pWorkString);
+		DWORD dwSize=static_cast<DWORD>(strlen(m_pWorkString));
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, dwSize+1);
-		strcpy(pReturnString, m_pWorkString);
+		// pReturnString was allocated to exactly dwSize+1 above; copy incl. null terminator
+		memcpy( pReturnString, m_pWorkString, dwSize + 1 );
 	}
 	return pReturnString;
 }
@@ -978,9 +1070,9 @@ DARKSDK int GetTextWidth ( char* szString )
 	int iWidth=0;
 	if(szString)
 	{
-		while ( *(LPSTR)szString )
+		while ( *szString )
 		{
-			unsigned char c = *(LPSTR)szString++;
+			uint8_t c = *szString++;
 			if ( c>=32 ) iWidth+=m_szTexWidth [ c - 32 ];
 		}
 	}
@@ -992,9 +1084,9 @@ DARKSDK int GetTextHeight ( char* szString )
 	int iHeight=0;
 	if(szString)
 	{
-		while ( *(LPSTR)szString )
+		while ( *szString )
 		{
-			unsigned char c = *(LPSTR)szString++;
+			uint8_t c = *szString++;
 			if ( c>=32 )
 			{
 				int iThisH = m_szTexHeight [ c - 32 ];
@@ -1012,240 +1104,158 @@ DARKSDK int GetTextHeight ( char* szString )
 DARKSDK int	  Asc	( DWORD_PTR dwSrcStr )
 {
 	if(dwSrcStr)
-		return (int)*(unsigned char*)dwSrcStr;
+		return static_cast<int>(*reinterpret_cast<unsigned char*>(dwSrcStr));
 	else
 		return 0;
 }
 
 DARKSDK DWORD_PTR Bin( DWORD_PTR pDestStr, int iValue )
 {
-	// Work string
-	LPSTR text=m_pWorkString;
-	int t=0;
-	text[t++]='%';
-	for(int bit=31; bit>=0; bit--)
+	std::string text = "%";
+	for ( int bit = 31; bit >= 0; --bit )
 	{
-		unsigned int mask = 1 << bit;
-		if(iValue & mask)
-			text[t++]='1';
-		else
-			text[t++]='0';
+		const unsigned int mask = 1u << bit;
+		text += ( iValue & static_cast<int>( mask ) ) ? '1' : '0';
 	}
-	text[t]=0;
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Chr( DWORD_PTR pDestStr, int iValue )
 {
-	// Work string
-	m_pWorkString[0]=iValue;
-	m_pWorkString[1]=0;
+	const char buf[2] = { static_cast<char>( iValue ), '\0' };
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, 1 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Hex( DWORD_PTR pDestStr, int iValue )
 {
-	// Work string
-	wsprintf(m_pWorkString, "%X", iValue);
+	char buf[16];
+	const int n = std::snprintf( buf, sizeof( buf ), "%X", iValue );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, n > 0 ? static_cast<size_t>( n ) : 0 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
-	// lee - 290306 - u6rc3 - index must be greater than zero
-	// leeremove - 290506 - u62 - unpopular negative-value runtime error removed
-//	if ( iValue < 0 )
-//	{
-//		RunTimeError ( RUNTIMEERROR_MUSTBEPOSITIVEVALUE );
-//		return pDestStr;
-//	}
+	ValidateWorkString( (const char*)szText );
+	std::string text = szText ? (const char*)szText : "";
 
-	// Work string
-	ValidateWorkString ( (LPSTR)szText );
-	LPSTR text=m_pWorkString;
-	if(szText)
-		strcpy(text, (char*)szText);
-	else
-		strcpy(text, "");
+	if ( iValue > 0 && iValue <= static_cast<int>( text.size() ) )
+		text.resize( iValue );
+	else if ( iValue <= 0 )
+		text.clear();
 
-	if(iValue>0 && iValue<=(int)strlen(text))
-		text[iValue]=0;
-	else
-		if(iValue<=0)
-			strcpy(text, "");
-
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK int	  Len	( DWORD_PTR dwSrcStr )
 {
 	if(dwSrcStr)
-		return strlen((LPSTR)dwSrcStr);
+		return static_cast<int>(strlen((const char*)dwSrcStr));
 	else
 		return 0;
 }
 
 DARKSDK DWORD_PTR Lower( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
-	// Work string
-	ValidateWorkString ( (LPSTR)szText );
-	if(szText)
-		strcpy(m_pWorkString, (LPSTR)szText);
-	else
-		strcpy(m_pWorkString, "");
+	ValidateWorkString( (const char*)szText );
+	std::string text = szText ? (const char*)szText : "";
+	for ( char& ch : text )
+		ch = static_cast<char>( std::tolower( static_cast<unsigned char>( ch ) ) );
 
-	_strlwr(m_pWorkString);
-
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
-	// lee - 290306 - u6rc3 - index must be greater than zero
-	// leeremove - 290506 - u62 - unpopular negative-value runtime error removed
-//	if ( iValue < 0 )
-//	{
-//		RunTimeError ( RUNTIMEERROR_MUSTBEPOSITIVEVALUE );
-//		return pDestStr;
-//	}
+	ValidateWorkString( (const char*)szText );
+	const std::string src = szText ? (const char*)szText : "";
+	std::string text;
 
-	// Work string
-	ValidateWorkString ( (LPSTR)szText );
-	char character;
-	LPSTR text=m_pWorkString;
-	if(szText)
-		strcpy(text, (char*)szText);
-	else
-		strcpy(text, "");
+	const unsigned int index = static_cast<unsigned int>( iValue );
+	if ( index > 0 && index <= src.size() )
+		text = src[ index - 1 ];
 
-	unsigned int index = iValue;
-	if(index>0 && index<=strlen(text))
-	{
-		character=text[index-1];	
-		text[0]=character;
-		text[1]=0;
-	}
-	else
-		text[0]=0;
-
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Right( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
-	// lee - 290306 - u6rc3 - index must be greater than zero
-	// leeremove - 290506 - u62 - unpopular negative-value runtime error removed
-//	if ( iValue < 0 )
-//	{
-//		RunTimeError ( RUNTIMEERROR_MUSTBEPOSITIVEVALUE );
-//		return pDestStr;
-//	}
+	ValidateWorkString( (const char*)szText );
+	std::string text = szText ? (const char*)szText : "";
 
-	// Work string
-	ValidateWorkString ( (LPSTR)szText );
-	LPSTR text=m_pWorkString;
-	if(szText)
-		strcpy(text, (char*)szText);
-	else
-		strcpy(text, "");
+	const int length = static_cast<int>( text.size() );
+	const int rightmost = length - iValue;
+	if ( rightmost >= 0 && rightmost <= length )
+		text = text.substr( static_cast<size_t>( rightmost ) );
+	else if ( rightmost > length )
+		text.clear();
 
-	int w = 0;
-	int length = strlen(text);
-	int rightmost = length-iValue;
-	if(rightmost>=0 && rightmost<=length)
-	{
-		for(int n=rightmost; n<length; n++)
-			text[w++]=text[n];
-		text[w]=0;
-	}
-	else
-		if(rightmost>length)
-			strcpy(text, "");
-		
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Str( DWORD_PTR pDestStr, float fValue )
 {
-	// Work string
-	sprintf(m_pWorkString, "%.12g", fValue);
+	char buf[64];
+	const int n = std::snprintf( buf, sizeof( buf ), "%.12g", fValue );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, n > 0 ? static_cast<size_t>( n ) : 0 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR StrEx( DWORD_PTR pDestStr, float fValue, int iDecPlaces )
 {
-	// Work string
-	char format[32];
-	sprintf(format, "%%.%df", iDecPlaces );
-	sprintf(m_pWorkString, format, fValue);
+	char buf[64];
+	const int n = std::snprintf( buf, sizeof( buf ), "%.*f", iDecPlaces, fValue );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, n > 0 ? static_cast<size_t>( n ) : 0 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Str( DWORD_PTR pDestStr, int iValue )
 {
-	// Work string
-	sprintf(m_pWorkString, "%d", iValue);
+	char buf[32];
+	const int n = std::snprintf( buf, sizeof( buf ), "%d", iValue );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, n > 0 ? static_cast<size_t>( n ) : 0 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR Upper( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
-	// Work string
-	ValidateWorkString ( (LPSTR)szText );
-	if(szText)
-		strcpy(m_pWorkString, (LPSTR)szText);
-	else
-		strcpy(m_pWorkString, "");
+	ValidateWorkString( (const char*)szText );
+	std::string text = szText ? (const char*)szText : "";
+	for ( char& ch : text )
+		ch = static_cast<char>( std::toupper( static_cast<unsigned char>( ch ) ) );
 
-	_strupr(m_pWorkString);
-
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 /*
 int	  ValL	( DWORD dwSrcStr )
 {
 	if(dwSrcStr)
-		return atoi((LPSTR)dwSrcStr);
+		return std::atoi(dwSrcStr);
 	else
 		return 0;
 }
@@ -1254,8 +1264,8 @@ int	  ValL	( DWORD dwSrcStr )
 DARKSDK DWORD ValF	( DWORD_PTR dwSrcStr )
 {
 	float fValue = 0.0f;
-	if(dwSrcStr) fValue = (float)atof((LPSTR)dwSrcStr);
-	return *(DWORD*)&fValue;
+	if(dwSrcStr) fValue = static_cast<float>(std::atof((const char*)dwSrcStr));
+	return std::bit_cast<DWORD>(fValue);
 }
 
 //LEEFIX - 191102 - Added DOUBLE INTEGER Return for bigger numbers
@@ -1266,31 +1276,29 @@ DARKSDK DWORD ValF	( DWORD_PTR dwSrcStr )
 DARKSDK LONGLONG ValR	( DWORD_PTR dwSrcStr )
 {
 	LONGLONG lValue = 0;
-	if(dwSrcStr) lValue = _atoi64((LPSTR)dwSrcStr);
+	if(dwSrcStr) lValue = std::atoll((const char*)dwSrcStr);
 	return lValue;
 }
 
 
 DARKSDK DWORD_PTR StrDouble( DWORD_PTR pDestStr, double dValue )
 {
-	// Work string
-	sprintf(m_pWorkString, "%.16g", dValue);
+	char buf[64];
+	const int n = std::snprintf( buf, sizeof( buf ), "%.16g", dValue );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, n > 0 ? static_cast<size_t>( n ) : 0 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK DWORD_PTR StrDoubleInt( DWORD_PTR pDestStr, LONGLONG lValue )
 {
-	// Work string
-	sprintf(m_pWorkString, "%I64d", lValue);
+	char buf[32];
+	const int n = std::snprintf( buf, sizeof( buf ), "%lld", static_cast<long long>( lValue ) );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( std::string_view( buf, n > 0 ? static_cast<size_t>( n ) : 0 ) );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 //
@@ -1317,10 +1325,11 @@ DARKSDK void PerformChecklistForFonts ( void )
 
 		// Run through total list of fonts
 		g_pGlob->checklistqty=0;
-		HDC hdc = CreateCompatibleDC ( NULL );															// create dc
+		HDC hDC = CreateCompatibleDC ( nullptr );
+		dbp::text::ScopeGuard hdcGuard( [hDC]{ if ( hDC ) ::DeleteDC( hDC ); } );															// create dc
 		DWORD SearchData=0;
-		EnumFontFamilies(hdc, NULL, (FONTENUMPROC)EnumFontFamProc, SearchData); 
-		DeleteDC ( hdc );
+		EnumFontFamilies(hDC, nullptr, (FONTENUMPROC)EnumFontFamProc, SearchData); 
+		// hDC released automatically by its scope guard
 	}
  
 	// Determine if checklist has any contents
@@ -1340,7 +1349,7 @@ DARKSDK void BasicText ( int iX, int iY, DWORD_PTR szText )
 	}
 	
 	if(m_dwBKColor!=g_pGlob->dwBackColor) { m_dwBKColor=g_pGlob->dwBackColor; Recreate(); }
-	if(szText) Text ( iX, iY, (LPSTR)szText );
+	if(szText) Text ( iX, iY, (char*)szText );
 }
 
 DARKSDK void CenterText ( int iX, int iY, DWORD_PTR szText )
@@ -1352,16 +1361,17 @@ DARKSDK void CenterText ( int iX, int iY, DWORD_PTR szText )
 		if(m_dwBKColor>0) Recreate();
 	}
 	if(m_dwBKColor!=g_pGlob->dwBackColor) { m_dwBKColor=g_pGlob->dwBackColor; Recreate(); }
-	int iHalfWidth=GetTextWidth((LPSTR)szText)/2;
-	if(szText) Text ( iX-iHalfWidth, iY, (LPSTR)szText );
+	int iHalfWidth=GetTextWidth((char*)szText)/2;
+	if(szText) Text ( iX-iHalfWidth, iY, (char*)szText );
 }
 
 DARKSDK void SetBasicTextFont ( DWORD_PTR szTypeface )
 {
 	if(szTypeface)
 	{
+		const char* pTypeface = (const char*)szTypeface;
 		memset ( m_strFontName, 0, sizeof ( m_strFontName ) );
-		if(szTypeface) memcpy ( m_strFontName, (LPSTR)szTypeface, sizeof ( char ) * strlen ( (LPSTR)szTypeface ) );
+		memcpy ( m_strFontName, pTypeface, sizeof ( char ) * strlen ( pTypeface ) );
 		Recreate ( );
 	}
 }
@@ -1370,8 +1380,9 @@ DARKSDK void SetBasicTextFont ( DWORD_PTR szTypeface, int iCharacterSet )
 {
 	if(szTypeface)
 	{
+		const char* pTypeface = (const char*)szTypeface;
 		memset ( m_strFontName, 0, sizeof ( m_strFontName ) );
-		if(szTypeface) memcpy ( m_strFontName, (LPSTR)szTypeface, sizeof ( char ) * strlen ( (LPSTR)szTypeface ) );
+		memcpy ( m_strFontName, pTypeface, sizeof ( char ) * strlen ( pTypeface ) );
 		m_iTextCharSet = iCharacterSet;
 		Recreate ( );
 	}
@@ -1379,7 +1390,7 @@ DARKSDK void SetBasicTextFont ( DWORD_PTR szTypeface, int iCharacterSet )
 
 DARKSDK void SetTextSize ( int iSize )
 {
-	if ( (DWORD)iSize != m_dwFontHeight )
+	if ( static_cast<DWORD>(iSize) != m_dwFontHeight )
 	{
 		m_dwFontHeight = iSize;
 
@@ -1438,11 +1449,9 @@ DARKSDK void SetTextToTransparent ( void )
 
 DARKSDK DWORD_PTR TextFont( DWORD_PTR pDestStr )
 {
-	// Work string
-	strcpy(m_pWorkString, m_strFontName);
+	dbp::text::set_work_string( std::string_view( m_strFontName, std::strlen( m_strFontName ) ) );
 
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
 	LPSTR pReturnString=GetReturnStringFromWorkString();
 	return (DWORD_PTR)pReturnString;
 }
@@ -1454,9 +1463,9 @@ DARKSDK int TextSize ( void )
 
 DARKSDK int TextStyle ( void )
 {
-	int iStyle=0;
-	if(m_bTextItalic) iStyle+=1;
-	if(m_bTextBold) iStyle+=2;
+	int iStyle = 0;
+	if ( m_bTextItalic ) iStyle |= static_cast<int>( dbp::text::TextStyleFlag::Italic );
+	if ( m_bTextBold )   iStyle |= static_cast<int>( dbp::text::TextStyleFlag::Bold );
 	return iStyle;
 }
 
@@ -1473,9 +1482,10 @@ DARKSDK int TextWidth ( DWORD_PTR szString )
 	int iWidth=0;
 	if(szString)
 	{
-		while ( *(LPSTR)szString )
+		const uint8_t* pStr = (const uint8_t*)szString;
+		while ( *pStr )
 		{
-			unsigned char c = *(LPSTR)szString++;
+			uint8_t c = *pStr++;
 			if ( c>=32 ) iWidth+=m_szTexWidth [ c - 32 ];
 		}
 	}
@@ -1487,9 +1497,10 @@ DARKSDK int TextHeight ( DWORD_PTR szString )
 	int iHeight=0;
 	if(szString)
 	{
-		while ( *(LPSTR)szString )
+		const uint8_t* pStr = (const uint8_t*)szString;
+		while ( *pStr )
 		{
-			unsigned char c = *(LPSTR)szString++;
+			uint8_t c = *pStr++;
 			if ( c>=32 )
 			{
 				int iThisH = m_szTexHeight [ c - 32 ];
@@ -1506,7 +1517,7 @@ DARKSDK int TextHeight ( DWORD_PTR szString )
 
 DARKSDK void Text3D ( char* szText )
 {
-	if(szText==NULL)
+	if(szText==nullptr)
 		return;
 
 	float			x = 0.0f;
@@ -1526,7 +1537,7 @@ DARKSDK void Text3D ( char* szText )
     m_pSavedStateBlock->Capture();
     m_pDrawTextStateBlock->Apply();
 
-    m_pD3D->SetVertexShader   ( NULL );
+    m_pD3D->SetVertexShader   ( nullptr );
     m_pD3D->SetFVF   ( D3DFVF_FONT3DVERTEX );
 
     m_pD3D->SetStreamSource   ( 0, m_pVB, 0, sizeof ( FONT3DVERTEX) );
@@ -1537,7 +1548,7 @@ DARKSDK void Text3D ( char* szText )
 	m_pD3D->SetRenderState ( D3DRS_CULLMODE, D3DCULL_NONE );
 
 	// fill vertex buffer
-    m_pVB->Lock ( 0, 0, ( VOID** )&pVertices, D3DLOCK_DISCARD );
+    m_pVB->Lock ( 0, 0, (void**)&pVertices, D3DLOCK_DISCARD );
 
 	while ( c = *szText++ )
     {
@@ -1570,7 +1581,7 @@ DARKSDK void Text3D ( char* szText )
         {
             m_pVB->Unlock ( );
             m_pD3D->DrawPrimitive ( D3DPT_TRIANGLELIST, 0, dwNumTriangles );
-            m_pVB->Lock ( 0, 0, ( VOID** ) &pVertices, D3DLOCK_DISCARD );
+            m_pVB->Lock ( 0, 0, (void**)&pVertices, D3DLOCK_DISCARD );
             dwNumTriangles = 0L;
         }
 
@@ -1601,10 +1612,10 @@ DARKSDK DWORD_PTR Spaces( DWORD_PTR pDestStr, int iSpaces )
 	if ( iSpaces < 0 )
 	{
 		if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-		LPSTR pReturnString=NULL;
+		LPSTR pReturnString=nullptr;
 		g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, 2 );
 
-		memset((LPSTR)pReturnString, 32, 2);
+		memset(pReturnString, 32, 2);
 
 		pReturnString [ 0 ] = 0;
 		pReturnString [ 1 ] = 0;
@@ -1614,9 +1625,9 @@ DARKSDK DWORD_PTR Spaces( DWORD_PTR pDestStr, int iSpaces )
 
 	// Create and return string
 	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=NULL;
+	LPSTR pReturnString=nullptr;
 	g_pCreateDeleteStringFunction((DWORD_PTR*)&pReturnString, iSpaces+1 );
-	memset((LPSTR)pReturnString, 32, iSpaces);
+	memset(pReturnString, 32, iSpaces);
 	pReturnString[iSpaces]=0;
 	return (DWORD_PTR)pReturnString;
 }
@@ -1636,7 +1647,7 @@ DARKSDK DWORD_PTR Spaces( DWORD_PTR pDestStr, int iSpaces )
 
 DARKSDK char* SetupString ( const char* szInput )
 {
-	char* pReturn = NULL;
+	char* pReturn = nullptr;
 	DWORD dwSize  = static_cast<DWORD>(strlen ( szInput ));
 
 	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
@@ -1661,69 +1672,63 @@ DARKSDK char* SetupString ( const char* szInput )
 
 DARKSDK DWORD_PTR Reverse ( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
-	// Work string
-	ValidateWorkString ( (LPSTR)szText );
-	if(szText)
-		strcpy(m_pWorkString, (LPSTR)szText);
-	else
-		strcpy(m_pWorkString, "");
+	ValidateWorkString( (const char*)szText );
+	std::string text = szText ? (const char*)szText : "";
+	std::reverse( text.begin(), text.end() );
 
-	_strrev(m_pWorkString);
-
-	// Create and return string
-	if(pDestStr) g_pCreateDeleteStringFunction((DWORD_PTR*)&pDestStr, 0);
-	LPSTR pReturnString=GetReturnStringFromWorkString();
-	return (DWORD_PTR)pReturnString;
+	if ( pDestStr ) g_pCreateDeleteStringFunction( (DWORD_PTR*)&pDestStr, 0 );
+	dbp::text::set_work_string( text );
+	return (DWORD_PTR)GetReturnStringFromWorkString();
 }
 
 DARKSDK int FindFirstChar ( DWORD_PTR dwSource, DWORD_PTR dwChar )
 {
-	char* pInt    = ( char* ) dwChar;
-	char  pIntA   = *pInt;
-	char* pFirst  = strchr ( ( char* ) dwSource, ( int ) pIntA );
-	int   iResult = pFirst - ( char* ) dwSource + 1;
-
-	return iResult;
+	const char* pSrc = ( const char* ) dwSource;
+	const char* pCh  = ( const char* ) dwChar;
+	if ( !pSrc || !pCh || pCh[0] == '\0' )
+		return 0;
+	const char* pFound = std::strchr( pSrc, pCh[0] );
+	if ( !pFound )
+		return 0;
+	return static_cast<int>( pFound - pSrc + 1 );
 }
 
 DARKSDK int FindLastChar ( DWORD_PTR dwSource, DWORD_PTR dwChar )
 {
-	char* pInt    = ( char* ) dwChar;
-	char  pIntA   = *pInt;
-	char* pFirst  = strrchr ( ( char* ) dwSource, ( int ) pIntA );
-	int   iResult = pFirst - ( char* ) dwSource + 1;
-
-	return iResult;
+	const char* pSrc = ( const char* ) dwSource;
+	const char* pCh  = ( const char* ) dwChar;
+	if ( !pSrc || !pCh || pCh[0] == '\0' )
+		return 0;
+	const char* pFound = std::strrchr( pSrc, pCh[0] );
+	if ( !pFound )
+		return 0;
+	return static_cast<int>( pFound - pSrc + 1 );
 }
 
 DARKSDK int FindSubString ( DWORD_PTR dwSource, DWORD_PTR dwString )
 {
-	char* pFirst  = strstr ( ( char* ) dwSource, ( char* ) dwString );
-	int   iResult = pFirst - ( char* ) dwSource + 1;
+	const char* szSource = ( const char* ) dwSource;
+	const char* szString = ( const char* ) dwString;
 
-	char* szSource = ( char* ) dwSource;
-	char* szString = ( char* ) dwString;
-
-	if ( !szSource || !szString )
+	if ( !szSource || !szString || szString[0] == '\0' )
 		return 0;
 
-	char* szResult = strstr ( szSource, szString );
-
+	const char* szResult = std::strstr( szSource, szString );
 	if ( szResult )
-		return static_cast<int>(szResult - szSource + 1);
+		return static_cast<int>( szResult - szSource + 1 );
 
 	return 0;
 }
 
 DARKSDK int CompareCase ( DWORD_PTR dwA, DWORD_PTR dwB )
 {
-	char* szA = ( char* ) dwA;
-	char* szB = ( char* ) dwB;
+	const char* szA = ( const char* ) dwA;
+	const char* szB = ( const char* ) dwB;
 
 	if ( !szA || !szB )
 		return 0;
 
-	return strcmp ( szA, szB ) == 0 ? 1 : 0;
+	return std::strcmp( szA, szB ) == 0 ? 1 : 0;
 }
 
 // u74b7 - rewrite so that tokens are non-destructive to the source string.
@@ -1767,7 +1772,7 @@ DARKSDK DWORD_PTR FirstToken ( DWORD_PTR dwReturn, DWORD_PTR dwSource, DWORD_PTR
 
 	// U74 BETA9 - 060709 - free old string and create new one
 	g_pGlob->CreateDeleteString((DWORD_PTR*)&dwReturn, 0 );
-    char* szToken = strtok ( m_szTokenString, szDelim );
+	char* szToken = dbp::text::next_token ( m_szTokenString, szDelim );
     if ( szToken )
     {
 	    return (DWORD_PTR)SetupString ( szToken );
@@ -1787,7 +1792,7 @@ DARKSDK DWORD_PTR NextToken ( DWORD_PTR dwReturn, DWORD_PTR dwDelim )
 
 	// U74 BETA9 - 060709 - free old string and create new one
 	g_pGlob->CreateDeleteString((DWORD_PTR*)&dwReturn, 0 );
-	char* szToken = strtok ( NULL, szDelim );
+	char* szToken = dbp::text::next_token ( nullptr, szDelim );
     if ( szToken )
     {
 	    return (DWORD_PTR)SetupString ( szToken );
@@ -1828,13 +1833,13 @@ void RefreshD3DText ( int iMode )
 
 int dbAsc ( char* dwSrcStr)
 {
-	return Asc ( ( DWORD ) dwSrcStr);
+	return Asc ( ( DWORD_PTR ) dwSrcStr);
 }
 
 char* dbBin	( int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Bin ( NULL, iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Bin ( nullptr, iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1843,8 +1848,8 @@ char* dbBin	( int iValue )
 
 char* dbChr	(  int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Chr ( NULL, iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Chr ( nullptr, iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1853,8 +1858,8 @@ char* dbChr	(  int iValue )
 
 char* dbHex	(  int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Hex ( NULL, iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Hex ( nullptr, iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1863,8 +1868,8 @@ char* dbHex	(  int iValue )
 
 char* dbLeft ( char* szText, int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Left ( NULL, ( DWORD ) szText, iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Left ( nullptr, ( DWORD_PTR ) szText, iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1873,13 +1878,13 @@ char* dbLeft ( char* szText, int iValue )
 
 int dbLen ( char* dwSrcStr )
 {
-	return Len	(  ( DWORD ) dwSrcStr );
+	return Len	(  ( DWORD_PTR ) dwSrcStr );
 }
 
 char* dbLower ( char* szText )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Lower ( NULL, ( DWORD ) szText );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Lower ( nullptr, ( DWORD_PTR ) szText );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1888,8 +1893,8 @@ char* dbLower ( char* szText )
 
 char* dbMid	(  char* szText, int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Mid ( NULL, ( DWORD )szText,  iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Mid ( nullptr, ( DWORD_PTR ) szText,  iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1898,8 +1903,8 @@ char* dbMid	(  char* szText, int iValue )
 
 char* dbRight (  char* szText, int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Right ( NULL, ( DWORD )szText,  iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Right ( nullptr, ( DWORD_PTR ) szText,  iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1908,8 +1913,8 @@ char* dbRight (  char* szText, int iValue )
 
 char* dbStr	(  float fValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Str ( NULL,  fValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Str ( nullptr,  fValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1918,8 +1923,8 @@ char* dbStr	(  float fValue )
 
 char* dbStr	(  int iValue )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Str ( NULL, iValue );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Str ( nullptr, iValue );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1929,8 +1934,8 @@ char* dbStr	(  int iValue )
 // leefix - 2103060 u6b4 - changed from DWORD to char* - GDK could not resolve external linkage
 char* dbUpper (  char* szText )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Upper ( NULL, (DWORD)szText );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Upper ( nullptr, szText );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -1939,14 +1944,14 @@ char* dbUpper (  char* szText )
 
 float dbValF ( char* dwSrcStr )
 {
-	DWORD dwReturn = ValF ( ( DWORD ) dwSrcStr );
+	DWORD dwReturn = ValF ( ( DWORD_PTR ) dwSrcStr );
 	
 	return *( float* ) &dwReturn;
 }
 
 double dbStrDouble (  double dValue )
 {
-	return StrDouble (  NULL,  dValue );
+	return StrDouble (  nullptr,  dValue );
 }
 
 LONGLONG dbValR ( char* dwSrcStr )
@@ -2022,8 +2027,8 @@ int dbTextBackgroundType ( void )
 
 char* dbTextFont ( void )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = TextFont ( NULL );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = TextFont ( nullptr );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -2057,8 +2062,8 @@ void dbText3D ( char* szText )
 
 char* dbSpaces	( int iSpaces )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = Spaces ( NULL, iSpaces );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = Spaces ( nullptr, iSpaces );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -2073,8 +2078,8 @@ void dbAppend ( char* dwA, char* dwB )
 
 char* dbReverse ( char* szText )
 {
-	static char* szReturn = NULL;
-	DWORD_PTR dwReturn = Reverse ( NULL, (DWORD_PTR)szText );
+	static char* szReturn = nullptr;
+	DWORD_PTR dwReturn = Reverse ( nullptr, (DWORD_PTR)szText );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -2083,17 +2088,17 @@ char* dbReverse ( char* szText )
 
 int dbFindFirstChar ( char* dwSource, char* dwChar )
 {
-	return FindFirstChar ( ( DWORD ) dwSource, ( DWORD ) dwChar );
+	return FindFirstChar ( dwSource, ( DWORD ) dwChar );
 }
 
 int dbFindLastChar ( char* dwSource, char* dwChar )
 {
-	return FindLastChar ( ( DWORD ) dwSource, ( DWORD ) dwChar );
+	return FindLastChar ( dwSource, ( DWORD ) dwChar );
 }
 
 int dbFindSubString ( char* dwSource, char* dwString )
 {
-	return FindSubString ( ( DWORD ) dwSource, ( DWORD ) dwString );
+	return FindSubString ( dwSource, ( DWORD ) dwString );
 }
 
 int dbCompareCase ( char* dwA, char* dwB )
@@ -2103,8 +2108,8 @@ int dbCompareCase ( char* dwA, char* dwB )
 
 char* dbFirstToken ( char* dwSource, char* dwDelim )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = FirstToken (  NULL, ( DWORD ) dwSource,  ( DWORD ) dwDelim );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = FirstToken (  nullptr, dwSource,  dwDelim );
 
 	szReturn = ( char* ) dwReturn;
 
@@ -2113,8 +2118,8 @@ char* dbFirstToken ( char* dwSource, char* dwDelim )
 
 char* dbNextToken ( char* dwDelim )
 {
-	static char* szReturn = NULL;
-	DWORD		 dwReturn = NextToken (  NULL, ( DWORD ) dwDelim );
+	static char* szReturn = nullptr;
+	DWORD		 dwReturn = NextToken (  nullptr, dwDelim );
 
 	szReturn = ( char* ) dwReturn;
 

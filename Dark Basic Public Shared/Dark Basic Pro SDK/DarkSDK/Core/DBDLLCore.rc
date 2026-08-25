@@ -47,7 +47,7 @@ BEGIN
             VALUE "FileDescription", "Dark Basic Professional DLL"
             VALUE "FileVersion", "V1.0"
             VALUE "InternalName", "Dark Basic Professional DLL"
-            VALUE "LegalCopyright", "Copyright © 2002"
+            VALUE "LegalCopyright", "Copyright ï¿½ 2002"
             VALUE "LegalTrademarks", "DarkBASIC"
             VALUE "OriginalFilename", "DBProAnimationDebug.dll"
             VALUE "ProductName", "Dark Basic Professional DLL"
@@ -124,7 +124,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_STRING16            "RND[%LL%?RndLL@@YAHH@Z%Range Value"
-    IDS_STRING17            "GET DX VERSION$[%S%?GetDXVer$@@YAKK@Z"
+    IDS_STRING17            "GET DX VERSION$[%S%?GetDXVer$@@YA_K_K@Z"
     IDS_STRING18            "TIMER[%L%?TimerL@@YAHXZ"
     IDS_STRING19            "COS[%FF%?CosFF@@YAKM@Z%Value"
     IDS_STRING20            "PRINT%A%?%Printlist"
@@ -195,9 +195,9 @@ BEGIN
     IDS_STRING73            "SQRT[%FF%?SqrtFF@@YAKM@Z%Value"
     IDS_STRING74            "RANDOMIZE%L%?Randomize@@YAXH@Z%Seed Value"
     IDS_STRING75            "ABS[%FF%AbsFF%Value"
-    IDS_STRING76            "CL$[%S%?Cl$@@YAKK@Z"
-    IDS_STRING77            "GET DATE$[%S%?GetDate$@@YAKK@Z"
-    IDS_STRING78            "GET TIME$[%S%?GetTime$@@YAKK@Z"
+    IDS_STRING76            "CL$[%S%?Cl$@@YA_K_K@Z"
+    IDS_STRING77            "GET DATE$[%S%?GetDate$@@YA_K_K@Z"
+    IDS_STRING78            "GET TIME$[%S%?GetTime$@@YA_K_K@Z"
     IDS_STRING79            "INT[%LF%?IntLF@@YAKM@Z%Value"
 END
 
@@ -213,8 +213,8 @@ BEGIN
     IDS_STRING87            "EXP[%FF%?ExpFF@@YAKM@Z%Value"
     IDS_STRING88            "INC%L%??"
     IDS_STRING89            "DEC%L%??"
-    IDS_STRING90            "SAVE ARRAY%SH%?SaveArray@@YAXPEADK@Z%Filename, Array Name(0)"
-    IDS_STRING91            "LOAD ARRAY%SH%?LoadArray@@YAXPEADK@Z%Filename, Array Name(0)"
+    IDS_STRING90            "SAVE ARRAY%SH%?SaveArray@@YAXPEAD_K@Z%Filename, Array Name(0)"
+    IDS_STRING91            "LOAD ARRAY%SH%?LoadArray@@YAXPEAD_K@Z%Filename, Array Name(0)"
     IDS_STRING92            "ENDFUNCTION%0%??"
     IDS_STRING93            "READ%L*%?ReadL@@YAKXZ%Value"
     IDS_STRING94            "READ%F*%?ReadF@@YAKXZ%Value"
@@ -283,7 +283,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_STRING144           "GET TYPE PATTERN$[%SSD%?GetTypePattern$@@YAKKKK@Z%Type Name, Type Index"
+    IDS_STRING144           "GET TYPE PATTERN$[%SSD%?GetTypePattern$@@YA_K_K0K@Z%Type Name, Type Index"
     IDS_STRING145           "FASTSYNC%L%?FastSync@@YAXH@Z%Non Display Update Flag"
     IDS_STRING146           "GET ARRAY TYPE[%LH%?GetArrayType@@YAK_K@Z%Array Name(0)"
     IDS_STRING147           "DRAW TO CAMERA%0%?DrawToCamera@@YAXXZ"

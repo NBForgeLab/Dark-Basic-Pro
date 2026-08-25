@@ -13,6 +13,7 @@
 
 // Common Includes
 #include "cAnimation.h"
+#include <cstdint>
 #include <stdio.h>
 #include "rmxfguid.h"
 #include "rmxftmpl.h"
@@ -1177,9 +1178,9 @@ float* CreatePureTriangleMeshData( float* pMeshDataRaw, DWORD* pdwVertsSoFar, DW
 		}
 
 		// read index from poly
-		WORD wA = pIndiceData[dwIndex++];
-		WORD wB = pIndiceData[dwIndex++];
-		WORD wC = pIndiceData[dwIndex++];
+		uint16_t wA = pIndiceData[dwIndex++];
+		uint16_t wB = pIndiceData[dwIndex++];
+		uint16_t wC = pIndiceData[dwIndex++];
 
 		// reference old vertex data
 		float* pVertDataA = (pMeshDataRaw+(wA*(dwFVFSize/4)));
@@ -1639,7 +1640,7 @@ ID3DXMesh* ConvertMeshStripToList ( sMesh* pMesh, DWORD dwInFVF, DWORD dwFVFSize
 				{
 					int iToggle=0;
 					DWORD dwSrcIndex=0;
-					WORD wA=0, wB=0, wC=0;
+					uint16_t wA=0, wB=0, wC=0;
 					if ( SUCCEEDED ( pStripMesh->LockIndexBuffer ( D3DLOCK_NOSYSLOCK, ( BYTE** ) &SrcIPtr ) ) )
 					{
 						// for each item in strip mesh
@@ -1665,7 +1666,7 @@ ID3DXMesh* ConvertMeshStripToList ( sMesh* pMesh, DWORD dwInFVF, DWORD dwFVFSize
 								// strips toggle their cull order
 								if(iToggle==1)
 								{
-									WORD wS=wB;
+									uint16_t wS=wB;
 									wB=wC;
 									wC=wS;
 								}

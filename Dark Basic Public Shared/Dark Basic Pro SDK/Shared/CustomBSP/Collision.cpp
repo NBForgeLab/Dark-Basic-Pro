@@ -10,8 +10,6 @@ void CalcNormal  ( D3DXVECTOR3 v [ 3 ], D3DXVECTOR3* out );
 void CalcNormal2 ( D3DXVECTOR3* v, int v_count, D3DXVECTOR3* out );
 BOOL BoundElipsoidIntersect ( D3DXVECTOR3 mid, D3DXVECTOR3 e, D3DXVECTOR3 o_pos, D3DXVECTOR3 n_pos );
 
-extern long				NumberOfPolygons;
-
 void CalcNormal ( D3DXVECTOR3 v [ 3 ], D3DXVECTOR3* out )
 {
 	D3DXVECTOR3 v1, v2;
@@ -220,7 +218,7 @@ static float intersect ( const D3DXVECTOR3& r0, const D3DXVECTOR3& rn, const D3D
   
     if ( denom <= -0.001f || denom >= 0.001f )
 	{
-        return -( numer / denom );
+        return static_cast<float>(-( numer / denom ));
     }
     return -1.0f;
 }
@@ -257,7 +255,7 @@ static float intersect_sphere ( const D3DXVECTOR3& r, const D3DXVECTOR3& rv, con
     if ( d < 0.0f )
 		return -1.0f;
 
-    return v - sqrt ( d );
+    return v - sqrtf ( d );
 }
 
 D3DXVECTOR3 thepos;
