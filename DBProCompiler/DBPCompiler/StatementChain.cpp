@@ -16,8 +16,8 @@ CStatementChain::CStatementChain()
 
 CStatementChain::~CStatementChain()
 {
-	SAFE_DELETE(m_FirstStatmentBlock);
-	SAFE_DELETE(m_pNext);
+	SafeDelete(m_FirstStatmentBlock);
+	SafeDelete(m_pNext);
 }
 
 void CStatementChain::Add(CStatementChain *pNext)

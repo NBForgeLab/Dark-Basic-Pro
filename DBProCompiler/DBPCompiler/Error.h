@@ -1,9 +1,4 @@
-// Error.h: interface for the CError class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_ERROR_H__F0A3CDF6_50BC_4230_92B8_2FA62212053E__INCLUDED_)
-#define AFX_ERROR_H__F0A3CDF6_50BC_4230_92B8_2FA62212053E__INCLUDED_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -30,56 +25,66 @@ class CError
 		virtual ~CError();
 
 	public:
-		bool IsError(void) { return m_bErrorExist; }
-		bool IsParserError(void) { return m_bParserErrorExist; }
+		bool IsError(void) const noexcept { return m_bErrorExist; }
+		bool IsParserError(void) const noexcept { return m_bParserErrorExist; }
 #ifdef DARKEXE
-		const char* GetErrorString() const { return __UNKNOWN_ERR_STR__; }
-		const char* GetParserErrorString() const { return __UNKNOWN_ERR_STR__; }
+		const char* GetErrorString() const noexcept { return __UNKNOWN_ERR_STR__; }
+		const char* GetParserErrorString() const noexcept { return __UNKNOWN_ERR_STR__; }
 #else
-		const char* GetErrorString(void) { if(m_pErrorString) return m_pErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
-		const char* GetParserErrorString(void) { if(m_pParserErrorString) return m_pParserErrorString->GetStr(); else return __UNKNOWN_ERR_STR__; }
+		const char* GetErrorString(void) const noexcept { return m_errorString.empty() ? __UNKNOWN_ERR_STR__ : m_errorString.c_str(); }
+		const char* GetParserErrorString(void) const noexcept { return m_parserErrorString.empty() ? __UNKNOWN_ERR_STR__ : m_parserErrorString.c_str(); }
+		std::string_view GetErrorStringView(void) const noexcept { return m_errorString; }
+		std::string_view GetParserErrorStringView(void) const noexcept { return m_parserErrorString; }
 #endif
-		void PrepareVerboseErrorHeader(DWORD LineNumber, LPCSTR ErrorString);
-		void AddErrorString(const char* ErrorString);
-		void SetParserError(DWORD LineNumber, LPCSTR ErrorString);
+		void PrepareVerboseErrorHeader(DWORD LineNumber, const char* ErrorString);
+		void AddErrorString(std::string_view ErrorString);
+		void AddErrorString(const char* ErrorString) {
+			if (ErrorString) AddErrorString(std::string_view(ErrorString));
+		}
+		void SetParserError(DWORD LineNumber, std::string_view ErrorString);
+		void SetParserError(DWORD LineNumber, const char* ErrorString) {
+			if (ErrorString) SetParserError(LineNumber, std::string_view(ErrorString));
+		}
 		void OutputInternalErrorReport(void);
 
 	public:
-		DWORD CountDatabaseSubset(LPCSTR pSection, LPCSTR pErrorFilename);
-		void LoadDatabaseSubset(LPCSTR pSection, DWORD dwMax, LPCSTR pErrorFilename, std::vector<std::string>& outDB);
-		void LoadRuntimeDatabaseSubset(LPCSTR pSection, DWORD dwMax, LPCSTR pErrorFilename, std::vector<std::string>& outDB);
-		void LoadErrorDatabase(LPCSTR pErrorFilename);
+		DWORD CountDatabaseSubset(const char* pSection, const char* pErrorFilename);
+		void LoadDatabaseSubset(const char* pSection, DWORD dwMax, const char* pErrorFilename, std::vector<std::string>& outDB);
+		void LoadRuntimeDatabaseSubset(const char* pSection, DWORD dwMax, const char* pErrorFilename, std::vector<std::string>& outDB);
+		void LoadErrorDatabase(const char* pErrorFilename);
 
-		DWORD GetRuntimeErrorStringMax(void) { return static_cast<DWORD>(m_RuntimeErrors.size()); }
-		LPSTR GetRuntimeErrorString(int iIndex) {
-			if (iIndex >= 0 && iIndex < (int)m_RuntimeErrors.size() && !m_RuntimeErrors[iIndex].empty())
-				return const_cast<LPSTR>(m_RuntimeErrors[iIndex].c_str());
+		DWORD GetRuntimeErrorStringMax(void) const noexcept { return static_cast<DWORD>(m_RuntimeErrors.size()); }
+		const char* GetRuntimeErrorString(int iIndex) const noexcept {
+			if (iIndex >= 0 && iIndex < static_cast<int>(m_RuntimeErrors.size()) && !m_RuntimeErrors[iIndex].empty())
+				return m_RuntimeErrors[iIndex].c_str();
 			return nullptr;
 		}
 
 	public:
+		void GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, std::string& outRawErrorString);
 		void GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, CStr** pRawErrorString);
+		DWORD GetTokenIndex(std::string_view tokenField);
 		DWORD GetTokenIndex(CStr* pTokenFieldString);
-		std::string CreateAndReword(LPCSTR pI);
-		void ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pA, LPCSTR pB, LPCSTR pC);
+		std::string CreateAndReword(const char* pI);
+		void ConstructError(DWORD dwLine, DWORD dwErrCode, const char* pA, const char* pB, const char* pC);
 		void SetError(DWORD dwLine, DWORD dwErrCode);
 		void SetError(DWORD dwLine, DWORD dwErrCode, DWORD dw1);
 		void SetError(DWORD dwLine, DWORD dwErrCode, const char* lp1);
 		void SetError(DWORD dwLine, DWORD dwErrCode, const char* lp1, const char* lp2);
 
 	public:
-		void ProgressReport(LPCSTR lpString, DWORD dwValue);
+		void ProgressReport(const char* lpString, DWORD dwValue);
 		DWORD GetPerc(DWORD pPerc) { return (DWORD)((m_dwMaxLines/100.0f)*pPerc); }
 		void SetMaxLines(DWORD dwMaxLines) { m_dwMaxLines=dwMaxLines;; }
 
 
 	private:
 		bool						m_bParserErrorExist;
-		std::unique_ptr<CStr>		m_pParserErrorString;
+		std::string					m_parserErrorString;
 
 	private:
 		bool						m_bErrorExist;
-		std::unique_ptr<CStr>		m_pErrorString;
+		std::string					m_errorString;
 
 	private:
 		bool		m_bEstablishedConnectionToMonitor;
@@ -100,5 +105,3 @@ extern bool g_bJsonDiagnostics;
 std::string EscapeJSON(const std::string& str);
 std::vector<std::string> ParseCommandLine(const std::string& cmdLine);
 void ReportStatus(const std::string& stage, const std::string& message);
-
-#endif // !defined(AFX_ERROR_H__F0A3CDF6_50BC_4230_92B8_2FA62212053E__INCLUDED_)

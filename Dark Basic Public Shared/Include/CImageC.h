@@ -155,15 +155,14 @@ DARKSDK void 				DeleteImage						( int iID );											// delete an image in t
 DARKSDK void 				RotateImage						( int iID, int iAngle );											// delete an image in the list
 DARKSDK int  				GetImageExistEx					( int iID );											// does image exist
 
-DARKSDK void  				SetImageColorKey					( int iR, int iG, int iB );		// set image color key
-DARKSDK DWORD 				LoadIcon					( LPSTR pFilename );
-DARKSDK void  				FreeIcon					( DWORD dwIconHandle );
+DARKSDK void  				SetImageColorKey				( int iR, int iG, int iB );		// set image color key
+DARKSDK DWORD_PTR 			LoadIcon						( LPSTR pFilename );
+DARKSDK void  				FreeIcon						( DWORD_PTR dwIconHandle );
 
-DARKSDK void 				GetImageData				( int iID, DWORD* dwWidth, DWORD* dwHeight, DWORD* dwDepth, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
-DARKSDK void 				SetImageData				( int iID, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, LPSTR pData, DWORD dwDataSize );
+DARKSDK void 				GetImageData					( int iID, DWORD* dwWidth, DWORD* dwHeight, DWORD* dwDepth, LPSTR* pData, DWORD* dwDataSize, bool bLockData );
+DARKSDK void 				SetImageData					( int iID, DWORD dwWidth, DWORD dwHeight, DWORD dwDepth, LPSTR pData, DWORD dwDataSize );
 
-DARKSDK void 				SetImageAutoMipMap			( int iGenerateMipMaps );
-
+DARKSDK void 				SetImageAutoMipMap				( int iGenerateMipMaps );
 DARKSDK bool				LoadAndSaveUsingDirectXTex  ( LPSTR pLoadFile, LPSTR pSaveFile );
 DARKSDK void				ImageCreateCubeMapFile		( LPSTR pCubeToSave, LPSTR pUp, LPSTR pDown, LPSTR pLeft, LPSTR pRight, LPSTR pBack, LPSTR pFront);
 DARKSDK void				ImageCreateSurfaceTextureChannels (LPSTR pSurfaceToSave, LPSTR pAO, LPSTR pGloss, LPSTR pMetalness, int iO, int iG, int iM, int iA);

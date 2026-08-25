@@ -114,10 +114,10 @@ CDBPCompiler::CDBPCompiler(LPSTR pCompilerFilename)
 CDBPCompiler::~CDBPCompiler()
 {
 	// Safe Deletions (dynamic memory buffers)
-	SAFE_DELETE_ARRAY(m_pFileData);
-	SAFE_DELETE_ARRAY(m_pProjectFileData);
-	SAFE_DELETE_ARRAY(m_pFinalDBASource);
-	SAFE_DELETE_ARRAY(m_pEXEFilename);
+	SafeDeleteArray(m_pFileData);
+	SafeDeleteArray(m_pProjectFileData);
+	SafeDeleteArray(m_pFinalDBASource);
+	SafeDeleteArray(m_pEXEFilename);
 
 	// RAII handles: m_pCompilerFilename, m_pCompilerPathOnly, m_OriginalFileData,
 	// m_pInternalFile[], m_pAbsolutePathToProjectFile, m_pRelativePathToProjectFile,
@@ -178,7 +178,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 			}
 
 			// free instruction table
-			SAFE_DELETE(g_pInstructionTable);
+			SafeDelete(g_pInstructionTable);
 		}
 		else
 		{
@@ -251,7 +251,7 @@ bool CDBPCompiler::PerformCompileOnProject(void)
 	}
 
 	// Free Include Table
-	SAFE_DELETE(g_pIncludeTable);
+	SafeDelete(g_pIncludeTable);
 
 	// Complete
 	return bResult;
@@ -336,7 +336,7 @@ bool CDBPCompiler::LoadPreparedSource(void)
 	if (sourceBytes.size() > MAXDWORD)
 		return false;
 
-	SAFE_DELETE_ARRAY(m_pFileData);
+	SafeDeleteArray(m_pFileData);
 	m_pFileData = new char[sourceBytes.size() + 1]();
 	if (!m_pFileData)
 		return false;
@@ -366,7 +366,7 @@ bool CDBPCompiler::LoadDBA(LPSTR pDBAFilename)
 	}
 
 	// Release any previous usage
-	SAFE_DELETE_ARRAY(m_pFileData);
+	SafeDeleteArray(m_pFileData);
 
 	// Load DBA Data (by file or MMF)
 	bool bFileLoaded = false;
@@ -561,7 +561,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 				CopyData(&pNewData, &dwNewDataSize, pData, dwDataSize);
 
 				// Delete raw data after use
-				SAFE_DELETE_ARRAY(pData);
+				SafeDeleteArray(pData);
 			}
 			else
 			{
@@ -572,7 +572,7 @@ bool CDBPCompiler::UnfoldFileDataIncludes(void)
 	}
 
 	// Now erase old root data
-	SAFE_DELETE_ARRAY(m_pFileData);
+	SafeDeleteArray(m_pFileData);
 
 	// Replace Root FileData with New Data
 	m_pFileData=pNewData;
@@ -624,7 +624,7 @@ void CDBPCompiler::EnsureDataMemBugEnough([[maybe_unused]] LPSTR pPtr, DWORD dwP
 		LPSTR pBiggerMem = new char[dwBiggerSize + 1]();
 		memcpy(pBiggerMem, *pNewData, *dwNewDataSize);
 		DWORD dwWriteOffset = static_cast<DWORD>((*pWritePtr)-(*pNewData));
-		SAFE_DELETE_ARRAY(*pNewData);
+		SafeDeleteArray(*pNewData);
 		*pNewData=pBiggerMem;
 		*dwNewDataSize=dwBiggerSize;
 		*pWritePtr=*pNewData+dwWriteOffset;
@@ -947,7 +947,7 @@ bool CDBPCompiler::UnfoldFileDataConstants(void)
 
 	// Assign new data as latest file data for next pass (or final task)
 	DWORD dwDataSizeOfNewData = static_cast<DWORD>(pWritePtr-pNewData);
-	SAFE_DELETE_ARRAY(m_pFileData);
+	SafeDeleteArray(m_pFileData);
 	m_pFileData=pNewData;
 	m_FileDataSize=dwDataSizeOfNewData;
 
@@ -1190,7 +1190,7 @@ bool CDBPCompiler::MakeProgram(void)
 	bool bResult=true;
 
 	// Create New Program
-	m_pContext = new CompilerContext();
+	m_pContext = std::make_unique<CompilerContext>();
 	m_pContext->Initialize();
 
 	// Set Compile Defaults
@@ -1253,7 +1253,7 @@ bool CDBPCompiler::MakeProgram(void)
 		for(DWORD err=0; err<g_pEXE->m_dwNumberOfRuntimeErrorStrings; err++)
 		{
 			// Get Data from error runtime string database
-			LPSTR pStringData=g_pErrorReport->GetRuntimeErrorString(err);
+			LPCSTR pStringData=g_pErrorReport->GetRuntimeErrorString(err);
 			
 			// Create Dynamic String
 			LPSTR pDynamicString=nullptr;
@@ -1397,7 +1397,7 @@ bool CDBPCompiler::MakeProgram(void)
 		if (m_pContext) {
 			m_pContext->ReplaceErrorReport(new CError);
 		} else {
-			SAFE_DELETE(g_pErrorReport);
+			SafeDelete(g_pErrorReport);
 			g_pErrorReport = new CError;
 		}
 	}
@@ -1416,8 +1416,7 @@ bool CDBPCompiler::MakeProgram(void)
 	if (m_pContext)
 	{
 		m_pContext->Cleanup();
-		delete m_pContext;
-		m_pContext = nullptr;
+		m_pContext.reset();
 	}
 
 	// Complete
@@ -1427,7 +1426,7 @@ bool CDBPCompiler::MakeProgram(void)
 bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 {
 	// Release any previous usage
-	SAFE_DELETE_ARRAY(m_pProjectFileData);
+	SafeDeleteArray(m_pProjectFileData);
 
 	// Get last six chars of filename
 	DWORD length = static_cast<DWORD>(strlen(pFilename));
@@ -1447,7 +1446,7 @@ bool CDBPCompiler::LoadProjectFile(LPSTR pFilename)
 	// Check for .DBPRO Extension
 	bool bFilenameIsProjectFile=false;
 	if(dbp::iequals(pStrExt, ".dbpro")) bFilenameIsProjectFile=true;
-	//SAFE_DELETE(pStrExt);
+	//SafeDelete(pStrExt);
 
 	// Resolve the project directory once; downstream outputs and media must not
 	// depend on the process current working directory.
@@ -1509,11 +1508,11 @@ bool CDBPCompiler::FreeProjectFile(void)
 	m_pRelativePathToProjectFile.reset();
 
 	// Delete Project Setting Strings
-	SAFE_DELETE_ARRAY(m_pFinalDBASource);
-	SAFE_DELETE_ARRAY(m_pEXEFilename);
+	SafeDeleteArray(m_pFinalDBASource);
+	SafeDeleteArray(m_pEXEFilename);
 
 	// Free Project Settings File Data
-	SAFE_DELETE_ARRAY(m_pProjectFileData);
+	SafeDeleteArray(m_pProjectFileData);
 
 	return true;
 }
@@ -1567,7 +1566,7 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 			dwPos = exeOnly.FindFirstChar('/');
 			if(dwPos>0) exeOnly.SetChar(dwPos, 0);
 			exeOnly.Reverse();
-			SAFE_DELETE_ARRAY(m_pEXEFilename);
+			SafeDeleteArray(m_pEXEFilename);
 			m_pEXEFilename = new char[exeOnly.Length()+1];
 			snprintf(m_pEXEFilename, exeOnly.Length()+1, "%s", exeOnly.GetStr());
 		}
@@ -1649,10 +1648,10 @@ bool CDBPCompiler::GetAllProjectFields(LPSTR pFilename)
 	return true;
 }
 
-bool CDBPCompiler::GetProjectState(LPCSTR pFieldName, bool bDefault)
+bool CDBPCompiler::GetProjectState(std::string_view fieldName, bool bDefault)
 {
 	bool bState=bDefault;
-	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
+	std::unique_ptr<char[]> pState(GetProjectField(fieldName));
 	if(pState)
 	{
 		if(dbp::iequals(pState.get(),"yes"))
@@ -1663,18 +1662,18 @@ bool CDBPCompiler::GetProjectState(LPCSTR pFieldName, bool bDefault)
 	return bState;
 }
 
-bool CDBPCompiler::GetProjectState(LPCSTR pFieldName)
+bool CDBPCompiler::GetProjectState(std::string_view fieldName)
 {
-	return GetProjectState(pFieldName, false);
+	return GetProjectState(fieldName, false);
 }
 
-bool CDBPCompiler::GetProjectStateMatch(LPCSTR pFieldName, LPCSTR pCompareStr)
+bool CDBPCompiler::GetProjectStateMatch(std::string_view fieldName, std::string_view compareStr)
 {
 	bool bState=false;
-	std::unique_ptr<char[]> pState(GetProjectField(pFieldName));
+	std::unique_ptr<char[]> pState(GetProjectField(fieldName));
 	if(pState)
 	{
-		if(dbp::iequals(pState.get(),pCompareStr))
+		if(dbp::iequals(pState.get(),compareStr))
 			bState=true;
 		else
 			bState=false;
@@ -1682,10 +1681,10 @@ bool CDBPCompiler::GetProjectStateMatch(LPCSTR pFieldName, LPCSTR pCompareStr)
 	return bState;
 }
 
-DWORD CDBPCompiler::GetProjectDisplayInfo(LPCSTR pFieldName, DWORD dwDisplayItem)
+DWORD CDBPCompiler::GetProjectDisplayInfo(std::string_view fieldName, DWORD dwDisplayItem)
 {
 	DWORD dwDisplayData=0;
-	std::unique_ptr<char[]> pStateOwner(GetProjectField(pFieldName));
+	std::unique_ptr<char[]> pStateOwner(GetProjectField(fieldName));
 	LPSTR pState = pStateOwner.get();
 	if(pState)
 	{
@@ -1729,10 +1728,10 @@ DWORD CDBPCompiler::GetProjectDisplayInfo(LPCSTR pFieldName, DWORD dwDisplayItem
 	return dwDisplayData;
 }
 
-LPSTR CDBPCompiler::GetProjectFile(LPCSTR pFieldName)
+LPSTR CDBPCompiler::GetProjectFile(std::string_view fieldName)
 {
 	// Find filename
-	std::unique_ptr<char[]> pFileOnly(GetProjectField(pFieldName));
+	std::unique_ptr<char[]> pFileOnly(GetProjectField(fieldName));
 
 	// Create Full Path and File
 	CStr TempStr;
@@ -1771,17 +1770,15 @@ LPSTR CDBPCompiler::GetProjectMediaRoot(void)
 	return pResult;
 }
 
-LPSTR CDBPCompiler::GetProjectField(LPCSTR pFieldName)
+LPSTR CDBPCompiler::GetProjectField(std::string_view fieldName)
 {
-	if (m_pProjectFileData == nullptr || m_ProjectFileDataSize == 0 ||
-		pFieldName == nullptr || pFieldName[0] == '\0')
+	if (m_pProjectFileData == nullptr || m_ProjectFileDataSize == 0 || fieldName.empty())
 	{
 		return nullptr;
 	}
 
 	const std::string_view contents{
 		m_pProjectFileData, static_cast<std::size_t>(m_ProjectFileDataSize)};
-	const std::string_view requestedField{pFieldName};
 	const auto trim = [](std::string_view value) noexcept
 	{
 		const auto first = value.find_first_not_of(" \t");
@@ -1808,8 +1805,7 @@ LPSTR CDBPCompiler::GetProjectField(LPCSTR pFieldName)
 			if (equals != std::string_view::npos)
 			{
 				const auto field = trim(line.substr(0, equals));
-				if (field.size() == requestedField.size() &&
-					_strnicmp(field.data(), requestedField.data(), field.size()) == 0)
+				if (dbp::iequals(field, fieldName))
 				{
 					const auto value = trim(line.substr(equals + 1));
 					if (value.empty())
@@ -1852,9 +1848,11 @@ LPSTR CDBPCompiler::GetInternalFile(DWORD dwFileID)
 		return nullptr;
 }
 
-bool CDBPCompiler::FileExists(const char* pFilename)
+bool CDBPCompiler::FileExists(std::string_view filename)
 {
-	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(pFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (filename.empty()) return false;
+	std::string fn(filename);
+	HANDLE hFile = CreateFileW(TextConvert::UTF8ToUTF16(fn).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
 		// Close File
@@ -1865,13 +1863,14 @@ bool CDBPCompiler::FileExists(const char* pFilename)
 	return false;
 }
 
-bool CDBPCompiler::PathExists(LPCSTR pPath)
+bool CDBPCompiler::PathExists(std::string_view path)
 {
-	if (!pPath || pPath[0] == '\0')
+	if (path.empty())
 		return false;
 
 	std::error_code ec;
-	return std::filesystem::exists(pPath, ec) && std::filesystem::is_directory(pPath, ec);
+	std::filesystem::path p(path);
+	return std::filesystem::exists(p, ec) && std::filesystem::is_directory(p, ec);
 }
 
 void CDBPCompiler::GatherAllExternalWords(LPSTR pWordsFile)

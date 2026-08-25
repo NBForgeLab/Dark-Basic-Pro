@@ -336,15 +336,15 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 	return true;
 }
 
-bool CParseUserFunction::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
+bool CParseUserFunction::WriteDBMBit(DWORD dwLineNumber, std::string_view text, std::string_view result)
 {
 	// Write out text
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pText);
+	strDBMLine.AddText(text);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pResult);
+	strDBMLine.AddText(result);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
 	return true;

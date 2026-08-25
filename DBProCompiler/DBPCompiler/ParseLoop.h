@@ -1,9 +1,4 @@
-// ParseLoop.h: interface for the CParseLoop class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_PARSELOOP_H__750474B4_5487_4E6E_B8F7_8639AC8BF24B__INCLUDED_)
-#define AFX_PARSELOOP_H__750474B4_5487_4E6E_B8F7_8639AC8BF24B__INCLUDED_
+#pragma once
 #include "ParserHeader.h"
 #include <memory>
 
@@ -50,7 +45,10 @@ class CParseLoop
 		void			PassStartEndCharForPossibleDebugHook(DWORD dwS, DWORD dwE) { m_dwS=dwS, m_dwE=dwE; }
 
 		bool			WriteDBM(DWORD PlacementCode);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, std::string_view text, std::string_view result);
+		bool			WriteDBMBit(DWORD dwLineNumber, const char* pText, const char* pResult) {
+			return WriteDBMBit(dwLineNumber, pText ? std::string_view(pText) : std::string_view{}, pResult ? std::string_view(pResult) : std::string_view{});
+		}
 
 	private:
 
@@ -73,5 +71,3 @@ class CParseLoop
 		std::unique_ptr<CParameter>	m_pForNextIncParameter;
 		std::unique_ptr<CParameter>	m_pForNextCheckParameter;
 };
-
-#endif // !defined(AFX_PARSELOOP_H__750474B4_5487_4E6E_B8F7_8639AC8BF24B__INCLUDED_)

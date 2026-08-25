@@ -1,9 +1,4 @@
-// DBMWriter.h: interface for the CDBMWriter class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_DBMWRITER_H__C1FF6E3E_45BA_478C_88E2_D2CB3C061575__INCLUDED_)
-#define AFX_DBMWRITER_H__C1FF6E3E_45BA_478C_88E2_D2CB3C061575__INCLUDED_
+#pragma once
 
 #include "windows.h"
 #include "Str.h"
@@ -16,6 +11,7 @@ class CDBMWriter
 		virtual ~CDBMWriter() = default;
 
 		bool			OutputDBM(const char *pDBMStr, size_t length);
+		bool			OutputDBM(std::string_view str) { return OutputDBM(str.data(), str.size()); }
 		bool			OutputDBM(CStr* pDBMStr);
 		DWORD			EatCarriageReturn(void);
 		bool			CheckAndExpandDBMMemory(DWORD dwLengthOfNewAddData);
@@ -47,5 +43,3 @@ class CDBMWriter
 		DWORD				m_dwDBMOffset;
 		bool				m_bNewCodeToParse;
 };
-
-#endif // !defined(AFX_DBMWRITER_H__C1FF6E3E_45BA_478C_88E2_D2CB3C061575__INCLUDED_)

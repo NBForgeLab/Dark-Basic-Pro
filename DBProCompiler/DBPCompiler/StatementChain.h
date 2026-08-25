@@ -1,9 +1,4 @@
-// StatementChain.h: interface for the CStatementChain class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_STATEMENTCHAIN_H__F922139D_BB85_46FE_865C_E017740374F8__INCLUDED_)
-#define AFX_STATEMENTCHAIN_H__F922139D_BB85_46FE_865C_E017740374F8__INCLUDED_
+#pragma once
 #include "ParserHeader.h"
 
 class CStatementChain  
@@ -26,5 +21,3 @@ class CStatementChain
 		// Hierarchy Data
 		CStatementChain*		m_pNext;
 };
-
-#endif // !defined(AFX_STATEMENTCHAIN_H__F922139D_BB85_46FE_865C_E017740374F8__INCLUDED_)

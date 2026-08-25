@@ -59,9 +59,9 @@ void CMathOp::Add(CMathOp* pNext)
 		m_pNext->Add(pNext);
 }
 
-void CMathOp::SetResult(LPSTR pString, DWORD dwType, DWORD dwDataOffset)
+void CMathOp::SetResult(std::string_view stringToken, DWORD dwType, DWORD dwDataOffset)
 {
-	m_Result.m_pStringToken = std::make_unique<CStr>(pString);
+	m_Result.m_pStringToken = std::make_unique<CStr>(stringToken);
 	m_Result.m_dwType = dwType;
 	m_Result.m_dwDataOffset = dwDataOffset;
 }
@@ -71,9 +71,9 @@ void CMathOp::SetResultData(CResultData ResultData)
 	m_Result = ResultData; // deep copy via CResultData copy assignment
 }
 
-void CMathOp::SetArrayOffsetResult(LPSTR pString)
+void CMathOp::SetArrayOffsetResult(std::string_view stringToken)
 {
-	m_Result.m_pAdditionalOffset = std::make_unique<CStr>(pString);
+	m_Result.m_pAdditionalOffset = std::make_unique<CStr>(stringToken);
 }
 
 CStr* CMathOp::FindResultStringTokenForDBM(void)
@@ -2538,15 +2538,15 @@ bool CMathOp::WriteDBMBit(DWORD dwLineNumber)
 	return true;
 }
 
-bool CMathOp::WriteDBMLine(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
+bool CMathOp::WriteDBMLine(DWORD dwLineNumber, std::string_view text, std::string_view result)
 {
 	// Write out text
 	CStr strDBMLine(256);
 	strDBMLine.SetNumericText(dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pText);
+	strDBMLine.AddText(text);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pResult);
+	strDBMLine.AddText(result);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
 	return true;

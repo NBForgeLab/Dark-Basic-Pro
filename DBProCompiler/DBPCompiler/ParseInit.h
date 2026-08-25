@@ -1,12 +1,7 @@
-// ParseInit.h: interface for the CParseInit class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_PARSEINIT_H__5AE26014_3544_4337_9662_4B439E57C853__INCLUDED_)
-#define AFX_PARSEINIT_H__5AE26014_3544_4337_9662_4B439E57C853__INCLUDED_
+#pragma once
 
 // Common Includes
-#include "windows.h"
+#include <cstdint>
 #include <memory>
 
 // Custom Includes
@@ -18,8 +13,8 @@ class CParseInit
 		CParseInit();
 		virtual ~CParseInit();
 
-		void			SetLineNumber(DWORD line) { m_dwLineNumber = line; }
-		DWORD			GetLineNumber(void) { return m_dwLineNumber; }
+		void			SetLineNumber(uint32_t line) { m_dwLineNumber = line; }
+		uint32_t			GetLineNumber(void) { return m_dwLineNumber; }
 
 		void			SetVariableNameMathOp(CMathOp* pNameMath) { m_pMathOp.reset(pNameMath); }
 		CMathOp*		GetVariableNameMathOp(void) { return m_pMathOp.get(); }
@@ -27,16 +22,17 @@ class CParseInit
 		CParameter*		GetParameter(void) { return m_pDataParamList.get(); }
 
 		bool			WriteDBM(void);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText);
+		bool			WriteDBMBit(uint32_t dwLineNumber, std::string_view text);
+		bool			WriteDBMBit(uint32_t dwLineNumber, const char* pText) {
+			return WriteDBMBit(dwLineNumber, pText ? std::string_view(pText) : std::string_view{});
+		}
 
 	private:
 
 		// Debug Data
-		DWORD			m_dwLineNumber;
+		uint32_t			m_dwLineNumber;
 
 		// Initialisation Data
 		std::unique_ptr<CMathOp>	m_pMathOp;
 		std::unique_ptr<CParameter>	m_pDataParamList;
 };
-
-#endif // !defined(AFX_PARSEINIT_H__5AE26014_3544_4337_9662_4B439E57C853__INCLUDED_)

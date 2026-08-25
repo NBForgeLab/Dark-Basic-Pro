@@ -11,6 +11,7 @@
 #include "TextConvert.h"
 #include "DiagnosticEngine.h"
 #include "DBPLogger.h"
+#include "StringUtils.h"
 #include <iostream>
 
 // External Class Pointer
@@ -89,83 +90,61 @@ void CError::PrepareVerboseErrorHeader([[maybe_unused]] DWORD LineNumber, LPCSTR
 	}
 }
 
-void CError::AddErrorString(const char* ErrorString)
+void CError::AddErrorString(std::string_view ErrorString)
 {
 	db3::CAutolock autolock(m_Lock);
 
-	if(!m_pParserErrorString)
+	if (m_parserErrorString.empty() && !ErrorString.empty())
 	{
-		if(g_pStatementList)
+		if (g_pStatementList)
 		{
-			const DWORD dwLineNum =
-				g_pStatementList->GetTokenLineNumber();
-			m_pParserErrorString = std::make_unique<CStr>(1);
-			m_pParserErrorString->SetText(const_cast<char*>(ErrorString));
-			if(dwLineNum>0 && g_pDBPCompiler)
+			const DWORD dwLineNum = g_pStatementList->GetTokenLineNumber();
+			m_parserErrorString = ErrorString;
+			if (dwLineNum > 0 && g_pDBPCompiler)
 			{
 				LPCSTR pUseLineNumber = g_pDBPCompiler->GetWord(11);
 				if (pUseLineNumber != nullptr && pUseLineNumber[0] != '\0')
 				{
-					m_pParserErrorString->AddText(" ");
-					m_pParserErrorString->AddText(pUseLineNumber);
-					m_pParserErrorString->AddText(" ");
-					m_pParserErrorString->AddNumericText(dwLineNum);
+					m_parserErrorString += " ";
+					m_parserErrorString += pUseLineNumber;
+					m_parserErrorString += " ";
+					m_parserErrorString += std::to_string(dwLineNum);
 				}
 			}
-			m_bParserErrorExist=true;
+			m_bParserErrorExist = true;
 
 			// Dump Contents of Line to Error Window
 			PrepareVerboseErrorHeader(dwLineNum, "UNDEFINED PARSER ERROR");
 		}
 	}
 
-	// Calc string sizes
-	DWORD oldsize = 0;
-	DWORD addsize = static_cast<DWORD>(strlen(ErrorString));
-	DWORD length = addsize;
-
-	// Concat two strings
-	if(m_pErrorString)
-	{
-		oldsize=m_pErrorString->Length();
-		length+=oldsize;
-	}
-	length+=2;
-	auto pNewErrorString = std::make_unique<CStr>(length+1);
-	if(oldsize>0) memcpy(pNewErrorString->GetStr(), m_pErrorString->GetStr(), oldsize);
-	memcpy(pNewErrorString->GetStr()+oldsize, ErrorString, addsize+1);
-	pNewErrorString->GetStr()[oldsize+addsize+0] = 13;
-	pNewErrorString->GetStr()[oldsize+addsize+1] = 10;
-	pNewErrorString->GetStr()[oldsize+addsize+2] = 0;
-
-	// Replace with new
-	m_pErrorString = std::move(pNewErrorString);
-	m_bErrorExist=true;
+	m_errorString += ErrorString;
+	m_errorString += "\r\n";
+	m_bErrorExist = true;
 }
 
-void CError::SetParserError(DWORD dwLine, LPCSTR ErrorString)
+void CError::SetParserError(DWORD dwLine, std::string_view ErrorString)
 {
 	db3::CAutolock autolock(m_Lock);
 
-	if(!m_pParserErrorString)
+	if (m_parserErrorString.empty() && !ErrorString.empty())
 	{
-		m_pParserErrorString = std::make_unique<CStr>(1);
-		m_pParserErrorString->SetText(ErrorString);
-		if(dwLine>0 && g_pDBPCompiler)
+		m_parserErrorString = ErrorString;
+		if (dwLine > 0 && g_pDBPCompiler)
 		{
 			LPCSTR pUseLineNumber = g_pDBPCompiler->GetWord(11);
 			if (pUseLineNumber != nullptr && pUseLineNumber[0] != '\0')
 			{
-				m_pParserErrorString->AddText(" ");
-				m_pParserErrorString->AddText(pUseLineNumber);
-				m_pParserErrorString->AddText(" ");
-				m_pParserErrorString->AddNumericText(dwLine);
+				m_parserErrorString += " ";
+				m_parserErrorString += pUseLineNumber;
+				m_parserErrorString += " ";
+				m_parserErrorString += std::to_string(dwLine);
 			}
 		}
-		m_bParserErrorExist=true;
+		m_bParserErrorExist = true;
 
 		// Dump Contents of Line to Error Window
-		PrepareVerboseErrorHeader(dwLine, ErrorString);
+		PrepareVerboseErrorHeader(dwLine, m_parserErrorString.c_str());
 	}
 }
 
@@ -274,53 +253,63 @@ void CError::LoadErrorDatabase(LPCSTR pErrorFilename)
 	LoadRuntimeDatabaseSubset("RUNTIME", dwRuntimeMax, pErrorFilename, m_RuntimeErrors);
 }
 
-void CError::GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, CStr** pRawErrorString)
+void CError::GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, std::string& outRawErrorString)
 {
 	// Find String from database
-	DWORD dwIndex=0;
-	std::vector<std::string>* pDatabase=nullptr;
-	if(dwErrCode>=ERR_INTERNAL && dwErrCode<=ERR_SYNTAX) { pDatabase=&m_InternalErrors; dwIndex=dwErrCode; }
-	if(dwErrCode>=ERR_SYNTAX && dwErrCode<=ERR_COMPILER) { pDatabase=&m_ParserErrors; dwIndex=dwErrCode-ERR_SYNTAX; }
+	DWORD dwIndex = 0;
+	const std::vector<std::string>* pDatabase = nullptr;
+	if (dwErrCode >= ERR_INTERNAL && dwErrCode <= ERR_SYNTAX) { pDatabase = &m_InternalErrors; dwIndex = dwErrCode; }
+	if (dwErrCode >= ERR_SYNTAX && dwErrCode <= ERR_COMPILER) { pDatabase = &m_ParserErrors; dwIndex = dwErrCode - ERR_SYNTAX; }
 
 	// Use database to return correct error construction line
-	if(pRawErrorString && pDatabase && dwIndex<pDatabase->size() && !(*pDatabase)[dwIndex].empty())
+	if (pDatabase && dwIndex < pDatabase->size() && !(*pDatabase)[dwIndex].empty())
 	{
-		// scan with dwErrCode
-		(*pRawErrorString)->SetText(const_cast<LPCSTR>((*pDatabase)[dwIndex].c_str()));
+		outRawErrorString = (*pDatabase)[dwIndex];
 	}
 	else
 	{
-		if(!m_InternalErrors.empty() && m_InternalErrors.size() > 1 && !m_InternalErrors[1].empty())
-			(*pRawErrorString)->SetText(const_cast<LPCSTR>(m_InternalErrors[1].c_str()));
+		if (!m_InternalErrors.empty() && m_InternalErrors.size() > 1 && !m_InternalErrors[1].empty())
+			outRawErrorString = m_InternalErrors[1];
 		else
-			(*pRawErrorString)->SetText("");
+			outRawErrorString.clear();
 	}
 
 	// Remove AT LINE X. if line is zero
-	if(dwLine==0 && m_InternalErrors.size() > 3 && !m_InternalErrors[2].empty() && !m_InternalErrors[3].empty())
+	if (dwLine == 0 && m_InternalErrors.size() > 3 && !m_InternalErrors[2].empty() && !m_InternalErrors[3].empty())
 	{
-		LPCSTR pOrig = const_cast<LPCSTR>(m_InternalErrors[2].c_str());
-		LPCSTR pRepl = const_cast<LPCSTR>(m_InternalErrors[3].c_str());
-		CStr* pStr = (*pRawErrorString);
-		if(_strnicmp((pStr->GetStr()+pStr->Length())-strlen(pOrig), pOrig, strlen(pOrig))==0)
+		const std::string& orig = m_InternalErrors[2];
+		const std::string& repl = m_InternalErrors[3];
+		if (outRawErrorString.size() >= orig.size() &&
+		    dbp::ends_with_ci(outRawErrorString, orig))
 		{
-			// Remove at line part
-			pStr->SetChar(pStr->Length() - static_cast<DWORD>(strlen(pOrig)), 0);
-			pStr->AddText(pRepl);
+			outRawErrorString.resize(outRawErrorString.size() - orig.size());
+			outRawErrorString += repl;
 		}
 	}
 }
 
+void CError::GetErrorConstruction(DWORD dwLine, DWORD dwErrCode, CStr** pRawErrorString)
+{
+	if (!pRawErrorString || !*pRawErrorString) return;
+	std::string raw;
+	GetErrorConstruction(dwLine, dwErrCode, raw);
+	(*pRawErrorString)->SetText(raw);
+}
+
+DWORD CError::GetTokenIndex(std::string_view tokenField)
+{
+	if (tokenField.empty()) return 0;
+	if (tokenField[0] == 'L' || tokenField[0] == 'l') return 99;
+	if (tokenField[0] == '1') return 1;
+	if (tokenField[0] == '2') return 2;
+	if (tokenField[0] == '3') return 3;
+	return 0;
+}
+
 DWORD CError::GetTokenIndex(CStr* pTokenFieldString)
 {
-	// Choose from tokens
-	if(pTokenFieldString->CheckChar(0, 'L')) return 99;
-	if(pTokenFieldString->CheckChar(0, '1')) return 1;
-	if(pTokenFieldString->CheckChar(0, '2')) return 2;
-	if(pTokenFieldString->CheckChar(0, '3')) return 3;
-
-	// No tokens matched
-	return 0;
+	if (!pTokenFieldString) return 0;
+	return GetTokenIndex(pTokenFieldString->View());
 }
 
 std::string CError::CreateAndReword(LPCSTR pI)
@@ -349,109 +338,101 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pIA, LPCSTR pI
 	std::string strA = CreateAndReword(pIA);
 	std::string strB = CreateAndReword(pIB);
 	std::string strC = CreateAndReword(pIC);
-	LPCSTR pA = strA.empty() ? nullptr : const_cast<LPCSTR>(strA.c_str());
-	LPCSTR pB = strB.empty() ? nullptr : const_cast<LPCSTR>(strB.c_str());
-	LPCSTR pC = strC.empty() ? nullptr : const_cast<LPCSTR>(strC.c_str());
+	LPCSTR pA = strA.empty() ? nullptr : strA.c_str();
+	LPCSTR pB = strB.empty() ? nullptr : strB.c_str();
+	LPCSTR pC = strC.empty() ? nullptr : strC.c_str();
 
 	CIncludeTable* pMustBeWithin = nullptr;
 
 	// CharPos From Line
 	DWORD dwCharPosAt = 0;
-	if(g_pStatementList) dwCharPosAt = g_pStatementList->GetLastCharInDataPosition();
+	if (g_pStatementList) dwCharPosAt = g_pStatementList->GetLastCharInDataPosition();
 
 	// End of Main Program Text
 	DWORD dwMainCharPosMax = 0;
-	if(g_pIncludeTable->GetNext())
+	if (g_pIncludeTable && g_pIncludeTable->GetNext())
 		dwMainCharPosMax = g_pIncludeTable->GetNext()->GetFirstByte();
 
 	// Line as text
-	bool bRemoveAtLine=false;
-	CStr pLine("");
-	if(dwCharPosAt<=dwMainCharPosMax || dwMainCharPosMax==0)
+	bool bRemoveAtLine = false;
+	std::string strLine;
+	if (dwCharPosAt <= dwMainCharPosMax || dwMainCharPosMax == 0)
 	{
 		// Within main program
-		pLine.SetNumericText(dwLine);
+		strLine = std::to_string(dwLine);
 	}
 	else
 	{
 		// Find which include error is in
-		pMustBeWithin = g_pIncludeTable->GetNext();
-		CIncludeTable* pCurrent = pMustBeWithin->GetNext();
-		while(pCurrent)
+		if (g_pIncludeTable)
 		{
-			if(dwCharPosAt<=pCurrent->GetFirstByte()) break;
-			pMustBeWithin=pCurrent;
-			pCurrent=pCurrent->GetNext();
-		}
+			pMustBeWithin = g_pIncludeTable->GetNext();
+			CIncludeTable* pCurrent = pMustBeWithin ? pMustBeWithin->GetNext() : nullptr;
+			while (pCurrent)
+			{
+				if (dwCharPosAt <= pCurrent->GetFirstByte()) break;
+				pMustBeWithin = pCurrent;
+				pCurrent = pCurrent->GetNext();
+			}
 
-		// State which include program
-		if(pMustBeWithin)
-		{
-			pLine.SetText("inside ");
-			pLine.AddText(pMustBeWithin->GetFilename());
-			bRemoveAtLine=true;
+			// State which include program
+			if (pMustBeWithin)
+			{
+				strLine = "inside ";
+				if (pMustBeWithin->GetFilename())
+					strLine += pMustBeWithin->GetFilename()->str();
+				bRemoveAtLine = true;
+			}
 		}
 	}
 
 	// Build String
-	DWORD n=0;
-	int iStart=-1;
-	CStr pToken("");
-	CStr pWorkStr("");
-	CStr pConstruction("");
-	CStr* pConPtr = &pConstruction;
-	GetErrorConstruction(dwLine, dwErrCode, &pConPtr);
-	while(n<pConstruction.Length())
+	std::string strConstruction;
+	GetErrorConstruction(dwLine, dwErrCode, strConstruction);
+
+	std::string strWork;
+	std::string strToken;
+	int iStart = -1;
+
+	for (size_t n = 0; n < strConstruction.size(); ++n)
 	{
-		// Find replacement token
-		if(iStart==-1)
+		char ch = strConstruction[n];
+		if (iStart == -1)
 		{
-			if(pConstruction.GetChar(n)=='#')
+			if (ch == '#')
 			{
-				// Token start
-				iStart=n;
+				iStart = static_cast<int>(n);
 			}
 			else
 			{
-				// Build New Line
-				pWorkStr.AddChar(pConstruction.GetChar(n));
+				strWork.push_back(ch);
 			}
 		}
 		else
 		{
-			if(pConstruction.GetChar(n)=='#')
+			if (ch == '#')
 			{
-				// Token end
-				iStart=-1;
-
-				// Use Token to append data to new line
-				switch(GetTokenIndex(&pToken))
+				iStart = -1;
+				switch (GetTokenIndex(strToken))
 				{
-					case 1 :	pWorkStr.AddText(pA);		break;
-					case 2 :	pWorkStr.AddText(pB);		break;
-					case 3 :	pWorkStr.AddText(pC);		break;
-
-					case 99 :	// Line Or Include Program
-								if(bRemoveAtLine==true)
-									if(_strnicmp(pWorkStr.GetStr()+pWorkStr.Length()-8, "at line ", 8)==0)
-										pWorkStr.SetChar(pWorkStr.Length()-8, 0);
-
-								pWorkStr.AddText(&pLine);
-								break;
+					case 1:  if (pA) strWork += pA; break;
+					case 2:  if (pB) strWork += pB; break;
+					case 3:  if (pC) strWork += pC; break;
+					case 99:
+						if (bRemoveAtLine && dbp::ends_with_ci(strWork, "at line "))
+						{
+							strWork.resize(strWork.size() - 8);
+						}
+						strWork += strLine;
+						break;
 				}
-
-				// Clear Token
-				pToken.SetText("");
+				strToken.clear();
 			}
 			else
 			{
-				// Build Token
-				pToken.AddChar(pConstruction.GetChar(n));
+				strToken.push_back(ch);
 			}
 		}
-
-		// Next character
-		n++;
 	}
 
 	// Set parser error with latest construction technique using DiagnosticEngine
@@ -459,8 +440,8 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pIA, LPCSTR pI
     if (g_pDBPCompiler && g_pDBPCompiler->m_pFinalDBASource) {
         filePath = g_pDBPCompiler->m_pFinalDBASource;
     }
-    if (bRemoveAtLine && pMustBeWithin) {
-        filePath = pMustBeWithin->GetFilename()->GetStr();
+    if (bRemoveAtLine && pMustBeWithin && pMustBeWithin->GetFilename()) {
+        filePath = pMustBeWithin->GetFilename()->str();
     }
 
     SourceLocation loc;
@@ -494,7 +475,7 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pIA, LPCSTR pI
     if (loc.length == 0) loc.length = 1;
 
     // Determine Help hint
-    std::string errMsg = pWorkStr.GetStr();
+    std::string errMsg = strWork;
     std::string hint = "";
     if (errMsg.find("Syntax Error") != std::string::npos || errMsg.find("syntax error") != std::string::npos) {
         hint = "Check for matching brackets, parentheses, or correct operator usage.";
@@ -525,14 +506,13 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pIA, LPCSTR pI
     DBP_ERROR("\n{}", formattedReportClean);
 
     // Set internal compiler parser error
-    if (!m_pParserErrorString) {
-        m_pParserErrorString.reset(new CStr(const_cast<LPCSTR>(formattedReportClean.c_str())));
+    if (m_parserErrorString.empty()) {
+        m_parserErrorString = formattedReportClean;
         m_bParserErrorExist = true;
     }
 
     // Append to accumulated error report for PATH_TEMPERRORFILE
-    AddErrorString(const_cast<LPCSTR>(formattedReportClean.c_str()));
-	// Stack-allocated CStr and std::string objects auto-cleanup
+    AddErrorString(formattedReportClean.c_str());
 }
 
 void CError::SetError(DWORD dwLine, DWORD dwErrCode)

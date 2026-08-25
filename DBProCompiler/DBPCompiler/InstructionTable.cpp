@@ -454,39 +454,39 @@ bool CInstructionTable::LoadInstructionDatabase(void)
 	return ScanPluginsForCommands();
 }
 
-bool CInstructionTable::AddCommand(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax)
+bool CInstructionTable::AddCommand(std::string_view name, std::string_view dll, std::string_view decoratedName, std::string_view paramTypesString, DWORD resultp, DWORD pmax)
 {
-	return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, 0, 0, 0, false, nullptr, nullptr);
+	return AddCommandCore2(name, dll, decoratedName, paramTypesString, resultp, pmax, 0, 0, 0, false, nullptr, nullptr);
 }
 
-bool CInstructionTable::AddUniqueCommand(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax)
+bool CInstructionTable::AddUniqueCommand(std::string_view name, std::string_view dll, std::string_view decoratedName, std::string_view paramTypesString, DWORD resultp, DWORD pmax)
 {
 	// Only add if completely unique
-	if(FindInstructionWithNameAndParams(pName, pParamTypesString)==false)
-		return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, 0, 0, 0, false, nullptr, nullptr);
+	if(FindInstructionWithNameAndParams(name, paramTypesString)==false)
+		return AddCommandCore2(name, dll, decoratedName, paramTypesString, resultp, pmax, 0, 0, 0, false, nullptr, nullptr);
 	else
 		return true;
 }
 
-bool CInstructionTable::AddBuildCommand(LPCSTR pName, LPCSTR pDesc, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
+bool CInstructionTable::AddBuildCommand(std::string_view name, std::string_view desc, std::string_view paramTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
 {
-	return AddCommandCore2(pName, "", pDesc, pParamTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, nullptr, nullptr);
+	return AddCommandCore2(name, "", desc, paramTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, nullptr, nullptr);
 }
 
-bool CInstructionTable::AddCommandCore(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
+bool CInstructionTable::AddCommandCore(std::string_view name, std::string_view dll, std::string_view decoratedName, std::string_view paramTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID)
 {
-	return AddCommandCore2(pName, pDLL, pDecoratedName, pParamTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, nullptr, nullptr);
+	return AddCommandCore2(name, dll, decoratedName, paramTypesString, resultp, pmax, dwInternalValueIndex, dwBuildID, 0, false, nullptr, nullptr);
 }
 
-bool CInstructionTable::AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecoratedName, LPCSTR pParamTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr )
+bool CInstructionTable::AddCommandCore2(std::string_view name, std::string_view dll, std::string_view decoratedName, std::string_view paramTypesString, DWORD resultp, DWORD pmax, DWORD dwInternalValueIndex, DWORD dwBuildID, DWORD dwPlace, bool bPassArrayAsInput, CStr* pParamFullDesc, LPSTR* plpretStr )
 {
 	// Make Entry (RAII-owned until inserted into the table)
 	auto pEntryOwner = std::make_unique<CInstructionTableEntry>();
 	CInstructionTableEntry* pEntry = pEntryOwner.get();
-	auto pStr = std::make_unique<CStr>(pName);
-	auto pStrDLL = std::make_unique<CStr>(pDLL);
-	auto pStrDecName = std::make_unique<CStr>(pDecoratedName);
-	auto pStrParamTypes = std::make_unique<CStr>(pParamTypesString);
+	auto pStr = std::make_unique<CStr>(name);
+	auto pStrDLL = std::make_unique<CStr>(dll);
+	auto pStrDecName = std::make_unique<CStr>(decoratedName);
+	auto pStrParamTypes = std::make_unique<CStr>(paramTypesString);
 
 	DWORD dwCurrentID;
 
@@ -501,7 +501,7 @@ bool CInstructionTable::AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecor
 	{
 		if(pParamFullDesc->Length()==0)
 		{
-			SAFE_DELETE(pParamFullDesc);
+			SafeDelete(pParamFullDesc);
 		}
 		else
 		{
@@ -512,7 +512,7 @@ bool CInstructionTable::AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecor
 
 #ifndef __AARON_INSTRPERF__
 	// See if command has friends of same name (as they go together)
-	CInstructionTableEntry* pLastFriendEntry = FindLastFriendOfName(pName);
+	CInstructionTableEntry* pLastFriendEntry = FindLastFriendOfName(name);
 
 	// Has a Friend - Insert Into Database
 	if(pLastFriendEntry)
@@ -612,11 +612,12 @@ bool CInstructionTable::AddCommandCore2(LPCSTR pName, LPCSTR pDLL, LPCSTR pDecor
 	return true;
 }
 
-bool CInstructionTable::AddUserFunction(LPCSTR pName, DWORD resultp, LPCSTR pParamTypesString, DWORD pmax, CDeclaration* pDecChain)
+bool CInstructionTable::AddUserFunction(std::string_view name, DWORD resultp, std::string_view paramTypesString, DWORD pmax, CDeclaration* pDecChain)
 {
 	// leefix-040803-Before confirm, check if name is a reserved word or function name
-	if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( pName ) ) return false;
-	if ( g_pStatementList->GetProgramStatements()->DetermineIfFunctionName ( pName, false ) ) return false;
+	std::string nameStr(name);
+	if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( nameStr.c_str() ) ) return false;
+	if ( g_pStatementList->GetProgramStatements()->DetermineIfFunctionName ( nameStr.c_str(), false ) ) return false;
 
 	// Increment ID
 	DWORD dwCurrentID = static_cast<DWORD>(db3::atomic_inc(reinterpret_cast<db3::u32 *>(&m_dwCurrentInternalID)));
@@ -624,9 +625,9 @@ bool CInstructionTable::AddUserFunction(LPCSTR pName, DWORD resultp, LPCSTR pPar
 	// Make Entry (RAII-owned until inserted into the table)
 	auto pEntryOwner = std::make_unique<CInstructionTableEntry>();
 	CInstructionTableEntry* pEntry = pEntryOwner.get();
-	auto pStr = std::make_unique<CStr>(pName);
+	auto pStr = std::make_unique<CStr>(name);
 	auto pStrID = std::make_unique<CStr>((DWORD)1);
-	auto pStrParamTypes = std::make_unique<CStr>(pParamTypesString);
+	auto pStrParamTypes = std::make_unique<CStr>(paramTypesString);
 
 	pStrID->SetNumericText(dwCurrentID);
 	// Ownership of the three CStr buffers transfers into the entry.
@@ -1153,10 +1154,14 @@ bool CInstructionTable::CompareInstructionNames(CInstructionTableEntry* pRefEntr
 	return false;
 }
 
-CInstructionTableEntry* CInstructionTable::FindUserFunction(LPCSTR pUserFunctionName)
+CInstructionTableEntry* CInstructionTable::FindUserFunction(std::string_view userFunctionName)
 {
+	if (userFunctionName.empty())
+		return nullptr;
+
 #ifdef __AARON_INSTRPERF__
-	auto entry = m_UserFunctionMap.Find(pUserFunctionName);
+	std::string nameStr(userFunctionName);
+	auto entry = m_UserFunctionMap.Find(nameStr.c_str());
 	if (!entry)
 		return nullptr;
 
@@ -1166,7 +1171,7 @@ CInstructionTableEntry* CInstructionTable::FindUserFunction(LPCSTR pUserFunction
 	CInstructionTableEntry* pEntry = m_pFirstUserFunctionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pUserFunctionName && dbp::iequals(pEntry->GetName()->GetStr(), pUserFunctionName))
+		if(dbp::iequals(pEntry->GetNameView(), userFunctionName))
 			return pEntry;
 
 		pEntry=pEntry->GetNext();
@@ -1177,10 +1182,14 @@ CInstructionTableEntry* CInstructionTable::FindUserFunction(LPCSTR pUserFunction
 #endif
 }
 
-CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPCSTR pFunctionName)
+CInstructionTableEntry* CInstructionTable::FindReservedFunction(std::string_view functionName)
 {
+	if (functionName.empty())
+		return nullptr;
+
 #ifdef __AARON_INSTRPERF__
-	auto entry = m_InstructionMap.Find(pFunctionName);
+	std::string nameStr(functionName);
+	auto entry = m_InstructionMap.Find(nameStr.c_str());
 	if (!entry)
 		return nullptr;
 
@@ -1190,7 +1199,7 @@ CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPCSTR pFunction
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFunctionName && dbp::iequals(pEntry->GetName()->GetStr(), pFunctionName))
+		if(dbp::iequals(pEntry->GetNameView(), functionName))
 			return pEntry;
 
 		pEntry=pEntry->GetNext();
@@ -1201,10 +1210,14 @@ CInstructionTableEntry* CInstructionTable::FindReservedFunction(LPCSTR pFunction
 #endif
 }
 
-bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pParams)
+bool CInstructionTable::FindInstructionWithNameAndParams(std::string_view pName, std::string_view pParams)
 {
+	if (pName.empty())
+		return false;
+
 #ifdef __AARON_INSTRPERF__
-	auto entry = m_InstructionMap.Find(pName);
+	std::string nameStr(pName);
+	auto entry = m_InstructionMap.Find(nameStr.c_str());
 	if (!entry)
 		return nullptr;
 
@@ -1212,7 +1225,7 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pP
 
 	while(item)
 	{
-		if (item->GetParamTypes() && item->GetParamTypes()->GetStr() && pParams && dbp::iequals(item->GetParamTypes()->GetStr(), pParams))
+		if (dbp::iequals(item->GetParamTypesView(), pParams))
 			return true;
 
 		item = item->GetNext();
@@ -1224,10 +1237,7 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pP
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pName
-		&& pEntry->GetParamTypes() && pEntry->GetParamTypes()->GetStr() && pParams
-		&& dbp::iequals(pEntry->GetName()->GetStr(), pName)
-		&& dbp::iequals(pEntry->GetParamTypes()->GetStr(), pParams))
+		if(dbp::iequals(pEntry->GetNameView(), pName) && dbp::iequals(pEntry->GetParamTypesView(), pParams))
 		{
 			// Found same instruction
 			return true;
@@ -1241,10 +1251,14 @@ bool CInstructionTable::FindInstructionWithNameAndParams(LPCSTR pName, LPCSTR pP
 #endif
 }
 
-CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPCSTR pFriendName)
+CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(std::string_view pFriendName)
 {
+	if (pFriendName.empty())
+		return nullptr;
+
 #ifdef __AARON_INSTRPERF__
-	auto entry = m_InstructionMap.Find(pFriendName);
+	std::string nameStr(pFriendName);
+	auto entry = m_InstructionMap.Find(nameStr.c_str());
 	if (!entry)
 		return nullptr;
 
@@ -1264,7 +1278,7 @@ CInstructionTableEntry* CInstructionTable::FindLastFriendOfName(LPCSTR pFriendNa
 	CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 	while(pEntry)
 	{
-		if(pEntry->GetName() && pEntry->GetName()->GetStr() && pFriendName && dbp::iequals(pEntry->GetName()->GetStr(), pFriendName))
+		if(dbp::iequals(pEntry->GetNameView(), pFriendName))
 			pMatch=pEntry;
 
 		pEntry=pEntry->GetNext();
@@ -1668,7 +1682,7 @@ bool CInstructionTable::TurnStringIntoCommand(LPCSTR pCategory, LPCSTR pDLLName,
 			if(AddCommandCore2(pName->GetStr(), pDLLName, pDecorated->GetStr(), pParam->GetStr(), dwReturnParam, pParam->Length(), 0, 0, dwStarPos, bPassArrayPtrAsInput, pParamDesc.release(), &lpConflictingDLLName)==false)
 			{
 				// Command already exists (either in same DLL or another DLL); ignore and continue loading remaining commands
-				SAFE_DELETE(lpConflictingDLLName);
+				SafeDelete(lpConflictingDLLName);
 			}
 		}
 
@@ -1930,10 +1944,11 @@ bool CInstructionTable::CheckTroubleCommandSyntax(std::string& sTXTThisSyntax, L
 
 DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD dwTypeValue)
 {
-	switch(dwTypeValue)
+	const auto type = static_cast<DBPType>(dwTypeValue);
+	switch(type)
 	{
-		case 1 : // INTEGER
-		case 101 : // INTEGER POINTER
+		case DBPType::Integer:
+		case DBPType::IntegerArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerLLL);
@@ -1951,8 +1966,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 2 : // FLOAT
-		case 102 : // FLOAT POINTER
+		case DBPType::Float:
+		case DBPType::FloatArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerFFF);
@@ -1970,8 +1985,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 3 : // STRING
-		case 103 : // STRING POINTER
+		case DBPType::String:
+		case DBPType::StringArray:
 		switch(dwMathSymbol)
 		{
 //			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerSSS);
@@ -1988,8 +2003,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 4 : // BOOL
-		case 104 : // BOOL POINTER
+		case DBPType::Boolean:
+		case DBPType::BooleanArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerBBB);
@@ -2007,8 +2022,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 5 : // BYTE
-		case 105 : // BYTE POINTER
+		case DBPType::Byte:
+		case DBPType::ByteArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerYYY);
@@ -2026,8 +2041,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 6 : // WORD
-		case 106 : // WORD POINTER
+		case DBPType::Word:
+		case DBPType::WordArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerWWW);
@@ -2045,10 +2060,10 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 7 : // DWORD
-		case 107 : // DWORD POINTER
-		case 1001 : // USERDEFINED STRUCTURE VAR
-		case 1101 : // USERDEFINED STRUCTURE PTR
+		case DBPType::Dword:
+		case DBPType::DwordArray:
+		case DBPType::UserDefinedPtr:
+		case DBPType::UserDefinedArrayPtr:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerDDD);
@@ -2073,8 +2088,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 8 : // DOUBLE FLOAT
-		case 108 : // DOUBLE FLOAT POINTER
+		case DBPType::DoubleFloat:
+		case DBPType::DoubleFloatArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerOOO);
@@ -2091,8 +2106,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 		}
 		break;
 
-		case 9 : // DOUBLE INTEGER
-		case 109 : // DOUBLE INTEGER POINTER
+		case DBPType::DoubleInteger:
+		case DBPType::DoubleIntegerArray:
 		switch(dwMathSymbol)
 		{
 			case 1 :	return static_cast<DWORD>(InternalInstruction::PowerRRR);
@@ -2107,6 +2122,8 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 			case 23 :	return static_cast<DWORD>(InternalInstruction::GreaterEqualLRR);
 			case 24 :	return static_cast<DWORD>(InternalInstruction::LessEqualRR);
 		}
+		break;
+		default:
 		break;
 	}
 
@@ -2200,7 +2217,7 @@ DWORD CInstructionTable::DetermineInternalCommandCode(DWORD dwMathSymbol, DWORD 
 	return 0;
 }
 
-bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPCSTR pConstantName )
+bool CInstructionTable::EnsureWordIsNotPartOfACommand ( std::string_view constantName )
 {
 #ifdef __AARON_INSTRPERF__
 	//
@@ -2209,62 +2226,43 @@ bool CInstructionTable::EnsureWordIsNotPartOfACommand ( LPCSTR pConstantName )
 	return false;
 #else
 	// go through entire command database and make sure the submitted word does NOT occur
-	if ( m_pFirstInstructionEntry && pConstantName )
+	if ( m_pFirstInstructionEntry && !constantName.empty() )
 	{
-		LPCSTR pLastCommand = nullptr;
-		LPCSTR pPtr, pPtrBegin, pPtrEnd;
-		DWORD dwCompareSize = static_cast<DWORD>(strlen( pConstantName ));
+		std::string_view lastCommand;
 		CInstructionTableEntry* pEntry = m_pFirstInstructionEntry;
 		while(pEntry)
 		{
 			// get command name
-			LPCSTR pCommandName = pEntry->GetName()->GetStr();
+			std::string_view commandName = pEntry->GetNameView();
 
 			// quick rejects
-			if ( pCommandName )
-			{
-				if ( pCommandName[0]==0 )
-					goto _next;
-				if ( pCommandName[0]=='+' )
-					goto _next;
-			}
+			if ( commandName.empty() || commandName.front() == '+' )
+				goto _next;
 
 			// skip if this same as last
-			if ( pLastCommand )
-				if ( strcmp ( pLastCommand, pCommandName )==0 )
-					goto _next;
+			if ( !lastCommand.empty() && lastCommand == commandName )
+				goto _next;
 
 			// compare command string with passed in constant-name
-			pPtr = pCommandName;
-			pPtrEnd = pPtr + strlen(pCommandName);
-			pPtrBegin = pPtr;
-			while ( pPtr<=pPtrEnd )
 			{
-				// space or end of string
-				if ( *pPtr==32 || *pPtr==0 )
+				size_t pos = 0;
+				while ( pos < commandName.size() )
 				{
-					// this one word (leefix - 260604 - u54-must be greater than one letter - deal with JOYSTICK FIRE A( by detecting bracket)
-					DWORD dwOneWordLength = static_cast<DWORD>(pPtr - pPtrBegin);
-					if ( dwOneWordLength > 1 )
+					size_t nextSpace = commandName.find(' ', pos);
+					if ( nextSpace == std::string_view::npos )
+						nextSpace = commandName.size();
+
+					std::string_view word = commandName.substr(pos, nextSpace - pos);
+					if ( word.size() > 1 )
 					{
-						// leefix - 260604 - u54 - largest word rules
-						DWORD dwThisCompareSize = dwCompareSize;
-						if ( dwThisCompareSize<dwOneWordLength ) dwThisCompareSize=dwOneWordLength;
-						if ( _strnicmp ( pPtrBegin, pConstantName, dwThisCompareSize )==0 )
-						{
-							// this word matches the one word from the command, leave!
+						if ( dbp::iequals(word, constantName) )
 							return true;
-						}
 					}
 
-					// new word, begin
-					pPtrBegin = pPtr+1;
+					pos = nextSpace + 1;
 				}
-
-				// next char
-				pPtr++;
 			}
-			pLastCommand = pCommandName;
+			lastCommand = commandName;
 
 			// get next command
 			_next: pEntry=pEntry->GetNext();

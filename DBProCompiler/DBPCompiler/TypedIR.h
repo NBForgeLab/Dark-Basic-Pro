@@ -1,7 +1,7 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <windows.h>
 #include "ASTNodes.h"
 
 enum class IROpCode {
@@ -18,8 +18,15 @@ enum class IROpCode {
 struct IRInstruction {
     IROpCode opCode;
     std::string operandStr;
-    DWORD typeVal = 0;
+    uint32_t typeVal = 0;
     BinaryOpType opType = BinaryOpType::Add;
+
+    [[nodiscard]] DBPType GetDBPType() const noexcept {
+        return static_cast<DBPType>(typeVal);
+    }
+    void SetDBPType(DBPType type) noexcept {
+        typeVal = static_cast<uint32_t>(type);
+    }
 };
 
 struct IRProgram {
@@ -35,7 +42,7 @@ inline std::string PrintIR(const IRProgram& ir) {
         ss << "  [" << i << "] ";
         switch (inst.opCode) {
             case IROpCode::LoadConst:
-                ss << "LoadConst: " << inst.operandStr << " (Type " << inst.typeVal << ")";
+                ss << "LoadConst: " << inst.operandStr << " (Type " << inst.typeVal << " [" << GetTypeNameString(static_cast<DBPType>(inst.typeVal)) << "])";
                 break;
             case IROpCode::LoadVar:
                 ss << "LoadVar: " << inst.operandStr;

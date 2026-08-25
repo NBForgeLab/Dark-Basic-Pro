@@ -67,13 +67,13 @@ CVarTable::CVarTable()
 	m_orderIndex=static_cast<size_t>(-1);
 }
 
-CVarTable::CVarTable(LPCSTR pStr)
+CVarTable::CVarTable(const char* pStr)
 {
 	m_dwLineNumber=0;
 
-	m_pVarScope.reset(new CStr(""));
-	m_pVarName.reset(new CStr(pStr));
-	m_pVarType.reset(new CStr("dword"));
+	m_pVarScope = std::make_unique<CStr>("");
+	m_pVarName = std::make_unique<CStr>(pStr ? pStr : "");
+	m_pVarType = std::make_unique<CStr>("dword");
 	m_dwVarTypeValue=7;
 	m_dwArrFlag=0;
 	m_dwFinalDBMOffset=0;
@@ -84,7 +84,30 @@ CVarTable::CVarTable(LPCSTR pStr)
 	m_orderIndex=static_cast<size_t>(-1);
 
 #ifdef __AARON_VARTABLEPERF__
-	std::string lowerStr = var_to_lower(pStr);
+	std::string lowerStr = var_to_lower(pStr ? pStr : "");
+	assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Variable already exists");
+	g_Table[lowerStr] = this;
+#endif
+}
+
+CVarTable::CVarTable(std::string_view str)
+{
+	m_dwLineNumber=0;
+
+	m_pVarScope = std::make_unique<CStr>("");
+	m_pVarName = std::make_unique<CStr>(str);
+	m_pVarType = std::make_unique<CStr>("dword");
+	m_dwVarTypeValue=7;
+	m_dwArrFlag=0;
+	m_dwFinalDBMOffset=0;
+
+	m_bOffsetAssigned=false;
+	m_pAdditionalDataString=nullptr;
+
+	m_orderIndex=static_cast<size_t>(-1);
+
+#ifdef __AARON_VARTABLEPERF__
+	std::string lowerStr = var_to_lower(str);
 	assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Variable already exists");
 	g_Table[lowerStr] = this;
 #endif
@@ -168,13 +191,13 @@ void CVarTable::SetVarDefaults(void)
 	g_pStatementList->IncVarQtyCounter(dwAddDefaultVars);
 }
 
-void CVarTable::AddInOrder(LPCSTR pName, CVarTable* pNew)
+void CVarTable::AddInOrder(std::string_view name, CVarTable* pNew)
 {
 	// Find place to insert new variable
 	CVarTable* pLocation = this->GetNext();
 	while(pLocation)
 	{
-		if(dbp::icompare(pName,pLocation->GetVarName()->GetStr()) < 0) break;
+		if(dbp::icompare(name, pLocation->GetVarNameView()) < 0) break;
 		pLocation=pLocation->GetNext();
 	}
 	if(pLocation)
@@ -207,27 +230,27 @@ CVarTable* CVarTable::Subtract(DWORD dwCountdown)
 	return g_Order[m_orderIndex - dwCountdown];
 }
 
-bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal)
+bool CVarTable::AddVariable(std::string_view name, std::string_view type, DWORD dwArrFlag, DWORD dwLineNumber, bool bFromActualCodeNotFromTypeDefing, DWORD* pdwAction, bool bIsGlobal)
 {
-	DBP_TRACE("Registering variable: name={}, type={}, isGlobal={}", pName ? pName : "null", pType ? pType : "null", bIsGlobal);
+	DBP_TRACE("Registering variable: name={}, type={}, isGlobal={}", name, type, bIsGlobal);
 
 	// Ignore if no variables addable
 	if(g_pStatementList->GetVariableAddParse()==false)
 		return true;
 
 	// Do not attempt to add system vars
-	if(pName[0]=='$' && pName[1]=='$')
+	if(name.size() >= 2 && name[0]=='$' && name[1]=='$')
 		return true;
 
 	// LOCAL Temporary variables must not be confused with GLOBAL ones
 	bool bVarIsTemporaryVariable=false;
-	if(pName[0]=='$') bVarIsTemporaryVariable=true;
+	if(!name.empty() && name[0]=='$') bVarIsTemporaryVariable=true;
 
 	// If defining var in userfunction, must be added to local dec chain
-	LPSTR pScope=nullptr;
+	std::string_view scope;
 	LPSTR pUserFunc = g_pStatementList->GetUserFunctionName();
-	if(!dbp::iequals(pUserFunc,""))
-		pScope = g_pStatementList->GetUserFunctionName();
+	if(pUserFunc && !dbp::iequals(pUserFunc,""))
+		scope = pUserFunc;
 
 	// leefix - 210703 - added for global var specified in ENDFUNCTION param
 	// This flag is set when a variable being scanned for checks globally FIRST!
@@ -235,7 +258,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 
 	// Check if variable in local scope
 	bool bVariableHasBeenAdded=false;
-	CVarTable* pFoundVar = FindVariable(pScope, pName, dwArrFlag);
+	CVarTable* pFoundVar = FindVariable(scope, name, dwArrFlag);
 	if(pFoundVar)
 	{
 		// If variable created during a pre-scan, accept as added
@@ -257,7 +280,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 			else
 			{
 				// Cannot duplicate a variable declaration by assignment a different type
-				if(dbp::iequals(pFoundVar->GetVarType()->GetStr(),pType))
+				if(dbp::iequals(pFoundVar->GetVarTypeView(), type))
 				{
 					// Same type, so treat as a re-init of variable
 					if(pdwAction) *pdwAction=3;
@@ -265,7 +288,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 				}
 				else
 				{
-					g_pErrorReport->SetError(dwLineNumber, ERR_SYNTAX+36, pFoundVar->GetVarType()->GetStr());
+					g_pErrorReport->SetError(dwLineNumber, ERR_SYNTAX+36, pFoundVar->GetVarTypeStr());
 					return false;
 				}
 			}
@@ -273,23 +296,18 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 	}
 
 	// leefix - 290703 - for backwards compatibility, prescan : arrays declared in a function and is global should be global (and not explicitly local)
-	if ( pScope && dwArrFlag==1 && g_pStatementList->GetImplementationParse()==false && bIsGlobal==true )
+	if ( !scope.empty() && dwArrFlag==1 && g_pStatementList->GetImplementationParse()==false && bIsGlobal==true )
 		bCheckGloballyFirst=true;
 
 	// Skip global var check if userfunction is declaring its local variables...
-	if(!dbp::iequals(pUserFunc,"")
+	if(!scope.empty()
 	&& ( g_pStatementList->GetImplementationParse()==true || bCheckGloballyFirst==true ) )
 	{
-		/* leefix - 230603
-		   It seems this code only strikes on the main pass all userfunction declarations
-		   that use names also used by global variables. HOWEVER local names must take precidence!!
-		   BUT if no local scope var was found, can look for global..
-		*/
 		if ( pFoundVar==nullptr )
 		{
 			// Ensure it does not match a global variable
 			if(pdwAction) *pdwAction=0;
-			CVarTable* pEntry = FindVariable("", pName, dwArrFlag);
+			CVarTable* pEntry = FindVariable(std::string_view{}, name, dwArrFlag);
 			if(pEntry)
 			{
 				// Only for non-temp vars
@@ -316,11 +334,13 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 		if ( bIsGlobal==false )
 		{
 			// Create Declaration for variable
+			std::string nameStr(name);
+			std::string typeStr(type);
 			CDeclaration* pNewDec = new CDeclaration;
-			pNewDec->SetDecData(dwArrFlag, "", pName, pType, "", dwLineNumber);
+			pNewDec->SetDecData(dwArrFlag, "", nameStr.c_str(), typeStr.c_str(), "", dwLineNumber);
 
 			// Add to chain USERFUNCTION LOCAL (if unique)
-			if(pGlobalDecChain->Find(pName,dwArrFlag)==nullptr)
+			if(pGlobalDecChain->Find(name, dwArrFlag)==nullptr)
 				pGlobalDecChain->Add(pNewDec);
 			else
 				delete pNewDec;
@@ -334,60 +354,60 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 		return true;
 	}
 
-	// If scope is nullptr, create a global string for it
-	CStr* pVarScopeStr = new CStr(pScope);
-//  LEEFIX - 230604 - u54 - GLOBAL DIM arr(x) in scope must have no scope name!
-//	if((dwArrFlag==0 && pScope==nullptr && bIsGlobal==true) 
-	if((dwArrFlag==0 && bIsGlobal==true)
-	|| (dwArrFlag==1 && (pScope==nullptr || bIsGlobal==true)) )
+	std::string scopeStr;
+	if (!scope.empty())
 	{
-		// Global or Non-nested local arrays are also global
-		pVarScopeStr->SetText("");
+		if ((dwArrFlag==0 && bIsGlobal==true)
+		|| (dwArrFlag==1 && bIsGlobal==true))
+		{
+			scopeStr = "";
+		}
+		else
+		{
+			scopeStr = std::string(scope);
+		}
 	}
-	if(pType==nullptr)
+
+	if(type.empty())
 	{
 		// Cannot duplicate a variable declaration
 		g_pErrorReport->AddErrorString("Failed to 'AddVariable::pType==NULL'");
-		SAFE_DELETE(pVarScopeStr);
 		return false;
 	}
 
 	// lee - 110406 - u6rc7 - if array name, skip the &
-	if ( pName )
+	std::string nameStr(name);
+	if ( !nameStr.empty() )
 	{
-		if ( pName[0]=='&' )
+		if ( nameStr[0]=='&' )
 		{
 			// Before confirm, check if variable name is a reserved word
-			if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( pName+1 ) )
+			if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( nameStr.c_str()+1 ) )
 			{
-				g_pErrorReport->SetError(g_pStatementList->GetLineNumber()-1, ERR_SYNTAX+7, pName+1);
-				SAFE_DELETE(pVarScopeStr);
+				g_pErrorReport->SetError(g_pStatementList->GetLineNumber()-1, ERR_SYNTAX+7, nameStr.c_str()+1);
 				return false;
 			}
 
 			// before confirm, check if variable name is a function name
-			if ( g_pStatementList->GetProgramStatements()->DetermineIfFunctionName ( pName+1, true ) )
+			if ( g_pStatementList->GetProgramStatements()->DetermineIfFunctionName ( nameStr.c_str()+1, true ) )
 			{
-				g_pErrorReport->SetError(g_pStatementList->GetLineNumber()-1, ERR_SYNTAX+7, pName+1);
-				SAFE_DELETE(pVarScopeStr);
+				g_pErrorReport->SetError(g_pStatementList->GetLineNumber()-1, ERR_SYNTAX+7, nameStr.c_str()+1);
 				return false;
 			}
 		}
 		else
 		{
 			// Before confirm, check if variable name is a reserved word
-			if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( pName ) )
+			if ( g_pStatementList->GetProgramStatements()->DetermineIfReservedWord ( nameStr.c_str() ) )
 			{
-				g_pErrorReport->SetError(g_pStatementList->GetLineNumber(), ERR_SYNTAX+7, pName);
-				SAFE_DELETE(pVarScopeStr);
+				g_pErrorReport->SetError(g_pStatementList->GetLineNumber(), ERR_SYNTAX+7, nameStr.c_str());
 				return false;
 			}
 
 			// leefix-040803-Before confirm, check if variable name is a function name
-			if ( g_pStatementList->GetProgramStatements()->DetermineIfFunctionName ( pName, true ) )
+			if ( g_pStatementList->GetProgramStatements()->DetermineIfFunctionName ( nameStr.c_str(), true ) )
 			{
-				g_pErrorReport->SetError(g_pStatementList->GetLineNumber(), ERR_SYNTAX+7, pName);
-				SAFE_DELETE(pVarScopeStr);
+				g_pErrorReport->SetError(g_pStatementList->GetLineNumber(), ERR_SYNTAX+7, nameStr.c_str());
 				return false;
 			}
 		}
@@ -395,13 +415,11 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 
 	// Create new variable
 	CVarTable* pNewVar = new CVarTable;
-	CStr* pVarNameStr = new CStr(pName);
-	CStr* pVarTypeStr = new CStr(pType);
-	pNewVar->SetVarScope(pVarScopeStr);
-	pNewVar->SetVarName(pVarNameStr);
-	pNewVar->SetVarType(pVarTypeStr);
-	pNewVar->SetVarTypeValue(GetBasicTypeValue(pVarTypeStr->GetStr()));
-	pNewVar->SetVarStruct(g_pStructTable->DoesTypeEvenExist(pVarTypeStr->GetStr()));
+	pNewVar->SetVarScope(scopeStr);
+	pNewVar->SetVarName(name);
+	pNewVar->SetVarType(type);
+	pNewVar->SetVarTypeValue(GetBasicTypeValue(type));
+	pNewVar->SetVarStruct(g_pStructTable->DoesTypeEvenExist(pNewVar->GetVarTypeStr()));
 	pNewVar->SetArrFlag(dwArrFlag);
 	pNewVar->SetLineNumber(dwLineNumber);
 	pNewVar->SetSpecifiedAsGlobalFlag(bIsGlobal);
@@ -409,11 +427,7 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 	// leefix - 170303 - Ensure arrays declared outside of scope are also forced as GLOBAL
 	if ( dwArrFlag==1 )
 	{
-		if ( pVarScopeStr )
-			if ( strcmp ( pVarScopeStr->GetStr(), "" )==0 )
-				pNewVar->SetSpecifiedAsGlobalFlag(true);
-
-		if ( pVarScopeStr==nullptr )
+		if ( scopeStr.empty() )
 			pNewVar->SetSpecifiedAsGlobalFlag(true);
 	}
 
@@ -424,10 +438,10 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 		pNewVar->SetPreScanAddFlag(false);
 
 	// Add Variable to Variables Table
-	AddInOrder(pName, pNewVar);
+	AddInOrder(pNewVar->GetVarNameStr(), pNewVar);
 
 #ifdef __AARON_VARTABLEPERF__
-	std::string pIntVarName = MakeIntVarName(pVarScopeStr->GetStr(), pName);
+	std::string pIntVarName = MakeIntVarName(scopeStr, name);
 	std::string lowerIntVarName = var_to_lower(pIntVarName);
 	assert_msg(g_Table.find(lowerIntVarName) == g_Table.end() || g_Table[lowerIntVarName] == nullptr, "Variable already exists");
 	g_Table[lowerIntVarName] = pNewVar;
@@ -443,12 +457,12 @@ bool CVarTable::AddVariable(LPCSTR pName, LPCSTR pType, DWORD dwArrFlag, DWORD d
 	return true;
 }
 
-CVarTable* CVarTable::FindVariable(LPCSTR pScope, LPCSTR pName, DWORD dwArrFlag)
+CVarTable* CVarTable::FindVariable(std::string_view scope, std::string_view name, DWORD dwArrFlag)
 {
-	if (!pName)
+	if (name.empty())
 		return nullptr;
 
-	std::string pIntName = MakeIntVarName(pScope ? pScope : "", pName);
+	std::string pIntName = MakeIntVarName(scope, name);
 	std::string lowerIntName = var_to_lower(pIntName);
 	auto it = g_Table.find(lowerIntName);
 	if (it == g_Table.end() || !it->second)
@@ -460,68 +474,53 @@ CVarTable* CVarTable::FindVariable(LPCSTR pScope, LPCSTR pName, DWORD dwArrFlag)
 	return it->second;
 }
 
-bool CVarTable::FindVariableExist(LPCSTR pFindVar, DWORD dwArrFlag)
+bool CVarTable::FindVariableExist(std::string_view findVar, DWORD dwArrFlag)
 {
-	// Ensure pScope is observed
 	LPCSTR pScope=nullptr;
 	if(g_pStatementList->GetUserFunctionDecChain())
 		if(g_pStatementList->GetUserFunctionName())
 			pScope = g_pStatementList->GetUserFunctionName();
 
-	// Scan list and match variable name
-	CVarTable* pFoundVar = FindVariable(pScope, pFindVar, dwArrFlag);
+	CVarTable* pFoundVar = FindVariable(pScope ? std::string_view(pScope) : std::string_view{}, findVar, dwArrFlag);
 	if(pFoundVar==nullptr)
 	{
-		// Try as global
-		pFoundVar = FindVariable("", pFindVar, dwArrFlag);
+		pFoundVar = FindVariable(std::string_view{}, findVar, dwArrFlag);
 	}
 
-	// True if found..
-	if(pFoundVar)
-		return true;
-	else
-	{
-		// soft fail
-		return false;
-	}
+	return pFoundVar != nullptr;
 }
 
-bool CVarTable::FindTypeOfVariable(LPCSTR pFindVar, DWORD dwArrType, LPSTR* pReturnType)
+bool CVarTable::FindTypeOfVariable(std::string_view findVar, DWORD dwArrType, LPSTR* pReturnType)
 {
-	/*
-	// Skip var token
-	CStr* pFindVarName = nullptr;
-	if(*pVarString=='@') pVarString++;
-	if(pMathString->CheckChars(0,3,"FS@"))
-	{
-		pFindVarName = new CStr(pMathString->GetStr()+3);
-		pVarString = pFindVarName->GetStr() + pFindVarName->FindFirstChar('@') + 1;
-	}
-	if(*pVarString=='&') dwArrFlag=1;
-	*/
-
 	// Ensure pScope is observed
 	LPCSTR pScope=nullptr;
 	if(g_pStatementList->GetUserFunctionDecChain())
 		if(g_pStatementList->GetUserFunctionName())
 			pScope = g_pStatementList->GetUserFunctionName();
 
-	// Scan list and match variable name
-	CVarTable* pFoundVar = FindVariable(pScope, pFindVar, dwArrType);
+	// Soft-fail on empty name
+	if(findVar.empty())
+		return false;
+
+	// Scan list and match variable name (guard: CStr::operator LPSTR may yield
+	// nullptr for an empty user-function name even when the CStr itself is valid)
+	CVarTable* pFoundVar = FindVariable(
+		pScope ? std::string_view(pScope) : std::string_view{},
+		findVar,
+		dwArrType);
 	if(pFoundVar==nullptr)
 	{
 		// Try as global
-		pFoundVar = FindVariable("", pFindVar, dwArrType);
-		if(pFoundVar==nullptr) pFoundVar = FindVariable("", pFindVar, dwArrType);
+		pFoundVar = FindVariable("", findVar, dwArrType);
 	}
 
 	// Get Type Data
 	if(pFoundVar)
 	{
 		// Get type string
-		size_t length = strlen(pFoundVar->GetVarType()->GetStr());
+		size_t length = pFoundVar->GetVarTypeView().size();
 		*pReturnType = new char[length+2];
-		snprintf(*pReturnType, length+2, "%s", pFoundVar->GetVarType()->GetStr());
+		snprintf(*pReturnType, length+2, "%s", pFoundVar->GetVarTypeStr());
 		return true;
 	}
 
@@ -529,38 +528,29 @@ bool CVarTable::FindTypeOfVariable(LPCSTR pFindVar, DWORD dwArrType, LPSTR* pRet
 	return false;
 }
 
-std::string CVarTable::MakeDefaultVarType(LPCSTR pDecName)
+std::string CVarTable::MakeDefaultVarType(std::string_view decName)
 {
-	if(pDecName==nullptr)
+	if (decName.empty())
 		return std::string();
 
-	// Suffix rule can pre-define variable types
-	size_t length=strlen(pDecName);
-	if(length>0 && pDecName[length-1]=='#')
+	if (decName.back() == '#')
 		return "float";
-	if(length>0 && pDecName[length-1]=='$')
+	if (decName.back() == '$')
 		return "string";
 
 	return "integer";
 }
 
-DWORD CVarTable::MakeDefaultVarTypeValue(LPCSTR pDecName)
+DWORD CVarTable::MakeDefaultVarTypeValue(std::string_view decName)
 {
-	DWORD dwTypeValue=1;
-	if(pDecName)
+	if (!decName.empty())
 	{
-		// Suffix rule can pre-define variable types
-		size_t length=strlen(pDecName);
-		if(length>0 && pDecName[length-1]=='#')
-		{
-			dwTypeValue=2;
-		}
-		if(length>0 && pDecName[length-1]=='$')
-		{
-			dwTypeValue=3;
-		}
+		if (decName.back() == '#')
+			return 2;
+		if (decName.back() == '$')
+			return 3;
 	}
-	return dwTypeValue;
+	return 1;
 }
 
 LPSTR CVarTable::MakeTypeNameOfTypeValue(DWORD dwTypeValue)
@@ -579,34 +569,34 @@ LPSTR CVarTable::MakeTypeNameOfTypeValue(DWORD dwTypeValue)
 	return nullptr;
 }
 
-DWORD CVarTable::GetBasicTypeValue(LPCSTR pTypeString)
+DWORD CVarTable::GetBasicTypeValue(std::string_view typeString)
 {
 	CStructTable* pCurrent = g_pStructTable;
-	while(pCurrent)
+	while (pCurrent)
 	{
-		LPCSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
-		if(dbp::iequals(pCurrentStr, pTypeString))
+		if (pCurrent->GetTypeName())
 		{
-			return pCurrent->GetTypeValue();
+			if (dbp::iequals(pCurrent->GetTypeName()->GetStr(), typeString))
+				return pCurrent->GetTypeValue();
 		}
 		pCurrent = pCurrent->GetNext();
 	}
 	return 0;
 }
 
-CStructTable* CVarTable::GetStruct(LPCSTR pTypeString)
+CStructTable* CVarTable::GetStruct(std::string_view typeString)
 {
 	CStructTable* pCurrent = g_pStructTable;
-	while(pCurrent)
+	while (pCurrent)
 	{
-		LPCSTR pCurrentStr = pCurrent->GetTypeName()->GetStr();
-		if(dbp::iequals(pCurrentStr, pTypeString))
+		if (pCurrent->GetTypeName())
 		{
-			return pCurrent;
+			if (dbp::iequals(pCurrent->GetTypeName()->GetStr(), typeString))
+				return pCurrent;
 		}
 		pCurrent = pCurrent->GetNext();
 	}
-	return 0;
+	return nullptr;
 }
 
 char CVarTable::GetCharOfType(DWORD dwTypeValue)
@@ -705,23 +695,19 @@ DWORD CVarTable::EstablishVarOffsets(DWORD* pdwOffsetValue)
 bool CVarTable::WriteDBMHeader(void)
 {
 	// Blank Line
-	CStr strDBMBlank(1);
-	if(g_pDBMWriter->OutputDBM(&strDBMBlank)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("")) return false;
 
 	// header Line
-	CStr strDBMLine(256);
-	strDBMLine.SetText("VARIABLES:");
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("VARIABLES:")) return false;
 
 	return true;
 }
 
 bool CVarTable::WriteDBMFooter(DWORD dwSizeOfVariableBuffer)
 {
-	CStr strDBMLine(256);
-	strDBMLine.SetText("SIZE OF VARIABLE BUFFER = ");
-	strDBMLine.AddNumericText(dwSizeOfVariableBuffer);
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	std::string dbmLine = "SIZE OF VARIABLE BUFFER = ";
+	dbmLine += std::to_string(dwSizeOfVariableBuffer);
+	if (!g_pDBMWriter->OutputDBM(dbmLine)) return false;
 
 	// Complete
 	return true;
@@ -730,35 +716,34 @@ bool CVarTable::WriteDBMFooter(DWORD dwSizeOfVariableBuffer)
 bool CVarTable::WriteDBM(void)
 {
 	// Only if variable has name
-	if(m_pVarName)
+	if (m_pVarName)
 	{
 		// Get Offset Value
-		DWORD dwOffsetValue=m_dwFinalDBMOffset;
+		DWORD dwOffsetValue = m_dwFinalDBMOffset;
 
 		// Only if variable GLOBAL
-		if(m_pVarScope->Length()==0 || m_pVarScope->CheckChars(0, 6, "GLOBAL")==true)
+		if (m_pVarScope->Length() == 0 || m_pVarScope->CheckChars(0, 6, "GLOBAL") == true)
 		{
 			// Write out text
-			CStr strDBMLine(256);
-			strDBMLine.SetText("@");
-			strDBMLine.AddText(m_pVarName.get());
-			strDBMLine.AddText("=");
-			strDBMLine.AddNumericText(dwOffsetValue);
+			std::string dbmLine = "@";
+			if (m_pVarName) dbmLine += m_pVarName->View();
+			dbmLine += "=";
+			dbmLine += std::to_string(dwOffsetValue);
 
 			// Array variables are pointers not actual data mem
-			strDBMLine.AddText("  [STRUCT@");
-			strDBMLine.AddText(m_pVarType.get());
-			strDBMLine.AddText("]");
+			dbmLine += "  [STRUCT@";
+			if (m_pVarType) dbmLine += m_pVarType->View();
+			dbmLine += "]";
 
 			// Output details
-			if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+			if (!g_pDBMWriter->OutputDBM(dbmLine)) return false;
 		}
 	}
 
 	// Write next one
-	if(GetNext())
+	if (GetNext())
 	{
-		if((GetNext()->WriteDBM())==false) return false;
+		if (!GetNext()->WriteDBM()) return false;
 	}
 
 	// Complete

@@ -26,12 +26,6 @@ void CIncludeTable::Add(std::unique_ptr<CIncludeTable> pNew)
 		m_pNext->Add(std::move(pNew));
 }
 
-bool CIncludeTable::FindInclude(LPCSTR pFilename) const
-{
-	if (!pFilename || pFilename[0] == '\0') return false;
-	return FindInclude(std::string_view(pFilename));
-}
-
 bool CIncludeTable::FindInclude(std::string_view filename) const
 {
 	if (filename.empty()) return false;
@@ -41,7 +35,7 @@ bool CIncludeTable::FindInclude(std::string_view filename) const
 	{
 		if(pCurrent->GetFilename() && pCurrent->GetFilename()->GetStr())
 		{
-			if(dbp::iequals(filename.data(), pCurrent->GetFilename()->GetStr()))
+			if(dbp::iequals(filename, pCurrent->GetFilename()->GetStr()))
 				return true;
 		}
 

@@ -93,23 +93,35 @@ public:
 
     /**
      * @brief Determines the variable type from a name suffix.
-     * @param[in] pNameStr  Null-terminated variable name.
+     * @param[in] nameStr  Variable name.
      * @return 1 = string (suffix `$`), 2 = float (suffix `#`), 3 = integer/default, 0 = invalid input.
      */
-    [[nodiscard]] int DetermineNameToken(const char* pNameStr) const noexcept;
+    [[nodiscard]] int DetermineNameToken(std::string_view nameStr) const noexcept;
+    [[nodiscard]] int DetermineNameToken(const char* pNameStr) const noexcept {
+        return pNameStr ? DetermineNameToken(std::string_view(pNameStr)) : 0;
+    }
 
     /**
      * @brief Maps a keyword string to its Token enum value (case-insensitive).
-     * @param[in] pToken  Null-terminated keyword string.
+     * @param[in] token  Keyword string.
      * @return The corresponding Token enum value cast to DWORD, or 0 if not a recognized keyword.
      */
-    [[nodiscard]] DWORD DetermineKeywordToken(const char* pToken) const noexcept;
+    [[nodiscard]] DWORD DetermineKeywordToken(std::string_view token) const noexcept;
+    [[nodiscard]] DWORD DetermineKeywordToken(const char* pToken) const noexcept {
+        return pToken ? DetermineKeywordToken(std::string_view(pToken)) : 0;
+    }
 
     /** @brief Returns true if the token matches a reserved word (if, then, else, etc.). */
-    [[nodiscard]] bool DetermineIfReservedWord(const char* pToken) const noexcept;
+    [[nodiscard]] bool DetermineIfReservedWord(std::string_view token) const noexcept;
+    [[nodiscard]] bool DetermineIfReservedWord(const char* pToken) const noexcept {
+        return pToken ? DetermineIfReservedWord(std::string_view(pToken)) : false;
+    }
 
     /** @brief Returns true if the token starts with an alphabetic character or underscore (valid function name). */
-    [[nodiscard]] bool DetermineIfFunctionName(const char* pToken) const noexcept;
+    [[nodiscard]] bool DetermineIfFunctionName(std::string_view token) const noexcept;
+    [[nodiscard]] bool DetermineIfFunctionName(const char* pToken) const noexcept {
+        return pToken ? DetermineIfFunctionName(std::string_view(pToken)) : false;
+    }
 
 private:
     const char* m_pSourceBuffer{ nullptr };

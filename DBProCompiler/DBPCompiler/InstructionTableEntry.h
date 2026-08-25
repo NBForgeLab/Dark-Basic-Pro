@@ -1,11 +1,7 @@
-// InstructionTableEntry.h: interface for the CInstructionTableEntry class.
-//
-//////////////////////////////////////////////////////////////////////
+#pragma once
 
-#if !defined(AFX_INSTRUCTIONTABLEENTRY_H__4CC0B572_0A5F_418D_8595_59DC544431D6__INCLUDED_)
-#define AFX_INSTRUCTIONTABLEENTRY_H__4CC0B572_0A5F_418D_8595_59DC544431D6__INCLUDED_
-
-#include "windows.h"
+#include <cstdint>
+#include <string_view>
 #include "Str.h"
 #include "Task.h"
 #include <memory>
@@ -32,18 +28,33 @@ class CInstructionTableEntry
 		void						SetDecChain(CDeclaration* pRef) { m_pDecChain.reset(pRef); }
 		CDeclaration*				GetDecChain(void) { return m_pDecChain.get(); }
 
-		DWORD						GetInternalID(void) { return m_dwInternalID; }
-		CStr*						GetName(void) { return m_pName.get(); }
-		CStr*						GetDLL(void) { return m_pDLL.get(); }
-		CStr*						GetDecoratedName(void) { return m_pDecoratedName.get(); }
-		CStr*						GetParamTypes(void) { return m_pParamTypes.get(); }
-		DWORD						GetReturnParam(void) { return m_dwReturnParam; }
-		DWORD						GetParamMax(void) { return m_dwParamMax; }
-		DWORD						GetHardcoreInternalValue(void) { return m_dwHardcoreInternalValue; }
-		DWORD						GetBuildID(void) { return m_dwBuildID; }
-		DWORD						GetReturnParamPlace(void) { return m_dwReturnPlace; }
-		bool						GetSpecialArrayParam(void) { return m_bSpecialArrayParam; }
-		CStr*						GetFullParamDesc(void) { return m_pParamDesc.get(); }
+		DWORD						GetInternalID(void) const noexcept { return m_dwInternalID; }
+		[[nodiscard]] CStr*			GetName(void) const noexcept { return m_pName.get(); }
+		[[nodiscard]] std::string_view GetNameView(void) const noexcept { return m_pName ? m_pName->View() : std::string_view{}; }
+		[[nodiscard]] const char*	GetNameStr(void) const noexcept { return m_pName ? m_pName->c_str() : ""; }
+
+		[[nodiscard]] CStr*			GetDLL(void) const noexcept { return m_pDLL.get(); }
+		[[nodiscard]] std::string_view GetDLLView(void) const noexcept { return m_pDLL ? m_pDLL->View() : std::string_view{}; }
+		[[nodiscard]] const char*	GetDLLStr(void) const noexcept { return m_pDLL ? m_pDLL->c_str() : ""; }
+
+		[[nodiscard]] CStr*			GetDecoratedName(void) const noexcept { return m_pDecoratedName.get(); }
+		[[nodiscard]] std::string_view GetDecoratedNameView(void) const noexcept { return m_pDecoratedName ? m_pDecoratedName->View() : std::string_view{}; }
+		[[nodiscard]] const char*	GetDecoratedNameStr(void) const noexcept { return m_pDecoratedName ? m_pDecoratedName->c_str() : ""; }
+
+		[[nodiscard]] CStr*			GetParamTypes(void) const noexcept { return m_pParamTypes.get(); }
+		[[nodiscard]] std::string_view GetParamTypesView(void) const noexcept { return m_pParamTypes ? m_pParamTypes->View() : std::string_view{}; }
+		[[nodiscard]] const char*	GetParamTypesStr(void) const noexcept { return m_pParamTypes ? m_pParamTypes->c_str() : ""; }
+
+		DWORD						GetReturnParam(void) const noexcept { return m_dwReturnParam; }
+		DWORD						GetParamMax(void) const noexcept { return m_dwParamMax; }
+		DWORD						GetHardcoreInternalValue(void) const noexcept { return m_dwHardcoreInternalValue; }
+		DWORD						GetBuildID(void) const noexcept { return m_dwBuildID; }
+		DWORD						GetReturnParamPlace(void) const noexcept { return m_dwReturnPlace; }
+		bool						GetSpecialArrayParam(void) const noexcept { return m_bSpecialArrayParam; }
+
+		[[nodiscard]] CStr*			GetFullParamDesc(void) const noexcept { return m_pParamDesc.get(); }
+		[[nodiscard]] std::string_view GetFullParamDescView(void) const noexcept { return m_pParamDesc ? m_pParamDesc->View() : std::string_view{}; }
+		[[nodiscard]] const char*	GetFullParamDescStr(void) const noexcept { return m_pParamDesc ? m_pParamDesc->c_str() : ""; }
 
 	private:
 		// Instruction Entry Data
@@ -65,5 +76,3 @@ class CInstructionTableEntry
 		CInstructionTableEntry*		m_pPrev;
 		CInstructionTableEntry*		m_pNext;
 };
-
-#endif // !defined(AFX_INSTRUCTIONTABLEENTRY_H__4CC0B572_0A5F_418D_8595_59DC544431D6__INCLUDED_)

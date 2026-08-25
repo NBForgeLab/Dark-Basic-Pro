@@ -600,7 +600,22 @@ bool CStatement::DoStatement(DWORD TokenID)
 	if(TokenID!=0)
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+13);
 	else
+	{
+		// TEMP-DIAG: dump raw parser context at unmatched token (remove after root-cause hunt)
+		{
+			LPSTR pDiagRaw = g_pStatementList->GetFileDataPointer();
+			char szDiagRaw[64] = {};
+			if (pDiagRaw)
+				for (int i = 0; i < 48; ++i)
+				{
+					char c = pDiagRaw[i];
+					if (c == 0) { szDiagRaw[i] = '.'; break; }
+					szDiagRaw[i] = (c >= 32 && c < 127) ? c : '?';
+				}
+			DBP_WARN("DIAG unmatched: line={} raw='{}'", StatementLineNumber, szDiagRaw);
+		}
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+11);
+	}
 
 	// Failed to understand token soft fail
 	return false;
@@ -2077,13 +2092,13 @@ bool CStatement::DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType
 				{
 					DWORD StatementLineNumber = g_pStatementList->GetTokenLineNumber();
 					g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+36, pArrFullname->GetStr());
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pDecName);
-					SAFE_DELETE_ARRAY(pDecType);
-					SAFE_DELETE(pDecInit);
-					SAFE_DELETE(pString);
-					SAFE_DELETE(pDecArrValue);
-					SAFE_DELETE(pArrFullname);
+					SafeDelete(pDecArrValue);
+					SafeDelete(pDecName);
+					SafeDeleteArray(pDecType);
+					SafeDelete(pDecInit);
+					SafeDelete(pString);
+					SafeDelete(pDecArrValue);
+					SafeDelete(pArrFullname);
 					return false;
 				}
 			}
@@ -2873,14 +2888,14 @@ bool CStatement::DoAssignment(DWORD StatementLineNumber, DWORD TokenID)
 	return true;
 }
 
-bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR pValue)
+bool CStatement::DoAllocation(DWORD StatementLineNumber, std::string_view varName, std::string_view value)
 {
 	// Create Object (RAII: owned until handed to TheObject)
 	std::unique_ptr<CParseInstruction> pInstruction(new CParseInstruction());
 
 	// Create String for array name (stack CStr: RAII on every exit path)
 	CStr arrName("&");
-	arrName.AddText(pVarName);
+	arrName.AddText(varName);
 
 	// Create Parameter Object to hold Array Name
 	std::unique_ptr<CParameter> pFirstParameter(new CParameter);
@@ -2899,18 +2914,20 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 
 	// Get dim-size params
 	DWORD dwSizeIndex=0;
-	LPSTR pValueStr = pValue;
-	LPSTR pLastNum = pValueStr;
-	for(d=0; d<strlen(pValue)+1; d++)
+	size_t lastNumPos = 0;
+	for(size_t i=0; i<=value.size(); i++)
 	{
 		// Handle Bracket Count
-		if(pValueStr[d]=='(') iBracketCount++;
-		if(pValueStr[d]==')') iBracketCount--;
+		if(i < value.size())
+		{
+			if(value[i]=='(') iBracketCount++;
+			if(value[i]==')') iBracketCount--;
+		}
 
 		// lee - 150206 - u60 - if comma seperater found
 		if ( iBracketCount==0 )
 		{
-			if(pValueStr[d]==',' || d==strlen(pValue))
+			if(i == value.size() || value[i]==',')
 			{
 				if(dwSizeIndex>=9)
 				{
@@ -2919,13 +2936,9 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 					return false;
 				}
 
-				// Get dimension size entry (unique_ptr owns the new[] buffer)
-				LPSTR pPtr = pValueStr + d;
-				DWORD dwLength = static_cast<DWORD>(pPtr - pLastNum);
-				std::unique_ptr<char[]> pNum(new char[dwLength+1]);
-				memcpy(pNum.get(), pLastNum, dwLength);
-				pNum[dwLength]=0;
-				CStr numStr(pNum.get());
+				// Get dimension size entry
+				std::string_view numSub = value.substr(lastNumPos, i - lastNumPos);
+				CStr numStr(numSub);
 
 				// Parse param string as ARRAY SIZE for this dimension
 				std::unique_ptr<CParameter> pSizeParameterOne(new CParameter);
@@ -2936,7 +2949,7 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR p
 				}
 				pSizeParameter[dwSizeIndex] = std::move(pSizeParameterOne);
 				dwSizeIndex++;
-				pLastNum=pPtr+1;
+				lastNumPos = i + 1;
 			}
 		}
 	}
@@ -4949,9 +4962,9 @@ bool CStatement::FindCorrectInstruction(CInstructionTableEntry** pRef, CParamete
 	return true;
 }
 
-DWORD CStatement::DetermineNameToken(LPCSTR pToken)
+DWORD CStatement::DetermineNameToken(std::string_view token)
 {
-	return m_tokenizer.DetermineKeywordToken(pToken);
+	return m_tokenizer.DetermineKeywordToken(token);
 }
 
 DWORD CStatement::DetermineToken(LPSTR pToken)
@@ -4977,36 +4990,37 @@ DWORD CStatement::DetermineToken(LPSTR pToken)
 	return dwToken;
 }
 
-bool CStatement::DetermineIfReservedWord(LPCSTR pWord)
+bool CStatement::DetermineIfReservedWord(std::string_view word)
 {
 	// Eliminate tokens
-	if ( DetermineNameToken ( pWord )!=0 )
+	if ( DetermineNameToken ( word )!=0 )
 		return true;
 
 	// Other internal reserved words (please rewrite me!)
-	if ( dbp::iequals(pWord, "NEXT") ) return true;
-	if ( dbp::iequals(pWord, "STEP") ) return true;
-	if ( dbp::iequals(pWord, "TO") ) return true;
-	if ( dbp::iequals(pWord, "THEN") ) return true;
-	if ( dbp::iequals(pWord, "SYNC") ) return true;
-	if ( dbp::iequals(pWord, "RETURN") ) return true;
-	if ( dbp::iequals(pWord, "END") ) return true;
+	if ( dbp::iequals(word, "NEXT") ) return true;
+	if ( dbp::iequals(word, "STEP") ) return true;
+	if ( dbp::iequals(word, "TO") ) return true;
+	if ( dbp::iequals(word, "THEN") ) return true;
+	if ( dbp::iequals(word, "SYNC") ) return true;
+	if ( dbp::iequals(word, "RETURN") ) return true;
+	if ( dbp::iequals(word, "END") ) return true;
 
 	// not a reserved word
 	return false;
 }
 
-bool CStatement::DetermineIfFunctionName(LPCSTR pWord, bool bIncludeUserFunctions)
+bool CStatement::DetermineIfFunctionName(std::string_view word, bool bIncludeUserFunctions)
 {
 	// Check if a recognised instruction
+	std::string wordStr(word);
 	CInstructionTableEntry* pRef=nullptr;
 	DWORD dwTokenData=0, dwParamMax=0, dwLength=0;
-	if(g_pInstructionTable->FindInstruction(false, pWord, 0, &dwTokenData, &dwParamMax, &dwLength, &pRef))
+	if(g_pInstructionTable->FindInstruction(false, wordStr.c_str(), 0, &dwTokenData, &dwParamMax, &dwLength, &pRef))
 		return true;
 
 	// Check if a recognised user function
 	if(bIncludeUserFunctions)
-		if(g_pInstructionTable->FindUserFunction( pWord, 0, &dwTokenData, &dwParamMax, &dwLength))
+		if(g_pInstructionTable->FindUserFunction( wordStr.c_str(), 0, &dwTokenData, &dwParamMax, &dwLength))
 			return true;
 
 	// not a function name
@@ -5052,7 +5066,7 @@ bool CStatement::WriteDBMNode(void)
 			LPCSTR pProgramLineText=nullptr;
 			g_pStatementList->FindStartOfFileDataProgramLine(g_dwLastDBMLineNumber, &pProgramLineText);
 			WriteDBMBit(g_dwLastDBMLineNumber, "LINE : ", pProgramLineText);
-			SAFE_DELETE(pProgramLineText);
+			SafeDelete(pProgramLineText);
 			WriteDBMBit(0, "", "");
 #endif
 
@@ -5196,13 +5210,15 @@ bool CStatement::WriteDBMNode(void)
 #define __AARON_DBMPERF__ 1
 #define DBM_MAX_SCRATCH_BUF 65536
 
-bool CStatement::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
+bool CStatement::WriteDBMBit(DWORD dwLineNumber, std::string_view text, std::string_view result)
 {
 #ifdef __AARON_DBMPERF__
 	static char buf[DBM_MAX_SCRATCH_BUF];
 	int len;
 
-	len = sprintf_s(buf, "   %u %s%s", static_cast<unsigned int>(dwLineNumber), pText, pResult);
+	std::string textStr(text);
+	std::string resultStr(result);
+	len = sprintf_s(buf, "   %u %s%s", static_cast<unsigned int>(dwLineNumber), textStr.c_str(), resultStr.c_str());
 	if (len < 0)
 		return false;
 
@@ -5213,10 +5229,8 @@ bool CStatement::WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult)
 	strDBMLine.SetText("   ");
 	if(dwLineNumber>0) strDBMLine.AddNumericText(dwLineNumber);
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pText);
-	strDBMLine.AddText(pResult);
-
-	//DB3_CRASH_MSG(strDBMLine.GetStr());
+	strDBMLine.AddText(text);
+	strDBMLine.AddText(result);
 
 	return g_pDBMWriter->OutputDBM(&strDBMLine);
 #endif

@@ -1,4 +1,4 @@
-﻿#include "TargetCodegen.h"
+#include "TargetCodegen.h"
 #include "VarTable.h"
 #include "StringUtils.h"
 #include "ASMWriter.h"
@@ -15,8 +15,7 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
     for (const auto& inst : ir.instructions) {
         switch (inst.opCode) {
             case IROpCode::LoadConst: {
-                CStr valStr(const_cast<LPSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMTaskCoreP1(m_lineNumber, static_cast<DWORD>(ASMTask::Push), &valStr, inst.typeVal);
+                m_codeGen->WriteASMTaskCoreP1(m_lineNumber, static_cast<DWORD>(ASMTask::Push), inst.operandStr, inst.typeVal);
                 break;
             }
             case IROpCode::LoadVar: {
@@ -120,23 +119,19 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
             case IROpCode::JumpIfFalse: {
                 m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::POPRAX), "");
                 m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAX4), "0");
-                CStr labelName(const_cast<LPCSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JE), labelName.GetStr());
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JE), inst.operandStr);
                 break;
             }
             case IROpCode::Jump: {
-                CStr labelName(const_cast<LPCSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JMP), labelName.GetStr());
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::JMP), inst.operandStr);
                 break;
             }
             case IROpCode::Label: {
-                CStr labelName(const_cast<LPCSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(0, labelName.GetStr());
+                m_codeGen->WriteASMLine(0, inst.operandStr);
                 break;
             }
             case IROpCode::Call: {
-                CStr funcLabel(const_cast<LPCSTR>(inst.operandStr.c_str()));
-                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CALLABS), funcLabel.GetStr());
+                m_codeGen->WriteASMLine(static_cast<DWORD>(ASMOp::CALLABS), inst.operandStr);
                 break;
             }
         }

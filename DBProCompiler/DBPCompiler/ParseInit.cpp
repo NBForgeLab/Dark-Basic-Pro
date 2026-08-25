@@ -25,7 +25,7 @@ bool CParseInit::WriteDBM(void)
 	return true;
 }
 
-bool CParseInit::WriteDBMBit([[maybe_unused]] DWORD dwLineNumber, [[maybe_unused]] LPCSTR pText)
+bool CParseInit::WriteDBMBit([[maybe_unused]] uint32_t dwLineNumber, [[maybe_unused]] std::string_view text)
 {
 	// Write out function param list
 	CStr strDBMParamList(1);

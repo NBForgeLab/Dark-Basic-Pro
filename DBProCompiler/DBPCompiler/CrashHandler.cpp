@@ -30,7 +30,7 @@ static void CreateMinidump(_EXCEPTION_POINTERS* apExceptionInfo) {
         PMINIDUMP_CALLBACK_INFORMATION CallbackParam
     );
 
-    MINIDUMPWRITEDUMP pfnMiniDumpWriteDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDbgHelp, "MiniDumpWriteDump");
+    MINIDUMPWRITEDUMP pfnMiniDumpWriteDump = reinterpret_cast<MINIDUMPWRITEDUMP>(GetProcAddress(hDbgHelp, "MiniDumpWriteDump"));
     if (pfnMiniDumpWriteDump) {
         WCHAR dumpPath[MAX_PATH];
         GetModuleFileNameW(nullptr, dumpPath, MAX_PATH);
@@ -111,7 +111,7 @@ static void PrintStackTrace(PCONTEXT contextRecord) {
 
         DWORD64 displacement = 0;
         char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)] = {};
-        PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
+        PSYMBOL_INFO symbol = reinterpret_cast<PSYMBOL_INFO>(buffer);
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen = MAX_SYM_NAME;
 

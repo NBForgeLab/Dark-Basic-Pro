@@ -19,7 +19,7 @@ struct MemoryModuleInfo {
 
 static std::unordered_map<HMODULE, std::unique_ptr<MemoryModuleInfo>> g_memoryModules;
 
-HMODULE MemoryPE::LoadFromVFS(const std::string& filename) {
+HMODULE MemoryPE::LoadFromVFS(std::string_view filename) {
     const auto opened = VFSRegistry::Open(filename);
     if (!opened) {
         return nullptr;
@@ -45,7 +45,7 @@ HMODULE MemoryPE::LoadFromVFS(const std::string& filename) {
         filename);
 }
 
-HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::string& name) {
+HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, std::string_view name) {
     if (size < sizeof(IMAGE_DOS_HEADER)) return nullptr;
     
     IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)data;
@@ -293,9 +293,13 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, const std::strin
     
     // Register module
     HMODULE hModule = (HMODULE)baseAddress;
-    auto info = std::make_unique<MemoryModuleInfo>(MemoryModuleInfo{baseAddress, destNtHeaders, name, false});
+    auto info = std::make_unique<MemoryModuleInfo>(MemoryModuleInfo{baseAddress, destNtHeaders, std::string(name), false});
     MemoryModuleInfo* infoPtr = info.get();
     g_memoryModules[hModule] = std::move(info);
+
+    char dbgBuf[512];
+    sprintf_s(dbgBuf, "[MemoryPE] Loaded module '%.*s' at %p (Entry=%x, Size=%x)\n", static_cast<int>(name.size()), name.data(), baseAddress, destNtHeaders->OptionalHeader.AddressOfEntryPoint, destNtHeaders->OptionalHeader.SizeOfImage);
+    OutputDebugStringA(dbgBuf);
     
     // Invoke DllMain
     typedef BOOL (WINAPI *DllMain_t)(HINSTANCE, DWORD, LPVOID);

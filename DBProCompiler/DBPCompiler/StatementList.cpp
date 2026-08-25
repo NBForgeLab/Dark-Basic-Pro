@@ -126,8 +126,8 @@ bool CStatementList::MakeStatements(LPSTR pData, DWORD Size)
 	g_pVarTable->SetVarDefaults();
 
 	// Create first statement
-	SAFE_DELETE(m_pPreScanStatements);
-	SAFE_DELETE(m_pProgramStatements);
+	SafeDelete(m_pPreScanStatements);
+	SafeDelete(m_pProgramStatements);
 	m_pPreScanStatements = new CStatement;
 	m_pProgramStatements = new CStatement;
 
@@ -193,7 +193,7 @@ bool CStatementList::AddMiniStatements(LPSTR pData, DWORD Size)
 	SetFileDataPointer(m_pFileData);
 
 	// Create first statement
-	SAFE_DELETE(m_pMiniStatements);
+	SafeDelete(m_pMiniStatements);
 	m_pMiniStatements = new CStatement;
 
 	// Init Code for Program (store stack ptr)
@@ -289,7 +289,7 @@ bool CStatementList::FindStartOfFileDataProgramLine(DWORD dwFindLineNumber, LPST
 	DWORD length=pNewText->Length();
 	*pReturnText = new char[length+1];
 	snprintf(*pReturnText, length+1, "%s", pNewText->GetStr());
-	SAFE_DELETE(pNewText);
+	SafeDelete(pNewText);
 
 	return true;
 #endif

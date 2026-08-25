@@ -1,5 +1,4 @@
-#ifndef PERFMACROS_H
-#define PERFMACROS_H
+#pragma once
 
 //
 //	Comment out the lines below to see the differences between using certain
@@ -47,7 +46,5 @@
 # endif
 # if X__AARON_VARTABLEPERF__
 #  define __AARON_VARTABLEPERF__	1
-# endif
-#endif
-
+ # endif
 #endif

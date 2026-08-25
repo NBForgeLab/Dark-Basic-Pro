@@ -85,6 +85,16 @@ CStr::CStr(LPCSTR pText)
 	SetText(pText);
 }
 
+CStr::CStr(std::string_view text) : m_dwLen(0)
+{
+	SetText(text);
+}
+
+CStr::CStr(const std::string& text) : m_dwLen(0)
+{
+	SetText(std::string_view(text));
+}
+
 void CStr::SetText(LPCSTR pText)
 {
 	if(pText)
@@ -96,6 +106,21 @@ void CStr::SetText(LPCSTR pText)
 	}
 }
 
+void CStr::SetText(std::string_view text)
+{
+	const auto length = static_cast<DWORD>(text.size());
+	if (length + 1 > m_buffer.size())
+	{
+		m_buffer.resize(length + 1, '\0');
+	}
+	if (length > 0)
+	{
+		std::memcpy(m_buffer.data(), text.data(), length);
+	}
+	m_buffer[length] = '\0';
+	m_dwLen = length;
+}
+
 void CStr::AddText(LPCSTR pText)
 {
 	if(pText)
@@ -105,6 +130,19 @@ void CStr::AddText(LPCSTR pText)
 		if(length + 1 > m_buffer.size()) Enlarge(length);
 		memcpy(m_buffer.data() + m_dwLen, pText, srcLen + 1);
 		UpdateLen();
+	}
+}
+
+void CStr::AddText(std::string_view text)
+{
+	if (!text.empty())
+	{
+		const auto srcLen = static_cast<DWORD>(text.size());
+		const DWORD length = srcLen + m_dwLen;
+		if (length + 1 > m_buffer.size()) Enlarge(length);
+		std::memcpy(m_buffer.data() + m_dwLen, text.data(), srcLen);
+		m_buffer[length] = '\0';
+		m_dwLen = length;
 	}
 }
 
@@ -239,26 +277,26 @@ double CStr::GetValue(void) const
 	return 0;
 }
 
-LPSTR CStr::GetLeftOfPosition(DWORD Position) const
+std::unique_ptr<char[]> CStr::GetLeftOfPosition(DWORD Position) const
 {
-	LPSTR pText = new char[Position + 1];
-	if(pText)
+	auto pText = std::make_unique_for_overwrite<char[]>(Position + 1);
+	if (Position > 0)
 	{
-		memcpy(pText, m_buffer.data(), Position);
-		pText[Position] = '\0';
+		memcpy(pText.get(), m_buffer.data(), Position);
 	}
+	pText[Position] = '\0';
 	return pText;
 }
 
-LPSTR CStr::GetRightOfPosition(DWORD Position) const
+std::unique_ptr<char[]> CStr::GetRightOfPosition(DWORD Position) const
 {
 	DWORD len = m_dwLen - Position;
-	LPSTR pText = new char[len + 1];
-	if(pText)
+	auto pText = std::make_unique_for_overwrite<char[]>(len + 1);
+	if(len > 0)
 	{
-		memcpy(pText, m_buffer.data() + Position, len);
-		pText[len] = '\0';
+		memcpy(pText.get(), m_buffer.data() + Position, len);
 	}
+	pText[len] = '\0';
 	return pText;
 }
 
@@ -1313,10 +1351,9 @@ bool CStr::TranslateForDBM(CResultData* pResultPtr)
 
 	if(pString.CheckChars(0, 3, "FS@") == true)
 	{
-		LPSTR pRest = pString.GetRightOfPosition(3);
-		pString.SetText(pRest);
+		auto pRest = pString.GetRightOfPosition(3);
+		pString.SetText(pRest.get());
 		pString.EatEdgeSpacesandTabs(nullptr);
-		delete[] pRest;
 		bIsStructFunction = true;
 	}
 
@@ -1326,17 +1363,17 @@ bool CStr::TranslateForDBM(CResultData* pResultPtr)
 		if(dwPos > 0)
 		{
 			bool bHaltCompilation = true;
-			LPSTR pSubtypename = pString.GetLeftOfPosition(dwPos);
+			const auto pSubtypename = pString.GetLeftOfPosition(dwPos);
 			DWORD dwArrayType = 0;
 			if(pString.GetChar(dwPos + 1) == '&') dwArrayType = 1;
-			LPSTR pFieldname = pString.GetRightOfPosition(dwPos + 1);
+			const auto pFieldname = pString.GetRightOfPosition(dwPos + 1);
 			DWORD dwOffset = 0, dwSizeOfData = 0;
-			if(g_pStructTable->FindOffsetFromField(pSubtypename, pFieldname, &dwOffset, &dwSizeOfData))
+			if(g_pStructTable->FindOffsetFromField(pSubtypename.get(), pFieldname.get(), &dwOffset, &dwSizeOfData))
 			{
 				DWORD dwTokenData = 0, dwParamMax = 0, dwLength = 0;
-				if(g_pInstructionTable->FindUserFunction(pSubtypename, 1, &dwTokenData, &dwParamMax, &dwLength))
+				if(g_pInstructionTable->FindUserFunction(pSubtypename.get(), 1, &dwTokenData, &dwParamMax, &dwLength))
 				{
-					CStructTable* pThisStruct = g_pStructTable->DoesTypeEvenExist(pSubtypename);
+					CStructTable* pThisStruct = g_pStructTable->DoesTypeEvenExist(pSubtypename.get());
 					CDeclaration* pLastParamDec = pThisStruct->GetDecChain();
 					for(DWORD n = 0; n < dwParamMax; n++) if(pLastParamDec->GetNext()) pLastParamDec = pLastParamDec->GetNext();
 					DWORD dOffsetToLastParamInStruct = pLastParamDec->GetOffset();
@@ -1356,17 +1393,13 @@ bool CStr::TranslateForDBM(CResultData* pResultPtr)
 				{
 					DWORD dwLine = g_pStatementList->GetTokenLineNumber();
 					if(g_pStatementList->GetRefStatement()) dwLine = g_pStatementList->GetRefStatement()->GetLineNumber();
-					CStr pFullField(pSubtypename);
+					CStr pFullField(pSubtypename.get());
 					pFullField.AddText(":");
-					pFullField.AddText(pFieldname);
+					pFullField.AddText(pFieldname.get());
 					g_pErrorReport->SetError(dwLine, ERR_SYNTAX+44, pFullField.GetStr());
-					delete[] pSubtypename;
-					delete[] pFieldname;
 					return false;
 				}
 			}
-			delete[] pSubtypename;
-			delete[] pFieldname;
 		}
 	}
 

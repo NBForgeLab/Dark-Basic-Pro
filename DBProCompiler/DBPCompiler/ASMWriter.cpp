@@ -664,12 +664,12 @@ bool CASMWriter::CreateASMHeader(void)
 	return true;
 }
 
-bool CASMWriter::CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, int iOp3)
+bool CASMWriter::CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, std::string_view opData, int iOp3)
 {
-	return CreateASMMiddleCore(iPreOpCode, iOpCode1, iOpCode2, lpOpData, nullptr, false, 0, iOp3);
+	return CreateASMMiddleCore(iPreOpCode, iOpCode1, iOpCode2, opData, {}, false, 0, iOp3);
 }
 
-bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, LPCSTR lpOpData2, bool bSecondOpDataIsIMM, [[maybe_unused]] DWORD dwSecondOpDataIMMSize, int iOp3)
+bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, std::string_view opData, std::string_view opData2, bool bSecondOpDataIsIMM, [[maybe_unused]] DWORD dwSecondOpDataIMMSize, int iOp3)
 {
 	if(m_machineCodeBuffer.GetProgramStart()==nullptr || m_machineCodeBuffer.GetMachineBlock()==nullptr)
 	{
@@ -696,7 +696,10 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 	const bool bRipRelMemOp =
 		(iOpCode2 != -1) && ((iOpCode2 & 0x07) == 0x05) && ((iOpCode2 & 0xC0) == 0x00);
 
-	if (bRipRelMemOp && lpOpData != nullptr && lpOpData[0] != '\0')
+	bool bHasOpData = !opData.empty();
+	bool bHasOpData2 = !opData2.empty();
+
+	if (bRipRelMemOp && bHasOpData)
 	{
 		// mov r11, imm64 (REX.W|REX.B 0x49 + 0xBB), with an 8-byte ref slot
 		// for the absolute target address.
@@ -704,12 +707,12 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 		const DWORD addrPos = m_machineCodeBuffer.GetCurrentMCPosition();
 		m_machineCodeBuffer.WriteByte(0x49);
 		m_machineCodeBuffer.WriteByte(0xBB);
-		CStr cleanAddr(lpOpData);
+		CStr cleanAddr(opData);
 		cleanAddr.EatEdgeSpacesandTabs(nullptr);
 		m_referenceTracker.AddReference(addrPos + 2, cleanAddr.GetStr(), 8u, addrPos + 10u);
 		m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, 8u);
 		// The address is consumed by the mov r11; the memory op now uses [r11].
-		lpOpData = nullptr;
+		bHasOpData = false;
 		iOpCode2 = (iOpCode2 & 0xF8) | 0x03;   // rm=101 (RIP) -> rm=011 (R11)
 	}
 
@@ -749,13 +752,7 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 		m_machineCodeBuffer.WriteByte(iOp3);
 	}
 
-	// x64 operand slot widths derived from the instruction encoding. The
-	// legacy uniform-8-byte ref emission corrupted every disp32/rel32 slot
-	// (writing absolute 64-bit addresses into 4-byte PC-relative fields) and
-	// clobbered the following instruction - the root cause of boot-time AVs
-	// in compiled applications. For the rewritten register-indirect memory
-	// form the address lives in the mov r11 imm64, so the memory op itself
-	// has no disp32 slot.
+	// x64 operand slot widths derived from the instruction encoding.
 	const int iOpDataWidth = bRipRelMemOp
 		? 0 : DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2);
 	const int iOpData2Width = DetermineSecondOpDataWidth(iPreOpCode, iOpCode1, iOpCode2);
@@ -775,56 +772,47 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 	// Write Optional OpData 1 and 2
 	for(DWORD n=0; n<2; n++)
 	{
-		LPCSTR pData=lpOpData;
-		if(n==1) pData=lpOpData2;
-		if(pData)
+		bool bValid = (n == 0) ? bHasOpData : bHasOpData2;
+		std::string_view pData = (n == 0) ? opData : opData2;
+		if(bValid && !pData.empty())
 		{
-			if(strcmp(pData, "")!=0)
-			{
-				// Ensure reference array always large enough for new reference
-				CheckAndExpandREFMemory();
+			// Ensure reference array always large enough for new reference
+			CheckAndExpandREFMemory();
 
-				// REF or IMM
-				if(bSecondOpDataIsIMM==true && n==1)
-				{
+			// REF or IMM
+			if(bSecondOpDataIsIMM==true && n==1)
+			{
 				// WRITE IMM INTO MC
-				uint64_t dwDataAsQWORD = static_cast<uint64_t>(_atoi64(pData));
-				// The immediate slot width is a property of the instruction
-				// encoding, not of the caller's legacy size code: MOV r64,imm64
-				// (48 B8-BF) requires 8 bytes while C6/C7 imm slots are
-				// 1/2/4 bytes. The 64-bit port widened the opcode (48 REX.W)
-				// without widening the emitted immediate, which truncated every
-				// 64-bit constant load and desynchronized the instruction
-				// stream. Derive the width from the encoding instead.
+				std::string strData(pData);
+				uint64_t dwDataAsQWORD = static_cast<uint64_t>(_atoi64(strData.c_str()));
 				DWORD dwByteSize = (iOpCode2 != -1)
 					? static_cast<DWORD>(DetermineSecondOpDataWidth(iPreOpCode, iOpCode1, iOpCode2))
 					: static_cast<DWORD>(DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2));
 				if (dwByteSize == 0) dwByteSize = 4;
 				m_machineCodeBuffer.WriteQWORD(dwDataAsQWORD, dwByteSize);
-				}
-				else
-				{
-					// Record a value-owned reference label. Host pointers must never
-					// leak into the serialized target reference representation.
-					CStr cleanStr(pData);
-					cleanStr.EatEdgeSpacesandTabs(nullptr);
+			}
+			else
+			{
+				// Record a value-owned reference label. Host pointers must never
+				// leak into the serialized target reference representation.
+				CStr cleanStr(pData);
+				cleanStr.EatEdgeSpacesandTabs(nullptr);
 
-					const DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
-					const int iSlotBytes = (n==0) ? iOpDataWidth : iOpData2Width;
-					// PC-relative reference point: the end of the enclosing
-					// instruction (RIP for disp32, next instruction for rel32).
-					const DWORD dwRelEnd = (n==0)
-						? (MCBBytePos + static_cast<DWORD>(iFullInstLen - iOpcodeLen))
-						: (MCBBytePos + static_cast<DWORD>(iOpData2Width));
-					m_referenceTracker.AddReference(MCBBytePos, cleanStr.GetStr(),
-						static_cast<std::uint32_t>(iSlotBytes), dwRelEnd);
+				const DWORD MCBBytePos = m_machineCodeBuffer.GetCurrentMCPosition();
+				const int iSlotBytes = (n==0) ? iOpDataWidth : iOpData2Width;
+				// PC-relative reference point: the end of the enclosing
+				// instruction (RIP for disp32, next instruction for rel32).
+				const DWORD dwRelEnd = (n==0)
+					? (MCBBytePos + static_cast<DWORD>(iFullInstLen - iOpcodeLen))
+					: (MCBBytePos + static_cast<DWORD>(iOpData2Width));
+				m_referenceTracker.AddReference(MCBBytePos, cleanStr.GetStr(),
+					static_cast<std::uint32_t>(iSlotBytes), dwRelEnd);
 
-					// WRITE BLANK(XX) INTO MB sized to the operand slot
-					m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, static_cast<DWORD>(iSlotBytes));
-				}
+				// WRITE BLANK(XX) INTO MB sized to the operand slot
+				m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, static_cast<DWORD>(iSlotBytes));
 			}
 		}
-		if(lpOpData2==nullptr) break;
+		if(!bHasOpData2) break;
 	}
 
 	// Complete
@@ -1515,13 +1503,13 @@ void CASMWriter::EmitCommandCallAbiTeardown(bool bKeepArgsOnStack)
 	ClearPendingCallArgs();
 }
 
-bool CASMWriter::WriteASMCall(DWORD dwLine, LPCSTR pDLL, LPCSTR pDecoratedName)
+bool CASMWriter::WriteASMCall(DWORD dwLine, std::string_view dll, std::string_view decoratedName)
 {
 	CStr CommandString("");
 	CommandString.SetText("[");
-	CommandString.AddText(pDLL);
+	CommandString.AddText(dll);
 	CommandString.AddText(",");
-	CommandString.AddText(pDecoratedName);
+	CommandString.AddText(decoratedName);
 	return g_pASMWriter->WriteASMTaskCoreP1(dwLine, static_cast<DWORD>(ASMTask::Call), &CommandString, 1);
 }
 
@@ -1558,7 +1546,7 @@ void CASMWriter::CalculateArrayOffsetInRBX ( CStr* pPIndex )
 				WriteASMLine(static_cast<DWORD>(ASMOp::POPRDX), "");
 				WriteASMLine(static_cast<DWORD>(ASMOp::MULRDXRAXOFF4), pValue->GetStr());
 				WriteASMLine(static_cast<DWORD>(ASMOp::ADDRBXRDX4), "");
-				SAFE_DELETE(pValue);
+				SafeDelete(pValue);
 				iCount++;
 			}
 			*/
@@ -1812,7 +1800,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	if(dwTask==static_cast<DWORD>(ASMTask::Call))
 	{
 		// Cut Full Param into DLL and COMMAND Strings#
-		// GetLeft/RightOfPosition return new[] buffers; own them with unique_ptr<char[]>
+		// GetLeft/RightOfPosition return owned unique_ptr<char[]> buffers
 		DWORD dwPos = pP1->FindFirstChar(',');
 		std::unique_ptr<char[]> pDLLString(pP1->GetLeftOfPosition(dwPos));
 		std::unique_ptr<char[]> pCommandString(pP1->GetRightOfPosition(dwPos));
@@ -2798,7 +2786,7 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	return true;
 }
 
-bool CASMWriter::WriteASMLine(DWORD dwOp, LPCSTR pOpData)
+bool CASMWriter::WriteASMLine(DWORD dwOp, std::string_view opData)
 {
 	// DBM Code
 	CStr strDBMLine(256);
@@ -2806,20 +2794,20 @@ bool CASMWriter::WriteASMLine(DWORD dwOp, LPCSTR pOpData)
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(m_ASMDebugStrings[dwOp].c_str());
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pOpData);
+	strDBMLine.AddText(opData);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
 	// ASM Code
 	if(m_bASMOpData[dwOp]==true)
-		CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], pOpData, m_iASMOp3[dwOp]);
+		CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], opData, m_iASMOp3[dwOp]);
 	else
-		CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], "", m_iASMOp3[dwOp]);
+		CreateASMMiddle(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], {}, m_iASMOp3[dwOp]);
 
 	// Complete
 	return true;
 }
 
-bool CASMWriter::WriteASMLine2(DWORD dwOp, LPCSTR pOpData, LPCSTR pOpData2)
+bool CASMWriter::WriteASMLine2(DWORD dwOp, std::string_view opData, std::string_view opData2)
 {
 	// DBM Code
 	CStr strDBMLine(256);
@@ -2827,19 +2815,19 @@ bool CASMWriter::WriteASMLine2(DWORD dwOp, LPCSTR pOpData, LPCSTR pOpData2)
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(m_ASMDebugStrings[dwOp].c_str());
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pOpData);
+	strDBMLine.AddText(opData);
 	strDBMLine.AddText(", ");
-	strDBMLine.AddText(pOpData2);
+	strDBMLine.AddText(opData2);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
 	// ASM Code
-	CreateASMMiddleCore(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], pOpData, pOpData2, false, 0, m_iASMOp3[dwOp]);
+	CreateASMMiddleCore(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], opData, opData2, false, 0, m_iASMOp3[dwOp]);
 
 	// Complete
 	return true;
 }
 
-bool CASMWriter::WriteASMLine1IMM(DWORD dwOp, LPCSTR pOpData, DWORD dwSizeIMM)
+bool CASMWriter::WriteASMLine1IMM(DWORD dwOp, std::string_view opData, DWORD dwSizeIMM)
 {
 	// DBM Code
 	CStr strDBMLine(256);
@@ -2847,17 +2835,17 @@ bool CASMWriter::WriteASMLine1IMM(DWORD dwOp, LPCSTR pOpData, DWORD dwSizeIMM)
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(m_ASMDebugStrings[dwOp].c_str());
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pOpData);
+	strDBMLine.AddText(opData);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
 	// ASM Code
-	CreateASMMiddleCore(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], pOpData, nullptr, true, dwSizeIMM, m_iASMOp3[dwOp]);
+	CreateASMMiddleCore(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], opData, {}, true, dwSizeIMM, m_iASMOp3[dwOp]);
 
 	// Complete
 	return true;
 }
 
-bool CASMWriter::WriteASMLine2IMM(DWORD dwOp, LPCSTR pOpData, LPCSTR pOpData2, DWORD dwSizeIMM)
+bool CASMWriter::WriteASMLine2IMM(DWORD dwOp, std::string_view opData, std::string_view opData2, DWORD dwSizeIMM)
 {
 	// DBM Code
 	CStr strDBMLine(256);
@@ -2865,19 +2853,19 @@ bool CASMWriter::WriteASMLine2IMM(DWORD dwOp, LPCSTR pOpData, LPCSTR pOpData2, D
 	strDBMLine.AddText(" ");
 	strDBMLine.AddText(m_ASMDebugStrings[dwOp].c_str());
 	strDBMLine.AddText(" ");
-	strDBMLine.AddText(pOpData);
+	strDBMLine.AddText(opData);
 	strDBMLine.AddText(", ");
-	strDBMLine.AddText(pOpData2);
+	strDBMLine.AddText(opData2);
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
 	// ASM Code
-	CreateASMMiddleCore(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], pOpData, pOpData2, true, dwSizeIMM, m_iASMOp3[dwOp]);
+	CreateASMMiddleCore(m_iASMPreOp[dwOp], m_iASMOp1[dwOp], m_iASMOp2[dwOp], opData, opData2, true, dwSizeIMM, m_iASMOp3[dwOp]);
 
 	// Complete
 	return true;
 }
 
-bool CASMWriter::WriteASMComment(LPCSTR pTitle, LPCSTR pC1, LPCSTR pC2, LPCSTR pC3)
+bool CASMWriter::WriteASMComment(std::string_view title, std::string_view c1, std::string_view c2, std::string_view c3)
 {
 	// Ensure Comments appear at same horiz position
 	DWORD dwNumOfLineChars = g_pDBMWriter->EatCarriageReturn();
@@ -2888,21 +2876,21 @@ bool CASMWriter::WriteASMComment(LPCSTR pTitle, LPCSTR pC1, LPCSTR pC2, LPCSTR p
 	CStr strDBMLine("");
 	for(DWORD n=0; n<dwAdvance; n++) strDBMLine.AddText(" ");
 	strDBMLine.AddText("; ");
-	strDBMLine.AddText(pTitle);
+	strDBMLine.AddText(title);
 	strDBMLine.AddText(" ");
-	if(pC1)
+	if(!c1.empty())
 	{
-		strDBMLine.AddText(pC1);
+		strDBMLine.AddText(c1);
 		strDBMLine.AddText(" ");
 	}
-	if(pC2)
+	if(!c2.empty())
 	{
-		strDBMLine.AddText(pC2);
+		strDBMLine.AddText(c2);
 		strDBMLine.AddText(" ");
 	}
-	if(pC3)
+	if(!c3.empty())
 	{
-		strDBMLine.AddText(pC3);
+		strDBMLine.AddText(c3);
 	}
 	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
 
@@ -2971,22 +2959,22 @@ void CASMWriter::SetBreakPointValue(void)
 	WriteASMLine2(static_cast<DWORD>(ASMOp::MOVMEMIMM4), "@$_REK_", "1");
 }
 
-DWORD CASMWriter::AddCommandToTable(LPCSTR pDLLString, LPCSTR pCommandString)
+DWORD CASMWriter::AddCommandToTable(std::string_view dllString, std::string_view commandString)
 {
 	// Skip non-DLL commands
-	if(pDLLString==nullptr) return g_pStatementList->GetDLLIndexCounter();
-	if(strlen(pDLLString)<2) return g_pStatementList->GetDLLIndexCounter();
+	if(dllString.size()<2) return g_pStatementList->GetDLLIndexCounter();
 
 	// Record DLL As Actually Being Used
 	DWORD dwIndex = g_pStatementList->GetDLLIndexCounter() + 1;
-	if(g_pDLLTable->AddUniqueString(pDLLString+1, &dwIndex))
+	if(g_pDLLTable->AddUniqueString(dllString.substr(1), &dwIndex))
 		g_pStatementList->IncDLLIndexCounter(1);
 
 	// Record Command As Actually Being Used
 	CStr rawCommandString;
 	rawCommandString.SetNumericText(dwIndex);
 	rawCommandString.AddText(",");
-	rawCommandString.AddText(pCommandString+1);
+	if(commandString.size() >= 1)
+		rawCommandString.AddText(commandString.substr(1));
 	dwIndex = g_pStatementList->GetCommandIndexCounter() + 1;
 	if(g_pCommandTable->AddUniqueString(rawCommandString.GetStr(), &dwIndex))
 		g_pStatementList->IncCommandIndexCounter(1);

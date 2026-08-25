@@ -1,9 +1,8 @@
-//
-// Standard parser Header For All Classes
-//
+#pragma once
 
 // Standard Includes
-#include "windows.h"
+#include <cstdint>
+#include <cstddef>
 #include "macros.h"
 
 // Custom Includes

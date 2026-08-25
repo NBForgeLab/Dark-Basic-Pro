@@ -44,7 +44,7 @@ CParseInstruction::~CParseInstruction()
 	// unique_ptr members auto-cleanup
 }
 
-bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, DWORD dwType, int iDisplacement)
+bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, uint32_t dwType, int iDisplacement)
 {
 	// Only strings
 	if(dwType==3)
@@ -451,7 +451,7 @@ bool CParseInstruction::WriteDBMBit(void)
 	return true;
 }
 
-bool CParseInstruction::WriteDBMHardCode(DWORD dwBuildID, CResultData* pP1, CResultData* pP2, CResultData* pP3)
+bool CParseInstruction::WriteDBMHardCode(uint32_t dwBuildID, CResultData* pP1, CResultData* pP2, CResultData* pP3)
 {
 	switch(dwBuildID)
 	{

@@ -1,9 +1,4 @@
-// ParseJump.h: interface for the CParseJump class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_)
-#define AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_
+#pragma once
 #include "ParserHeader.h"
 #include <memory>
 #include <string>
@@ -55,7 +50,10 @@ class CParseJump
 		DWORD			GetEndLineNumber(void) { return m_dwEndLineNumber; }
 
 		bool			WriteDBM(DWORD PlacementCode);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, std::string_view text, std::string_view result);
+		bool			WriteDBMBit(DWORD dwLineNumber, const char* pText, const char* pResult) {
+			return WriteDBMBit(dwLineNumber, pText ? std::string_view(pText) : std::string_view{}, pResult ? std::string_view(pResult) : std::string_view{});
+		}
 
 	private:
 
@@ -77,5 +75,3 @@ class CParseJump
 
 		std::unique_ptr<CStatementChain>	m_pCodeBlockChain;
 };
-
-#endif // !defined(AFX_PARSEJUMP_H__27BAD33A_43FA_42BC_9069_F91E2E4FDD82__INCLUDED_)

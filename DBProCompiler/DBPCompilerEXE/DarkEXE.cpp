@@ -593,10 +593,76 @@ bool FileExists(LPSTR pFilename)
 
 // WINDOWS MAIN FUNCTION
 
+// TEMP-DIAG: vectored exception logger naming the faulting module+offset
+// (remove after the x64 E2E crash hunt concludes)
+static LONG WINAPI DbpVehCrashLocator(_EXCEPTION_POINTERS* pInfo)
+{
+	if (!pInfo || !pInfo->ExceptionRecord)
+		return EXCEPTION_CONTINUE_SEARCH;
+
+	void* pAddr = pInfo->ExceptionRecord->ExceptionAddress;
+	HMODULE hMod = nullptr;
+	char szMod[MAX_PATH] = "?";
+	uintptr_t uOff = reinterpret_cast<uintptr_t>(pAddr);
+	if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+		| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		reinterpret_cast<LPCWSTR>(pAddr), &hMod) && hMod)
+	{
+		WCHAR wMod[MAX_PATH] = L"";
+		if (GetModuleFileNameW(hMod, wMod, MAX_PATH))
+		{
+			char szTmp[MAX_PATH] = "";
+			WideCharToMultiByte(CP_ACP, 0, wMod, -1, szTmp, MAX_PATH, nullptr, nullptr);
+			strcpy_s(szMod, szTmp);
+			uOff = reinterpret_cast<uintptr_t>(pAddr) - reinterpret_cast<uintptr_t>(hMod);
+		}
+	}
+
+	WCHAR wExe[MAX_PATH] = L"";
+	GetModuleFileNameW(nullptr, wExe, MAX_PATH);
+	LPWSTR wDot = wcsrchr(wExe, L'.');
+	if (wDot) { wcscpy_s(wDot, 16, L"_veh.log"); }
+	else { wcscat_s(wExe, L"_veh.log"); }
+
+	char szLog[MAX_PATH] = "";
+	WideCharToMultiByte(CP_ACP, 0, wExe, -1, szLog, MAX_PATH, nullptr, nullptr);
+
+	FILE* f = nullptr;
+	if (!fopen_s(&f, szLog, "a") && f)
+	{
+		fprintf(f, "VEH code=0x%08X at %s+0x%llX (addr=%p)\n",
+			static_cast<unsigned>(pInfo->ExceptionRecord->ExceptionCode),
+			szMod, static_cast<unsigned long long>(uOff), pAddr);
+		if (pInfo->ExceptionRecord->ExceptionCode == 0xC0000005
+			&& pInfo->ExceptionRecord->NumberParameters >= 2)
+			fprintf(f, "     op=%s target=%p\n",
+				pInfo->ExceptionRecord->ExceptionInformation[0] ? "WRITE" : "READ",
+				reinterpret_cast<void*>(pInfo->ExceptionRecord->ExceptionInformation[1]));
+		fclose(f);
+	}
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance, LPSTR lpCmdLine, [[maybe_unused]] int nCmdShow)
 {
 	// Install diagnostic handlers before any packaged asset is touched
 	db3::SetupDiagnosticHandlers();
+	{
+		void* pVeh = AddVectoredExceptionHandler(1, DbpVehCrashLocator);
+		WCHAR wExe[MAX_PATH] = L"";
+		GetModuleFileNameW(nullptr, wExe, MAX_PATH);
+		LPWSTR wDot = wcsrchr(wExe, L'.');
+		if (wDot) { wcscpy_s(wDot, 16, L"_veh.log"); }
+		else { wcscat_s(wExe, L"_veh.log"); }
+		char szLog[MAX_PATH] = "";
+		WideCharToMultiByte(CP_ACP, 0, wExe, -1, szLog, MAX_PATH, nullptr, nullptr);
+		FILE* f = nullptr;
+		if (!fopen_s(&f, szLog, "a") && f)
+		{
+			fprintf(f, "VEH installed=%s\n", pVeh ? "ok" : "FAILED");
+			fclose(f);
+		}
+	}
 
 	// Initialize Virtual File System hooks
 	if(!VFSHooks::Initialize())

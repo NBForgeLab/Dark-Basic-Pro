@@ -107,90 +107,89 @@ std::string CTokenizer::GetStringToEndOfLine()
     return line;
 }
 
-int CTokenizer::DetermineNameToken(const char* pNameStr) const noexcept
+int CTokenizer::DetermineNameToken(std::string_view nameStr) const noexcept
 {
-    if (pNameStr == nullptr || pNameStr[0] == '\0') return 0;
+    if (nameStr.empty()) return 0;
 
-    size_t len = std::strlen(pNameStr);
-    char lastChar = pNameStr[len - 1];
+    char lastChar = nameStr.back();
 
     if (lastChar == '$') return 1; // String
     if (lastChar == '#') return 2; // Float
     return 3; // Integer or Default
 }
 
-DWORD CTokenizer::DetermineKeywordToken(const char* pToken) const noexcept
+DWORD CTokenizer::DetermineKeywordToken(std::string_view token) const noexcept
 {
-    if (pToken == nullptr || pToken[0] == '\0') return 0;
+    if (token.empty()) return 0;
 
     // Loop keywords
-    if (dbp::iequals(pToken, "DO")) return static_cast<DWORD>(Token::Do);
-    if (dbp::iequals(pToken, "LOOP")) return static_cast<DWORD>(Token::Loop);
-    if (dbp::iequals(pToken, "WHILE")) return static_cast<DWORD>(Token::While);
-    if (dbp::iequals(pToken, "ENDWHILE")) return static_cast<DWORD>(Token::EndWhile);
-    if (dbp::iequals(pToken, "REPEAT")) return static_cast<DWORD>(Token::Repeat);
-    if (dbp::iequals(pToken, "UNTIL")) return static_cast<DWORD>(Token::Until);
+    if (dbp::iequals(token, "DO")) return static_cast<DWORD>(Token::Do);
+    if (dbp::iequals(token, "LOOP")) return static_cast<DWORD>(Token::Loop);
+    if (dbp::iequals(token, "WHILE")) return static_cast<DWORD>(Token::While);
+    if (dbp::iequals(token, "ENDWHILE")) return static_cast<DWORD>(Token::EndWhile);
+    if (dbp::iequals(token, "REPEAT")) return static_cast<DWORD>(Token::Repeat);
+    if (dbp::iequals(token, "UNTIL")) return static_cast<DWORD>(Token::Until);
 
     // For Next
-    if (dbp::iequals(pToken, "FOR")) return static_cast<DWORD>(Token::For);
-    if (dbp::iequals(pToken, "NEXT")) return static_cast<DWORD>(Token::Next);
+    if (dbp::iequals(token, "FOR")) return static_cast<DWORD>(Token::For);
+    if (dbp::iequals(token, "NEXT")) return static_cast<DWORD>(Token::Next);
 
     // Function
-    if (dbp::iequals(pToken, "FUNCTION")) return static_cast<DWORD>(Token::UserFunction);
-    if (dbp::iequals(pToken, "EXITFUNCTION")) return static_cast<DWORD>(Token::ExitUserFunction);
-    if (dbp::iequals(pToken, "ENDFUNCTION")) return static_cast<DWORD>(Token::EndUserFunction);
+    if (dbp::iequals(token, "FUNCTION")) return static_cast<DWORD>(Token::UserFunction);
+    if (dbp::iequals(token, "EXITFUNCTION")) return static_cast<DWORD>(Token::ExitUserFunction);
+    if (dbp::iequals(token, "ENDFUNCTION")) return static_cast<DWORD>(Token::EndUserFunction);
 
     // Jump & Control
-    if (dbp::iequals(pToken, "EXIT")) return static_cast<DWORD>(Token::Exit);
-    if (dbp::iequals(pToken, "IF")) return static_cast<DWORD>(Token::If);
-    if (dbp::iequals(pToken, "ELSE")) return static_cast<DWORD>(Token::Else);
-    if (dbp::iequals(pToken, "ENDIF")) return static_cast<DWORD>(Token::EndIf);
-    if (dbp::iequals(pToken, "GOTO")) return static_cast<DWORD>(Token::Goto);
-    if (dbp::iequals(pToken, "GOSUB")) return static_cast<DWORD>(Token::Gosub);
-    if (dbp::iequals(pToken, "SELECT")) return static_cast<DWORD>(Token::Select);
-    if (dbp::iequals(pToken, "ENDSELECT")) return static_cast<DWORD>(Token::EndSelect);
-    if (dbp::iequals(pToken, "CASE")) return static_cast<DWORD>(Token::Case);
-    if (dbp::iequals(pToken, "ENDCASE")) return static_cast<DWORD>(Token::EndCase);
-    if (dbp::iequals(pToken, "END")) return static_cast<DWORD>(Token::End);
+    if (dbp::iequals(token, "EXIT")) return static_cast<DWORD>(Token::Exit);
+    if (dbp::iequals(token, "IF")) return static_cast<DWORD>(Token::If);
+    if (dbp::iequals(token, "ELSE")) return static_cast<DWORD>(Token::Else);
+    if (dbp::iequals(token, "ENDIF")) return static_cast<DWORD>(Token::EndIf);
+    if (dbp::iequals(token, "GOTO")) return static_cast<DWORD>(Token::Goto);
+    if (dbp::iequals(token, "GOSUB")) return static_cast<DWORD>(Token::Gosub);
+    if (dbp::iequals(token, "SELECT")) return static_cast<DWORD>(Token::Select);
+    if (dbp::iequals(token, "ENDSELECT")) return static_cast<DWORD>(Token::EndSelect);
+    if (dbp::iequals(token, "CASE")) return static_cast<DWORD>(Token::Case);
+    if (dbp::iequals(token, "ENDCASE")) return static_cast<DWORD>(Token::EndCase);
+    if (dbp::iequals(token, "END")) return static_cast<DWORD>(Token::End);
 
     // Declaration & Types
-    if (dbp::iequals(pToken, "TYPE")) return static_cast<DWORD>(Token::Type);
-    if (dbp::iequals(pToken, "ENDTYPE")) return static_cast<DWORD>(Token::EndType);
-    if (dbp::iequals(pToken, "GLOBAL")) return static_cast<DWORD>(Token::Global);
-    if (dbp::iequals(pToken, "LOCAL")) return static_cast<DWORD>(Token::Local);
-    if (dbp::iequals(pToken, "DIM")) return static_cast<DWORD>(Token::Dim);
-    if (dbp::iequals(pToken, "UNDIM")) return static_cast<DWORD>(Token::Undim);
-    if (dbp::iequals(pToken, "AS")) return static_cast<DWORD>(Token::Asterisk);
+    if (dbp::iequals(token, "TYPE")) return static_cast<DWORD>(Token::Type);
+    if (dbp::iequals(token, "ENDTYPE")) return static_cast<DWORD>(Token::EndType);
+    if (dbp::iequals(token, "GLOBAL")) return static_cast<DWORD>(Token::Global);
+    if (dbp::iequals(token, "LOCAL")) return static_cast<DWORD>(Token::Local);
+    if (dbp::iequals(token, "DIM")) return static_cast<DWORD>(Token::Dim);
+    if (dbp::iequals(token, "UNDIM")) return static_cast<DWORD>(Token::Undim);
+    if (dbp::iequals(token, "AS")) return static_cast<DWORD>(Token::Asterisk);
 
     // Data types
-    if (dbp::iequals(pToken, "BOOLEAN")) return static_cast<DWORD>(Token::Boolean);
-    if (dbp::iequals(pToken, "BYTE")) return static_cast<DWORD>(Token::Byte);
-    if (dbp::iequals(pToken, "WORD")) return static_cast<DWORD>(Token::Word);
-    if (dbp::iequals(pToken, "DWORD")) return static_cast<DWORD>(Token::Dword);
-    if (dbp::iequals(pToken, "INTEGER")) return static_cast<DWORD>(Token::Integer);
-    if (dbp::iequals(pToken, "FLOAT")) return static_cast<DWORD>(Token::Float);
-    if (dbp::iequals(pToken, "STRING")) return static_cast<DWORD>(Token::String);
-    if (dbp::iequals(pToken, "DOUBLE")) return static_cast<DWORD>(Token::Double);
+    if (dbp::iequals(token, "BOOLEAN")) return static_cast<DWORD>(Token::Boolean);
+    if (dbp::iequals(token, "BYTE")) return static_cast<DWORD>(Token::Byte);
+    if (dbp::iequals(token, "WORD")) return static_cast<DWORD>(Token::Word);
+    if (dbp::iequals(token, "DWORD")) return static_cast<DWORD>(Token::Dword);
+    if (dbp::iequals(token, "INTEGER")) return static_cast<DWORD>(Token::Integer);
+    if (dbp::iequals(token, "FLOAT")) return static_cast<DWORD>(Token::Float);
+    if (dbp::iequals(token, "STRING")) return static_cast<DWORD>(Token::String);
+    if (dbp::iequals(token, "DOUBLE")) return static_cast<DWORD>(Token::Double);
 
     // Comments
-    if (dbp::iequals(pToken, "REMSTART")) return static_cast<DWORD>(Token::RemStart);
-    if (dbp::iequals(pToken, "REM")) return static_cast<DWORD>(Token::RemLine);
-    if (dbp::iequals(pToken, "//")) return static_cast<DWORD>(Token::RemLine);
-    if (dbp::iequals(pToken, "`")) return static_cast<DWORD>(Token::RemLine);
-    if (dbp::iequals(pToken, "'")) return static_cast<DWORD>(Token::RemLine);
-    if (dbp::iequals(pToken, "REMEND")) return static_cast<DWORD>(Token::RemEnd);
-    if (dbp::iequals(pToken, "HIDESTART")) return static_cast<DWORD>(Token::RemLine);
-    if (dbp::iequals(pToken, "HIDEEND")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(token, "REMSTART")) return static_cast<DWORD>(Token::RemStart);
+    if (dbp::iequals(token, "REM")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(token, "//")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(token, "`")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(token, "'")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(token, "REMEND")) return static_cast<DWORD>(Token::RemEnd);
+    if (dbp::iequals(token, "HIDESTART")) return static_cast<DWORD>(Token::RemLine);
+    if (dbp::iequals(token, "HIDEEND")) return static_cast<DWORD>(Token::RemLine);
 
     // Data
-    if (dbp::iequals(pToken, "DATA")) return static_cast<DWORD>(Token::Data);
+    if (dbp::iequals(token, "DATA")) return static_cast<DWORD>(Token::Data);
 
     return 0;
 }
 
-bool CTokenizer::DetermineIfReservedWord(const char* pToken) const noexcept
+bool CTokenizer::DetermineIfReservedWord(std::string_view token) const noexcept
 {
-    if (pToken == nullptr) return false;
+    if (token.empty()) return false;
 
     static const char* reservedKeywords[] = {
         "if", "then", "else", "endif", "do", "loop", "for", "next",
@@ -200,7 +199,7 @@ bool CTokenizer::DetermineIfReservedWord(const char* pToken) const noexcept
 
     for (const char* kw : reservedKeywords)
     {
-        if (dbp::iequals(pToken, kw))
+        if (dbp::iequals(token, kw))
         {
             return true;
         }
@@ -208,10 +207,10 @@ bool CTokenizer::DetermineIfReservedWord(const char* pToken) const noexcept
     return false;
 }
 
-bool CTokenizer::DetermineIfFunctionName(const char* pToken) const noexcept
+bool CTokenizer::DetermineIfFunctionName(std::string_view token) const noexcept
 {
-    if (pToken == nullptr || pToken[0] == '\0') return false;
-    return (std::isalpha(static_cast<unsigned char>(pToken[0])) || pToken[0] == '_');
+    if (token.empty()) return false;
+    return (std::isalpha(static_cast<unsigned char>(static_cast<unsigned char>(token.front()))) || token.front() == '_');
 }
 
 LPSTR CTokenizer::ProduceNextToken(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas) const

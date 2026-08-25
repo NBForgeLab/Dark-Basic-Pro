@@ -1,6 +1,7 @@
 #pragma once
 #include "ASTVisitor.h"
-#include <windows.h>
+#include "DataType.h"
+#include <cstdint>
 #include <map>
 #include <string>
 
@@ -25,11 +26,12 @@ public:
     void Visit(ASTStructDeclNode* node) override;
     void Visit(ASTStructAccessNode* node) override;
 
-    DWORD GetInferredType() const { return m_inferredType; }
-    bool HasErrors() const { return m_hasErrors; }
+    [[nodiscard]] uint32_t GetInferredType() const noexcept { return m_inferredType; }
+    [[nodiscard]] DBPType GetInferredDBPType() const noexcept { return static_cast<DBPType>(m_inferredType); }
+    [[nodiscard]] bool HasErrors() const noexcept { return m_hasErrors; }
 
 private:
-    DWORD m_inferredType = 0; // 1 = int, 2 = float, 3 = string
+    uint32_t m_inferredType = 0; // 1 = int, 2 = float, 3 = string
     bool m_hasErrors = false;
-    std::map<std::string, DWORD> m_declaredVars;
+    std::map<std::string, uint32_t> m_declaredVars;
 };

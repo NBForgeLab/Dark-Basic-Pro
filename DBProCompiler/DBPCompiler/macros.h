@@ -1,17 +1,33 @@
+#pragma once
 #include "resource.h"
+#include <cstdint>
+#include <utility>
 
 //
-// Common Macros
+// Common Memory Management Utilities (ISO C++20)
 //
 
-#if 0
-#define SAFE_DELETE(x)	if(x) { delete x; x=nullptr; }
-#define SAFE_CLOSE(x)	if(x) { CloseHandle(x); x=nullptr; }
-#define SAFE_FREE(x)	if(x) { GlobalFree(x); x=nullptr; }
-#else
-//# include "../../Dark Basic Public Shared/Dark Basic Pro SDK/Shared/global.h"
+template<typename T>
+constexpr void SafeDelete(T*& ptr) noexcept {
+    delete ptr;
+    ptr = nullptr;
+}
+
+template<typename T>
+constexpr void SafeDeleteArray(T*& ptr) noexcept {
+    delete[] ptr;
+    ptr = nullptr;
+}
+
+template<typename T>
+constexpr void SafeRelease(T*& ptr) noexcept {
+    if (ptr) {
+        ptr->Release();
+        ptr = nullptr;
+    }
+}
+
 #include "DB3.h"
-#endif
 
 #ifdef UNICODE
 #undef GetPrivateProfileString

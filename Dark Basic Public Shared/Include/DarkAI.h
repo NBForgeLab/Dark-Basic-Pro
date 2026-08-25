@@ -1,7 +1,13 @@
 
 #include <windows.h>
 
-#define DLLEXPORT 
+#ifndef DLLEXPORT
+#ifdef DARKAI_EXPORTS
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
+#endif
 
 //void ReceiveCoreDataPtr ( void* cdp );
 DLLEXPORT float		AIRayCast ( float x, float y, float z, float x2, float y2, float z2 );

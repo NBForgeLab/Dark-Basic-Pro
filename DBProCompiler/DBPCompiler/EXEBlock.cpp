@@ -237,7 +237,7 @@ CEXEBlock::~CEXEBlock()
 void CEXEBlock::Clear(void)
 {
 	// Release appname (allocated with new char[])
-	SAFE_DELETE_ARRAY(m_pInitialAppName);
+	SafeDeleteArray(m_pInitialAppName);
 
 	// Release exefile ptrs (RAII handles strings)
 	m_OriginalFolderName.clear();
@@ -246,16 +246,16 @@ void CEXEBlock::Clear(void)
 
 	// Release DLLs Data (arrays allocated with new[])
 	if ( m_pDLLFilenameArray ) DeleteArrayContents(m_pDLLFilenameArray,m_dwNumberOfDLLs);
-	SAFE_DELETE_ARRAY(m_pDLLFilenameArray);
-	SAFE_DELETE_ARRAY(m_pDLLIndexArray);
-	SAFE_DELETE_ARRAY(m_pDLLLoadedAlreadyArray);
+	SafeDeleteArray(m_pDLLFilenameArray);
+	SafeDeleteArray(m_pDLLIndexArray);
+	SafeDeleteArray(m_pDLLLoadedAlreadyArray);
 
 	// Release Ref Data
-	SAFE_DELETE_ARRAY(m_pRefArray);
-	SAFE_DELETE_ARRAY(m_pRefIndexArray);
-	SAFE_DELETE_ARRAY(m_pRefTypeArray);
-	SAFE_DELETE_ARRAY(m_pRefWidthArray);
-	SAFE_DELETE_ARRAY(m_pRefRelEndArray);
+	SafeDeleteArray(m_pRefArray);
+	SafeDeleteArray(m_pRefIndexArray);
+	SafeDeleteArray(m_pRefTypeArray);
+	SafeDeleteArray(m_pRefWidthArray);
+	SafeDeleteArray(m_pRefRelEndArray);
 
 	// Release MCB Data 9leeadd - 090305 - DEP release)
 	VirtualFree ( m_pMachineCodeBlock, 0, MEM_DECOMMIT | MEM_RELEASE );
@@ -263,28 +263,28 @@ void CEXEBlock::Clear(void)
 
 	// Release Runtime Error Strings Database
 	if ( m_pRuntimeErrorStringsArray ) DeleteArrayContents(m_pRuntimeErrorStringsArray,m_dwNumberOfRuntimeErrorStrings);
-	SAFE_DELETE_ARRAY(m_pRuntimeErrorStringsArray);
+	SafeDeleteArray(m_pRuntimeErrorStringsArray);
 
 	// Release Commands Data
 	if ( m_pCommandDLLCallArray ) DeleteArrayContents(m_pCommandDLLCallArray,m_dwNumberOfCommands);
-	SAFE_DELETE_ARRAY(m_pCommandDLLCallArray);
-	SAFE_DELETE_ARRAY(m_pCommandDLLIdArray);
+	SafeDeleteArray(m_pCommandDLLCallArray);
+	SafeDeleteArray(m_pCommandDLLIdArray);
 
 	// Release Strings Data
 	if ( m_pStringsArray ) DeleteArrayContents(m_pStringsArray,m_dwNumberOfStrings);
-	SAFE_DELETE_ARRAY(m_pStringsArray);
+	SafeDeleteArray(m_pStringsArray);
 
 	// Release Data Data
-	SAFE_DELETE_ARRAY(m_pDataArray);
+	SafeDeleteArray(m_pDataArray);
 	if ( m_pDataStringsArray) DeleteArrayContents(m_pDataStringsArray,m_dwNumberOfDataItems);
-	SAFE_DELETE_ARRAY(m_pDataStringsArray);
+	SafeDeleteArray(m_pDataStringsArray);
 
 	// Release Dynamic Variable Offset Array
-	SAFE_DELETE_ARRAY(m_pDynamicVarsArray);
-	SAFE_DELETE_ARRAY(m_pDynamicVarsArrayType);
+	SafeDeleteArray(m_pDynamicVarsArray);
+	SafeDeleteArray(m_pDynamicVarsArrayType);
 
 	// Release Structure Pattern Array
-	SAFE_DELETE_ARRAY(m_pUsertypeStringPatternArray);
+	SafeDeleteArray(m_pUsertypeStringPatternArray);
 
 	// Reset all values so no consumer can walk a stale count over a null array
 	m_bEXEBlockPresent=false;
@@ -973,6 +973,9 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						if (hDLLMod[dllindex] != nullptr)
 						{
 							PluginRegistry::GetInstance().RegisterPlugin(pDLLName, hDLLMod[dllindex]);
+							char dbgBuf[512];
+							sprintf_s(dbgBuf, "[EXEBlock] Loaded DLL index %lu '%s' at %p\n", static_cast<unsigned long>(dllindex), pDLLName, (void*)hDLLMod[dllindex]);
+							OutputDebugStringA(dbgBuf);
 						}
 						else
 						{
@@ -1226,6 +1229,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		if(bMiniInit==false)
 		{
 			// Prepare Display (GDI or EXT)
+			OutputDebugStringA("[EXEBlock] Step 1: Passing runtime pointers to Core\n");
 			g_CORE_PassCmdLinePtr((LPVOID)pCmdLine);
 			g_CORE_PassErrorPtr((LPVOID)&m_dwRuntimeErrorDWORD);
 			g_CORE_PassEscapePtr((LPVOID)&g_dwEscapeValueMem);
@@ -1233,12 +1237,15 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			// U71 - also pass in structure pattern qty+ptr
 			if(m_dwUsertypeStringPatternQuantity>0)
 				g_CORE_PassStructurePatterns((LPVOID)m_pUsertypeStringPatternArray, m_dwUsertypeStringPatternQuantity);
+			OutputDebugStringA("[EXEBlock] Step 2: Calling g_CORE_PassDLLs\n");
 			g_CORE_PassDLLs();
 
 			// 1ST : Get CORE CREATION Security Code
+			OutputDebugStringA("[EXEBlock] Step 3: Getting Security Code\n");
 			int iSecurityCode = -1;
 			if ( g_CORE_GetSecurityCode )
 				iSecurityCode = g_CORE_GetSecurityCode();
+			OutputDebugStringA("[EXEBlock] Step 4: Security Code obtained\n");
 
 			// Initialise each TPC DLL from the plugin-user folder 
 			for(DWORD dll=0; dll<m_dwNumberOfDLLs; dll++)
@@ -1370,10 +1377,16 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			}
 
 			// Initialise Display (and DX check)
+			OutputDebugStringA("[EXEBlock] Step 5: Calling g_CORE_InitDisplay\n");
 			if ( g_CORE_InitDisplay ( m_dwInitialDisplayMode, m_dwInitialDisplayWidth, m_dwInitialDisplayHeight, m_dwInitialDisplayDepth, hInstance, m_pInitialAppName)==1)
 			{
 				// Failed to DXSetup - Exit now
+				OutputDebugStringA("[EXEBlock] Step 5: g_CORE_InitDisplay failed\n");
 				bResult=false;
+			}
+			else
+			{
+				OutputDebugStringA("[EXEBlock] Step 5: g_CORE_InitDisplay succeeded\n");
 			}
 		}
 
@@ -1382,6 +1395,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		{
 			if(bMiniInit==false)
 			{
+				OutputDebugStringA("[EXEBlock] Step 6: Calling ReceiveCoreDataPtr for TPC plugins\n");
 				for(DWORD dll=0; dll<m_dwNumberOfDLLs; dll++)
 				{
 					const DWORD dllindex=m_pDLLIndexArray[dll];
@@ -1535,8 +1549,17 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 					{
 						// Locate function ptr from EXE function ptr (passed in)
 						if(dbp::iequals(pStr, "DHookS")) *(pProgramRefPtr+ref)=(uintptr_t)pDHookS;
-						if(dbp::iequals(pStr, "DHookJ")) *(pProgramRefPtr+ref)=(uintptr_t)pDHookJ;
-						if(dbp::iequals(pStr, "DHookR")) *(pProgramRefPtr+ref)=(uintptr_t)pDHookR;
+						else if(dbp::iequals(pStr, "DHookJ")) *(pProgramRefPtr+ref)=(uintptr_t)pDHookJ;
+						else if(dbp::iequals(pStr, "DHookR")) *(pProgramRefPtr+ref)=(uintptr_t)pDHookR;
+						else
+						{
+							g_bSuccessfulDLLLinks=false;
+							if(*pReturnError==nullptr) *pReturnError = new char[1024];
+							int dlli = dll - 1; if(dlli<0) dlli=0;
+							sprintf_s(*pReturnError, 1024, "DLL %lu:%s was not loaded for function '%s'", static_cast<unsigned long>(dll), (LPSTR)m_pDLLFilenameArray[dlli], pStr);
+							bResult=false;
+							break;
+						}
 					}
 					else
 					{
@@ -1545,16 +1568,17 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 						if(dwAdd!=0)
 						{
 							*(pProgramRefPtr+ref)=dwAdd;
-						}							else
-							{
-								// Exit loop
-								g_bSuccessfulDLLLinks=false;
-								ref=m_dwNumberOfReferences;
-								if(*pReturnError==nullptr) *pReturnError = new char[1024];
-								int dlli = dll - 1; if(dlli<0) dlli=0;
-								sprintf_s(*pReturnError, 1024, "Could not find function '%s' in %d:%s", pStr, index, (LPSTR)m_pDLLFilenameArray[dlli]);
-								bResult=false;
-							}
+						}
+						else
+						{
+							// Exit loop
+							g_bSuccessfulDLLLinks=false;
+							if(*pReturnError==nullptr) *pReturnError = new char[1024];
+							int dlli = dll - 1; if(dlli<0) dlli=0;
+							sprintf_s(*pReturnError, 1024, "Could not find function '%s' in %lu:%s", pStr, static_cast<unsigned long>(dll), (LPSTR)m_pDLLFilenameArray[dlli]);
+							bResult=false;
+							break;
+						}
 					}
 				}
 				if(iRefType==2)
@@ -1637,8 +1661,8 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			}
 		}
 
-		// bSuccessfulDLLLinks ok now
-		g_bSuccessfulDLLLinks=true;
+		// Update DLL linking status based on whether all references succeeded
+		g_bSuccessfulDLLLinks = bResult;
 	}
 
 	// [EXE] Replace Tokens with Data in Byte Positions.

@@ -21,6 +21,9 @@ public:
     CompilerContext();
     ~CompilerContext();
 
+    CompilerContext(CompilerContext&& other) noexcept;
+    CompilerContext& operator=(CompilerContext&& other) noexcept;
+
     void Initialize();
     void Cleanup();
     void ReplaceErrorReport(CError* pNewReport);

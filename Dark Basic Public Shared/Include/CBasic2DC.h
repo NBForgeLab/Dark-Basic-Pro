@@ -39,7 +39,7 @@ DARKSDK void	Dot						( int iX, int iY, DWORD dwColor );
 //DARKSDK void	BoxGradient				( int iLeft, int iTop, int iRight, int iBottom, DWORD dw1, DWORD dw2, DWORD dw3, DWORD dw4 );
 DARKSDK void	LockPixels				( void );
 DARKSDK void	UnlockPixels			( void );
-DARKSDK DWORD	GetPixelPtr				( void );
+DARKSDK LPSTR	GetPixelPtr				( void );
 DARKSDK DWORD	GetPixelPitch			( void );
 
 #endif

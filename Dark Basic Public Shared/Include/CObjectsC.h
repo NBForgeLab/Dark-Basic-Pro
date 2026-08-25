@@ -379,7 +379,7 @@ DARKSDK float	GetVertexDataU				( int iVertex );
 DARKSDK float	GetVertexDataU				( int iVertex, int iIndex );
 DARKSDK float	GetVertexDataV				( int iVertex );
 DARKSDK float	GetVertexDataV				( int iVertex, int iIndex );
-DARKSDK DWORD		GetVertexDataPtr			( void );
+DARKSDK DWORD_PTR	GetVertexDataPtr			( void );
 
 // Misc
 DARKSDK void		SetFastBoundsCalculation	( int iMode );
@@ -499,7 +499,7 @@ DARKSDK float LimbDirectionY ( int iID, int iLimbID );
 DARKSDK float LimbDirectionZ ( int iID, int iLimbID );
 DARKSDK int LimbTexture ( int iID, int iLimbID, int iTextureStage );
 DARKSDK int LimbTexture ( int iID, int iLimbID );
-DARKSDK int GetLimbTexturePtr ( int iID, int iLimbID );
+DARKSDK DWORD_PTR GetLimbTexturePtr ( int iID, int iLimbID );
 DARKSDK int LimbVisible ( int iID, int iLimbID );
 DARKSDK int LimbLink ( int iID, int iLimbID );
 DARKSDK int GetLimbPolygonCount ( int iID, int iLimbID );

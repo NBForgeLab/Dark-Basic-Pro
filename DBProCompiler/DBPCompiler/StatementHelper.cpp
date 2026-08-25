@@ -104,8 +104,7 @@ bool ContainsAssignmentOperator(CStr* pString)
     DWORD dwPos = pString->FindFirstChar('=');
     if(dwPos>0)
     {
-        // GetLeftOfPosition hands back a new char[]; adopt it with
-        // unique_ptr<char[]> so it is released with delete[].
+        // GetLeftOfPosition returns an owned unique_ptr<char[]> buffer.
         std::unique_ptr<char[]> pLeft(pString->GetLeftOfPosition(dwPos));
         CStr lStr(pLeft.get());
         if(lStr.IsTextLValue()) bResult=true;

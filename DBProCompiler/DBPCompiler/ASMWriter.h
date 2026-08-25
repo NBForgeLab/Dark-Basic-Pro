@@ -1,9 +1,4 @@
-// ASMWriter.h: interface for the CASMWriter class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_ASMWRITER_H__A3BE66B0_1587_46D3_AC0A_E4F78C0A3561__INCLUDED_)
-#define AFX_ASMWRITER_H__A3BE66B0_1587_46D3_AC0A_E4F78C0A3561__INCLUDED_
+#pragma once
 
 // Common Includes
 #include "windows.h"
@@ -451,44 +446,56 @@ class CASMWriter : public ICodeGenerator
 		static int DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2);
 		static int DetermineSecondOpDataWidth(int iPreOp, int iOp1, int iOp2);
 
-		bool CreateASMHeader(void);
-		bool CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, int iOp3 = -1);
-		bool CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, LPCSTR lpOpData, LPCSTR lpOpData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize, int iOp3 = -1);
-		bool CheckAndExpandMCBMemory(void);
-		bool CheckAndExpandREFMemory(void);
+		using ICodeGenerator::CreateASMMiddle;
+		using ICodeGenerator::CreateASMMiddleCore;
+		using ICodeGenerator::WriteASMCall;
+		using ICodeGenerator::WriteASMLine;
+		using ICodeGenerator::WriteASMLine2;
+		using ICodeGenerator::WriteASMLine1IMM;
+		using ICodeGenerator::WriteASMLine2IMM;
+		using ICodeGenerator::WriteASMComment;
+		using ICodeGenerator::AddCommandToTable;
+		using ICodeGenerator::WriteASMTaskCoreP1;
+		using ICodeGenerator::WriteASMTaskCoreP2;
 
-		DWORD GetCurrentMCPosition(void);
+		bool CreateASMHeader(void) override;
+		bool CreateASMMiddle(int iPreOpCode, int iOpCode1, int iOpCode2, std::string_view opData, int iOp3 = -1) override;
+		bool CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2, std::string_view opData, std::string_view opData2, bool bSecondOpDataIsIMM, DWORD dwSecondOpDataIMMSize, int iOp3 = -1) override;
+		bool CheckAndExpandMCBMemory(void) override;
+		bool CheckAndExpandREFMemory(void) override;
 
-		bool ReportAnyErrorsToCLI(void);
-		bool PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate);
-		bool UpdateMCB(DWORD dwProgramSize);
-		bool UpdateMCBRefData(void);
-		bool UpdateDLLData(void);
-		bool UpdateCommandData(void);
-		bool UpdateStringData(void);
-		bool UpdateDataData(void);
-		bool UpdateDynamicData(void);
+		DWORD GetCurrentMCPosition(void) override;
 
-		bool UpdateStructurePatternData ( void );
+		bool ReportAnyErrorsToCLI(void) override;
+		bool PrepareEXE(LPSTR pEXEFilename, bool bParsingMainProgram, bool bProceedToUpdate) override;
+		bool UpdateMCB(DWORD dwProgramSize) override;
+		bool UpdateMCBRefData(void) override;
+		bool UpdateDLLData(void) override;
+		bool UpdateCommandData(void) override;
+		bool UpdateStringData(void) override;
+		bool UpdateDataData(void) override;
+		bool UpdateDynamicData(void) override;
 
-		LPSTR MakeVarDataForTransfer(DWORD* dwDataSize);
-		LPSTR MakeVarValuesForTransfer(DWORD* dwDataSize);
+		bool UpdateStructurePatternData ( void ) override;
 
-		void TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dwPatternArrayCounter, DWORD* dwSizeOfUserTypePattern, CDeclaration* pDecMain);
-		void FreeMachineBlock(void) noexcept;
-		void FreeAll(void);
+		LPSTR MakeVarDataForTransfer(DWORD* dwDataSize) override;
+		LPSTR MakeVarValuesForTransfer(DWORD* dwDataSize) override;
 
-		DWORD GetBytePosOfLastInstruction(void);
+		void TraverseDecForPattern(DWORD dwBaseOffset, short pass, DWORD* dwPatternArrayCounter, DWORD* dwSizeOfUserTypePattern, CDeclaration* pDecMain) override;
+		void FreeMachineBlock(void) noexcept override;
+		void FreeAll(void) override;
 
-		DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue);
-		DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue);
-		DWORD DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset);
+		DWORD GetBytePosOfLastInstruction(void) override;
 
-		void CalculateArrayOffsetInRBX ( CStr* pStr );
-		void WriteASMRAXtoARR(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
-		void WriteASMARRtoRAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
-		void WriteASMXtoRAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
-		void WriteASMRAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset);
+		DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) override;
+		DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) override;
+		DWORD DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset) override;
+
+		void CalculateArrayOffsetInRBX ( CStr* pStr ) override;
+		void WriteASMRAXtoARR(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) override;
+		void WriteASMARRtoRAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) override;
+		void WriteASMXtoRAX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) override;
+		void WriteASMRAXtoX(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) override;
 
 		// Native x64 command-call ABI marshalling. Command arguments are
 		// accumulated on the machine stack by consecutive Push tasks (the
@@ -514,37 +521,37 @@ class CASMWriter : public ICodeGenerator
 		bool EmitCommandCallAbiSetup();
 		void EmitCommandCallAbiTeardown(bool bKeepArgsOnStack);
 
-		bool WriteASMCall(DWORD dwLine, LPCSTR pDLL, LPCSTR pDecoratedName);
-		bool WriteASMTaskP1(DWORD dwLine, DWORD dwTask, CResultData* pP1);
-		bool WriteASMTaskP2(DWORD dwLine, DWORD dwTask, CResultData* pP1, CResultData* pP2);
-		bool WriteASMTaskP3(DWORD dwLine, DWORD dwTask, CResultData* pP1, CResultData* pP2, CResultData* pP3);
-		bool WriteASMTaskCoreP1(DWORD dwLine, DWORD dwTask, CStr* pP1, DWORD dwP1Type);
-		bool WriteASMTaskCoreP2(DWORD dwLine, DWORD dwTask, CStr* pP1, DWORD dwP1Type, CStr* pP2, DWORD dwP2Type);
-		bool WriteASMTaskCore(DWORD dwLine, DWORD dwTask, CStr* pP1, CStr* pP1Off, DWORD dwP1Type, DWORD dwP1Offset, CStr* pP2, CStr* pP2Off, DWORD dwP2Type, DWORD dwP2Offset);
+		bool WriteASMCall(DWORD dwLine, std::string_view dll, std::string_view decoratedName) override;
+		bool WriteASMTaskP1(DWORD dwLine, DWORD dwTask, CResultData* pP1) override;
+		bool WriteASMTaskP2(DWORD dwLine, DWORD dwTask, CResultData* pP1, CResultData* pP2) override;
+		bool WriteASMTaskP3(DWORD dwLine, DWORD dwTask, CResultData* pP1, CResultData* pP2, CResultData* pP3) override;
+		bool WriteASMTaskCoreP1(DWORD dwLine, DWORD dwTask, CStr* pP1, DWORD dwP1Type) override;
+		bool WriteASMTaskCoreP2(DWORD dwLine, DWORD dwTask, CStr* pP1, DWORD dwP1Type, CStr* pP2, DWORD dwP2Type) override;
+		bool WriteASMTaskCore(DWORD dwLine, DWORD dwTask, CStr* pP1, CStr* pP1Off, DWORD dwP1Type, DWORD dwP1Offset, CStr* pP2, CStr* pP2Off, DWORD dwP2Type, DWORD dwP2Offset) override;
 		bool WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* pP1Off, DWORD dwP1Type, DWORD dwP1Offset,
 															CStr* pP2, CStr* pP2Off, DWORD dwP2Type, DWORD dwP2Offset,
-															CStr* pP3, CStr* pP3Off, DWORD dwP3Type, DWORD dwP3Offset );
+															CStr* pP3, CStr* pP3Off, DWORD dwP3Type, DWORD dwP3Offset ) override;
 
-		bool WriteASMLine(DWORD dwOp, LPCSTR pOpData);
-		bool WriteASMLine2(DWORD dwOp, LPCSTR pOpData, LPCSTR pOpData2);
-		bool WriteASMLine1IMM(DWORD dwOp, LPCSTR pOpData, DWORD dwSizeIMM);
-		bool WriteASMLine2IMM(DWORD dwOp, LPCSTR pOpData, LPCSTR pOpData2, DWORD dwSizeIMM);
-		bool WriteASMComment(LPCSTR pTitle, LPCSTR pC1, LPCSTR pC2, LPCSTR pC3);
+		bool WriteASMLine(DWORD dwOp, std::string_view opData) override;
+		bool WriteASMLine2(DWORD dwOp, std::string_view opData, std::string_view opData2) override;
+		bool WriteASMLine1IMM(DWORD dwOp, std::string_view opData, DWORD dwSizeIMM) override;
+		bool WriteASMLine2IMM(DWORD dwOp, std::string_view opData, std::string_view opData2, DWORD dwSizeIMM) override;
+		bool WriteASMComment(std::string_view title, std::string_view c1, std::string_view c2, std::string_view c3) override;
 
-		bool WriteASMLeapMarkerTop(void);
-		bool WriteASMLineLeapToTop(DWORD dwOp);
-		bool WriteASMLeapMarkerJumpToTop(void);
+		bool WriteASMLeapMarkerTop(void) override;
+		bool WriteASMLineLeapToTop(DWORD dwOp) override;
+		bool WriteASMLeapMarkerJumpToTop(void) override;
 
-		bool WriteASMLeapForwardMarker(void);
-		bool WriteASMLineLeap(DWORD dwOp, DWORD di);
-		bool WriteASMLeapMarkerJump(DWORD dwOp, DWORD di);
-		bool WriteASMLeapMarkerJumpNotEqual(DWORD di);
-		bool WriteASMLeapMarkerEnd(DWORD di);
-		bool WriteASMCheckBreakPointVar(void);
-		bool WriteASMForceEscapeAtCodeBREAK(void);
-		void SetBreakPointValue(void);
+		bool WriteASMLeapForwardMarker(void) override;
+		bool WriteASMLineLeap(DWORD dwOp, DWORD di) override;
+		bool WriteASMLeapMarkerJump(DWORD dwOp, DWORD di) override;
+		bool WriteASMLeapMarkerJumpNotEqual(DWORD di) override;
+		bool WriteASMLeapMarkerEnd(DWORD di) override;
+		bool WriteASMCheckBreakPointVar(void) override;
+		bool WriteASMForceEscapeAtCodeBREAK(void) override;
+		void SetBreakPointValue(void) override;
 
-		DWORD AddCommandToTable(LPCSTR pDLLString, LPCSTR pCommandString);
+		DWORD AddCommandToTable(std::string_view dllString, std::string_view commandString) override;
 
 	friend class CLeapMarkerManager;
 
@@ -609,5 +616,3 @@ class CASMWriter : public ICodeGenerator
 		std::vector<PendingCallArg>	m_pendingCallArgs;
 		std::uint32_t			m_pendingCallSlotCount = 0;
 };
-
-#endif // !defined(AFX_ASMWRITER_H__A3BE66B0_1587_46D3_AC0A_E4F78C0A3561__INCLUDED_)

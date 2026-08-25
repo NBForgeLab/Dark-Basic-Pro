@@ -4,11 +4,11 @@
 
 // Common Includes
 #include "macros.h"
-#include "Windows.h"
+#include <windows.h>
 #include "DebugInfo.h"
 #include "Error.h"
-#include "direct.h"
-#include "time.h"
+#include <direct.h>
+#include <ctime>
 
 // Custom Includes
 #include "Str.h"
@@ -29,7 +29,7 @@
 // Internal data
 HWND g_hTempWindow = nullptr;
 HWND g_igLoader_HWND = nullptr;
-char g_ActualCompilerFilename[256];
+char g_ActualCompilerFilename[256] = {};
 
 // External Class Pointers
 extern CDBPCompiler*		g_pDBPCompiler;
@@ -124,23 +124,42 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 
 	// Parse command line early using CommandLineToArgvW to configure logger & headless mode
 	bool bJsonMode = false;
+	spdlog::level::level_enum logLevel = spdlog::level::info;
+	std::string logFilePath = "dbp.log";
 	int nEarlyArgs = 0;
 	LPWSTR* szEarlyArglist = CommandLineToArgvW(GetCommandLineW(), &nEarlyArgs);
 	if (szEarlyArglist != nullptr) {
 		for (int i = 1; i < nEarlyArgs; i++) {
-			std::wstring argW(szEarlyArglist[i]);
+			const std::wstring_view argW = szEarlyArglist[i];
 			if (argW == L"--json") {
 				bJsonMode = true;
 				g_bJsonDiagnostics = true;
 				db3::g_bHeadlessMode = true;
 				AttachConsole(ATTACH_PARENT_PROCESS);
+			} else if (argW == L"--trace") {
+				logLevel = spdlog::level::trace;
+			} else if (argW == L"--debug") {
+				logLevel = spdlog::level::debug;
+			} else if (argW == L"--log-level" && i + 1 < nEarlyArgs) {
+				const std::wstring_view levelStr = szEarlyArglist[++i];
+				if (levelStr == L"trace") logLevel = spdlog::level::trace;
+				else if (levelStr == L"debug") logLevel = spdlog::level::debug;
+				else if (levelStr == L"info") logLevel = spdlog::level::info;
+				else if (levelStr == L"warn" || levelStr == L"warning") logLevel = spdlog::level::warn;
+				else if (levelStr == L"err" || levelStr == L"error") logLevel = spdlog::level::err;
+				else if (levelStr == L"off") logLevel = spdlog::level::off;
+			} else if (argW == L"--log-file" && i + 1 < nEarlyArgs) {
+				const wchar_t* pathStr = szEarlyArglist[++i];
+				char pathA[MAX_PATH] = {};
+				WideCharToMultiByte(CP_UTF8, 0, pathStr, -1, pathA, sizeof(pathA), NULL, NULL);
+				logFilePath = pathA;
 			}
 		}
 		LocalFree(szEarlyArglist);
 	}
 
 	// Initialize logger
-	DBPLogger::Initialize("dbp.log", bJsonMode, spdlog::level::info);
+	DBPLogger::Initialize(logFilePath, bJsonMode, logLevel);
 	DBP_INFO("DarkBasic Pro Compiler initialized.");
 
 #if _DEBUG
@@ -150,7 +169,7 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 #endif
 
 	// Vars
-	WNDCLASSA wc;
+	WNDCLASSA wc = {};
 
 	// Register window
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -213,14 +232,14 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 					<< EscapeJSON(argumentError) << "\"}\n" << std::flush;
 			else
 				MessageBoxW(nullptr, TextConvert::UTF8ToUTF16(argumentError).c_str(), L"Compiler Error", MB_OK);
-			SAFE_DELETE(g_pDBPCompiler);
-			SAFE_DELETE(g_pErrorReport);
+			SafeDelete(g_pDBPCompiler);
+			SafeDelete(g_pErrorReport);
 			return 1;
 		}
 		if (parsedArguments.value().help) {
 			PrintHelp();
-			SAFE_DELETE(g_pDBPCompiler);
-			SAFE_DELETE(g_pErrorReport);
+			SafeDelete(g_pDBPCompiler);
+			SafeDelete(g_pErrorReport);
 			return 0;
 		}
 		g_bJsonDiagnostics = parsedArguments.value().json;
@@ -238,8 +257,8 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 			} else {
 				MessageBoxW(nullptr, L"No project file specified.\nUsage: DBPCompiler.exe [options] <project_file.dbpro>", L"Compiler Error", MB_OK);
 			}
-			SAFE_DELETE(g_pDBPCompiler);
-			SAFE_DELETE(g_pErrorReport);
+			SafeDelete(g_pDBPCompiler);
+			SafeDelete(g_pErrorReport);
 			return 1;
 		}
 
@@ -331,20 +350,22 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 		}
 
 		// Delete DBPCompiler Object
-		SAFE_DELETE(g_pDBPCompiler);
+		delete g_pDBPCompiler;
+		g_pDBPCompiler = nullptr;
 	}
 
 	// Determine exit code
 	int exitCode = bOverallSuccess ? 0 : 1;
 
 	// Delete Error Object
-	SAFE_DELETE(g_pErrorReport);
+	delete g_pErrorReport;
+	g_pErrorReport = nullptr;
 
 	// DestroyWindow
 	if(hCompilerWnd)
 	{
 		DestroyWindow(hCompilerWnd);
-		hCompilerWnd=nullptr;
+		hCompilerWnd = nullptr;
 	}
 
 	// Exit

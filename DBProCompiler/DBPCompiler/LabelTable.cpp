@@ -54,15 +54,36 @@ CLabelTable::CLabelTable()
 
 CLabelTable::CLabelTable(LPCSTR pStr)
 {
-	m_pName.reset(new CStr(pStr));
+	m_pName = pStr ? std::make_unique<CStr>(pStr) : nullptr;
 	m_dwCodeIndex=0;
 	m_dwDataIndex=0;
 	m_dwBytePos=0;
+	m_pSRef=nullptr;
 
 	m_orderIndex=static_cast<size_t>(-1);
 
 #ifdef __AARON_LBLTBLPERF__
-	std::string lowerStr = to_lower(pStr);
+	if (pStr)
+	{
+		std::string lowerStr = dbp::to_lower_copy(pStr);
+		assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Label already exists");
+		g_Table[lowerStr] = this;
+	}
+#endif
+}
+
+CLabelTable::CLabelTable(std::string_view name)
+{
+	m_pName = std::make_unique<CStr>(name);
+	m_dwCodeIndex=0;
+	m_dwDataIndex=0;
+	m_dwBytePos=0;
+	m_pSRef=nullptr;
+
+	m_orderIndex=static_cast<size_t>(-1);
+
+#ifdef __AARON_LBLTBLPERF__
+	std::string lowerStr = dbp::to_lower_copy(name);
 	assert_msg(g_Table.find(lowerStr) == g_Table.end() || g_Table[lowerStr] == nullptr, "Label already exists");
 	g_Table[lowerStr] = this;
 #endif
@@ -127,13 +148,13 @@ void CLabelTable::Insert(CLabelTable* pNew)
 		g_Order[i]->m_orderIndex=i;
 }
 
-void CLabelTable::AddInOrder(LPCSTR pName, CLabelTable* pNew)
+void CLabelTable::AddInOrder(std::string_view name, CLabelTable* pNew)
 {
 	// Find place to insert new variable
 	CLabelTable* pLocation = this->GetNext();
 	while(pLocation)
 	{
-		if(dbp::icompare(pName,pLocation->GetName()->GetStr()) < 0) break;
+		if(dbp::icompare(name, pLocation->GetNameView()) < 0) break;
 		pLocation=pLocation->GetNext();
 	}
 	if(pLocation)
@@ -166,55 +187,48 @@ CLabelTable* CLabelTable::Subtract(DWORD dwCountdown)
 	return g_Order[m_orderIndex - dwCountdown];
 }
 
-bool CLabelTable::AddLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
+bool CLabelTable::AddLabel(std::string_view strName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
 {
-	// Make string
-	auto pStr = std::make_unique<CStr>(pStrName);
+	if (strName.empty()) return false;
+	if (strName.back() == ':')
+		strName.remove_suffix(1);
 
-	// Remove colon from label
-	DWORD length = pStr->Length()-1;
-	if(pStr->GetChar(length)==':')
-		pStr->SetChar(length,0);
-
-	// Ensure label is unique (already got)
-	if(FindLabel(pStr->GetStr())!=nullptr)
+	// Ensure label is unique
+	if (FindLabel(strName) != nullptr)
 	{
 		return true;
 	}
 
 	// Create new data item
 	CLabelTable* pNewData = new CLabelTable;
-
-	// Set data for label
-	CStr* pStrRaw = pStr.get();
-	pNewData->SetName(pStr.release());
+	pNewData->SetName(strName);
 	pNewData->SetCodeIndex(dwCodeIndex);
 	pNewData->SetDataIndex(dwDataIndex);
 	pNewData->SetBytePosition(0);
 	pNewData->SetSRef(pSRef);
 
 #ifdef __AARON_LBLTBLPERF__
-	std::string lowerName = to_lower(pStrRaw->GetStr());
+	std::string lowerName = dbp::to_lower_copy(strName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Label already exists");
 	g_Table[lowerName] = pNewData;
 #endif
 
 	// Add to Table
-	AddInOrder(pStrRaw->GetStr(), pNewData);
+	AddInOrder(pNewData->GetNameStr(), pNewData);
 
 	// Increment table entry count
-	g_pStatementList->IncLabelQtyCounter(1);
+	if (g_pStatementList)
+		g_pStatementList->IncLabelQtyCounter(1);
 
-	// Complete
 	return true;
 }
 
-CLabelTable* CLabelTable::FindLabel(LPCSTR pLabelName)
+CLabelTable* CLabelTable::FindLabel(std::string_view labelName)
 {
-	if (!pLabelName)
+	if (labelName.empty())
 		return nullptr;
 
-	std::string lowerLabelName = to_lower(pLabelName);
+	std::string lowerLabelName = dbp::to_lower_copy(labelName);
 	auto it = g_Table.find(lowerLabelName);
 	if (it == g_Table.end() || !it->second)
 		return nullptr;
@@ -222,13 +236,12 @@ CLabelTable* CLabelTable::FindLabel(LPCSTR pLabelName)
 	return it->second;
 }
 
-bool CLabelTable::UpdateLabel(LPCSTR pStrName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
+bool CLabelTable::UpdateLabel(std::string_view strName, DWORD dwCodeIndex, DWORD dwDataIndex, CStatement* pSRef)
 {
-	CLabelTable* pLabel = FindLabel(pStrName);
-	if(pLabel)
+	CLabelTable* pLabel = FindLabel(strName);
+	if (pLabel)
 	{
-		// Set data for label
-		pLabel->GetName()->SetText(pStrName);
+		pLabel->SetName(strName);
 		pLabel->SetCodeIndex(dwCodeIndex);
 		pLabel->SetDataIndex(dwDataIndex);
 		pLabel->SetBytePosition(0);
@@ -251,39 +264,36 @@ void CLabelTable::UpdateDataIndexOfLabelsAtLine(CStatement* pStatementRef, DWORD
 bool CLabelTable::WriteDBMHeader(void)
 {
 	// Blank Line
-	CStr strDBMBlank(1);
-	if(g_pDBMWriter->OutputDBM(&strDBMBlank)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("")) return false;
 
 	// header Line
-	CStr strDBMLine(256);
-	strDBMLine.SetText("LABELS:");
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("LABELS:")) return false;
 
 	return true;
 }
 
 bool CLabelTable::WriteDBM(void)
 {
-	if(GetName())
+	if (m_pName)
 	{
 		// Write out text
-		CStr strDBMLine(256);
-		strDBMLine.SetText(GetName());
-		strDBMLine.AddText(" code:");
-		strDBMLine.AddNumericText(GetCodeIndex());
-		strDBMLine.AddText(" data:");
-		strDBMLine.AddNumericText(GetDataIndex());
-		strDBMLine.AddText(" byte:");
-		strDBMLine.AddNumericText(GetBytePosition());
+		std::string dbmLine;
+		dbmLine += m_pName->View();
+		dbmLine += " code:";
+		dbmLine += std::to_string(GetCodeIndex());
+		dbmLine += " data:";
+		dbmLine += std::to_string(GetDataIndex());
+		dbmLine += " byte:";
+		dbmLine += std::to_string(GetBytePosition());
 
 		// Output details
-		if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+		if (!g_pDBMWriter->OutputDBM(dbmLine)) return false;
 	}
 
 	// Write next one
-	if(GetNext())
+	if (GetNext())
 	{
-		if((GetNext()->WriteDBM())==false) return false;
+		if (!GetNext()->WriteDBM()) return false;
 	}
 
 	// Complete

@@ -1,9 +1,4 @@
-// Str.h: interface for the CStr class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_STR_H__95C8EB95_D88D_48CF_9F08_36248C3E570E__INCLUDED_)
-#define AFX_STR_H__95C8EB95_D88D_48CF_9F08_36248C3E570E__INCLUDED_
+#pragma once
 
 #include "windows.h"
 #include <memory>
@@ -29,15 +24,19 @@ class CStr: public db3::TObject<CStr>
 	public:
 		CStr(LPSTR pText);
 		CStr(LPCSTR pText);
+		CStr(std::string_view text);
+		CStr(const std::string& text);
 		CStr(DWORD dwTextSize);
 		void		Enlarge(DWORD length);
 		LPSTR		GetStr(void) const { return const_cast<char*>(m_buffer.data()); }
 		double		GetValue(void) const;
 		void		SetText(LPSTR pStr);
 		void		SetText(LPCSTR pStr);
+		void		SetText(std::string_view text);
 		void		SetText(CStr* pStrText);
 		void		AddText(LPSTR pStr);
 		void		AddText(LPCSTR pStr);
+		void		AddText(std::string_view text);
 		void		AddText(CStr* pStrText);
 		void		AddChar(char cChar);
 		void		InsertText(LPSTR pStr);
@@ -48,8 +47,14 @@ class CStr: public db3::TObject<CStr>
 		void		AddNumericText(DWORD dwNumText);
 		void		AddDoubleText(double dNumText);
 		DWORD		Length(void) const { return m_dwLen; }
-		LPSTR		GetLeftOfPosition(DWORD Position) const;
-		LPSTR		GetRightOfPosition(DWORD Position) const;
+		[[nodiscard]] size_t size(void) const noexcept { return m_dwLen; }
+		[[nodiscard]] bool empty(void) const noexcept { return m_dwLen == 0; }
+		[[nodiscard]] const char* c_str(void) const noexcept { return m_buffer.data(); }
+		[[nodiscard]] const char* data(void) const noexcept { return m_buffer.data(); }
+		[[nodiscard]] std::string str(void) const { return std::string(m_buffer.data(), m_dwLen); }
+		[[nodiscard]] operator std::string_view() const noexcept { return View(); }
+		[[nodiscard]] std::unique_ptr<char[]>	GetLeftOfPosition(DWORD Position) const;
+		[[nodiscard]] std::unique_ptr<char[]>	GetRightOfPosition(DWORD Position) const;
 		void		CopyToPtr(LPSTR pPointer) const;
 		void		CopyFromPtr(LPSTR pPointer, LPSTR pPointerEnd, DWORD length);
 
@@ -119,5 +124,3 @@ class CStr: public db3::TObject<CStr>
 
 		void                    UpdateLen(void);
 };
-
-#endif // !defined(AFX_STR_H__95C8EB95_D88D_48CF_9F08_36248C3E570E__INCLUDED_)

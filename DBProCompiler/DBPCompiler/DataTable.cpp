@@ -7,6 +7,7 @@
 
 // Includes and external ptr for AssociateDLL scan
 #include "DBPCompiler.h"
+#include <charconv>
 #include <filesystem>
 #include "TextConvert.h"
 #include "SafeDLLLoading.h"
@@ -22,10 +23,18 @@ CDataTable::CDataTable()
 {
 }
 
-CDataTable::CDataTable(LPCSTR pInitString)
+CDataTable::CDataTable(const char* pInitString)
 	: m_dwIndex(0), m_dwType(0), m_pNumeric(0),
-	  m_pString(std::make_unique<CStr>(pInitString)),
-	  m_pString2(std::make_unique<CStr>((LPSTR)"")),
+	  m_pString(pInitString ? std::make_unique<CStr>(pInitString) : nullptr),
+	  m_pString2(std::make_unique<CStr>("")),
+	  m_bAddedToEXEData(false)
+{
+}
+
+CDataTable::CDataTable(std::string_view initString)
+	: m_dwIndex(0), m_dwType(0), m_pNumeric(0),
+	  m_pString(std::make_unique<CStr>(initString)),
+	  m_pString2(std::make_unique<CStr>("")),
 	  m_bAddedToEXEData(false)
 {
 }
@@ -62,7 +71,7 @@ void CDataTable::Add(CDataTable* pNew)
 	pCurrent->m_pNext.reset(pNew);
 }
 
-bool CDataTable::AddNumeric(double dNum, DWORD dwIndex)
+bool CDataTable::AddNumeric(double dNum, uint32_t dwIndex)
 {
 	// Create new data item (owned until handed to the chain)
 	auto pNewData = std::make_unique<CDataTable>();
@@ -78,118 +87,88 @@ bool CDataTable::AddNumeric(double dNum, DWORD dwIndex)
 	return true;
 }
 
-bool CDataTable::AddString(LPSTR pString, DWORD dwIndex)
+bool CDataTable::AddString(std::string_view str, uint32_t dwIndex)
 {
-	// Create new data item (owned until handed to the chain)
 	auto pNewData = std::make_unique<CDataTable>();
-	pNewData->SetString(std::make_unique<CStr>(pString).release());
-	pNewData->SetString2(nullptr);
-
-	// Set index
+	pNewData->SetString(str);
+	pNewData->SetString2(std::string_view{});
 	pNewData->SetIndex(dwIndex);
-
-	// Add to Data Table (chain takes ownership)
 	Add(pNewData.release());
-
-	// Complete
 	return true;
 }
 
-bool CDataTable::AddTwoStrings(LPSTR pString, LPSTR pString2, DWORD* dwIndex)
+bool CDataTable::AddTwoStrings(std::string_view str, std::string_view str2, uint32_t* dwIndex)
 {
-	// If string is NOT unique, fail
-	DWORD dwResult = FindString(pString);
-	if(dwResult>0)
+	if (!dwIndex) return false;
+	uint32_t dwResult = FindString(str);
+	if (dwResult > 0)
 	{
-		*dwIndex=dwResult;
+		*dwIndex = dwResult;
 		return false;
 	}
 
-	// Create new data item (owned until handed to the chain)
 	auto pNewData = std::make_unique<CDataTable>();
-	pNewData->SetString(std::make_unique<CStr>(pString).release());
-	pNewData->SetString2(std::make_unique<CStr>(pString2).release());
-
-	// Set index
+	pNewData->SetString(str);
+	pNewData->SetString2(str2);
 	pNewData->SetIndex(*dwIndex);
-
-	// Add to Data Table (chain takes ownership)
 	Add(pNewData.release());
-
-	// Complete
 	return true;
 }
 
-bool CDataTable::AddUniqueString(LPCSTR pString, DWORD* dwIndex)
+bool CDataTable::AddUniqueString(std::string_view str, uint32_t* dwIndex)
 {
-	// If string is NOT unique, fail
-	DWORD dwResult = FindString(pString);
-	if(dwResult>0)
+	if (!dwIndex) return false;
+	uint32_t dwResult = FindString(str);
+	if (dwResult > 0)
 	{
-		*dwIndex=dwResult;
+		*dwIndex = dwResult;
 		return false;
 	}
 
-	// Create new data item (owned until handed to the chain)
 	auto pNewData = std::make_unique<CDataTable>();
-	pNewData->SetString(std::make_unique<CStr>(pString).release());
-	pNewData->SetString2(nullptr);
-
-	// Set index
+	pNewData->SetString(str);
+	pNewData->SetString2(std::string_view{});
 	pNewData->SetIndex(*dwIndex);
-
-	// Add to Data Table (chain takes ownership)
 	Add(pNewData.release());
-
-	// Complete
 	return true;
 }
 
-DWORD CDataTable::FindString(LPCSTR pFindString)
+uint32_t CDataTable::FindString(std::string_view findStr)
 {
-	// Find String
 	CDataTable* pCurrent = this;
-	while(pCurrent)
+	while (pCurrent)
 	{
-		// Match list item with search string
-		if(pCurrent->GetString())
-			if(dbp::iequals(pCurrent->GetString()->GetStr(), pFindString))
-				return pCurrent->GetIndex();
-
-		pCurrent=pCurrent->GetNext();
+		if (pCurrent->GetString() && dbp::iequals(pCurrent->GetStringView(), findStr))
+			return pCurrent->GetIndex();
+		pCurrent = pCurrent->GetNext();
 	}
-
-	// Failed to find
 	return 0;
 }
 
-bool CDataTable::FindIndexStr(LPCSTR pIndexAsString)
+bool CDataTable::FindIndexStr(std::string_view indexAsString)
 {
-	// Convert String to Index
-	DWORD dwFindIndex = atoi(pIndexAsString);
+	int val = 0;
+	auto [ptr, ec] = std::from_chars(indexAsString.data(), indexAsString.data() + indexAsString.size(), val);
+	if (ec != std::errc())
+		return false;
 
-	// Find String
+	DWORD dwFindIndex = static_cast<DWORD>(val);
 	CDataTable* pCurrent = this;
-	while(pCurrent)
+	while (pCurrent)
 	{
-		// Match list item with search string
-		if(pCurrent->GetString())
-			if(pCurrent->GetIndex()==dwFindIndex)
-				return true;
-
-		pCurrent=pCurrent->GetNext();
+		if (pCurrent->GetString() && pCurrent->GetIndex() == dwFindIndex)
+			return true;
+		pCurrent = pCurrent->GetNext();
 	}
-
-	// Soft Failed to find
 	return false;
 }
 
-bool CDataTable::NotExcluded ( LPCSTR pFilename )
+bool CDataTable::NotExcluded ( std::string_view filename )
 {
 	// false if excluded from compile
-	for ( DWORD i=1; i<g_pDBPCompiler->g_dwExcludeFilesCount; i++)
+	for ( uint32_t i=1; i<g_pDBPCompiler->g_dwExcludeFilesCount; i++)
 		if ( !g_pDBPCompiler->g_ExcludeFiles [ i ].empty() )
-			if ( dbp::iequals( g_pDBPCompiler->g_ExcludeFiles [ i ].c_str(), pFilename ) )
+			if ( dbp::iequals( g_pDBPCompiler->g_ExcludeFiles [ i ], filename ) )
 				return false;
 
 	// lee - 270308 - u67 - do not include DLL at all if flagged
@@ -485,19 +464,19 @@ const auto tryDll = [&](LPCSTR dllName)
 
 // WriteDBM
 
-bool CDataTable::WriteDBMHeader(DWORD dwKindOfTable)
+bool CDataTable::WriteDBMHeader(uint32_t dwKindOfTable)
 {
 	// Blank Line
-	CStr strDBMBlank(1);
-	if(g_pDBMWriter->OutputDBM(&strDBMBlank)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("")) return false;
 
 	// header Line
-	CStr strDBMLine(256);
-	if(dwKindOfTable==1) strDBMLine.SetText("STRING:");
-	if(dwKindOfTable==2) strDBMLine.SetText("DATA:");
-	if(dwKindOfTable==3) strDBMLine.SetText("DLLS:");
-	if(dwKindOfTable==4) strDBMLine.SetText("COMMANDS:");
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	std::string_view headerStr = "";
+	if (dwKindOfTable == 1) headerStr = "STRING:";
+	else if (dwKindOfTable == 2) headerStr = "DATA:";
+	else if (dwKindOfTable == 3) headerStr = "DLLS:";
+	else if (dwKindOfTable == 4) headerStr = "COMMANDS:";
+
+	if (!g_pDBMWriter->OutputDBM(headerStr)) return false;
 
 	return true;
 }
@@ -505,28 +484,28 @@ bool CDataTable::WriteDBMHeader(DWORD dwKindOfTable)
 bool CDataTable::WriteDBM(void)
 {
 	// Write out text
-	CStr strDBMLine(256);
-	strDBMLine.SetText(">>");
-	if(GetType()==1)
+	std::string dbmLine = ">>";
+	if (GetType() == 1)
 	{
-		strDBMLine.AddNumericText(GetIndex());
-		strDBMLine.AddText("=");
-		strDBMLine.AddDoubleText(GetNumeric());
+		dbmLine += std::to_string(GetIndex());
+		dbmLine += "=";
+		dbmLine += std::to_string(GetNumeric());
 	}
-	if(GetType()==2)
+	else if (GetType() == 2)
 	{
-		strDBMLine.AddNumericText(GetIndex());
-		strDBMLine.AddText("=");
-		strDBMLine.AddText(GetString());
+		dbmLine += std::to_string(GetIndex());
+		dbmLine += "=";
+		if (m_pString)
+			dbmLine += m_pString->View();
 	}
 
 	// Output details
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	if (!g_pDBMWriter->OutputDBM(dbmLine)) return false;
 
 	// Write next one
-	if(GetNext())
+	if (GetNext())
 	{
-		if((GetNext()->WriteDBM())==false) return false;
+		if (!GetNext()->WriteDBM()) return false;
 	}
 
 	// Complete

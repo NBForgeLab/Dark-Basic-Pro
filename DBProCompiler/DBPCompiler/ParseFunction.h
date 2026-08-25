@@ -1,9 +1,4 @@
-// ParseFunction.h: interface for the CParseFunction class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_PARSEFUNCTION_H__AE8F41D3_7DB7_44A6_B7FB_0F7B5DD429E4__INCLUDED_)
-#define AFX_PARSEFUNCTION_H__AE8F41D3_7DB7_44A6_B7FB_0F7B5DD429E4__INCLUDED_
+#pragma once
 #include "ParserHeader.h"
 #include <memory>
 
@@ -32,5 +27,3 @@ class CParseFunction
 		std::unique_ptr<CParameter>	m_pParameter;
 		std::unique_ptr<CStr>		m_pResultStringToken;
 };
-
-#endif // !defined(AFX_PARSEFUNCTION_H__AE8F41D3_7DB7_44A6_B7FB_0F7B5DD429E4__INCLUDED_)

@@ -1,9 +1,4 @@
-// Statement.h: interface for the CStatement class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_STATEMENT_H__2A1543E2_9870_4E5E_B056_C09192997E8D__INCLUDED_)
-#define AFX_STATEMENT_H__2A1543E2_9870_4E5E_B056_C09192997E8D__INCLUDED_
+#pragma once
 
 // Common Includes
 #include "windows.h"
@@ -202,7 +197,10 @@ class CStatement
 		bool			DoDeclaration(bool bVariableDeclaration, DWORD dwTerminatorType, CDeclaration** pDec, bool bDoneDim, bool bAutoInitialiseData, bool bIsGlobal, bool bDefineOnly);
 		bool			DoInstruction(DWORD StatementLineNumber, DWORD TokenID);
 		bool			DoAssignment(DWORD StatementLineNumber, DWORD TokenID);
-		bool			DoAllocation(DWORD StatementLineNumber, LPSTR pVarName, LPSTR pValue);
+		bool			DoAllocation(DWORD StatementLineNumber, std::string_view varName, std::string_view value);
+		bool			DoAllocation(DWORD StatementLineNumber, const char* pVarName, const char* pValue) {
+			return DoAllocation(StatementLineNumber, pVarName ? std::string_view(pVarName) : std::string_view{}, pValue ? std::string_view(pValue) : std::string_view{});
+		}
 		bool			DoDeAllocation(DWORD StatementLineNumber);
 		bool			DoUserFunction(DWORD StatementLineNumber, DWORD TokenID);
 		bool			DoUserFunctionCall(DWORD StatementLineNumber, DWORD TokenID);
@@ -222,10 +220,19 @@ class CStatement
 		LPSTR			SeekToRemEnd(LPSTR pPointer);
 		DWORD			GetTokenToSeperator(void);
 		DWORD			FindToken(LPSTR pPointer, bool bIncrementLineNumber);
-		DWORD			DetermineNameToken(LPCSTR pToken);
+		DWORD			DetermineNameToken(std::string_view token);
+		DWORD			DetermineNameToken(const char* pToken) {
+			return pToken ? DetermineNameToken(std::string_view(pToken)) : 0;
+		}
 		DWORD			DetermineToken(LPSTR pToken);
-		bool			DetermineIfReservedWord(LPCSTR pToken);
-		bool			DetermineIfFunctionName(LPCSTR pWord, bool bIncludeUserFunctions);
+		bool			DetermineIfReservedWord(std::string_view token);
+		bool			DetermineIfReservedWord(const char* pToken) {
+			return pToken ? DetermineIfReservedWord(std::string_view(pToken)) : false;
+		}
+		bool			DetermineIfFunctionName(std::string_view word, bool bIncludeUserFunctions);
+		bool			DetermineIfFunctionName(const char* pWord, bool bIncludeUserFunctions) {
+			return pWord ? DetermineIfFunctionName(std::string_view(pWord), bIncludeUserFunctions) : false;
+		}
 		LPSTR			ProduceNextTokenEx(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas, bool bIgnoreSpacesAsSeperators);
 		LPSTR			ProduceNextToken(LPSTR* pString, bool bIncrementLineNumber, bool bProduceCRTK, bool bIncludeCommas);
 		LPSTR			ProduceNextArrayToken(LPSTR* pOrigPointer);
@@ -249,7 +256,10 @@ class CStatement
 		CParameter*		GetParameter(void) { return m_pParameters.get(); }
 
 		bool			WriteDBM(void);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, std::string_view text, std::string_view result);
+		bool			WriteDBMBit(DWORD dwLineNumber, const char* pText, const char* pResult) {
+			return WriteDBMBit(dwLineNumber, pText ? std::string_view(pText) : std::string_view{}, pResult ? std::string_view(pResult) : std::string_view{});
+		}
 
 	private:
 		bool			WriteDBMNode(void);
@@ -309,11 +319,17 @@ class CMathOp
 		virtual ~CMathOp();
 		CMathOp* GetNext(void) { return m_pNext.get(); }
 
-		void SetResult(LPSTR pString, DWORD dwType, DWORD dwDataOffset);
+		void SetResult(std::string_view stringToken, DWORD dwType, DWORD dwDataOffset);
+		void SetResult(const char* pString, DWORD dwType, DWORD dwDataOffset) {
+			SetResult(pString ? std::string_view(pString) : std::string_view{}, dwType, dwDataOffset);
+		}
 		void SetResultData(CResultData ResultData);
 		void SetResultType(DWORD dwType) { m_Result.m_dwType=dwType; }
 		void SetResultStruct(CStructTable* pStruct) { m_Result.m_pStruct=pStruct; }
-		void SetArrayOffsetResult(LPSTR pString);
+		void SetArrayOffsetResult(std::string_view stringToken);
+		void SetArrayOffsetResult(const char* pString) {
+			SetArrayOffsetResult(pString ? std::string_view(pString) : std::string_view{});
+		}
 		CStr* FindResultStringTokenForDBM(void);
 		CResultData* FindResultDataForDBM(void);
 		DWORD FindResultTypeValueForDBM(void);
@@ -374,7 +390,10 @@ class CMathOp
 
 		bool WriteDBM(void);
 		bool WriteDBMBit(DWORD dwLineNumber);
-		bool WriteDBMLine(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
+		bool WriteDBMLine(DWORD dwLineNumber, std::string_view text, std::string_view result);
+		bool WriteDBMLine(DWORD dwLineNumber, const char* pText, const char* pResult) {
+			return WriteDBMLine(dwLineNumber, pText ? std::string_view(pText) : std::string_view{}, pResult ? std::string_view(pResult) : std::string_view{});
+		}
 
 		// Tokenizer (extracted subsystem)
 		[[nodiscard]] CTokenizer& GetTokenizer() noexcept { return m_tokenizer; }
@@ -411,5 +430,3 @@ class CMathOp
 		// Hierarchy Data
 		std::unique_ptr<CMathOp>	m_pNext;
 };
-
-#endif // !defined(AFX_STATEMENT_H__2A1543E2_9870_4E5E_B056_C09192997E8D__INCLUDED_)

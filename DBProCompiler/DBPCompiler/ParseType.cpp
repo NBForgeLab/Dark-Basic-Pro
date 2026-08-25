@@ -24,7 +24,7 @@ bool CParseType::WriteDBM(void)
 	return true;
 }
 
-bool CParseType::WriteDBMBit([[maybe_unused]] DWORD dwLineNumber, [[maybe_unused]] LPCSTR pText)
+bool CParseType::WriteDBMBit([[maybe_unused]] uint32_t dwLineNumber, [[maybe_unused]] std::string_view text)
 {
 	// Write out text
 	CStr strDBMLine(256);

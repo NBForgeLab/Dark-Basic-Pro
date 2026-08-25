@@ -1,9 +1,4 @@
-// ParseUserFunction.h: interface for the CParseUserFunction class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_PARSEUSERFUNCTION_H__7FF9540A_8B4A_4B3A_B490_A2E4549AD774__INCLUDED_)
-#define AFX_PARSEUSERFUNCTION_H__7FF9540A_8B4A_4B3A_B490_A2E4549AD774__INCLUDED_
+#pragma once
 #include "ParserHeader.h"
 #include <memory>
 
@@ -40,7 +35,10 @@ class CParseUserFunction
 		bool			ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree);
 
 		bool			WriteDBM(DWORD PlacementCode);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText, LPCSTR pResult);
+		bool			WriteDBMBit(DWORD dwLineNumber, std::string_view text, std::string_view result);
+		bool			WriteDBMBit(DWORD dwLineNumber, const char* pText, const char* pResult) {
+			return WriteDBMBit(dwLineNumber, pText ? std::string_view(pText) : std::string_view{}, pResult ? std::string_view(pResult) : std::string_view{});
+		}
 
 	private:
 
@@ -57,5 +55,3 @@ class CParseUserFunction
 		// Reference Pointer Only
 		CDeclaration*	m_pDecChainRef;
 };
-
-#endif // !defined(AFX_PARSEUSERFUNCTION_H__7FF9540A_8B4A_4B3A_B490_A2E4549AD774__INCLUDED_)

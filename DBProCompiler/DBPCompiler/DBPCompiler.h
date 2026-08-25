@@ -1,9 +1,4 @@
-// DBPCompiler.h: interface for the CDBPCompiler class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_DBPCOMPILER_H__59BB1DE5_04A2_4BBC_9790_52F5C94E07F9__INCLUDED_)
-#define AFX_DBPCOMPILER_H__59BB1DE5_04A2_4BBC_9790_52F5C94E07F9__INCLUDED_
+#pragma once
 
 // Common Includes
 #include "windows.h"
@@ -79,13 +74,19 @@ class CDBPCompiler
 		bool			ProjectExists(void) { return m_bProjectExists; }
 		bool			LoadProjectFile(LPSTR pFilename);
 		bool			GetAllProjectFields(LPSTR pFilename);
-		LPSTR			GetProjectFile(LPCSTR pFieldName);
+		LPSTR			GetProjectFile(std::string_view fieldName);
+		LPSTR			GetProjectFile(const char* pFieldName) {
+			return pFieldName ? GetProjectFile(std::string_view(pFieldName)) : nullptr;
+		}
 		LPSTR			GetProjectMediaRoot(void);
-		LPSTR			GetProjectField(LPCSTR pFieldName);
-		bool			GetProjectState(LPCSTR pFieldName, bool bDefault);
-		bool			GetProjectState(LPCSTR pFieldName);
-		bool			GetProjectStateMatch(LPCSTR pFieldName, LPCSTR pCompareStr);
-		DWORD			GetProjectDisplayInfo(LPCSTR pFieldName, DWORD dwDisplayItem);
+		LPSTR			GetProjectField(std::string_view fieldName);
+		LPSTR			GetProjectField(const char* pFieldName) {
+			return pFieldName ? GetProjectField(std::string_view(pFieldName)) : nullptr;
+		}
+		bool			GetProjectState(std::string_view fieldName, bool bDefault);
+		bool			GetProjectState(std::string_view fieldName);
+		bool			GetProjectStateMatch(std::string_view fieldName, std::string_view compareStr);
+		DWORD			GetProjectDisplayInfo(std::string_view fieldName, DWORD dwDisplayItem);
 		bool			FreeProjectFile(void);
 
 		LPSTR			GetProgramName(void);
@@ -95,10 +96,16 @@ class CDBPCompiler
 		LPSTR			GetFilePtr(void) { return m_pFileData; }
 
 	public:
-		bool			PathExists(LPCSTR pPath);
+		bool			PathExists(std::string_view path);
+		bool			PathExists(const char* pPath) {
+			return pPath ? PathExists(std::string_view(pPath)) : false;
+		}
 		void			SetInternalFile(DWORD dwFileID, const char* pFilename);
 		LPSTR			GetInternalFile(DWORD dwFileID);
-		bool			FileExists(LPCSTR pFilename);
+		bool			FileExists(std::string_view filename);
+		bool			FileExists(const char* pFilename) {
+			return pFilename ? FileExists(std::string_view(pFilename)) : false;
+		}
 		void			GatherAllExternalWords(LPSTR pWordsFile);
 		LPSTR			GetWord ( int iID );
 		bool			EstablishRequiredBaseFiles(void);
@@ -207,7 +214,7 @@ class CDBPCompiler
 		DWORD			g_dwExcludeFilesCount;
 		std::string		g_ExcludeFiles [ MAX_EXCLUSIONS ];
 
-		CompilerContext* m_pContext;
+		std::unique_ptr<CompilerContext> m_pContext;
 		std::unique_ptr<CompilationInput> m_compilationInput;
 		std::optional<std::filesystem::path> m_executableOutputOverride;
 		std::string m_executableOutputOverrideText;
@@ -215,5 +222,3 @@ class CDBPCompiler
 		std::optional<std::filesystem::path> m_packageKeyFile;
 		std::optional<ResolvedRuntimeBundle> m_resolvedRuntimeBundle;
 };
-
-#endif // !defined(AFX_DBPCOMPILER_H__59BB1DE5_04A2_4BBC_9790_52F5C94E07F9__INCLUDED_)

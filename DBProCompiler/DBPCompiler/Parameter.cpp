@@ -208,7 +208,7 @@ bool CParameter::ValidateWithCorrectCall(CStr* pValidParamTypes, DWORD* pdwScore
 								}
 								if(dwParsedType%1000>100) dwParsedType-=100;
 								if(dwTypeRequired==dwParsedType) dwThisScore=10;
-								SAFE_DELETE(ReturnTypeString);
+								SafeDelete(ReturnTypeString);
 							}
 						}
 					}

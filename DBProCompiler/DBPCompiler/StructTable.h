@@ -1,9 +1,4 @@
-// StructTable.h: interface for the CStructTable class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_STRUCTTABLE_H__0EDF6884_E537_492E_806D_71DD644FE9B4__INCLUDED_)
-#define AFX_STRUCTTABLE_H__0EDF6884_E537_492E_806D_71DD644FE9B4__INCLUDED_
+#pragma once
 #include "ParserHeader.h"
 #include "TargetABI.h"
 
@@ -49,15 +44,13 @@ class CStructTable
 			return m_dwTargetAddressSize;
 		}
 
-		bool			SetStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize);
-		bool			AddStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize);
-		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode);
-		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* bReportError );
-		bool			AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError, DWORD dwParamInUserFunction );
+		bool			SetStruct(DWORD dwValue, std::string_view structName, unsigned char cStructChar, DWORD dwSize);
+		bool			AddStruct(DWORD dwValue, std::string_view structName, unsigned char cStructChar, DWORD dwSize);
+		bool			AddStructUserType(DWORD dwMode, std::string_view structName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError = nullptr, DWORD dwParamInUserFunction = 0);
 
 		void			SetTypeMode(DWORD dwMode) noexcept { m_dwTypeMode=dwMode; }
 		void			SetTypeValue(DWORD dwValue) noexcept { m_dwTypeValue=dwValue; }
-		void			SetTypeName(CStr* pName) { m_pTypeName.reset(pName); }
+		void			SetTypeName(std::string_view name) { m_pTypeName = std::make_unique<CStr>(name); }
 		void			SetTypeChar(unsigned char cChar) noexcept { m_cTypeChar=cChar; }
 		void			SetTypeSize(DWORD dwSize) noexcept { m_dwSize=dwSize; }
 		void			SetDecChain(CDeclaration* pDec) noexcept { m_pDecChain=pDec; }
@@ -68,6 +61,8 @@ class CStructTable
 		[[nodiscard]] DWORD			GetTypeValue(void) const noexcept { return m_dwTypeValue; }
 		[[nodiscard]] CStr*			GetTypeName(void) noexcept { return m_pTypeName.get(); }
 		[[nodiscard]] const CStr*	GetTypeName(void) const noexcept { return m_pTypeName.get(); }
+		[[nodiscard]] std::string_view GetTypeNameView(void) const noexcept { return m_pTypeName ? m_pTypeName->View() : std::string_view{}; }
+		[[nodiscard]] LPCSTR		GetTypeNameStr(void) const noexcept { return m_pTypeName ? m_pTypeName->c_str() : ""; }
 		[[nodiscard]] unsigned char	GetTypeChar(void) const noexcept { return m_cTypeChar; }
 		[[nodiscard]] DWORD			GetTypeSize(void) const noexcept { return m_dwSize; }
 		[[nodiscard]] CStatement*		GetBlock(void) noexcept { return m_pDecBlock; }
@@ -78,12 +73,33 @@ class CStructTable
 
 		bool			CalculateAllSizes(void);
 		bool			CalculateSize(void);
-		CStructTable*	DoesTypeEvenExist(LPCSTR pName);
-		DWORD			GetSizeOfType(LPSTR pName);
-		CDeclaration*	FindDecInType(LPSTR pTypename, LPSTR pFieldname);
-		CDeclaration*	FindFieldInType(LPSTR pTypename, LPSTR pFieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset);
-		bool			FindOffsetFromField(LPSTR pTypename, LPSTR pFieldname, DWORD* pReturnOffset, DWORD* dwSizeData);
-		int				FindIndex(LPSTR pTypename);
+		CStructTable*	DoesTypeEvenExist(std::string_view name);
+		CStructTable*	DoesTypeEvenExist(const char* pName) {
+			return pName ? DoesTypeEvenExist(std::string_view(pName)) : nullptr;
+		}
+		DWORD			GetSizeOfType(std::string_view name);
+		DWORD			GetSizeOfType(const char* pName) {
+			return pName ? GetSizeOfType(std::string_view(pName)) : 0;
+		}
+		CDeclaration*	FindDecInType(std::string_view typenameStr, std::string_view fieldname);
+		CDeclaration*	FindDecInType(const char* pTypename, const char* pFieldname) {
+			if (!pTypename || !pFieldname) return nullptr;
+			return FindDecInType(std::string_view(pTypename), std::string_view(pFieldname));
+		}
+		CDeclaration*	FindFieldInType(std::string_view typenameStr, std::string_view fieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset);
+		CDeclaration*	FindFieldInType(const char* pTypename, const char* pFieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset) {
+			if (!pTypename || !pFieldname) return nullptr;
+			return FindFieldInType(std::string_view(pTypename), std::string_view(pFieldname), pReturnType, pdwArrFlag, pdwOffset);
+		}
+		bool			FindOffsetFromField(std::string_view typenameStr, std::string_view fieldname, DWORD* pReturnOffset, DWORD* dwSizeData);
+		bool			FindOffsetFromField(const char* pTypename, const char* pFieldname, DWORD* pReturnOffset, DWORD* dwSizeData) {
+			if (!pTypename || !pFieldname) return false;
+			return FindOffsetFromField(std::string_view(pTypename), std::string_view(pFieldname), pReturnOffset, dwSizeData);
+		}
+		int				FindIndex(std::string_view typenameStr);
+		int				FindIndex(const char* pTypename) {
+			return pTypename ? FindIndex(std::string_view(pTypename)) : 0;
+		}
 
 		bool			WriteDBMHeader(void);
 		bool			WriteDBM(void);
@@ -114,5 +130,3 @@ class CStructTable
 #endif
 		static std::vector<CStructTable*> g_Order;
 };
-
-#endif // !defined(AFX_STRUCTTABLE_H__0EDF6884_E537_492E_806D_71DD644FE9B4__INCLUDED_)

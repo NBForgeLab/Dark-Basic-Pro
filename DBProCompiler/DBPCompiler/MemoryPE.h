@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <optional>
 #include <string>
+#include <string_view>
 
 struct MemoryPEAddressInfo {
     std::string moduleName;
@@ -12,8 +13,8 @@ struct MemoryPEAddressInfo {
 
 class MemoryPE {
 public:
-    static HMODULE LoadFromVFS(const std::string& filename);
-    static HMODULE LoadFromMemory(const char* data, size_t size, const std::string& name = "");
+    static HMODULE LoadFromVFS(std::string_view filename);
+    static HMODULE LoadFromMemory(const char* data, size_t size, std::string_view name = "");
     static bool IsMemoryModule(HMODULE hModule);
     static FARPROC GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
     [[nodiscard]] static std::optional<MemoryPEAddressInfo> InspectAddress(

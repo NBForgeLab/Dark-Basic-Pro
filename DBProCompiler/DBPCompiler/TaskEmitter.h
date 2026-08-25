@@ -1,5 +1,7 @@
 #pragma once
-#include <windows.h>
+#include <cstdint>
+#include <string_view>
+#include "DataType.h"
 
 class CASMWriter;
 
@@ -28,32 +30,45 @@ public:
     void IncrementTaskCount() noexcept { m_dwTaskCount++; }
 
     /** @brief Returns current total task count. */
-    [[nodiscard]] DWORD GetTaskCount() const noexcept { return m_dwTaskCount; }
+    [[nodiscard]] uint32_t GetTaskCount() const noexcept { return m_dwTaskCount; }
 
     /** @brief Resolves assembly call code from opcode and type. */
-    [[nodiscard]] DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept;
+    [[nodiscard]] uint32_t DetermineASMCall(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept;
+    [[nodiscard]] uint32_t DetermineASMCall(uint32_t dwASMCodeAsAByte, DBPType type) const noexcept {
+        return DetermineASMCall(dwASMCodeAsAByte, static_cast<uint32_t>(type));
+    }
 
     /** @brief Resolves relative assembly call code from opcode and type. */
-    [[nodiscard]] DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) const noexcept;
+    [[nodiscard]] uint32_t DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept;
+    [[nodiscard]] uint32_t DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, DBPType type) const noexcept {
+        return DetermineASMCallForREL(dwASMCodeAsAByte, static_cast<uint32_t>(type));
+    }
 
     /** @brief Evaluates parameter access mode (Mem, Rbp, Imm, etc.) for a token. */
-    [[nodiscard]] DWORD DetermineParamMode(class CStr* pP, DWORD dwPType, DWORD dwPOffset) const noexcept;
+    [[nodiscard]] uint32_t DetermineParamMode(std::string_view p, uint32_t dwPType, uint32_t dwPOffset) const noexcept;
+    [[nodiscard]] uint32_t DetermineParamMode(std::string_view p, DBPType type, uint32_t dwPOffset) const noexcept {
+        return DetermineParamMode(p, static_cast<uint32_t>(type), dwPOffset);
+    }
+    [[nodiscard]] uint32_t DetermineParamMode(const class CStr* pP, uint32_t dwPType, uint32_t dwPOffset) const noexcept;
+    [[nodiscard]] uint32_t DetermineParamMode(const class CStr* pP, DBPType type, uint32_t dwPOffset) const noexcept {
+        return DetermineParamMode(pP, static_cast<uint32_t>(type), dwPOffset);
+    }
 
     /** @brief Calculates pass offset for multi-pass task emission. */
-    [[nodiscard]] DWORD CalculateTaskPassOffset(DWORD dwPassNumber, DWORD dwBaseOffset) const noexcept;
+    [[nodiscard]] uint32_t CalculateTaskPassOffset(uint32_t dwPassNumber, uint32_t dwBaseOffset) const noexcept;
 
     /** @brief Emits assembly code to load array element into RAX. */
-    void WriteASMARRtoRAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMARRtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, class CStr* pP, class CStr* pOffset, uint32_t dwPType, uint32_t dwPOffset) const;
 
     /** @brief Emits assembly code to load variable/SIB element into RAX. */
-    void WriteASMXtoRAX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, class CStr* pP, class CStr* pPIndex, uint32_t dwPType, uint32_t dwPOffset) const;
 
     /** @brief Emits assembly code to store RAX into array element. */
-    void WriteASMRAXtoARR(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pOffset, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMRAXtoARR(CASMWriter* pASMWriter, uint32_t dwMode, class CStr* pP, class CStr* pOffset, uint32_t dwPType, uint32_t dwPOffset) const;
 
     /** @brief Emits assembly code to store RAX into variable/SIB element. */
-    void WriteASMRAXtoX(CASMWriter* pASMWriter, DWORD dwMode, class CStr* pP, class CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) const;
+    void WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, class CStr* pP, class CStr* pPIndex, uint32_t dwPType, uint32_t dwPOffset) const;
 
 private:
-    DWORD m_dwTaskCount{ 0 };
+    uint32_t m_dwTaskCount{ 0 };
 };

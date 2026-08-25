@@ -50,8 +50,8 @@ CStructTable::CStructTable()
 
 CStructTable::~CStructTable()
 {
-	SAFE_DELETE(m_pDecChain);
-	SAFE_DELETE(m_pDecBlock);
+	SafeDelete(m_pDecChain);
+	SafeDelete(m_pDecBlock);
 #ifdef __AARON_STRUCPERF__
 	if (m_pTypeName)
 	{
@@ -123,18 +123,17 @@ void CStructTable::SetStructDefaults(DWORD dwTargetAddressSize)
 	AddStruct(1101, "userdefined array ptr",'e', dwTargetAddressSize);
 }
 
-bool CStructTable::SetStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize)
+bool CStructTable::SetStruct(DWORD dwValue, std::string_view structName, unsigned char cStructChar, DWORD dwSize)
 {
 	// Set Struct Data
-	CStr* pStrTypeName = new CStr(pStructName);
 	SetTypeMode(0);
 	SetTypeValue(dwValue);
-	SetTypeName(pStrTypeName);
+	SetTypeName(structName);
 	SetTypeChar(cStructChar);
 	SetTypeSize(dwSize);
 
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = struct_to_lower(pStructName);
+	std::string lowerName = struct_to_lower(structName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
 	g_Table[lowerName] = this;
 #endif
@@ -142,23 +141,22 @@ bool CStructTable::SetStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cS
 	return true;
 }
 
-bool CStructTable::AddStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cStructChar, DWORD dwSize)
+bool CStructTable::AddStruct(DWORD dwValue, std::string_view structName, unsigned char cStructChar, DWORD dwSize)
 {
 	// Create structure
 	CStructTable* pNewType = new CStructTable;
 
 	// Set Struct Data
-	CStr* pStrTypeName = new CStr(pStructName);
 	pNewType->SetTypeMode(0);
 	pNewType->SetTypeValue(dwValue);
-	pNewType->SetTypeName(pStrTypeName);
+	pNewType->SetTypeName(structName);
 	pNewType->SetTypeChar(cStructChar);
 	pNewType->SetTypeSize(dwSize);
 	pNewType->SetDecChain(nullptr);
 	pNewType->SetTypeBlock(nullptr);
 
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = struct_to_lower(pStructName);
+	std::string lowerName = struct_to_lower(structName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
 	g_Table[lowerName] = pNewType;
 #endif
@@ -170,10 +168,10 @@ bool CStructTable::AddStruct(DWORD dwValue, LPCSTR pStructName, unsigned char cS
 	return true;
 }
 
-bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError, DWORD dwParamInUserFunction )
+bool CStructTable::AddStructUserType(DWORD dwMode, std::string_view structName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError, DWORD dwParamInUserFunction )
 {
 	// Only add if unique
-	if(DoesTypeEvenExist(pStructName)!=nullptr)
+	if(DoesTypeEvenExist(structName)!=nullptr)
 		return false;
 
 	// lee - 150206 - u60 - add only if known type at this point (typeA before typeB if typeB uses typeA)
@@ -183,9 +181,9 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 		// check all dec types
 		while ( pCurrent )
 		{
-			if ( strcmp ( pCurrent->GetType()->GetStr(), "" )!=0 )
+			if ( !pCurrent->GetTypeView().empty() )
 			{
-				if ( g_pStructTable->DoesTypeEvenExist ( pCurrent->GetType()->GetStr() ) == nullptr )
+				if ( g_pStructTable->DoesTypeEvenExist ( pCurrent->GetTypeView() ) == nullptr )
 				{
 					// fail here as type is unknown and so cannot create a struct based on an unknown type
 					if ( pbReportError ) *pbReportError = true;
@@ -207,17 +205,16 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 	}
 
 	// Set Struct Data
-	CStr* pStrTypeName = new CStr(pStructName);
 	pNewType->SetTypeMode(dwStructTypeMode);
 	pNewType->SetTypeValue(dwMode);
-	pNewType->SetTypeName(pStrTypeName);
+	pNewType->SetTypeName(structName);
 	pNewType->SetTypeChar(cStructChar);
 	pNewType->SetTypeSize(0);
 	pNewType->SetDecChain(pDecChain);
 	pNewType->SetTypeBlock(pTypeBlock);
 
 #ifdef __AARON_STRUCPERF__
-	std::string lowerName = struct_to_lower(pStructName);
+	std::string lowerName = struct_to_lower(structName);
 	assert_msg(g_Table.find(lowerName) == g_Table.end() || g_Table[lowerName] == nullptr, "Struct already exists");
 	g_Table[lowerName] = pNewType;
 #endif
@@ -230,16 +227,6 @@ bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned c
 
 	// Complete
 	return true;	
-}
-
-bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode, bool* pbReportError )
-{
-	return AddStructUserType( dwMode, pStructName, cStructChar, pDecChain, pTypeBlock, dwStructTypeMode, pbReportError, 0 );
-}
-
-bool CStructTable::AddStructUserType(DWORD dwMode, LPSTR pStructName, unsigned char cStructChar, CDeclaration* pDecChain, CStatement* pTypeBlock, DWORD dwStructTypeMode )
-{
-	return AddStructUserType( dwMode, pStructName, cStructChar, pDecChain, pTypeBlock, dwStructTypeMode, nullptr );
 }
 
 bool CStructTable::CalculateAllSizes(void)
@@ -362,12 +349,12 @@ bool CStructTable::CalculateSize(void)
 	return true;
 }
 
-CStructTable* CStructTable::DoesTypeEvenExist(LPCSTR pName)
+CStructTable* CStructTable::DoesTypeEvenExist(std::string_view name)
 {
-	if (!pName)
+	if (name.empty())
 		return nullptr;
 
-	std::string lowerName = struct_to_lower(pName);
+	std::string lowerName = struct_to_lower(name);
 	auto it = g_Table.find(lowerName);
 	if (it == g_Table.end() || !it->second)
 		return nullptr;
@@ -375,45 +362,45 @@ CStructTable* CStructTable::DoesTypeEvenExist(LPCSTR pName)
 	return it->second;
 }
 
-DWORD CStructTable::GetSizeOfType(LPSTR pName)
+DWORD CStructTable::GetSizeOfType(std::string_view name)
 {
 	if(GetTypeName())
-		if(dbp::iequals(pName, GetTypeName()->GetStr()))
+		if(dbp::iequals(name, GetTypeNameView()))
 			return GetTypeSize();
 
 	if(GetNext())
-		return GetNext()->GetSizeOfType(pName);
+		return GetNext()->GetSizeOfType(name);
 
 	return 0;
 }
 
-CDeclaration* CStructTable::FindDecInType(LPSTR pTypename, LPSTR pFieldname)
+CDeclaration* CStructTable::FindDecInType(std::string_view typenameStr, std::string_view fieldname)
 {
-	if (!pTypename || !pFieldname)
+	if (typenameStr.empty() || fieldname.empty())
 		return nullptr;
 
-	std::string lowerTypeName = struct_to_lower(pTypename);
+	std::string lowerTypeName = struct_to_lower(typenameStr);
 	auto it = g_Table.find(lowerTypeName);
 	if (it == g_Table.end() || !it->second)
 		return nullptr;
 
 	CStructTable *struc = it->second;
 	for(CDeclaration *dec = struc->m_pDecChain; dec; dec = dec->GetNext()) {
-		if (dec->GetName() && dbp::iequals(dec->GetName()->GetStr(), pFieldname))
+		if (dbp::iequals(dec->GetNameView(), fieldname))
 			return dec;
 	}
 
 	return nullptr;
 }
 
-CDeclaration* CStructTable::FindFieldInType(LPSTR pTypename, LPSTR pFieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset)
+CDeclaration* CStructTable::FindFieldInType(std::string_view typenameStr, std::string_view fieldname, LPSTR* pReturnType, DWORD* pdwArrFlag, DWORD* pdwOffset)
 {
-	CDeclaration* pDec = FindDecInType(pTypename, pFieldname);
+	CDeclaration* pDec = FindDecInType(typenameStr, fieldname);
 	if(pDec)
 	{
 		// Create string and copy typename of field
-		*pReturnType = new char[pDec->GetType()->Length()+1];
-		snprintf(*pReturnType, pDec->GetType()->Length()+1, "%s", pDec->GetType()->GetStr());
+		*pReturnType = new char[pDec->GetTypeView().size()+1];
+		snprintf(*pReturnType, pDec->GetTypeView().size()+1, "%s", pDec->GetTypeStr());
 		*pdwArrFlag=pDec->GetArrFlag();
 		*pdwOffset=pDec->GetOffset();
 		return pDec;
@@ -423,9 +410,9 @@ CDeclaration* CStructTable::FindFieldInType(LPSTR pTypename, LPSTR pFieldname, L
 	return nullptr;
 }
 
-bool CStructTable::FindOffsetFromField(LPSTR pTypename, LPSTR pFieldname, DWORD* pReturnOffset, DWORD* pdwSizeData)
+bool CStructTable::FindOffsetFromField(std::string_view typenameStr, std::string_view fieldname, DWORD* pReturnOffset, DWORD* pdwSizeData)
 {
-	CDeclaration* pDec = FindDecInType(pTypename, pFieldname);
+	CDeclaration* pDec = FindDecInType(typenameStr, fieldname);
 	if(pDec)
 	{
 		// Extract offset data from dec in type struct
@@ -439,14 +426,14 @@ bool CStructTable::FindOffsetFromField(LPSTR pTypename, LPSTR pFieldname, DWORD*
 	return false;
 }
 
-int CStructTable::FindIndex(LPSTR pTypename)
+int CStructTable::FindIndex(std::string_view typenameStr)
 {
 	int iIndex = 0;
 	CStructTable* pCurrent = this;
 	while(pCurrent)
 	{
 		// if find type, exit now to retain iIndex
-		if ( dbp::iequals( pCurrent->GetTypeName()->GetStr(), pTypename ) )
+		if ( dbp::iequals( pCurrent->GetTypeNameView(), typenameStr ) )
 			break;
 
 		// next structure
@@ -461,13 +448,10 @@ int CStructTable::FindIndex(LPSTR pTypename)
 bool CStructTable::WriteDBMHeader(void)
 {
 	// Blank Line
-	CStr strDBMBlank(1);
-	if(g_pDBMWriter->OutputDBM(&strDBMBlank)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("")) return false;
 
 	// Title
-	CStr strDBMLine(256);
-	strDBMLine.SetText("DEBUG:");
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	if (!g_pDBMWriter->OutputDBM("DEBUG:")) return false;
 
 	return true;
 }
@@ -475,53 +459,53 @@ bool CStructTable::WriteDBMHeader(void)
 bool CStructTable::WriteDBM(void)
 {
 	// Write out text
-	CStr strDBMLine(256);
+	std::string dbmLine;
 
 	// Structure Type
-	if(GetTypeMode()==0)
+	if (GetTypeMode() == 0)
 	{
-		strDBMLine.SetText("STRUCT@");
+		dbmLine = "STRUCT@";
 	}
-	if(GetTypeMode()==1)
+	else if (GetTypeMode() == 1)
 	{
-		strDBMLine.SetText("USERSTRUCT@");
+		dbmLine = "USERSTRUCT@";
 	}
-	if(GetTypeMode()==2)
+	else if (GetTypeMode() == 2)
 	{
-		strDBMLine.SetText("FS@");
+		dbmLine = "FS@";
 	}
 
-	strDBMLine.AddText(m_pTypeName.get());
-	strDBMLine.AddText(" Overall Size:");
-	strDBMLine.AddNumericText(m_dwSize);
+	if (m_pTypeName)
+		dbmLine += m_pTypeName->View();
+	dbmLine += " Overall Size:";
+	dbmLine += std::to_string(m_dwSize);
 
 	// U73 - 230309 - added for Diggory Debugger
-	if(GetTypeMode()==2)
+	if (GetTypeMode() == 2)
 	{
-		strDBMLine.AddText(" Parameter Count:");
-		strDBMLine.AddNumericText(m_dwParamInUserFunction);
+		dbmLine += " Parameter Count:";
+		dbmLine += std::to_string(m_dwParamInUserFunction);
 	}
 
 	// User Types has a blank to make reading easier
-	if(m_pDecChain)
+	if (m_pDecChain)
 	{
-		CStr strDBMBlank(1);
-		if(g_pDBMWriter->OutputDBM(&strDBMBlank)==false) return false;
+		if (!g_pDBMWriter->OutputDBM("")) return false;
 	}
 
 	// Output type details
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	if (!g_pDBMWriter->OutputDBM(dbmLine)) return false;
 
 	// Write out fields of type
-	if(m_pDecChain)
+	if (m_pDecChain)
 	{
-		if(m_pDecChain->WriteDBM()==false) return false;
+		if (!m_pDecChain->WriteDBM()) return false;
 	}
 
 	// Write next one
-	if(GetNext())
+	if (GetNext())
 	{
-		if((GetNext()->WriteDBM())==false) return false;
+		if (!GetNext()->WriteDBM()) return false;
 	}
 
 	// Complete

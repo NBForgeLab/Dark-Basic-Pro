@@ -1,7 +1,8 @@
 #pragma once
-#include <windows.h>
+#include <cstdint>
 #include "ASTNode.h"
 #include "ASTVisitor.h"
+#include "DataType.h"
 #include <string>
 #include <memory>
 #include <vector>
@@ -44,10 +45,17 @@ public:
 class ASTLiteralNode : public ASTNode {
 public:
     std::string m_value;
-    DWORD m_type; // e.g., 1 for int, 2 for float, 3 for string
+    uint32_t m_type; // e.g., 1 for int, 2 for float, 3 for string
 
-    ASTLiteralNode(const std::string& value, DWORD type)
+    ASTLiteralNode(const std::string& value, uint32_t type)
         : m_value(value), m_type(type) {}
+
+    ASTLiteralNode(const std::string& value, DBPType type)
+        : m_value(value), m_type(static_cast<uint32_t>(type)) {}
+
+    [[nodiscard]] DBPType GetDBPType() const noexcept {
+        return static_cast<DBPType>(m_type);
+    }
 
     void Accept(ASTVisitor* visitor) override {
         visitor->Visit(this);
@@ -187,10 +195,17 @@ class ASTArrayDimNode : public ASTNode {
 public:
     std::string m_arrayName;
     std::vector<std::unique_ptr<ASTNode>> m_dimensions;
-    DWORD m_elemType = 1;
+    uint32_t m_elemType = 1;
 
-    ASTArrayDimNode(const std::string& arrayName, std::vector<std::unique_ptr<ASTNode>> dimensions, DWORD elemType = 1)
+    ASTArrayDimNode(const std::string& arrayName, std::vector<std::unique_ptr<ASTNode>> dimensions, uint32_t elemType = 1)
         : m_arrayName(arrayName), m_dimensions(std::move(dimensions)), m_elemType(elemType) {}
+
+    ASTArrayDimNode(const std::string& arrayName, std::vector<std::unique_ptr<ASTNode>> dimensions, DBPType elemType)
+        : m_arrayName(arrayName), m_dimensions(std::move(dimensions)), m_elemType(static_cast<uint32_t>(elemType)) {}
+
+    [[nodiscard]] DBPType GetElemDBPType() const noexcept {
+        return static_cast<DBPType>(m_elemType);
+    }
 
     void Accept(ASTVisitor* visitor) override {
         visitor->Visit(this);
@@ -212,7 +227,11 @@ public:
 
 struct ASTStructField {
     std::string name;
-    DWORD type = 1;
+    uint32_t type = 1;
+
+    [[nodiscard]] DBPType GetDBPType() const noexcept {
+        return static_cast<DBPType>(type);
+    }
 };
 
 class ASTStructDeclNode : public ASTNode {
@@ -245,9 +264,9 @@ class CASTAssignment {
 public:
     std::string m_varName;
     std::string m_valStr;
-    DWORD m_lineNumber;
+    uint32_t m_lineNumber;
 
-    CASTAssignment(const std::string& varName, const std::string& valStr, DWORD lineNumber)
+    CASTAssignment(const std::string& varName, const std::string& valStr, uint32_t lineNumber)
         : m_varName(varName), m_valStr(valStr), m_lineNumber(lineNumber) {}
 
     bool WriteDBM();

@@ -1,10 +1,10 @@
 #pragma once
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <memory>
 #include <vector>
-#include <string>
+#include <string_view>
 
 class DBPLogger {
 public:
@@ -22,7 +22,7 @@ public:
                 auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
                 sinks.push_back(console_sink);
             }
-            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath, true);
+            auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logFilePath, 5 * 1024 * 1024, 3);
             sinks.push_back(file_sink);
 
             auto logger = std::make_shared<spdlog::logger>("dbp_compiler", sinks.begin(), sinks.end());
@@ -34,6 +34,10 @@ public:
         catch (const spdlog::spdlog_ex&) {
             // Logger configuration failure
         }
+    }
+
+    [[nodiscard]] static bool IsInitialized() noexcept {
+        return spdlog::default_logger() != nullptr;
     }
 };
 

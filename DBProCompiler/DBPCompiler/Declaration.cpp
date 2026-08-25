@@ -40,12 +40,12 @@ void CDeclaration::Add(CDeclaration* pNew)
 		m_pNext->Add(pNew);
 }
 
-CDeclaration* CDeclaration::Find(LPCSTR pName, DWORD dwArrFlag)
+CDeclaration* CDeclaration::Find(std::string_view name, uint32_t dwArrFlag)
 {
 	CDeclaration* pCurrent = this;
 	while(pCurrent)
 	{
-		if(pCurrent->GetName() && dbp::iequals(pName, pCurrent->GetName()->GetStr())
+		if(dbp::iequals(name, pCurrent->GetNameView())
 		&& pCurrent->GetArrFlag()==dwArrFlag)
 			return pCurrent;
 
@@ -54,20 +54,20 @@ CDeclaration* CDeclaration::Find(LPCSTR pName, DWORD dwArrFlag)
 	return nullptr;
 }
 
-void CDeclaration::SetDecData(DWORD dwDecArr, LPCSTR pDecArrValue, LPCSTR pDecName, LPCSTR pDecType, LPCSTR pDecInit, DWORD LineNumberRef)
+void CDeclaration::SetDecData(uint32_t dwDecArr, std::string_view arrVal, std::string_view name, std::string_view type, std::string_view init, uint32_t lineNumberRef)
 {
 	// Set data
 	SetArr(dwDecArr);
-	SetArrValue(new CStr(pDecArrValue));
-	SetName(new CStr(pDecName));
-	SetType(new CStr(pDecType));
-	SetInit(new CStr(pDecInit));
-	SetLineNumber(LineNumberRef);
+	SetArrValue(arrVal);
+	SetName(name);
+	SetType(type);
+	SetInit(init);
+	SetLineNumber(lineNumberRef);
 	SetOffset(0);
 	SetDataSize(0);
 }
 
-bool CDeclaration::GetNumberOfDecsInChain(DWORD* pdwCount)
+bool CDeclaration::GetNumberOfDecsInChain(uint32_t* pdwCount)
 {
 	(*pdwCount)++;
 	if(GetNext())
@@ -83,10 +83,10 @@ std::string CDeclaration::GetTypeStringOfDecsInChain(void)
 	CDeclaration* pEntry = this;
 	while(pEntry)
 	{
-		LPSTR pTypeNameString = pEntry->GetType()->GetStr();
-		DWORD dwTypeValue = g_pVarTable->GetBasicTypeValue(pTypeNameString);
+		std::string_view typeName = pEntry->GetTypeView();
+		DWORD dwTypeValue = g_pVarTable->GetBasicTypeValue(typeName.data());
 		typeString += g_pVarTable->GetCharOfType(dwTypeValue);
-		pEntry=pEntry->GetNext();
+		pEntry = pEntry->GetNext();
 	}
 
 	// Complete
@@ -96,25 +96,24 @@ std::string CDeclaration::GetTypeStringOfDecsInChain(void)
 bool CDeclaration::WriteDBM(void)
 {
 	// Write out text
-	CStr strDBMLine(256);
-	strDBMLine.SetText("STRUCT@");
-	strDBMLine.AddText(m_pName.get());
-	if(GetArrFlag()==1)
+	std::string dbmLine = "STRUCT@";
+	if (m_pName) dbmLine += m_pName->View();
+	if (GetArrFlag() == 1)
 	{
-		strDBMLine.AddText("(array)");
+		dbmLine += "(array)";
 	}
-	strDBMLine.AddText("    TYPE>");
-	strDBMLine.AddText(m_pType.get());
-	strDBMLine.AddText("    OFFSET>");
-	strDBMLine.AddNumericText(m_dwOffset);
+	dbmLine += "    TYPE>";
+	if (m_pType) dbmLine += m_pType->View();
+	dbmLine += "    OFFSET>";
+	dbmLine += std::to_string(m_dwOffset);
 
 	// Output type details
-	if(g_pDBMWriter->OutputDBM(&strDBMLine)==false) return false;
+	if (!g_pDBMWriter->OutputDBM(dbmLine)) return false;
 
 	// Write next one
-	if(GetNext())
+	if (GetNext())
 	{
-		if((GetNext()->WriteDBM())==false) return false;
+		if (!GetNext()->WriteDBM()) return false;
 	}
 
 	// Complete

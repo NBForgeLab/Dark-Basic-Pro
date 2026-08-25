@@ -1,12 +1,7 @@
-// ParseType.h: interface for the CParseType class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_PARSETYPE_H__B7DDAA01_DA88_4BFB_AF03_8C18F1EA34CD__INCLUDED_)
-#define AFX_PARSETYPE_H__B7DDAA01_DA88_4BFB_AF03_8C18F1EA34CD__INCLUDED_
+#pragma once
 
 // Common Includes
-#include "windows.h"
+#include <cstdint>
 
 // Custom Includes
 #include "Statement.h"
@@ -18,19 +13,20 @@ class CParseType
 		virtual ~CParseType();
 
 	public:
-		void			SetStartLineNumber(DWORD line) { m_dwStartLineNumber = line; }
-		DWORD			GetStartLineNumber(void) { return m_dwStartLineNumber; }
-		void			SetEndLineNumber(DWORD line) { m_dwEndLineNumber = line; }
-		DWORD			GetEndLineNumber(void) { return m_dwEndLineNumber; }
+		void			SetStartLineNumber(uint32_t line) { m_dwStartLineNumber = line; }
+		uint32_t			GetStartLineNumber(void) { return m_dwStartLineNumber; }
+		void			SetEndLineNumber(uint32_t line) { m_dwEndLineNumber = line; }
+		uint32_t			GetEndLineNumber(void) { return m_dwEndLineNumber; }
 
 		bool			WriteDBM(void);
-		bool			WriteDBMBit(DWORD dwLineNumber, LPCSTR pText);
+		bool			WriteDBMBit(uint32_t dwLineNumber, std::string_view text);
+		bool			WriteDBMBit(uint32_t dwLineNumber, const char* pText) {
+			return WriteDBMBit(dwLineNumber, pText ? std::string_view(pText) : std::string_view{});
+		}
 
 	private:
 
 		// Debug Data
-		DWORD			m_dwStartLineNumber;
-		DWORD			m_dwEndLineNumber;
+		uint32_t			m_dwStartLineNumber;
+		uint32_t			m_dwEndLineNumber;
 };
-
-#endif // !defined(AFX_PARSETYPE_H__B7DDAA01_DA88_4BFB_AF03_8C18F1EA34CD__INCLUDED_)

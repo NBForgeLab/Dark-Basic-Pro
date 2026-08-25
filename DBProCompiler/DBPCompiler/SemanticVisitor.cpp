@@ -26,7 +26,7 @@ void SemanticVisitor::Visit(ASTAssignmentNode* node) {
         pScope = g_pUserFunctionWithin->GetName()->GetStr();
     }
 
-    DWORD varType = 1;
+    uint32_t varType = 1;
     if (node->m_expression) {
         node->m_expression->Accept(this);
         if (m_inferredType != 0) varType = m_inferredType;
@@ -39,7 +39,7 @@ void SemanticVisitor::Visit(ASTAssignmentNode* node) {
             pVar = g_pVarTable->FindVariable(const_cast<LPCSTR>(""), const_cast<LPCSTR>(node->m_varName.c_str()), 0);
         }
         if (!pVar) {
-            DWORD dwAction = 0;
+            uint32_t dwAction = 0;
             g_pVarTable->AddVariable(const_cast<LPCSTR>(node->m_varName.c_str()), const_cast<LPCSTR>("integer"), 0, 0, true, &dwAction, false);
         }
     }
@@ -77,8 +77,8 @@ void SemanticVisitor::Visit(ASTVariableNode* node) {
 }
 
 void SemanticVisitor::Visit(ASTBinaryOpNode* node) {
-    DWORD leftType = 0;
-    DWORD rightType = 0;
+    uint32_t leftType = 0;
+    uint32_t rightType = 0;
     if (node->m_left) {
         node->m_left->Accept(this);
         leftType = m_inferredType;

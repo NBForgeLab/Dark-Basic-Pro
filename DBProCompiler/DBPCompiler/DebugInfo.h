@@ -1,9 +1,4 @@
-// DebugInfo.h: interface for the CDebugInfo class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_DEBUGINFO_H__9766630D_BC56_4F47_8995_F83233070B49__INCLUDED_)
-#define AFX_DEBUGINFO_H__9766630D_BC56_4F47_8995_F83233070B49__INCLUDED_
+#pragma once
 
 #include "windows.h"
 
@@ -48,5 +43,3 @@ class CDebugInfo
 		DWORD		m_dwCliTextSize;
 		LPSTR		m_pCliText;
 };
-
-#endif // !defined(AFX_DEBUGINFO_H__9766630D_BC56_4F47_8995_F83233070B49__INCLUDED_)

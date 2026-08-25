@@ -1,4 +1,4 @@
-﻿#include "PEBuilder.h"
+#include "PEBuilder.h"
 #include "ASMWriter.h"
 #include "StringUtils.h"
 #include "DBPCompiler.h"
@@ -32,7 +32,7 @@ extern CStructTable* g_pStructTable;
 
 namespace
 {
-bool ReportDllTableError(const char* message)
+bool ReportDllTableError(std::string_view message)
 {
 	if (g_pErrorReport != nullptr)
 		g_pErrorReport->AddErrorString(message);
@@ -231,8 +231,8 @@ bool CPEBuilder::UpdateCommandData() const
 			{
 				CStr* pStr = pStringEntry->GetString();
 				DWORD dwPos = pStr->FindFirstChar(',');
-				pLeftOwner.reset(pStr->GetLeftOfPosition(dwPos));
-				pRightOwner.reset(pStr->GetRightOfPosition(dwPos+1));
+				pLeftOwner = pStr->GetLeftOfPosition(dwPos);
+				pRightOwner = pStr->GetRightOfPosition(dwPos+1);
 				pLeft = pLeftOwner.get();
 				pRight = pRightOwner.get();
 			}

@@ -15,7 +15,7 @@
 #define SDK_FLOAT float
 #define SDK_RETFLOAT float
 
-#define SDK_LPSTR DWORD
+#define SDK_LPSTR DWORD_PTR
 #define SDK_RETSTR
 
 DARKSDK void			VectorConstructor 						( );

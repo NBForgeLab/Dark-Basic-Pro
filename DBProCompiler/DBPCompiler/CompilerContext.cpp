@@ -32,26 +32,94 @@ extern CIncludeTable*		g_pIncludeTable;
 extern CDataTable*			g_pConstantsTable;
 extern CDebugInfo			g_DebugInfo;
 
-CompilerContext::CompilerContext() {
-    pEXE = nullptr;
-    pDBPCompiler = nullptr;
-    pErrorReport = nullptr;
-    pASMWriter = nullptr;
-    pDBMWriter = nullptr;
-    pStructTable = nullptr;
-    pStatementList = nullptr;
-    pInstructionTable = nullptr;
-    pLabelTable = nullptr;
-    pDataTable = nullptr;
-    pStringTable = nullptr;
-    pDLLTable = nullptr;
-    pCommandTable = nullptr;
-    pVarTable = nullptr;
-    pIncludeTable = nullptr;
-    pConstantsTable = nullptr;
-    pDebugInfo = nullptr;
-    m_bOwnsInstructionTable = false;
-    m_bOwnsErrorReport = false;
+CompilerContext::CompilerContext() = default;
+
+CompilerContext::CompilerContext(CompilerContext&& other) noexcept
+    : pEXE(other.pEXE),
+      pDBPCompiler(other.pDBPCompiler),
+      pErrorReport(other.pErrorReport),
+      pASMWriter(other.pASMWriter),
+      pDBMWriter(other.pDBMWriter),
+      pStructTable(other.pStructTable),
+      pStatementList(other.pStatementList),
+      pInstructionTable(other.pInstructionTable),
+      pLabelTable(other.pLabelTable),
+      pDataTable(other.pDataTable),
+      pStringTable(other.pStringTable),
+      pDLLTable(other.pDLLTable),
+      pCommandTable(other.pCommandTable),
+      pVarTable(other.pVarTable),
+      pIncludeTable(other.pIncludeTable),
+      pConstantsTable(other.pConstantsTable),
+      pDebugInfo(other.pDebugInfo),
+      m_bOwnsInstructionTable(other.m_bOwnsInstructionTable),
+      m_bOwnsErrorReport(other.m_bOwnsErrorReport)
+{
+    other.pEXE = nullptr;
+    other.pDBPCompiler = nullptr;
+    other.pErrorReport = nullptr;
+    other.pASMWriter = nullptr;
+    other.pDBMWriter = nullptr;
+    other.pStructTable = nullptr;
+    other.pStatementList = nullptr;
+    other.pInstructionTable = nullptr;
+    other.pLabelTable = nullptr;
+    other.pDataTable = nullptr;
+    other.pStringTable = nullptr;
+    other.pDLLTable = nullptr;
+    other.pCommandTable = nullptr;
+    other.pVarTable = nullptr;
+    other.pIncludeTable = nullptr;
+    other.pConstantsTable = nullptr;
+    other.pDebugInfo = nullptr;
+    other.m_bOwnsInstructionTable = false;
+    other.m_bOwnsErrorReport = false;
+}
+
+CompilerContext& CompilerContext::operator=(CompilerContext&& other) noexcept {
+    if (this != &other) {
+        Cleanup();
+        pEXE = other.pEXE;
+        pDBPCompiler = other.pDBPCompiler;
+        pErrorReport = other.pErrorReport;
+        pASMWriter = other.pASMWriter;
+        pDBMWriter = other.pDBMWriter;
+        pStructTable = other.pStructTable;
+        pStatementList = other.pStatementList;
+        pInstructionTable = other.pInstructionTable;
+        pLabelTable = other.pLabelTable;
+        pDataTable = other.pDataTable;
+        pStringTable = other.pStringTable;
+        pDLLTable = other.pDLLTable;
+        pCommandTable = other.pCommandTable;
+        pVarTable = other.pVarTable;
+        pIncludeTable = other.pIncludeTable;
+        pConstantsTable = other.pConstantsTable;
+        pDebugInfo = other.pDebugInfo;
+        m_bOwnsInstructionTable = other.m_bOwnsInstructionTable;
+        m_bOwnsErrorReport = other.m_bOwnsErrorReport;
+
+        other.pEXE = nullptr;
+        other.pDBPCompiler = nullptr;
+        other.pErrorReport = nullptr;
+        other.pASMWriter = nullptr;
+        other.pDBMWriter = nullptr;
+        other.pStructTable = nullptr;
+        other.pStatementList = nullptr;
+        other.pInstructionTable = nullptr;
+        other.pLabelTable = nullptr;
+        other.pDataTable = nullptr;
+        other.pStringTable = nullptr;
+        other.pDLLTable = nullptr;
+        other.pCommandTable = nullptr;
+        other.pVarTable = nullptr;
+        other.pIncludeTable = nullptr;
+        other.pConstantsTable = nullptr;
+        other.pDebugInfo = nullptr;
+        other.m_bOwnsInstructionTable = false;
+        other.m_bOwnsErrorReport = false;
+    }
+    return *this;
 }
 
 CompilerContext::~CompilerContext() {

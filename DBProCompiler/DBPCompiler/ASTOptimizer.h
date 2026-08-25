@@ -1,5 +1,4 @@
-#ifndef AST_OPTIMIZER_H
-#define AST_OPTIMIZER_H
+#pragma once
 
 #include "ASTVisitor.h"
 #include "ASTNodes.h"
@@ -29,5 +28,3 @@ public:
 private:
     std::unique_ptr<ASTNode> m_resultNode;
 };
-
-#endif // AST_OPTIMIZER_H

@@ -1,9 +1,4 @@
-// StatementList.h: interface for the CStatementList class.
-//
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(AFX_STATEMENTLIST_H__44BDB5FD_62E4_4B69_8950_E09A989E3475__INCLUDED_)
-#define AFX_STATEMENTLIST_H__44BDB5FD_62E4_4B69_8950_E09A989E3475__INCLUDED_
+#pragma once
 
 #include <DB3Array.h>
 
@@ -86,7 +81,13 @@ class CStatementList
 		[[nodiscard]] DWORD			GetLabelQtyCounter(void) const noexcept { return m_dwLabelQtyCounter; }
 		void			IncLabelQtyCounter(DWORD size) noexcept { m_dwLabelQtyCounter+=size; }
 
-		void			SetUserFunctionName(LPCSTR pUFName) { m_pCurrentUserFunctionName.SetText(pUFName); }
+		void			SetUserFunctionName(std::string_view name) { m_pCurrentUserFunctionName.SetText(name); }
+		void			SetUserFunctionName(const char* pUFName) {
+			m_pCurrentUserFunctionName.SetText(pUFName ? std::string_view(pUFName) : std::string_view{});
+		}
+		[[nodiscard]] std::string_view GetUserFunctionNameView() const noexcept {
+			return m_pCurrentUserFunctionName.GetStr() ? std::string_view(m_pCurrentUserFunctionName.GetStr()) : std::string_view{};
+		}
 		[[nodiscard]] LPSTR			GetUserFunctionName(void) noexcept { return m_pCurrentUserFunctionName.GetStr(); }
 		[[nodiscard]] LPCSTR			GetUserFunctionName(void) const noexcept { return m_pCurrentUserFunctionName.GetStr(); }
 
@@ -206,5 +207,3 @@ class CStatementList
 		// Track all lines
 		db3::TArray<char *> m_LinePtrs;
 };
-
-#endif // !defined(AFX_STATEMENTLIST_H__44BDB5FD_62E4_4B69_8950_E09A989E3475__INCLUDED_)
