@@ -43,6 +43,11 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/DarkAI" "${CMAKE_BINARY_DIR}/plugins/darkai")
 add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/Enhancements" "${CMAKE_BINARY_DIR}/plugins/enhancements")
 
+# SteamMultiplayer plugin is archived (not built): the real DLL requires the
+# Valve Steamworks SDK (not vendored), and the Core no longer depends on it.
+# To restore Steam support, re-add this subdirectory and the Core bootstrap.
+# add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/SteamMultiplayer" "${CMAKE_BINARY_DIR}/plugins/steammultiplayer")
+
 # Multiplayer and MultiplayerPlus are excluded: they depend on the deprecated
 # DirectPlay4/8 SDK headers (dplay.h, dplobby.h, dplay8.h, dpaddr.h) which are
 # not available in modern Windows SDKs or the Microsoft.DXSDK.D3DX NuGet package.

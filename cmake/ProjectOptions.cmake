@@ -106,6 +106,11 @@ function(dbp_apply_legacy_cpp_options target)
         )
     endif()
 
+    get_target_property(target_type ${target} TYPE)
+    if(target_type STREQUAL "SHARED_LIBRARY" OR target_type STREQUAL "MODULE_LIBRARY")
+        set_target_properties(${target} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    endif()
+
     dbp_enable_parallel_msvc(${target})
     dbp_enable_sanitizers(${target})
     dbp_enable_ubsan(${target})
