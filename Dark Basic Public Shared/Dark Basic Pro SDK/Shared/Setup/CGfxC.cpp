@@ -233,6 +233,8 @@ DBPRO_GLOBAL DLL_InputSetupX				g_Input_SetupMouse				= 0;
 
 DBPRO_GLOBAL LPDIRECT3D9					m_pD3D							= NULL;		// interface to D3D
 DBPRO_GLOBAL LPDIRECT3DDEVICE9				m_pD3DDevice					= NULL;		// D3D device
+DBPRO_GLOBAL IDirect3D9Ex*					m_pD3DEx						= NULL;		// D3D9Ex interface
+DBPRO_GLOBAL IDirect3DDevice9Ex*			m_pD3DDeviceEx					= NULL;		// D3D9Ex device
 DBPRO_GLOBAL LPDIRECT3DTEXTURE9				g_pDemoTexture					= NULL;
 
 // leefix - 131108 - DarkGDK does not want another global instance of this
@@ -372,12 +374,29 @@ DARKSDK bool Constructor ( void )
     FreeLibrary( hDPNHPASTDLL );
 	*/
 
-	// setup direct3d
-	__try {
-		m_pD3D = Direct3DCreate9 ( D3D_SDK_VERSION );
+	// setup direct3d (try Direct3DCreate9Ex first for Windows 10/11 multi-GPU / WDDM support)
+	typedef HRESULT (WINAPI *LPDIRECT3DCREATE9EX)(UINT, IDirect3D9Ex**);
+	HMODULE hD3D9 = GetModuleHandleA("d3d9.dll");
+	if ( !hD3D9 ) hD3D9 = LoadLibraryA("d3d9.dll");
+	LPDIRECT3DCREATE9EX Direct3DCreate9ExPtr = hD3D9 ? (LPDIRECT3DCREATE9EX)GetProcAddress(hD3D9, "Direct3DCreate9Ex") : NULL;
+
+	if ( Direct3DCreate9ExPtr )
+	{
+		HRESULT hrEx = Direct3DCreate9ExPtr( D3D_SDK_VERSION, &m_pD3DEx );
+		if ( SUCCEEDED(hrEx) && m_pD3DEx )
+		{
+			m_pD3D = m_pD3DEx;
+		}
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER) {
-		m_pD3D = NULL;
+
+	if ( !m_pD3D )
+	{
+		__try {
+			m_pD3D = Direct3DCreate9 ( D3D_SDK_VERSION );
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+			m_pD3D = NULL;
+		}
 	}
 	// Direct3DCreate9 returns a pointer, not an HRESULT: FAILED(NULL) is
 	// FALSE because NULL maps to S_OK, so the legacy code only caught this
@@ -2454,29 +2473,8 @@ DARKSDK bool Setup ( void )
 	}
 	m_uAdapterChoice = D3DADAPTER_DEFAULT;
 
-	// U69 - 170508 - Reduce overhead on system by discarding buffer after use (must refresh each SYNC)
-	// but only use it with VSYNC was specified so we do not affect default behaviour
-	// m_SwapMode = D3DSWAPEFFECT_COPY; // pre-U69
-	if ( m_iMultisamplingFactor > 0 )
-	{
-		// multisampling requires a DISCARDable backbuffer
-		m_SwapMode = D3DSWAPEFFECT_DISCARD;
-
-		// Cannot lock backbuffer for multisampled devices so switch D3DPRESENTFLAG_LOCKABLE_BACKBUFFER ''off''
-		m_dwFlags = 0;
-	}
-	else
-	{
-		// default for non 3D/sprite/grabbing backbuffer
-		m_SwapMode = D3DSWAPEFFECT_COPY;
-	}
-
-	// 040414 -  test for flip approach
-	//potato
-	if ( g_bWindowOverride )
-		m_SwapMode = D3DSWAPEFFECT_COPY;
-	else
-		m_SwapMode = D3DSWAPEFFECT_FLIP;
+	// Modern D3D9 / D3D9Ex swap mode: DISCARD ensures reliable multi-GPU presentation and compatibility
+	m_SwapMode = D3DSWAPEFFECT_DISCARD;
 	
 
 	// this will get switched off if we can't find a stencil buffer
@@ -2502,7 +2500,7 @@ DARKSDK bool Setup ( void )
 		m_D3DPP->BackBufferCount			 = m_iBackBufferCount;
 		m_D3DPP->EnableAutoDepthStencil		 = m_bZBuffer;
 		m_D3DPP->FullScreen_RefreshRateInHz  = D3DPRESENT_RATE_DEFAULT;
-		m_D3DPP->Flags                       = m_dwFlags;
+		m_D3DPP->Flags                       = (m_bZBuffer) ? 0 : m_dwFlags;
 
 		// U74 - 120609 - can have different backbuffer size if flagged
 		if ( m_iModBackbufferWidth != 0 )
@@ -2817,6 +2815,12 @@ DARKSDK int Create ( HWND hWnd, D3DPRESENT_PARAMETERS* d3dpp )
 		sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%s D3DFMT_D24S8_ADDED", pDisplayErrTrace );
 	}
 
+	// D3D9 specification: D3DPRESENTFLAG_LOCKABLE_BACKBUFFER cannot be combined with depth-stencil or discard
+	if ( d3dpp->EnableAutoDepthStencil )
+	{
+		d3dpp->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	}
+
 	// create device
 	sprintf_s ( pDisplayErrTrace, sizeof(pDisplayErrTrace), "%s A=%u P=%d D3DPP=%u-%u-%u-%d-%d-%d-%lu-%u-%p-%lu-%d-%u-%d-%d",
 		pDisplayErrTrace, m_uAdapterChoice, m_iProcess,
@@ -2825,43 +2829,87 @@ DARKSDK int Create ( HWND hWnd, D3DPRESENT_PARAMETERS* d3dpp )
 		d3dpp->Flags, d3dpp->FullScreen_RefreshRateInHz, (void*)d3dpp->hDeviceWindow,
 		d3dpp->MultiSampleQuality, (int)d3dpp->MultiSampleType, d3dpp->PresentationInterval,
 		(int)d3dpp->SwapEffect, (int)d3dpp->Windowed );
-	if(g_pGlob) g_pGlob->iSoftwareVP = 0;
-	if ( FAILED ( hr = m_pD3D->CreateDevice (	m_uAdapterChoice,						// use default adapter
-												pDevType,								// hardware mode
-												hWnd,									// handle to window
-												m_iProcess,
-												d3dpp,									// display info
-												&m_pD3DDevice							// pointer to device
-												) ) )
+	if ( d3dpp->SwapEffect != D3DSWAPEFFECT_DISCARD && d3dpp->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE )
 	{
-		// try again to create device (with software processing)
-		if ( FAILED ( hr = m_pD3D->CreateDevice
-										(
-											m_uAdapterChoice,						// use default adapter
-											D3DDEVTYPE_HAL,							// hardware mode
-											hWnd,									// handle to window
-											//D3DCREATE_SOFTWARE_VERTEXPROCESSING,	// software processing //040414 - oops!!
-											D3DCREATE_HARDWARE_VERTEXPROCESSING,	// software processing
-											d3dpp,									// display info
-											&m_pD3DDevice							// pointer to device
-										) ) )
-		{
-			if ( hr==D3DERR_INVALIDCALL ) hr=1;
-			if ( hr==D3DERR_NOTAVAILABLE  ) hr=2;
-			if ( hr==D3DERR_OUTOFVIDEOMEMORY  ) hr=3;
-			wsprintf ( pDisplayErrTrace, "%s HR=%d", pDisplayErrTrace, hr );
-			MessageBox ( NULL, pDisplayErrTrace, "Display Mode Error", MB_OK | MB_TOPMOST );
+		d3dpp->PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+	}
 
-			Error ( "Unable to create device" );
-			if(hr==D3DERR_INVALIDCALL) RunTimeError(RUNTIMEERROR_NOTSUPPORTDISPLAYINVALID);
-			if(hr==D3DERR_NOTAVAILABLE) RunTimeError(RUNTIMEERROR_NOTSUPPORTDISPLAYNOTAVAIL);
-			if(hr==D3DERR_OUTOFVIDEOMEMORY) RunTimeError(RUNTIMEERROR_NOTSUPPORTDISPLAYNOVID);
-			return 0;
+	if(g_pGlob) g_pGlob->iSoftwareVP = 0;
+
+	// Try Direct3D9Ex CreateDeviceEx first if available
+	if ( m_pD3DEx )
+	{
+		hr = m_pD3DEx->CreateDeviceEx (
+			m_uAdapterChoice,
+			pDevType,
+			hWnd,
+			m_iProcess,
+			d3dpp,
+			NULL,
+			&m_pD3DDeviceEx
+		);
+		if ( SUCCEEDED(hr) && m_pD3DDeviceEx )
+		{
+			m_pD3DDevice = m_pD3DDeviceEx;
 		}
 		else
 		{
-			// Device will use software VP
-			if(g_pGlob) g_pGlob->iSoftwareVP = 1;
+			// Try with hardware VP fallback
+			hr = m_pD3DEx->CreateDeviceEx (
+				m_uAdapterChoice,
+				D3DDEVTYPE_HAL,
+				hWnd,
+				D3DCREATE_HARDWARE_VERTEXPROCESSING,
+				d3dpp,
+				NULL,
+				&m_pD3DDeviceEx
+			);
+			if ( SUCCEEDED(hr) && m_pD3DDeviceEx )
+			{
+				m_pD3DDevice = m_pD3DDeviceEx;
+			}
+		}
+	}
+
+	if ( !m_pD3DDevice )
+	{
+		if ( FAILED ( hr = m_pD3D->CreateDevice (	m_uAdapterChoice,						// use default adapter
+													pDevType,								// hardware mode
+													hWnd,									// handle to window
+													m_iProcess,
+													d3dpp,									// display info
+													&m_pD3DDevice							// pointer to device
+													) ) )
+		{
+			// try again to create device (with software processing)
+			if ( FAILED ( hr = m_pD3D->CreateDevice
+											(
+												m_uAdapterChoice,						// use default adapter
+												D3DDEVTYPE_HAL,							// hardware mode
+												hWnd,									// handle to window
+												//D3DCREATE_SOFTWARE_VERTEXPROCESSING,	// software processing //040414 - oops!!
+												D3DCREATE_HARDWARE_VERTEXPROCESSING,	// software processing
+												d3dpp,									// display info
+												&m_pD3DDevice							// pointer to device
+											) ) )
+			{
+				if ( hr==D3DERR_INVALIDCALL ) hr=1;
+				if ( hr==D3DERR_NOTAVAILABLE  ) hr=2;
+				if ( hr==D3DERR_OUTOFVIDEOMEMORY  ) hr=3;
+				wsprintf ( pDisplayErrTrace, "%s HR=%d", pDisplayErrTrace, hr );
+				MessageBox ( NULL, pDisplayErrTrace, "Display Mode Error", MB_OK | MB_TOPMOST );
+
+				Error ( "Unable to create device" );
+				if(hr==D3DERR_INVALIDCALL) RunTimeError(RUNTIMEERROR_NOTSUPPORTDISPLAYINVALID);
+				if(hr==D3DERR_NOTAVAILABLE) RunTimeError(RUNTIMEERROR_NOTSUPPORTDISPLAYNOTAVAIL);
+				if(hr==D3DERR_OUTOFVIDEOMEMORY) RunTimeError(RUNTIMEERROR_NOTSUPPORTDISPLAYNOVID);
+				return 0;
+			}
+			else
+			{
+				// Device will use software VP
+				if(g_pGlob) g_pGlob->iSoftwareVP = 1;
+			}
 		}
 	}
 
