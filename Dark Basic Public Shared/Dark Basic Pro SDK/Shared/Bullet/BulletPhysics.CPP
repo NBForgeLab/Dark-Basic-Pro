@@ -2682,6 +2682,111 @@ void ODE_SetWorldGravity ( float fX, float fY, float fZ )
 	m_character->setFallSpeed((fCharacterFallSpeed*fRelative)/gSc);
 }
 
+// --- Bullet / ODE Compatibility API ---
+DARKSDK void ODE_SetWorldERP ( float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetWorldCFM ( float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetWorldStep ( float [[maybe_unused]] fStep ) {}
+DARKSDK void ODE_SetWorldQuickStepNumIterations ( int [[maybe_unused]] iValue ) {}
+DARKSDK void ODE_SetStepMode ( int [[maybe_unused]] iMode ) {}
+DARKSDK void ODE_SetBodyRotation ( int iObject, float fX, float fY, float fZ )
+{
+	sObjectList* pPhyObject = ODE_FindID ( iObject );
+	if ( pPhyObject && pPhyObject->body )
+	{
+		btTransform tr = pPhyObject->body->getWorldTransform();
+		D3DXQUATERNION q = MakeEulerRotationQuat(D3DXToRadian(fX), D3DXToRadian(fY), D3DXToRadian(fZ));
+		tr.setRotation(btQuaternion(q.x, q.y, q.z, q.w));
+		pPhyObject->body->setWorldTransform(tr);
+	}
+}
+DARKSDK void ODE_SetSurfaceMode ( int [[maybe_unused]] iID, int [[maybe_unused]] iMode, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactMu2 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactSoftCFM ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactMotion1 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactMotion2 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactSlip1 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactSlip2 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactApprox0 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactApprox11 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactApprox12 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetSurfaceModeContactApprox1 ( int [[maybe_unused]] iID, int [[maybe_unused]] iState ) {}
+DARKSDK void ODE_SetContact ( int [[maybe_unused]] iID, int [[maybe_unused]] iMode, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactMu2 ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactFDir1 ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactBounce ( int iID, float fValue )
+{
+	sObjectList* pPhyObject = ODE_FindID ( iID );
+	if ( pPhyObject && pPhyObject->body )
+		pPhyObject->body->setRestitution(fValue);
+}
+DARKSDK void ODE_SetContactSoftERP ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactSoftCFM ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactMotion1 ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactMotion2 ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactSlip1 ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactSlip2 ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactVelocity ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_SetContactBounceVelocity ( int [[maybe_unused]] iID, float [[maybe_unused]] fValue ) {}
+DARKSDK void ODE_CreateStaticUniverse ( void ) {}
+DARKSDK int  ODE_CollisionMessageExists ( void ) { return 0; }
+DARKSDK void ODE_CollisionGetMessage ( void ) {}
+DARKSDK int  ODE_GetObjectA ( void ) { return 0; }
+DARKSDK int  ODE_GetObjectB ( void ) { return 0; }
+DARKSDK DWORD ODE_GetObjectAVelocityX ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectAVelocityY ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectAVelocityZ ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBVelocityX ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBVelocityY ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBVelocityZ ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectAAngularVelocityX ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectAAngularVelocityY ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectAAngularVelocityZ ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBAngularVelocityX ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBAngularVelocityY ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBAngularVelocityZ ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectAContact ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetObjectBContact ( void ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK void ODE_SetGravity ( int iObject, int iMode )
+{
+	ODE_SetNoGravity ( iObject, iMode );
+}
+DARKSDK DWORD ODE_GetBodyHeight ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetBodyAdjustmentX ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetBodyAdjustmentY ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetBodyAdjustmentZ ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetBodyTravelDistanceX ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetBodyTravelDistanceY ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK DWORD ODE_GetBodyTravelDistanceZ ( int [[maybe_unused]] iID ) { float f = 0.0f; return *(DWORD*)&f; }
+DARKSDK void ODE_SetBodyResponse ( int [[maybe_unused]] iID, int [[maybe_unused]] iResponseMode ) {}
+DARKSDK void ODE_CreateHingeJoint ( int [[maybe_unused]] id, int [[maybe_unused]] iObj1, int [[maybe_unused]] iObj2, float [[maybe_unused]] axisX, float [[maybe_unused]] axisY, float [[maybe_unused]] axisZ, float [[maybe_unused]] posX, float [[maybe_unused]] posY, float [[maybe_unused]] posZ ) {}
+DARKSDK void ODE_CreateBallJoint ( int [[maybe_unused]] id, int [[maybe_unused]] iObj1, int [[maybe_unused]] iObj2, float [[maybe_unused]] posX, float [[maybe_unused]] posY, float [[maybe_unused]] posZ ) {}
+DARKSDK void ODE_SetHingeJointLimit ( int [[maybe_unused]] id, float [[maybe_unused]] low, float [[maybe_unused]] high ) {}
+DARKSDK void ODE_CreateRagdollFromBoneModel ( int iObjID, float fScale )
+{
+	BPhys_RagDollBegin(iObjID, fScale);
+}
+DARKSDK void ODE_CreateRagdollFromBoneModel ( int iObjID, float fScale, int [[maybe_unused]] iDebugObject )
+{
+	BPhys_RagDollBegin(iObjID, fScale);
+}
+DARKSDK void ODE_DestroyRagdoll ( int iRagdollID )
+{
+	BPhys_DeleteRagdoll(iRagdollID);
+}
+DARKSDK void ODE_SetEnabled ( int iObject, int iEnabled )
+{
+	ODE_SetActive( iObject, iEnabled );
+}
+DARKSDK int ODE_RayCast ( int [[maybe_unused]] iObject, float fX, float fY, float fZ, float fToX, float fToY, float fToZ )
+{
+	return ODE_RayTerrain( fX, fY, fZ, fToX, fToY, fToZ );
+}
+DARKSDK void ODE_SetRayCast ( int [[maybe_unused]] iObject, int [[maybe_unused]] iMode ) {}
+DARKSDK void ODE_SetRagdollMode ( int [[maybe_unused]] iOneIsOn ) {}
+DARKSDK void ODE_CreateTreeCylinder ( int iObjectNumber )
+{
+	ODE_CreateStaticCylinder ( iObjectNumber );
+}
 
 /* ODE OLD CODE
 
