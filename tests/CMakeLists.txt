@@ -91,6 +91,7 @@ add_executable(dbp_tests
     test_error.cpp
     test_unsafe_string_patterns.cpp
     test_token_enum_values.cpp
+    test_data_type_enum_values.cpp
     test_instruction_table_enum_values.cpp
     test_asmwriter_enum_values.cpp
     test_clang_tidy_integration.cpp

@@ -39,3 +39,40 @@ TEST(CompilerContextTest, AdoptionAndCleanLifecycles) {
     g_pInstructionTable = nullptr;
     g_pErrorReport = nullptr;
 }
+
+TEST(CompilerContextTest, MoveSemanticsTransferOwnership) {
+    CompilerContext context1;
+    context1.Initialize();
+
+    void* originalExe = context1.pEXE;
+    ASSERT_NE(originalExe, nullptr);
+    ASSERT_NE(context1.pStructTable, nullptr);
+
+    // Test move construction
+    CompilerContext context2(std::move(context1));
+    EXPECT_EQ(context1.pEXE, nullptr);
+    EXPECT_EQ(context1.pStructTable, nullptr);
+    EXPECT_EQ(context2.pEXE, originalExe);
+    EXPECT_NE(context2.pStructTable, nullptr);
+
+    // Test move assignment
+    CompilerContext context3;
+    context3 = std::move(context2);
+    EXPECT_EQ(context2.pEXE, nullptr);
+    EXPECT_EQ(context3.pEXE, originalExe);
+
+    context3.Cleanup();
+    EXPECT_EQ(context3.pEXE, nullptr);
+}
+
+TEST(CompilerContextTest, IdempotentCleanupIsSafe) {
+    CompilerContext context;
+    context.Initialize();
+    ASSERT_NE(context.pEXE, nullptr);
+
+    // Calling cleanup multiple times must be safely handled without double-free
+    context.Cleanup();
+    EXPECT_EQ(context.pEXE, nullptr);
+    context.Cleanup();
+    EXPECT_EQ(context.pEXE, nullptr);
+}

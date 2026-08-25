@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "Str.h"
+#include "StringUtils.h"
 
 TEST(CStrTest, BasicOperationsAndMutators) {
     // 1. Default constructor
@@ -216,4 +217,56 @@ TEST(CStrTest, EmptyStringOperations) {
     EXPECT_EQ(empty.GetValue(), 0.0);
     // Note: empty string is vacuously "numeric" (no chars fail the check)
     EXPECT_TRUE(empty.IsTextNumericValue());
+}
+
+TEST(CStrTest, ModernCpp20StringInteroperability) {
+    // 1. Construct from std::string_view
+    std::string_view sv = "Hello From StringView";
+    CStr s1(sv);
+    EXPECT_EQ(s1.size(), 21U);
+    EXPECT_FALSE(s1.empty());
+    EXPECT_STREQ(s1.c_str(), "Hello From StringView");
+    EXPECT_EQ(s1.str(), "Hello From StringView");
+
+    // 2. Construct from std::string
+    std::string stdStr = "Standard String";
+    CStr s2(stdStr);
+    EXPECT_EQ(s2.size(), 15U);
+    EXPECT_STREQ(s2.data(), "Standard String");
+
+    // 3. SetText and AddText with string_view
+    s1.SetText(std::string_view("Modern"));
+    EXPECT_EQ(s1.size(), 6U);
+    EXPECT_STREQ(s1.c_str(), "Modern");
+
+    s1.AddText(std::string_view(" C++20"));
+    EXPECT_EQ(s1.size(), 12U);
+    EXPECT_STREQ(s1.c_str(), "Modern C++20");
+
+    // 4. Implicit conversion to std::string_view
+    auto inspectView = [](std::string_view view) {
+        return view.starts_with("Modern");
+    };
+    EXPECT_TRUE(inspectView(s1));
+}
+
+TEST(StringUtilsTest, ModernHelpersTrimAndCaseConversions) {
+    // Trim helpers
+    EXPECT_EQ(dbp::trim_left("   \t  hello"), "hello");
+    EXPECT_EQ(dbp::trim_right("world   \t  "), "world");
+    EXPECT_EQ(dbp::trim("   \t  darkbasic pro  \t "), "darkbasic pro");
+    EXPECT_EQ(dbp::trim(""), "");
+    EXPECT_EQ(dbp::trim("    "), "");
+
+    // Case conversions
+    EXPECT_EQ(dbp::to_upper_copy("DarkBasic Pro 2026"), "DARKBASIC PRO 2026");
+    EXPECT_EQ(dbp::to_lower_copy("DarkBasic Pro 2026"), "darkbasic pro 2026");
+
+    // Case-insensitive comparisons and prefixes
+    EXPECT_TRUE(dbp::iequals("Command_PRINT", "command_print"));
+    EXPECT_FALSE(dbp::iequals("Command_PRINT", "command_input"));
+    EXPECT_TRUE(dbp::starts_with_ci("Load Object", "load"));
+    EXPECT_FALSE(dbp::starts_with_ci("Load Object", "save"));
+    EXPECT_TRUE(dbp::ends_with_ci("game.dba", ".DBA"));
+    EXPECT_FALSE(dbp::ends_with_ci("game.dba", ".CPP"));
 }

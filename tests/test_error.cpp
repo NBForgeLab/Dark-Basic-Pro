@@ -184,17 +184,14 @@ TEST_F(CErrorPureTest, MultipleAddErrorStringConcatenates) {
     err.AddErrorString("error two");
     std::string afterSecond(err.GetErrorString());
 
-    // Characterization: first call produces "error one\r\n" (len 11)
+    // First call produces "error one\r\n" (len 11)
     EXPECT_TRUE(err.IsError());
     EXPECT_EQ(afterFirst, "error one\r\n");
     EXPECT_EQ(afterFirst.size(), 11u);
 
-    // Characterization: second call produces "error two\r\n" (len 11)
-    // The old content is not visible in the resulting string.
-    // This is the CURRENT behaviour – the buffer may contain old data
-    // but std::string(LPSTR) only sees up to the first '\0'.
-    EXPECT_EQ(afterSecond, "error two\r\n");
-    EXPECT_EQ(afterSecond.size(), 11u);
+    // Second call properly concatenates to "error one\r\nerror two\r\n" (len 22)
+    EXPECT_EQ(afterSecond, "error one\r\nerror two\r\n");
+    EXPECT_EQ(afterSecond.size(), 22u);
 }
 
 TEST_F(CErrorPureTest, AddErrorStringEmptyString) {
