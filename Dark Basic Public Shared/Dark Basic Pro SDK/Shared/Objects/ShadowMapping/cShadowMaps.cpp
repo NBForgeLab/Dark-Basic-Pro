@@ -88,8 +88,9 @@ HRESULT CascadedShadowsManager::DestroyAndDeallocateShadowResources()
 
 D3DFORMAT GetValidStencilBufferFormat ( D3DFORMAT BackBufferFormat )
 {
-	LPDIRECT3D9 m_pDX;
-	m_pD3D->GetDirect3D(&m_pDX);
+	LPDIRECT3D9 m_pDX = nullptr;
+	if ( m_pD3D ) m_pD3D->GetDirect3D(&m_pDX);
+	if ( !m_pDX ) return D3DFMT_D24S8;
 
 	// create the list in order of precedence
 	D3DFORMAT DepthFormat = D3DFMT_UNKNOWN;
@@ -179,12 +180,23 @@ HRESULT CascadedShadowsManager::ReleaseAndAllocateNewShadowResources( LPD3DXEFFE
 		DWORD dwSurfaceWidth = 1024;
 		DWORD dwSurfaceHeight = 1024;
 		// Determine if NULL is supported
-		LPDIRECT3D9 m_pDX;
-		m_pD3D->GetDirect3D(&m_pDX);
+		LPDIRECT3D9 m_pDX = nullptr;
+		if ( m_pD3D ) m_pD3D->GetDirect3D(&m_pDX);
 		D3DSURFACE_DESC backbufferdesc;
-		g_pGlob->pHoldBackBufferPtr->GetDesc(&backbufferdesc);
+		if ( g_pGlob && g_pGlob->pHoldBackBufferPtr )
+		{
+			g_pGlob->pHoldBackBufferPtr->GetDesc(&backbufferdesc);
+		}
+		else
+		{
+			memset(&backbufferdesc, 0, sizeof(backbufferdesc));
+			backbufferdesc.Format = D3DFMT_X8R8G8B8;
+		}
 		D3DFORMAT BackBufferFormat = backbufferdesc.Format;
-		hr = m_pDX->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, BackBufferFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, FOURCC_NULL);
+		if ( m_pDX )
+			hr = m_pDX->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, BackBufferFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, FOURCC_NULL);
+		else
+			hr = E_FAIL;
 		m_bNULLRenderTargetSupported = (hr == D3D_OK);
 		m_bNULLRenderTargetSupported = false; // seems terrain shadow was fine, but non-primary effects had MESSED UP depth fetches!!
 		if ( m_bNULLRenderTargetSupported==true )
