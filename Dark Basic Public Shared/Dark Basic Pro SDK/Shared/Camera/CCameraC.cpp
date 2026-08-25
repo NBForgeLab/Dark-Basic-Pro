@@ -122,16 +122,13 @@ DARKSDK void ConstructorD3D ( HINSTANCE hSetup, HINSTANCE hImage )
 		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( hSetup, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
 	#else
 		g_GFX_GetDirect3DDevice = dbGetDirect3DDevice;
-		bFromCore = true;
 	#endif
 
-	
-	m_pD3D                  = g_GFX_GetDirect3DDevice ( );
-	m_pD3D->GetDirect3D(&m_pDX);
-
-	// check the device is valid
-	if ( !m_pD3D )
-		Error ( "Failed to access D3D for camera DLL" );
+	m_pD3D                  = g_GFX_GetDirect3DDevice ? g_GFX_GetDirect3DDevice ( ) : nullptr;
+	if ( m_pD3D )
+	{
+		m_pD3D->GetDirect3D(&m_pDX);
+	}
 
 	// link up image functions
 	#ifndef DARKSDK_COMPILE
@@ -150,7 +147,7 @@ DARKSDK void ConstructorD3D ( HINSTANCE hSetup, HINSTANCE hImage )
 	#endif
 
 	// create a default camera
-	if(bFromCore)
+	if(bFromCore && m_pD3D)
 	{
 		// Core uses a cameraID of zero
 		m_iCurrentCamera=0;
