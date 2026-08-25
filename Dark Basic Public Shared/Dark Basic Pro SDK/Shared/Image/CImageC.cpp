@@ -147,8 +147,8 @@ DARKSDK void ConstructorD3D ( HINSTANCE hSetup )
 		g_GFX_GetDirect3DDevice = dbGetDirect3DDevice;
 	#endif
 	
-	m_pD3D                  = g_GFX_GetDirect3DDevice ( );
-	m_pD3D->GetDirect3D(&m_pDX);
+	m_pD3D                  = g_GFX_GetDirect3DDevice ? g_GFX_GetDirect3DDevice ( ) : nullptr;
+	if ( m_pD3D ) m_pD3D->GetDirect3D(&m_pDX);
 
 	g_Sprite_PasteImage		= NULL;	//filled later
 	g_Update_All_Sprites	= NULL;
@@ -246,9 +246,26 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 {
 	// Held in Core, used here..
 	g_pGlob = (GlobStruct*)pGlobPtr;
+	if ( !g_pGlob ) return;
+
+	if ( g_pGlob->g_GFX && !m_pD3D )
+	{
+		#ifndef DARKSDK_COMPILE
+		g_GFX_GetDirect3DDevice = ( GFX_GetDirect3DDevicePFN ) GetProcAddress ( g_pGlob->g_GFX, "?GetDirect3DDevice@@YAPAUIDirect3DDevice9@@XZ" );
+		#else
+		g_GFX_GetDirect3DDevice = dbGetDirect3DDevice;
+		#endif
+		if ( g_GFX_GetDirect3DDevice )
+			m_pD3D = g_GFX_GetDirect3DDevice();
+		if ( m_pD3D && !m_pDX )
+			m_pD3D->GetDirect3D(&m_pDX);
+	}
 
 	// and basic3d functions
-	g_Basic3D_ClearObjectsOfTextureRef = ( BASIC3D_ClearObjectsOfTextureRef ) GetProcAddress ( g_pGlob->g_Basic3D, "?ClearObjectsOfTextureRef@@YAXPAUIDirect3DTexture9@@@Z" );
+	if ( g_pGlob->g_Basic3D )
+	{
+		g_Basic3D_ClearObjectsOfTextureRef = ( BASIC3D_ClearObjectsOfTextureRef ) GetProcAddress ( g_pGlob->g_Basic3D, "?ClearObjectsOfTextureRef@@YAXPAUIDirect3DTexture9@@@Z" );
+	}
 
 	// get memblock functions
 	if ( g_pGlob->g_Memblocks )
@@ -260,6 +277,8 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 
 	// Get default d3dformat from backbuffer
 	D3DSURFACE_DESC backdesc;
+	memset ( &backdesc, 0, sizeof(backdesc) );
+	backdesc.Format = D3DFMT_X8R8G8B8;
 	LPDIRECT3DSURFACE9 pBackBuffer = g_pGlob->pCurrentBitmapSurface;
 	if(pBackBuffer)
 	{
@@ -272,6 +291,8 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 	{
 		g_DefaultD3Dformat = D3DFMT_A8R8G8B8;
 	}
+
+	if ( !m_pDX ) return;
 
 	// Ensure textureformat is valid, else choose next valid..
 	HRESULT hRes = m_pDX->CheckDeviceFormat(	D3DADAPTER_DEFAULT,
