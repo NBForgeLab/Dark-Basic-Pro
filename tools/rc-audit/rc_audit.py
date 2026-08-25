@@ -129,10 +129,30 @@ def audit_rc(rc_path: Path, mismatches: List[Mismatch], warnings: List[Warning])
 
         fix_map = {}  # token index -> replacement token
 
+        def make_resolver():
+            """Resolve single-digit backref tokens to the type they refer to.
+
+            MSVC emits a digit 'd' for a parameter whose type repeats the type
+            of parameter #d (0-based, counting every parameter including
+            non-pointer ones). Verified empirically on x64 MSVC 14.5x:
+              (u64, char*, char*) -> ?f@@YA_K_KPEAD1@Z   ('1' refers to param 1)
+              (u64, u64)          -> ?f@@YA_K_K0@Z       ('0' refers to param 0)
+            """
+            def resolve(tok: str, depth: int = 0) -> str:
+                if depth < 4 and len(tok) == 1 and tok.isdigit():
+                    j = int(tok)
+                    if j < len(param_toks):
+                        return resolve(param_toks[j], depth + 1)
+                return tok
+            return resolve
+
+        resolve = make_resolver()
+
         def pointer_sized(tok: str) -> bool:
             """True for tokens that already carry a 64-bit value on x64:
-            wide ints, pointers, and the '0' repeat-the-previous-type mark."""
-            return tok == "_K" or tok.startswith("P") or tok == "0"
+            wide ints, pointers, and backref/repeat digits resolving to those."""
+            t = resolve(tok)
+            return t == "_K" or t.startswith("P")
 
         # String return: the return token and the hidden destination param
         # must both be pointer-sized on x64.
@@ -162,7 +182,7 @@ def audit_rc(rc_path: Path, mismatches: List[Mismatch], warnings: List[Warning])
                 fix_map[idx + 1] = "_K"
             elif not pointer_sized(tok):
                 warnings.append((rc_path, line, func,
-                                 f"%S% param maps to non-string token {tok!r}"))
+                                 f"%S% param maps to non-string token {resolve(tok)!r}"))
 
         if not fix_map:
             continue

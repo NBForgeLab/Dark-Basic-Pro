@@ -110,6 +110,18 @@ def test_pointer_and_abbrev_tokens_do_not_warn():
     assert ww == []
 
 
+def test_backref_digit_resolves_to_referenced_param():
+    # MSVC emits a digit backref equal to the 0-based position of the first
+    # parameter with the same type. For (u64, char*, char*) x64 MSVC emits
+    # ?GetRegistryS@@YA_K_KPEAD1@Z -- the trailing '1' refers to param #1
+    # (PEAD), so the %S% pair is pointer-sized and must NOT warn.
+    mm, ww = _audit('STRINGTABLE\nBEGIN\n'
+                    '    IDS_1 "GET REGISTRY$[%SSS%?GetRegistryS@@YA_K_KPEAD1@Z%x"\n'
+                    'END\n')
+    assert mm == []
+    assert ww == []
+
+
 def test_non_string_token_at_s_position_warns():
     mm, ww = _audit('STRINGTABLE\nBEGIN\n'
                     '    IDS_1 "FOO%S%?Bar@@YAXHH@Z%x"\n'
