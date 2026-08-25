@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////////////////////
 //#define _CRT_SECURE_NO_DEPRECATE
 #include "DBOFormat.h"
+#include <cstdint>
 #include "DBOFrame.h"
 #include "DBORawMesh.h"
 #include "DBOMesh.h"
@@ -1826,7 +1827,7 @@ DARKSDK_DLL LPD3DXMESH LocalMeshToDXMesh ( sMesh* pMesh, CONST LPD3DVERTEXELEMEN
 		{
 			pMesh->dwIndexCount = dwFaces * 3;
 			pMesh->pIndices = new WORD [ pMesh->dwIndexCount ];
-			for ( WORD dwI=0; dwI<(WORD)pMesh->dwIndexCount; dwI++ )
+			for ( uint16_t dwI=0; dwI<(WORD)pMesh->dwIndexCount; dwI++ )
 				pMesh->pIndices [ dwI ] = dwI;
 		}
 
@@ -2083,12 +2084,12 @@ DARKSDK_DLL bool ConvertLocalMeshToTriList ( sMesh* pMesh )
 		if ( pMesh->pIndices==NULL )
 		{
 			// generate new mesh without indices
-			WORD wIndexSeq = 0;
+			uint16_t wIndexSeq = 0;
 			dwNewIndexCount = (pMesh->dwVertexCount-2) * 3;
 			pNewIndex = new WORD [ dwNewIndexCount ];
-			WORD wFace0 = wIndexSeq; wIndexSeq++;
-			WORD wFace1 = 0;
-			WORD wFace2 = wIndexSeq; wIndexSeq++;
+			uint16_t wFace0 = wIndexSeq; wIndexSeq++;
+			uint16_t wFace1 = 0;
+			uint16_t wFace2 = wIndexSeq; wIndexSeq++;
 			int iToggle = 0;
 			DWORD dwIndex = 0;
 			for ( DWORD i = 2; i < pMesh->dwVertexCount; i++ )
@@ -2119,9 +2120,9 @@ DARKSDK_DLL bool ConvertLocalMeshToTriList ( sMesh* pMesh )
 			// generate new mesh from indices
 			dwNewIndexCount = (pMesh->dwIndexCount-2) * 3;
 			pNewIndex = new WORD [ dwNewIndexCount ];
-			WORD wFace0 = pMesh->pIndices [ 0 ];
-			WORD wFace1 = 0;
-			WORD wFace2 = pMesh->pIndices [ 1 ];
+			uint16_t wFace0 = pMesh->pIndices [ 0 ];
+			uint16_t wFace1 = 0;
+			uint16_t wFace2 = pMesh->pIndices [ 1 ];
 			int iToggle = 0;
 			DWORD dwIndex = 0;
 			for ( DWORD i = 2; i < pMesh->dwIndexCount; i++ )
@@ -2170,12 +2171,12 @@ DARKSDK_DLL bool ConvertLocalMeshToTriList ( sMesh* pMesh )
 		if ( pMesh->pIndices==NULL )
 		{
 			// generate new indices
-			WORD wIndexSeq = 0;
+			uint16_t wIndexSeq = 0;
 			dwNewIndexCount = (pMesh->dwVertexCount-2) * 3;
 			pNewIndex = new WORD [ dwNewIndexCount ];
-			WORD wFace0 = wIndexSeq; wIndexSeq++;
-			WORD wFace1 = 0;
-			WORD wFace2 = wIndexSeq; wIndexSeq++;
+			uint16_t wFace0 = wIndexSeq; wIndexSeq++;
+			uint16_t wFace1 = 0;
+			uint16_t wFace2 = wIndexSeq; wIndexSeq++;
 			DWORD dwIndex = 0;
 			for ( DWORD i = 2; i < pMesh->dwVertexCount; i++ )
 			{
@@ -2819,7 +2820,7 @@ DARKSDK_DLL void GenerateExtraDataForMeshEx ( sMesh* pMesh, BOOL bNormals, BOOL 
 	{
 		// extract declaration and vertex size from mesh
 		pDXMesh->GetDeclaration( Declaration );
-		WORD wNumBytesPerVertex = (WORD)pDXMesh->GetNumBytesPerVertex();
+		uint16_t wNumBytesPerVertex = (WORD)pDXMesh->GetNumBytesPerVertex();
 
 		// check if mesh already has a component
 		BOOL bHasNormals = FALSE;

@@ -14,6 +14,7 @@
 
 // Externals for DBO/Manager relationship
 #include <vector>
+#include <cstdint>
 extern std::vector< sMesh* >		g_vRefreshMeshList;
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -568,7 +569,7 @@ DARKSDK_DLL void SmoothNormals ( sMesh* pMesh, float fPercentage )
 					D3DXVECTOR3 vecScannedNormal = *(D3DXVECTOR3*)( ( float* ) pMesh->pVertexData + offsetMap.dwNX + ( offsetMap.dwSize * iScanVert ) );
 
 					// add normal to table
-					BYTE Index = NormalCount [ iCurrentVertex ];
+					uint8_t Index = NormalCount [ iCurrentVertex ];
 					if ( Index < 32 )
 					{
 						fNormals [ (iCurrentVertex*dwSharedVertexMax)+Index ] = vecScannedNormal;
@@ -1423,7 +1424,7 @@ DARKSDK_DLL bool AddMeshToData ( sMesh* pFinalMesh, sMesh* pMeshToAdd )
 		memcpy ( pFinalMesh->pIndices, pOriginalMesh->pIndices, pOriginalMesh->dwIndexCount * sizeof(WORD) );
 
 		// new vertex data in index list (word=65535max)
-		WORD dwVertexStart = (WORD)pOriginalMesh->dwVertexCount;
+		uint16_t dwVertexStart = (WORD)pOriginalMesh->dwVertexCount;
 
 		// copy over standard to final
 		BYTE* pDestVertexData = (BYTE*)pFinalMesh->pVertexData + ( dwVertexStart * pOriginalMesh->dwFVFSize );
@@ -1496,7 +1497,7 @@ DARKSDK_DLL bool DeleteMeshFromData ( sMesh* pMesh, int iVertex1, int iVertex2, 
 	}
 
 	// reduce 'indice' data after vertex data shuffle
-	WORD wVGap = static_cast<WORD>( iVertex2 - iVertex1 );
+	uint16_t wVGap = static_cast<WORD>( iVertex2 - iVertex1 );
 	WORD* pThisIndexData = (WORD*)pNewIndexData;
 	for ( DWORD i=0; i<dwNewIndexCount; i++)
 		if(pThisIndexData[i]>=iVertex2)
@@ -4046,7 +4047,7 @@ DARKSDK_DLL bool CastShadowGeometryToShadowMesh ( D3DXVECTOR3 vecLightPos, sMesh
 		for ( i = 0; i < dwNumFaces; i++ )
 		{
 			// get face vectors
-			WORD wFace0, wFace1, wFace2;
+			uint16_t wFace0, wFace1, wFace2;
 			if ( pCasterMesh->pIndices )
 			{
 				// from index list
@@ -4094,7 +4095,7 @@ DARKSDK_DLL bool CastShadowGeometryToShadowMesh ( D3DXVECTOR3 vecLightPos, sMesh
 		for ( i = 0; i < dwNumEdges; i++ )
 		{
 			// determine edge vectors
-			WORD wFace = pEdges [ 2 * i + 0 ];
+			uint16_t wFace = pEdges [ 2 * i + 0 ];
 			D3DXVECTOR3 v1 = *(D3DXVECTOR3*)((float*)pBase+(wFace*offsetMap.dwSize));
 			wFace = pEdges [ 2 * i + 1 ];
 			D3DXVECTOR3 v2 = *(D3DXVECTOR3*)((float*)pBase+(wFace*offsetMap.dwSize));
@@ -4587,7 +4588,7 @@ DARKSDK_DLL bool MakeMeshSphere ( bool bCreateNew, sMesh* pMesh, D3DXVECTOR3 vec
 	float		fDeltaSegAngle		= ( 2.0f * D3DX_PI / iSegments );
 	int			iVertex				= 0;
 	int			iIndex				= 0;
-	WORD		wVertexIndex		= 0;
+	uint16_t	wVertexIndex		= 0;
 	D3DXVECTOR3 vNormal;
 
 	// generate the group of rings for the sphere
@@ -5068,7 +5069,7 @@ bool MakeLODMeshFromMesh ( sMesh* pMeshIn, int iVertexNum, sMesh** ppMeshOut )
 					memcpy ( pNewIndexData, pDBOMesh->pIndices, pDBOMesh->dwIndexCount * sizeof(WORD) );
 
 					// make new verticess (NSEW)
-					WORD dwVertexStart = (WORD)pDBOMesh->dwVertexCount;
+					uint16_t dwVertexStart = (WORD)pDBOMesh->dwVertexCount;
 					// north
 					int* iVertN = new int [ dwSkirtIndexN ];
 					for ( int iN=0; iN<(int)dwSkirtIndexN; iN++ )
