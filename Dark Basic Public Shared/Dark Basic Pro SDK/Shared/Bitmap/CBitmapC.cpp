@@ -176,14 +176,17 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 	}
 	#endif
 
-	m_pD3D                  = g_GFX_GetDirect3DDevice ( );
-	m_pD3D->GetDirect3D(&m_pDX);
+	m_pD3D                  = g_GFX_GetDirect3DDevice ? g_GFX_GetDirect3DDevice ( ) : nullptr;
+	if ( m_pD3D )
+	{
+		m_pD3D->GetDirect3D(&m_pDX);
 
-	// Use refresh to recreate bitmap zero
-	UpdateBitmapZeroOfNewBackbuffer();
+		// Use refresh to recreate bitmap zero
+		UpdateBitmapZeroOfNewBackbuffer();
 
-	// Start with bitmap zero target
-	SetCurrentBitmap(0);
+		// Start with bitmap zero target
+		SetCurrentBitmap(0);
+	}
 }
 
 DARKSDK void RefreshD3D ( int iMode )
