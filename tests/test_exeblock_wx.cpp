@@ -180,13 +180,13 @@ TEST(EXEBlockWXTest, ClearFreesMCBAfterProtectionTransition) {
     // Simulate a loaded MCB
     const DWORD mcbSizeDwords = 64;
     exe.m_dwSizeOfMCB = mcbSizeDwords * sizeof(DWORD);
-    exe.m_pMachineCodeBlock = static_cast<DWORD*>(
+    exe.m_pMachineCodeBlock = static_cast<uint8_t*>(
         VirtualAlloc(nullptr, exe.m_dwSizeOfMCB,
                      MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     ASSERT_NE(exe.m_pMachineCodeBlock, nullptr);
 
     // Write some data
-    exe.m_pMachineCodeBlock[0] = 0xCAFEBABE;
+    *reinterpret_cast<uint32_t*>(exe.m_pMachineCodeBlock) = 0xCAFEBABE;
 
     // Transition to PAGE_EXECUTE_READ (as InitDebug would do)
     DWORD oldProtect = 0;

@@ -70,7 +70,7 @@ public:
     };
 
     using SymbolResolver =
-        std::function<std::optional<std::uint32_t>(const ParsedReference&)>;
+        std::function<std::optional<std::uint64_t>(const ParsedReference&)>;
 
     CReferenceTracker();
     ~CReferenceTracker() = default;

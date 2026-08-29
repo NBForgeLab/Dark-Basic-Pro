@@ -1384,9 +1384,10 @@ bool CStr::TranslateForDBM(CResultData* pResultPtr)
 					for(DWORD n = 0; n < dwParamMax; n++) if(pLastParamDec->GetNext()) pLastParamDec = pLastParamDec->GetNext();
 					DWORD dOffsetToLastParamInStruct = pLastParamDec->GetOffset();
 					int iDisplacement = 0;
-					if(dwOffset == 0) { iDisplacement = -4; }
-					else if(dwOffset <= dOffsetToLastParamInStruct) { iDisplacement = dwOffset + 4; }
-					else { iDisplacement = ((dOffsetToLastParamInStruct) - dwOffset) - dwSizeOfData; }
+					const int iSlotSize = g_pStructTable ? static_cast<int>(g_pStructTable->GetTargetAddressSize()) : 8;
+					if(dwOffset == 0) { iDisplacement = -iSlotSize; }
+					else if(dwOffset <= dOffsetToLastParamInStruct) { iDisplacement = static_cast<int>(dwOffset) + iSlotSize; }
+					else { iDisplacement = ((static_cast<int>(dOffsetToLastParamInStruct)) - static_cast<int>(dwOffset)) - static_cast<int>(dwSizeOfData); }
 					CStr pStr("@:");
 					pStr.AddNumericText(iDisplacement);
 					SetText(pStr.GetStr());

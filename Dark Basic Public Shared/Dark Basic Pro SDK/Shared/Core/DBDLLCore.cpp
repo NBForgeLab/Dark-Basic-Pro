@@ -53,6 +53,56 @@ DARKSDK void Decrypt( LPSTR szStringAddress );
 DARKSDK void Encrypt( LPSTR szStringAddress );
 DARKSDK void ChangeMouse( DWORD dwCursorID );
 
+static constexpr uint32_t kDBProStringMagic = 0xDB575247;
+
+struct DBProStringHeader
+{
+	uint32_t magic;
+	uint32_t size;
+};
+
+static inline char* AllocateDynamicString(size_t len)
+{
+	const size_t totalBytes = sizeof(DBProStringHeader) + len + 1;
+	char* pMem = new char[totalBytes];
+	memset(pMem, 0, totalBytes);
+	DBProStringHeader* pHeader = reinterpret_cast<DBProStringHeader*>(pMem);
+	pHeader->magic = kDBProStringMagic;
+	pHeader->size = static_cast<uint32_t>(len);
+	return pMem + sizeof(DBProStringHeader);
+}
+
+static inline bool IsDynamicHeapString(const void* ptr)
+{
+	if (!ptr) return false;
+	const char* strPtr = static_cast<const char*>(ptr);
+	const void* headerPtr = strPtr - sizeof(DBProStringHeader);
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(headerPtr, &mbi, sizeof(mbi)) != sizeof(mbi)) return false;
+	if (mbi.State != MEM_COMMIT || (mbi.Protect != PAGE_READWRITE && mbi.Protect != PAGE_WRITECOPY)) return false;
+	const DBProStringHeader* pHeader = reinterpret_cast<const DBProStringHeader*>(headerPtr);
+	return (pHeader->magic == kDBProStringMagic);
+}
+
+static inline void FreeDynamicString(void* ptr)
+{
+	if (!ptr) return;
+	char* strPtr = static_cast<char*>(ptr);
+	void* headerPtr = strPtr - sizeof(DBProStringHeader);
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(headerPtr, &mbi, sizeof(mbi)) == sizeof(mbi) &&
+		mbi.State == MEM_COMMIT &&
+		(mbi.Protect == PAGE_READWRITE || mbi.Protect == PAGE_WRITECOPY))
+	{
+		DBProStringHeader* pHeader = reinterpret_cast<DBProStringHeader*>(headerPtr);
+		if (pHeader->magic == kDBProStringMagic)
+		{
+			pHeader->magic = 0; // Clear magic to prevent double-free
+			delete[] reinterpret_cast<char*>(pHeader);
+		}
+	}
+}
+
 // Touch System works under XP and Win7 now
 bool bDetectAndActivateWindows7TouchSystem = false;
 
@@ -1000,18 +1050,18 @@ DARKSDK int TestMemory ( int iSizeInBytes )
 DARKSDK void CreateSingleString(DWORD_PTR* dwVariableSpaceAddress, DWORD dwSize)
 {
 	if (!dwVariableSpaceAddress) return;
-	if(dwSize>0)
+	if (dwSize > 0)
 	{
-		// Create a core string
-		*dwVariableSpaceAddress = (DWORD_PTR)new char[dwSize];
+		char* pNew = AllocateDynamicString(dwSize);
+		*dwVariableSpaceAddress = reinterpret_cast<DWORD_PTR>(pNew);
 	}
 	else
 	{
 		// Delete a core string
 		LPSTR strPtr = (LPSTR)*dwVariableSpaceAddress;
-		if ( strPtr && HeapValidate( GetProcessHeap(), 0, strPtr ) )
+		if ( strPtr )
 		{
-			delete[] strPtr;
+			FreeDynamicString( strPtr );
 		}
 		*dwVariableSpaceAddress = 0;
 	}
@@ -2477,11 +2527,19 @@ DARKSDK double InputO(void)
 }
 DARKSDK DWORD_PTR InputS(DWORD_PTR pDestStr)
 {
-	if(pDestStr) delete (LPSTR)pDestStr;
+	if (pDestStr) FreeDynamicString(reinterpret_cast<void*>(pDestStr));
 
-	LPSTR pString=NULL;
+	LPSTR pString = nullptr;
 	InputString(&pString);
-	return (DWORD_PTR)pString;
+	if (!pString)
+	{
+		return reinterpret_cast<DWORD_PTR>(AllocateDynamicString(0));
+	}
+	size_t len = strlen(pString);
+	char* pDyn = AllocateDynamicString(len);
+	strcpy_s(pDyn, len + 1, pString);
+	delete[] pString;
+	return reinterpret_cast<DWORD_PTR>(pDyn);
 }
 
 // MEMORY MANAGEMENT FUNCTIONS
@@ -2507,23 +2565,34 @@ DARKSDK DWORD_PTR CreateDataSpace(DWORD DataSpaceSize)
 DARKSDK void DeleteVariableSpace(void)
 {
 	// Delete Variable Space Itself
-	SAFE_FREE(g_pVarSpace);
+	if(g_pVarSpace)
+	{
+		GlobalFree(g_pVarSpace);
+		g_pVarSpace = nullptr;
+		g_Glob.g_pVariableSpace = nullptr;
+	}
 }
 
 DARKSDK void DeleteDataSpace(void)
 {
 	// Delete Data Space Itself
-	SAFE_FREE(g_pDataSpace);
+	if(g_pDataSpace)
+	{
+		GlobalFree(g_pDataSpace);
+		g_pDataSpace = nullptr;
+	}
 }
 
 DARKSDK void DeleteSingleVariableAllocation(DWORD_PTR* dwVariableSpaceAddress)
 {
-	// Delete Actual Allocation within Variable Space. Runtime variable
-	// allocations (strings, UDT blocks) are created with new char[], so they
-	// must be released with delete[] - a scalar delete corrupts the heap.
+	// Delete Actual Allocation within Variable Space.
 	if(dwVariableSpaceAddress && *dwVariableSpaceAddress)
 	{
-		delete[] (char*)*dwVariableSpaceAddress;
+		char* ptr = (char*)*dwVariableSpaceAddress;
+		if(IsDynamicHeapString(ptr))
+		{
+			delete[] ptr;
+		}
 		*dwVariableSpaceAddress = 0;
 	}
 }
@@ -2556,7 +2625,7 @@ DARKSDK DWORD_PTR CreateArray(DWORD dwSizeOfArray, DWORD dwSizeOfOneDataItem, DW
 	LPSTR      pData	= (LPSTR )(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
 	// Create Header
-	for(DWORD d=0; d<=9; d++) pHeader[0]=0;
+	for(DWORD d=0; d<=9; d++) pHeader[d]=0;
 	pHeader[10]=dwSizeOfArray;
 	pHeader[11]=dwSizeOfOneDataItem;
 	pHeader[12]=dwTypeValueOfOneDataItem;
@@ -2584,87 +2653,95 @@ DARKSDK DWORD_PTR CreateArray(DWORD dwSizeOfArray, DWORD dwSizeOfOneDataItem, DW
 	return (DWORD_PTR)pArrayPtr;
 }
 
+static inline bool IsDynamicArrayMemory(const void* ptr)
+{
+	if (!ptr) return false;
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(ptr, &mbi, sizeof(mbi)) != sizeof(mbi)) return false;
+	return (mbi.State == MEM_COMMIT) &&
+		   (mbi.Protect == PAGE_READWRITE || mbi.Protect == PAGE_WRITECOPY) &&
+		   (mbi.Type == MEM_PRIVATE);
+}
+
 DARKSDK void FreeStringsFromArray(DWORD_PTR dwArrayPtr)
 {
 	// Get Array Information
 	if ( dwArrayPtr )
 	{
-		uint32_t dwTypeValueOfOneDataItem = *reinterpret_cast<uint32_t*>(dwArrayPtr - 2 * sizeof(uint32_t));
-		if ( dwTypeValueOfOneDataItem == 2 ) 
-		{
-			// only free strings if array holds string items
-			size_t dwSizeOfTable = static_cast<size_t>(*reinterpret_cast<uint32_t*>(dwArrayPtr - 4 * sizeof(uint32_t)));
-			size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
-			size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
-			char** pData = reinterpret_cast<char**>(reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes);
-			for ( size_t dwDataOffset = 0; dwDataOffset < dwSizeOfTable; dwDataOffset++)
-			{
-				if ( pData[dwDataOffset] )
-				{
-					if ( HeapValidate( GetProcessHeap(), 0, pData[dwDataOffset] ) )
-					{
-						delete[] pData[dwDataOffset];
-					}
-					pData[dwDataOffset] = nullptr;
-				}
-			}
-		}
-		// Clear strings from UDT's
-		else if (dwTypeValueOfOneDataItem >= 9)
-		{
-			// Grab a copy of the arrays format string
-			LPSTR UdtFormat = GetTypePatternCore( nullptr, dwTypeValueOfOneDataItem );
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicArrayMemory(pHead)) return;
 
-			// Search the format string to see if the UDT contains any strings
-			bool ContainsString = false;
-			if ( UdtFormat )
+		__try
+		{
+			uint32_t dwTypeValueOfOneDataItem = *reinterpret_cast<uint32_t*>(dwArrayPtr - 2 * sizeof(uint32_t));
+			if ( dwTypeValueOfOneDataItem == 2 ) 
 			{
-				for ( const char* CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
+				// only free strings if array holds string items
+				size_t dwSizeOfTable = static_cast<size_t>(*reinterpret_cast<uint32_t*>(dwArrayPtr - 4 * sizeof(uint32_t)));
+				size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+				size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
+				char** pData = reinterpret_cast<char**>(reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes);
+				for ( size_t dwDataOffset = 0; dwDataOffset < dwSizeOfTable; dwDataOffset++)
 				{
-					if (*CurrentItem == 'S')
+					if ( pData[dwDataOffset] )
 					{
-						ContainsString = true;
-						break;
+						FreeDynamicString( pData[dwDataOffset] );
+						pData[dwDataOffset] = nullptr;
 					}
 				}
 			}
-
-			// If it does, loop through every UDT and release those strings
-			if (ContainsString && UdtFormat)
+			// Clear strings from UDT's
+			else if (dwTypeValueOfOneDataItem >= 9)
 			{
-				uintptr_t* ArrayPtr = reinterpret_cast<uintptr_t*>(dwArrayPtr);
-				size_t ArraySize = static_cast<size_t>(reinterpret_cast<uint32_t*>(dwArrayPtr)[-4]);
+				// Grab a copy of the arrays format string
+				LPSTR UdtFormat = GetTypePatternCore( nullptr, dwTypeValueOfOneDataItem );
 
-				for ( size_t Position = 0; Position < ArraySize; ++Position )
+				// Search the format string to see if the UDT contains any strings
+				bool ContainsString = false;
+				if ( UdtFormat )
 				{
-					size_t ItemOffset = 0;
 					for ( const char* CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
 					{
 						if (*CurrentItem == 'S')
 						{
-							uintptr_t P = ArrayPtr[ Position ] + ItemOffset;
-							char* strPtr = *reinterpret_cast<char**>(P);
-							if ( strPtr && HeapValidate( GetProcessHeap(), 0, strPtr ) )
-							{
-								delete[] strPtr;
-							}
-							*reinterpret_cast<char**>(P) = nullptr;
-							ItemOffset += sizeof(uintptr_t);            // Strings are pointer size
-						}
-						else if (*CurrentItem == 'O' || *CurrentItem == 'R')
-						{
-							ItemOffset += 8;            // Double float/integer are 8 bytes
-						}
-						else
-						{
-							ItemOffset += 4;            // Everything else is 4 bytes
+							ContainsString = true;
+							break;
 						}
 					}
 				}
-			}
 
-			// Release the copy of the arrays format string
-			delete[] UdtFormat;
+				// If it does, loop through every UDT and release those strings
+				if (ContainsString && UdtFormat)
+				{
+					uintptr_t* ArrayPtr = reinterpret_cast<uintptr_t*>(dwArrayPtr);
+					size_t ArraySize = static_cast<size_t>(reinterpret_cast<uint32_t*>(dwArrayPtr)[-4]);
+
+					for ( size_t Position = 0; Position < ArraySize; ++Position )
+					{
+						size_t ItemOffset = 0;
+						for ( const char* CurrentItem = UdtFormat; *CurrentItem; ++CurrentItem )
+						{
+							if (*CurrentItem == 'S')
+							{
+								uintptr_t P = ArrayPtr[ Position ] + ItemOffset;
+								char* strPtr = *reinterpret_cast<char**>(P);
+								if ( strPtr )
+								{
+									FreeDynamicString( strPtr );
+								}
+								*reinterpret_cast<char**>(P) = nullptr;
+							}
+							ItemOffset += sizeof(uintptr_t);            // Every UDT slot is 8 bytes on x64
+						}
+					}
+				}
+
+				// Release the copy of the arrays format string
+				delete[] UdtFormat;
+			}
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
 		}
 	}
 }
@@ -2675,10 +2752,13 @@ DARKSDK void DeleteArray(DWORD_PTR dwArrayPtr)
 	if(dwArrayPtr)
 	{
 		// Array Ptr Skips Header
-		dwArrayPtr-=HEADERSIZEINBYTES;
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
 
-		// Delete Array Memory
-		delete[] (char*)dwArrayPtr;
+		if (IsDynamicArrayMemory(pHead))
+		{
+			// Delete Array Memory
+			delete[] pHead;
+		}
 	}
 }
 
@@ -2953,11 +3033,15 @@ DARKSDK DWORD_PTR DimDDD(DWORD_PTR dwOldArrayPtr, DWORD dwTypeAndSizeOfElement, 
 		// leechange - 050304 - now REDIMs if array already exists
 		if ( dwOldArrayPtr )
 		{
-			// Change Size Of Array (and retain contents)
-			DWORD_PTR dwNewArrPtr = ReDimCore ( dwOldArrayPtr, dwTypeAndSizeOfElement, dwD1, dwD2, dwD3, dwD4, dwD5, dwD6, dwD7, dwD8, dwD9 );
+			char* pHead = reinterpret_cast<char*>(dwOldArrayPtr) - HEADERSIZEINBYTES;
+			if ( IsDynamicHeapString(pHead) )
+			{
+				// Change Size Of Array (and retain contents)
+				DWORD_PTR dwNewArrPtr = ReDimCore ( dwOldArrayPtr, dwTypeAndSizeOfElement, dwD1, dwD2, dwD3, dwD4, dwD5, dwD6, dwD7, dwD8, dwD9 );
 
-			// If corruption detected, can resort to a new array as follows..
-			if ( dwNewArrPtr!=NULL ) return dwNewArrPtr;
+				// If corruption detected, can resort to a new array as follows..
+				if ( dwNewArrPtr!=NULL ) return dwNewArrPtr;
+			}
 		}
 
 		// Create a New Array
@@ -2984,24 +3068,40 @@ DARKSDK DWORD_PTR UnDimDD(DWORD_PTR dwAllocation)
 DARKSDK void ArrayIndexToBottom(DWORD_PTR dwArrayPtr)
 {
 	// set index to last item in array
-	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4)-1;
+	if(dwArrayPtr)
+	{
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return;
+		__try { *((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4)-1; } __except(EXCEPTION_EXECUTE_HANDLER) {}
+	}
 }
 DARKSDK void ArrayIndexToTop(DWORD_PTR dwArrayPtr)
 {
 	// set index to first item in array
-	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = 0;
+	if(dwArrayPtr)
+	{
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return;
+		__try { *((DWORD*)dwArrayPtr-1) = 0; } __except(EXCEPTION_EXECUTE_HANDLER) {}
+	}
 }
 DARKSDK void NextArrayIndex(DWORD_PTR dwArrayPtr)
 {
 	// inc array index
 	if(dwArrayPtr)
 	{
-		*((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-1) + 1;
-		if(*((DWORD*)dwArrayPtr-1) > *((DWORD*)dwArrayPtr-4))
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return;
+		__try
 		{
-			// Last index reachable just just outside range >N
-			*((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4);
+			*((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-1) + 1;
+			if(*((DWORD*)dwArrayPtr-1) > *((DWORD*)dwArrayPtr-4))
+			{
+				// Last index reachable just just outside range >N
+				*((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4);
+			}
 		}
+		__except(EXCEPTION_EXECUTE_HANDLER) {}
 	}
 }
 DARKSDK void PreviousArrayIndex(DWORD_PTR dwArrayPtr)
@@ -3009,15 +3109,21 @@ DARKSDK void PreviousArrayIndex(DWORD_PTR dwArrayPtr)
 	// dec array index
 	if(dwArrayPtr)
 	{
-		if((int)*((DWORD*)dwArrayPtr-1)>0)
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return;
+		__try
 		{
-			*((DWORD*)dwArrayPtr-1)=(*((DWORD*)dwArrayPtr-1))-1;
+			if((int)*((DWORD*)dwArrayPtr-1)>0)
+			{
+				*((DWORD*)dwArrayPtr-1)=(*((DWORD*)dwArrayPtr-1))-1;
+			}
+			else
+			{
+				// First index reachable just outside range <0
+				*((DWORD*)dwArrayPtr-1)=(DWORD)-1;
+			}
 		}
-		else
-		{
-			// First index reachable just outside range <0
-			*((DWORD*)dwArrayPtr-1)=(DWORD)-1;
-		}
+		__except(EXCEPTION_EXECUTE_HANDLER) {}
 	}
 }
 DARKSDK DWORD ArrayIndexValid(DWORD_PTR dwArrayPtr)
@@ -3025,10 +3131,16 @@ DARKSDK DWORD ArrayIndexValid(DWORD_PTR dwArrayPtr)
 	// check if index is valid (pointing to valid item)
 	if(dwArrayPtr)
 	{
-		if(*((DWORD*)dwArrayPtr-1)<*((DWORD*)dwArrayPtr-4))
-			return 1;
-		else
-			return 0;
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return 0;
+		__try
+		{
+			if(*((DWORD*)dwArrayPtr-1)<*((DWORD*)dwArrayPtr-4))
+				return 1;
+			else
+				return 0;
+		}
+		__except(EXCEPTION_EXECUTE_HANDLER) { return 0; }
 	}
 	else
 		return 0;
@@ -3037,17 +3149,26 @@ DARKSDK DWORD ArrayCount(DWORD_PTR dwArrayPtr)
 {
 	// return array size
 	if(dwArrayPtr)
-		return (*((DWORD*)dwArrayPtr-4))-1;
+	{
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return (DWORD)-1;
+		__try
+		{
+			return (*((DWORD*)dwArrayPtr-4))-1;
+		}
+		__except(EXCEPTION_EXECUTE_HANDLER) { return (DWORD)-1; }
+	}
 	else
-		return -1;
+		return (DWORD)-1;
 }
 DARKSDK DWORD_PTR ArrayInsertAtBottom(DWORD_PTR dwArrayPtr)
 {
+	if(dwArrayPtr==NULL) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	try
 	{
-		// If no array, leave now
-		if(dwArrayPtr==NULL) return dwArrayPtr;
-
 		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 		if ( IsArraySingleDim ( dwArrayPtr )==false )
 		{
@@ -3076,11 +3197,12 @@ DARKSDK DWORD_PTR ArrayInsertAtBottom(DWORD_PTR dwArrayPtr)
 }
 DARKSDK DWORD_PTR ArrayInsertAtBottom(DWORD_PTR dwArrayPtr, int iQuantity)
 {
+	if(dwArrayPtr==NULL) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	try
 	{
-		// If no array, leave now
-		if(dwArrayPtr==NULL) return dwArrayPtr;
-
 		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 		if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
@@ -3109,11 +3231,12 @@ DARKSDK DWORD_PTR ArrayInsertAtBottom(DWORD_PTR dwArrayPtr, int iQuantity)
 
 DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr)
 {
+	if(dwArrayPtr==NULL) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	try
 	{
-		// If no array, leave now
-		if(dwArrayPtr==NULL) return dwArrayPtr;
-
 		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 		if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
@@ -3147,11 +3270,12 @@ DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr)
 
 DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr, int iQuantity)
 {
+	if(dwArrayPtr==NULL) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	try
 	{
-		// If no array, leave now
-		if(dwArrayPtr==NULL) return dwArrayPtr;
-
 		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 		if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
@@ -3191,11 +3315,12 @@ DARKSDK DWORD_PTR ArrayInsertAtTop(DWORD_PTR dwArrayPtr, int iQuantity)
 }
 DARKSDK DWORD_PTR ArrayInsertAtElement(DWORD_PTR dwArrayPtr, int iIndex)
 {
+	if(dwArrayPtr == 0) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	try
 	{
-		// If no array, leave now
-		if(dwArrayPtr == 0) return dwArrayPtr;
-
 		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 		if (!IsArraySingleDim(dwArrayPtr)) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
@@ -3243,180 +3368,186 @@ DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr, int iIndex)
 {
 	// If no array, leave now
 	if(dwArrayPtr==NULL) return;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return;
 
-	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
-	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
-
-	DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
-	if(dwSizeOfTable==0)
+	__try
 	{
-		// already empty - silent failure
-		return;
-	}
-	if(iIndex < 0 || iIndex >= static_cast<int>(dwSizeOfTable))
-	{
-		RunTimeError(RUNTIMEERROR_ARRAYINDEXINVALID);
-		return;
-	}
+		// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
+		if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
 
-	// Prepare pointers
-	DWORD dwDataItemSize = *reinterpret_cast<DWORD*>(dwArrayPtr - 3 * sizeof(DWORD));
-	[[maybe_unused]] DWORD dwUnusedItemSize = dwDataItemSize;
-	size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
-	size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
-	uintptr_t* pRef = reinterpret_cast<uintptr_t*>(dwArrayPtr);
-	char* pData = reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes;
-	size_t dwOffset = static_cast<size_t>(pRef[iIndex] - reinterpret_cast<uintptr_t>(pData));
-
-	// leeadd - 211008 - u71 - check for strings before remove this element
-	DWORD dwInternalTypeIndex = *reinterpret_cast<DWORD*>(dwArrayPtr - 2 * sizeof(DWORD));
-	LPSTR pPattern = GetTypePatternCore ( nullptr, dwInternalTypeIndex );
-	if ( pPattern )
-	{
-		// go through pattern which matches basic types
-		size_t dwTypeInternalOffset = 0;
-		size_t patternLen = strlen(pPattern);
-		for ( size_t n=0; n<patternLen; n++ )
+		DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
+		if(dwSizeOfTable==0)
 		{
-			// delete any strings in the user type
-			if ( pPattern[n]=='S' )
-			{
-				// U74 - 050509 - delete CORRECT part of block!
-				char** pStringData = reinterpret_cast<char**>(pData + dwOffset + dwTypeInternalOffset);
-				if ( *pStringData )
-				{
-					if ( HeapValidate( GetProcessHeap(), 0, *pStringData ) )
-					{
-						delete[] *pStringData;
-					}
-					*pStringData=NULL;
-				}
-			}
-
-			// next one..
-			switch ( pPattern[n] )
-			{
-				case 'B'	: dwTypeInternalOffset+=4; break;//1
-				case 'Y'	: dwTypeInternalOffset+=4; break;//1
-				case 'W'	: dwTypeInternalOffset+=4; break;//2
-				case 'O'	: dwTypeInternalOffset+=8; break;
-				case 'R'	: dwTypeInternalOffset+=8; break;
-				default		: dwTypeInternalOffset+=4; break;
-			}
+			// already empty - silent failure
+			return;
 		}
-		delete[] pPattern;
+		if(iIndex < 0 || iIndex >= static_cast<int>(dwSizeOfTable))
+		{
+			RunTimeError(RUNTIMEERROR_ARRAYINDEXINVALID);
+			return;
+		}
+
+		// Prepare pointers
+		DWORD dwDataItemSize = *reinterpret_cast<DWORD*>(dwArrayPtr - 3 * sizeof(DWORD));
+		[[maybe_unused]] DWORD dwUnusedItemSize = dwDataItemSize;
+		size_t dwRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+		size_t dwFlagSizeInBytes = dwSizeOfTable * 1;
+		uintptr_t* pRef = reinterpret_cast<uintptr_t*>(dwArrayPtr);
+		char* pData = reinterpret_cast<char*>(dwArrayPtr) + dwRefSizeInBytes + dwFlagSizeInBytes;
+		size_t dwOffset = static_cast<size_t>(pRef[iIndex] - reinterpret_cast<uintptr_t>(pData));
+
+		// leeadd - 211008 - u71 - check for strings before remove this element
+		DWORD dwInternalTypeIndex = *reinterpret_cast<DWORD*>(dwArrayPtr - 2 * sizeof(DWORD));
+		LPSTR pPattern = GetTypePatternCore ( nullptr, dwInternalTypeIndex );
+		if ( pPattern )
+		{
+			// go through pattern which matches basic types
+			size_t dwTypeInternalOffset = 0;
+			size_t patternLen = strlen(pPattern);
+			for ( size_t n=0; n<patternLen; n++ )
+			{
+				// delete any strings in the user type
+				if ( pPattern[n]=='S' )
+				{
+					// U74 - 050509 - delete CORRECT part of block!
+					char** pStringData = reinterpret_cast<char**>(pData + dwOffset + dwTypeInternalOffset);
+					if ( *pStringData )
+					{
+						if ( IsDynamicHeapString( *pStringData ) )
+						{
+							delete[] *pStringData;
+						}
+						*pStringData=NULL;
+					}
+				}
+				dwTypeInternalOffset += sizeof(uintptr_t);
+			}
+			delete[] pPattern;
+		}
+
+		// Shuffle to remove the deleted item from the ref table, then store the
+		// surviving refs before the tables shift
+		size_t dwAmountToShuffle = 0;
+		if((int)(dwSizeOfTable-iIndex-1)>0) dwAmountToShuffle = (dwSizeOfTable-iIndex-1)*sizeof(uintptr_t);
+		if(dwAmountToShuffle>0) memmove(pRef+iIndex, pRef+iIndex+1, dwAmountToShuffle);
+
+		uintptr_t* pStoreRef = new uintptr_t [ dwSizeOfTable ];
+		memcpy ( pStoreRef, pRef, dwSizeOfTable * sizeof(uintptr_t) );
+
+		// First shuffle out deleted data
+		dwAmountToShuffle = 0;
+		size_t dwTotalSizeOfData = (size_t)dwSizeOfTable * dwDataItemSize;
+		if(dwTotalSizeOfData > dwOffset+dwDataItemSize) dwAmountToShuffle = (dwTotalSizeOfData-dwOffset-dwDataItemSize);
+		if(dwAmountToShuffle>0) memmove(pData+dwOffset, pData+dwOffset+dwDataItemSize, dwAmountToShuffle);
+
+		// Reduce size of array
+		dwSizeOfTable = dwSizeOfTable - 1;
+		*((DWORD*)dwArrayPtr-4) = dwSizeOfTable;
+
+		// Get new sizes and pointers
+		size_t dwNewRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
+		size_t dwNewFlagSizeInBytes = dwSizeOfTable * 1;
+		LPSTR pNewFlag = (LPSTR)(((LPSTR)dwArrayPtr)+dwNewRefSizeInBytes);
+		LPSTR pNewData = (LPSTR)(((LPSTR)dwArrayPtr)+dwNewRefSizeInBytes+dwNewFlagSizeInBytes);
+
+		// Generate new ref data
+		for(DWORD i=0; i<dwSizeOfTable; i++)
+		{
+			// leefix - 210604 - retain pattern of ref data / 260604-u54-dwDataItemSize not 1
+			uintptr_t dwRedirectOffset = pStoreRef[i] - (uintptr_t)pData;
+			if ( dwRedirectOffset >= dwOffset ) dwRedirectOffset-=dwDataItemSize;
+			pRef[i] = (uintptr_t)(pNewData + dwRedirectOffset);
+		}
+
+		// free stored ref data
+		delete[] pStoreRef;
+
+		// First shuffle all data to new position BEFORE modifying flags
+		size_t dwNewTotalSizeOfData = (size_t)dwSizeOfTable * dwDataItemSize;
+		memmove(pNewData, pData, dwNewTotalSizeOfData);
+
+		// Set Flag Data with ones
+		memset(pNewFlag, 1, dwNewFlagSizeInBytes);
+
+		// Ensure internal index is still valid
+		if( *((DWORD*)dwArrayPtr-1) >= dwSizeOfTable )
+			*((DWORD*)dwArrayPtr-1) = dwSizeOfTable - 1;
 	}
-
-	// Shuffle to remove the deleted item from the ref table, then store the
-	// surviving refs before the tables shift
-	size_t dwAmountToShuffle = 0;
-	if((int)(dwSizeOfTable-iIndex-1)>0) dwAmountToShuffle = (dwSizeOfTable-iIndex-1)*sizeof(uintptr_t);
-	if(dwAmountToShuffle>0) memmove(pRef+iIndex, pRef+iIndex+1, dwAmountToShuffle);
-
-	uintptr_t* pStoreRef = new uintptr_t [ dwSizeOfTable ];
-	memcpy ( pStoreRef, pRef, dwSizeOfTable * sizeof(uintptr_t) );
-
-	// First shuffle out deleted data
-	dwAmountToShuffle = 0;
-	size_t dwTotalSizeOfData = (size_t)dwSizeOfTable * dwDataItemSize;
-	if(dwTotalSizeOfData > dwOffset+dwDataItemSize) dwAmountToShuffle = (dwTotalSizeOfData-dwOffset-dwDataItemSize);
-	if(dwAmountToShuffle>0) memmove(pData+dwOffset, pData+dwOffset+dwDataItemSize, dwAmountToShuffle);
-
-	// Reduce size of array
-	dwSizeOfTable = dwSizeOfTable - 1;
-	*((DWORD*)dwArrayPtr-4) = dwSizeOfTable;
-
-	// Get new sizes and pointers
-	size_t dwNewRefSizeInBytes = dwSizeOfTable * sizeof(uintptr_t);
-	size_t dwNewFlagSizeInBytes = dwSizeOfTable * 1;
-	LPSTR pNewFlag = (LPSTR)(((LPSTR)dwArrayPtr)+dwNewRefSizeInBytes);
-	LPSTR pNewData = (LPSTR)(((LPSTR)dwArrayPtr)+dwNewRefSizeInBytes+dwNewFlagSizeInBytes);
-
-	// Generate new ref data
-	for(DWORD i=0; i<dwSizeOfTable; i++)
-	{
-		// leefix - 210604 - retain pattern of ref data / 260604-u54-dwDataItemSize not 1
-		uintptr_t dwRedirectOffset = pStoreRef[i] - (uintptr_t)pData;
-		if ( dwRedirectOffset >= dwOffset ) dwRedirectOffset-=dwDataItemSize;
-		pRef[i] = (uintptr_t)(pNewData + dwRedirectOffset);
-	}
-
-	// free stored ref data
-	delete[] pStoreRef;
-
-	// Set Flag Data with ones
-	memset(pNewFlag, 1, dwNewFlagSizeInBytes);
-
-	// Then shuffle all data to new position
-	size_t dwNewTotalSizeOfData = (size_t)dwSizeOfTable * dwDataItemSize;
-	memmove(pNewData, pData, dwNewTotalSizeOfData);
-
-	// LEEFIX - 021202 - The delete shuffled the ref, blanked a flag and left the
-	// data alone. When another insert occured, the size of the array made the old
-	// data reader read the wrong flag and data blocks as the ref was smaller
-	// solution was to write it so that the data is shuffled and ref/flag recalculated
-	// LEEADD - 210604 - IN ADDITION, simply shuffling the data out is not an option
-	// because all the insert functions ADD to the size of the array meaning correct
-	// reconstruction is the only option here..
-
-	// Ensure internal index is still valid
-	if( *((DWORD*)dwArrayPtr-1) >= dwSizeOfTable )
-		*((DWORD*)dwArrayPtr-1) = dwSizeOfTable - 1;
+	__except(EXCEPTION_EXECUTE_HANDLER) {}
 }
 DARKSDK void ArrayDeleteElement(DWORD_PTR dwArrayPtr)
 {
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
 
-	DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
-	if(dwSizeOfTable==0)
-	{
-		// already empty - silent failure
-		return;
-	}
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return;
 
-	int iCurrentIndex = *((DWORD*)dwArrayPtr-1);
-	ArrayDeleteElement ( dwArrayPtr, iCurrentIndex );
+	__try
+	{
+		DWORD dwSizeOfTable = *((DWORD*)dwArrayPtr-4);
+		if(dwSizeOfTable==0)
+		{
+			// already empty - silent failure
+			return;
+		}
+
+		int iCurrentIndex = *((DWORD*)dwArrayPtr-1);
+		ArrayDeleteElement ( dwArrayPtr, iCurrentIndex );
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER) {}
 }
 DARKSDK void EmptyArray(DWORD_PTR dwAllocation)
 {
 	// If no array, leave now
 	if(dwAllocation==NULL) return;
 
-	DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
-	if(dwSizeOfTable==0)
+	char* pHead = reinterpret_cast<char*>(dwAllocation) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return;
+
+	__try
 	{
-		// already empty - silent failure
-		return;
+		DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
+		if(dwSizeOfTable==0)
+		{
+			// already empty - silent failure
+			return;
+		}
+
+		// Get Array Information
+		LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
+		DWORD* pHeader	= (DWORD*)(pArrayPtr);
+		DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
+		// CreateArray/ExpandArray store the allocation dimensions at header
+		// slots 10..13; slots 0..3 are the dimension-size block for data.
+		DWORD dwSizeOfArray = pHeader[10];
+		DWORD dwSizeOfOneDataItem = pHeader[11];
+		DWORD dwRefSizeInBytes = dwSizeOfArray * sizeof(uintptr_t);
+		DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
+		DWORD dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
+		uintptr_t* pRef = (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
+		LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
+		LPSTR pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
+
+		// Clear all data from array
+		FreeStringsFromArray( dwAllocation );
+		memset(pRef, 0, dwRefSizeInBytes);
+		memset(pFlag, 0, dwFlagSizeInBytes);
+		memset(pData, 0, dwDataSizeInBytes);
+
+		// Reset size of array to empty
+		*((DWORD*)dwAllocation-4) = 0;
+		*((DWORD*)dwAllocation-1) = 0;
 	}
-
-	// Get Array Information
-	LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
-	DWORD* pHeader	= (DWORD*)(pArrayPtr);
-	DWORD dwHeaderSizeInBytes = HEADERSIZEINBYTES;
-	// CreateArray/ExpandArray store the allocation dimensions at header
-	// slots 10..13; slots 0..3 are the dimension-size block for data.
-	DWORD dwSizeOfArray = pHeader[10];
-	DWORD dwSizeOfOneDataItem = pHeader[11];
-	DWORD dwRefSizeInBytes = dwSizeOfArray * sizeof(uintptr_t);
-	DWORD dwFlagSizeInBytes = dwSizeOfArray * 1;
-	DWORD dwDataSizeInBytes = dwSizeOfArray * dwSizeOfOneDataItem;
-	uintptr_t* pRef = (uintptr_t*)(pArrayPtr+dwHeaderSizeInBytes);
-	LPSTR pFlag = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes);
-	LPSTR pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
-
-	// Clear all data from array
-	FreeStringsFromArray( dwAllocation );
-	memset(pRef, 0, dwRefSizeInBytes);
-	memset(pFlag, 0, dwFlagSizeInBytes);
-	memset(pData, 0, dwDataSizeInBytes);
-
-	// Reset size of array to empty
-	*((DWORD*)dwAllocation-4) = 0;
-	*((DWORD*)dwAllocation-1) = 0;
+	__except(EXCEPTION_EXECUTE_HANDLER) {}
 }
 DARKSDK DWORD_PTR PushToStack(DWORD_PTR dwArrayPtr)
 {
+	if(dwArrayPtr==NULL) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
@@ -3433,23 +3564,33 @@ DARKSDK DWORD_PTR PushToStack(DWORD_PTR dwArrayPtr)
 DARKSDK void PopFromStack(DWORD_PTR dwArrayPtr)
 {
 	if(dwArrayPtr==NULL) return;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return;
 
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
 
-	// remove from bottom if list
-	int iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
-	if ( iIndexAtEnd >= 0 )
+	__try
 	{
-		ArrayDeleteElement(dwArrayPtr, iIndexAtEnd);
-	}
+		// remove from bottom if list
+		int iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
+		if ( iIndexAtEnd >= 0 )
+		{
+			ArrayDeleteElement(dwArrayPtr, iIndexAtEnd);
+		}
 
-	// place index to end (-1 if empty)
-	iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
-	*((DWORD*)dwArrayPtr-1) = (DWORD)iIndexAtEnd;
+		// place index to end (-1 if empty)
+		iIndexAtEnd = (int)*((DWORD*)dwArrayPtr-4) - 1;
+		*((DWORD*)dwArrayPtr-1) = (DWORD)iIndexAtEnd;
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER) {}
 }
 DARKSDK DWORD_PTR AddToQueue(DWORD_PTR dwArrayPtr)
 {
+	if(dwArrayPtr==NULL) return dwArrayPtr;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return dwArrayPtr;
+
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return dwArrayPtr; }
 
@@ -3466,28 +3607,44 @@ DARKSDK DWORD_PTR AddToQueue(DWORD_PTR dwArrayPtr)
 DARKSDK void RemoveFromQueue(DWORD_PTR dwArrayPtr)
 {
 	if(dwArrayPtr==NULL) return;
+	char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+	if (!IsDynamicHeapString(pHead)) return;
 
 	// lee - 140306 - u60b3 - Do not allow multi-dimensional arrays
 	if ( IsArraySingleDim ( dwArrayPtr )==false ) { RunTimeError(RUNTIMEERROR_ARRAYMUSTBESINGLEDIM); return; }
 
-	// remove from top of list
-	ArrayDeleteElement(dwArrayPtr, 0);
+	__try
+	{
+		// remove from top of list
+		ArrayDeleteElement(dwArrayPtr, 0);
 
-	// place index to zero, or -1 if queue became empty
-	if ( *((DWORD*)dwArrayPtr-4) == 0 )
-		*((DWORD*)dwArrayPtr-1) = (DWORD)-1;
-	else
-		*((DWORD*)dwArrayPtr-1) = 0;
+		// place index to zero, or -1 if queue became empty
+		if ( *((DWORD*)dwArrayPtr-4) == 0 )
+			*((DWORD*)dwArrayPtr-1) = (DWORD)-1;
+		else
+			*((DWORD*)dwArrayPtr-1) = 0;
+	}
+	__except(EXCEPTION_EXECUTE_HANDLER) {}
 }
 DARKSDK void ArrayIndexToStack(DWORD_PTR dwArrayPtr)
 {
 	// set index to last item in array
-	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4)-1;
+	if(dwArrayPtr)
+	{
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return;
+		__try { *((DWORD*)dwArrayPtr-1) = *((DWORD*)dwArrayPtr-4)-1; } __except(EXCEPTION_EXECUTE_HANDLER) {}
+	}
 }
 DARKSDK void ArrayIndexToQueue(DWORD_PTR dwArrayPtr)
 {
 	// set index to first item in array
-	if(dwArrayPtr) *((DWORD*)dwArrayPtr-1) = 0;
+	if(dwArrayPtr)
+	{
+		char* pHead = reinterpret_cast<char*>(dwArrayPtr) - HEADERSIZEINBYTES;
+		if (!IsDynamicHeapString(pHead)) return;
+		__try { *((DWORD*)dwArrayPtr-1) = 0; } __except(EXCEPTION_EXECUTE_HANDLER) {}
+	}
 }
 
 // HARDCODE COMMANDS
@@ -3500,7 +3657,7 @@ DARKSDK DWORD_PTR MakeByteMemory(int iSize)
 
 DARKSDK void DeleteByteMemory(DWORD_PTR dwMem)
 {
-	if(dwMem) delete[] (LPSTR)dwMem;
+	if(dwMem && IsDynamicArrayMemory((const void*)dwMem)) delete[] (LPSTR)dwMem;
 }
 
 DARKSDK void FillByteMemory(DWORD_PTR dwDest, int iValue, int iSize)
@@ -3560,7 +3717,7 @@ DARKSDK DWORD ReadF(void)
 }
 DARKSDK DWORD_PTR ReadS(DWORD_PTR pDestStr)
 {
-	if(pDestStr) delete[] (LPSTR)pDestStr;
+	if (pDestStr) FreeDynamicString(reinterpret_cast<void*>(pDestStr));
 
 	LPSTR pDatStr = NULL;
 	if(g_pDataLabelPtr && g_pDataLabelPtr<g_pDataLabelEnd)
@@ -3572,20 +3729,19 @@ DARKSDK DWORD_PTR ReadS(DWORD_PTR pDestStr)
 		g_pDataLabelPtr+=10;
 	}
 
-	LPSTR pString;
+	char* pString;
 	if (pDatStr)
 	{
 		size_t dwLength = strlen(pDatStr);
-		pString=new char[dwLength+1];
-		strcpy(pString, pDatStr);
+		pString = AllocateDynamicString(dwLength);
+		strcpy_s(pString, dwLength + 1, pDatStr);
 	}
 	else
 	{
-		pString = new char[1];
-		*pString = 0;
+		pString = AllocateDynamicString(0);
 	}
 
-	return (DWORD_PTR)pString;
+	return reinterpret_cast<DWORD_PTR>(pString);
 }
 DARKSDK BYTE ReadB(void)
 {
@@ -3937,149 +4093,101 @@ DARKSDK DWORD LessEqualLFF(float fValueA, float fValueB)
 
 // STRING COMPARE MATHS
 
-DARKSDK DWORD EqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
+static inline size_t SafeStrLen(DWORD_PTR ptr)
 {
-	if(dwSrcStr && dwDestStr)
-	{
-		if(strcmp((LPSTR)dwSrcStr, (LPSTR)dwDestStr)==NULL)
-			return 1;
-		else
-			return 0;
+	if (ptr <= 0x10000 || ptr >= 0x00007FFFFFFFFFFFULL)
+		return 0;
+	__try {
+		const char* s = reinterpret_cast<const char*>(ptr);
+		return strlen(s);
 	}
-	else
-	{
-		if(dwSrcStr==dwDestStr)
-		{
-			return 1;
-		}
-		else
-		{
-			if(dwSrcStr && dwDestStr==NULL)
-			{
-				if(strcmp((LPSTR)dwSrcStr, "")==NULL)
-					return 1;
-				else
-					return 0;
-			}
-			if(dwDestStr && dwSrcStr==NULL)
-			{
-				if(strcmp((LPSTR)dwDestStr, "")==NULL)
-					return 1;
-				else
-					return 0;
-			}
-			return 0;
-		}
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		return 0;
 	}
 }
-DARKSDK DWORD GreaterLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
+
+static inline void SafeStrCopy(char* dest, DWORD_PTR src, size_t maxLen)
 {
-	if(dwSrcStr && dwDestStr)
-	{
-		if(strcmp((LPSTR)dwSrcStr, (LPSTR)dwDestStr)>0)
-			return 1;
-		else
-			return 0;
+	if (!dest || maxLen == 0) return;
+	dest[0] = '\0';
+	if (src <= 0x10000 || src >= 0x00007FFFFFFFFFFFULL)
+		return;
+	__try {
+		const char* s = reinterpret_cast<const char*>(src);
+		size_t len = strlen(s);
+		if (len >= maxLen) len = maxLen - 1;
+		memcpy(dest, s, len);
+		dest[len] = '\0';
 	}
-	else
-	{
-		if(dwSrcStr==dwDestStr)
-			return 1;
-		else
-			return 0;
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		dest[0] = '\0';
 	}
 }
-DARKSDK DWORD LessLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
+
+static inline bool IsValidStringPointer(DWORD_PTR ptr)
 {
-	if(dwSrcStr && dwDestStr)
-	{
-		if(strcmp((LPSTR)dwSrcStr, (LPSTR)dwDestStr)<0)
-			return 1;
-		else
-			return 0;
+	return SafeStrLen(ptr) > 0;
+}
+
+DARKSDK DWORD EqualLSS(DWORD_PTR dwSrcStr, DWORD_PTR dwDestStr)
+{
+	size_t lenA = SafeStrLen(dwSrcStr);
+	size_t lenB = SafeStrLen(dwDestStr);
+	if (lenA == 0 && lenB == 0) return 1;
+	if (lenA != lenB) return 0;
+	__try {
+		const char* pA = reinterpret_cast<const char*>(dwSrcStr);
+		const char* pB = reinterpret_cast<const char*>(dwDestStr);
+		return (strcmp(pA, pB) == 0) ? 1 : 0;
 	}
-	else
-	{
-		if(dwSrcStr==dwDestStr)
-			return 1;
-		else
-			return 0;
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		return 0;
 	}
 }
-DARKSDK DWORD NotEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
+
+DARKSDK DWORD GreaterLSS(DWORD_PTR dwSrcStr, DWORD_PTR dwDestStr)
 {
-	if(dwSrcStr && dwDestStr)
-	{
-		if(strcmp((LPSTR)dwSrcStr, (LPSTR)dwDestStr)!=0)
-			return 1;
-		else
-			return 0;
+	size_t lenA = SafeStrLen(dwSrcStr);
+	size_t lenB = SafeStrLen(dwDestStr);
+	if (lenA == 0 && lenB == 0) return 0;
+	__try {
+		const char* pA = (lenA > 0) ? reinterpret_cast<const char*>(dwSrcStr) : "";
+		const char* pB = (lenB > 0) ? reinterpret_cast<const char*>(dwDestStr) : "";
+		return (strcmp(pA, pB) > 0) ? 1 : 0;
 	}
-	else
-	{
-		// leefix - 060405 - inverse of equal
-		if(dwSrcStr==dwDestStr)
-		{
-			return 0;
-		}
-		else
-		{
-			if(dwSrcStr && dwDestStr==NULL)
-			{
-				if(strcmp((LPSTR)dwSrcStr, "")==NULL)
-					return 0;
-				else
-					return 1;
-			}
-			if(dwDestStr && dwSrcStr==NULL)
-			{
-				if(strcmp((LPSTR)dwDestStr, "")==NULL)
-					return 0;
-				else
-					return 1;
-			}
-			return 1;
-		}
-		// leefix - 060405 - old way and very wrong
-		// if(dwSrcStr!=dwDestStr)
-		//	return 1;
-		// else
-		//	return 0;
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		return 0;
 	}
 }
-DARKSDK DWORD GreaterEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
+
+DARKSDK DWORD LessLSS(DWORD_PTR dwSrcStr, DWORD_PTR dwDestStr)
 {
-	if(dwSrcStr && dwDestStr)
-	{
-		if(strcmp((LPSTR)dwSrcStr, (LPSTR)dwDestStr)>=0)
-			return 1;
-		else
-			return 0;
+	size_t lenA = SafeStrLen(dwSrcStr);
+	size_t lenB = SafeStrLen(dwDestStr);
+	if (lenA == 0 && lenB == 0) return 0;
+	__try {
+		const char* pA = (lenA > 0) ? reinterpret_cast<const char*>(dwSrcStr) : "";
+		const char* pB = (lenB > 0) ? reinterpret_cast<const char*>(dwDestStr) : "";
+		return (strcmp(pA, pB) < 0) ? 1 : 0;
 	}
-	else
-	{
-		if(dwSrcStr==dwDestStr)
-			return 1;
-		else
-			return 0;
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+		return 0;
 	}
 }
-DARKSDK DWORD LessEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
+
+DARKSDK DWORD NotEqualLSS(DWORD_PTR dwSrcStr, DWORD_PTR dwDestStr)
 {
-	if(dwSrcStr && dwDestStr)
-	{
-		if(strcmp((LPSTR)dwSrcStr, (LPSTR)dwDestStr)<=0)
-			return 1;
-		else
-			return 0;
-	}
-	else
-	{
-		if(dwSrcStr==dwDestStr)
-			return 1;
-		else
-			return 0;
-	}
+	return EqualLSS(dwSrcStr, dwDestStr) ? 0 : 1;
+}
+
+DARKSDK DWORD GreaterEqualLSS(DWORD_PTR dwSrcStr, DWORD_PTR dwDestStr)
+{
+	return LessLSS(dwSrcStr, dwDestStr) ? 0 : 1;
+}
+
+DARKSDK DWORD LessEqualLSS(DWORD_PTR dwSrcStr, DWORD_PTR dwDestStr)
+{
+	return GreaterLSS(dwSrcStr, dwDestStr) ? 0 : 1;
 }
 
 
@@ -4087,40 +4195,36 @@ DARKSDK DWORD LessEqualLSS(DWORD_PTR dwSrcStr,DWORD_PTR dwDestStr)
 
 DARKSDK DWORD_PTR AddSSS(DWORD_PTR dwRetStr, DWORD_PTR dwSrcStrA, DWORD_PTR dwSrcStrB)
 {
-	// String concatenation. All three handles are pointer-sized heap
-	// addresses; the destination's previous allocation is released with
-	// delete[] (it was created with new char[]).
-	size_t length=1;
-	if(dwSrcStrA) length=strlen((LPSTR)dwSrcStrA);
-	if(dwSrcStrB) length+=strlen((LPSTR)dwSrcStrB);
-	LPSTR lpNewStr = new char[length+1];
-	strcpy(lpNewStr,"");
-	if(dwSrcStrA) strcat(lpNewStr, (LPSTR)dwSrcStrA);
-	if(dwSrcStrB) strcat(lpNewStr, (LPSTR)dwSrcStrB);
-	if(dwRetStr) delete[] (LPSTR)dwRetStr;
-	return (DWORD_PTR)lpNewStr;
+	size_t lenA = SafeStrLen(dwSrcStrA);
+	size_t lenB = SafeStrLen(dwSrcStrB);
+	char* lpNewStr = AllocateDynamicString(lenA + lenB);
+	SafeStrCopy(lpNewStr, dwSrcStrA, lenA + 1);
+	SafeStrCopy(lpNewStr + lenA, dwSrcStrB, lenB + 1);
+	lpNewStr[lenA + lenB] = '\0';
+	if (dwRetStr) FreeDynamicString(reinterpret_cast<void*>(dwRetStr));
+	return reinterpret_cast<DWORD_PTR>(lpNewStr);
 }
-DARKSDK DWORD_PTR EquateSS(DWORD_PTR dwDestStr,DWORD_PTR dwSrcStr)
+
+DARKSDK DWORD_PTR EquateSS(DWORD_PTR dwDestStr, DWORD_PTR dwSrcStr)
 {
-	size_t length=1;
-	if(dwSrcStr) length=strlen((LPSTR)dwSrcStr);
-	LPSTR lpNewStr = NULL;
-	if ( dwSrcStr!=0 )
+	char* lpNewStr = nullptr;
+	size_t len = SafeStrLen(dwSrcStr);
+	if (len > 0)
 	{
-		lpNewStr = new char[length+1];
-		strcpy(lpNewStr, (LPSTR)dwSrcStr);
+		lpNewStr = AllocateDynamicString(len);
+		SafeStrCopy(lpNewStr, dwSrcStr, len + 1);
 	}
-	if(dwDestStr) delete[] (LPSTR)dwDestStr;
-	return (DWORD_PTR)lpNewStr;
+	if (dwDestStr) FreeDynamicString(reinterpret_cast<void*>(dwDestStr));
+	return reinterpret_cast<DWORD_PTR>(lpNewStr);
 }
 DARKSDK DWORD_PTR FreeSS(DWORD_PTR dwDestStr)
 {
-	if(dwDestStr) delete[] (LPSTR)dwDestStr;
+	if (dwDestStr) FreeDynamicString(reinterpret_cast<void*>(dwDestStr));
 	return 0;
 }
 DARKSDK DWORD_PTR FreeStringSS(DWORD_PTR dwDestStr)
 {
-	if(dwDestStr) delete[] (LPSTR)dwDestStr;
+	if (dwDestStr) FreeDynamicString(reinterpret_cast<void*>(dwDestStr));
 	return 0;
 }
 
@@ -4830,19 +4934,19 @@ DARKSDK void WaitForMouse(void)
 DARKSDK DWORD_PTR Cl$(DWORD_PTR pDestStr)
 {
 	// get command line from main program...
-	LPSTR lpNewStr = NULL;
-	if(g_pCommandLineString)
+	char* lpNewStr = nullptr;
+	if (g_pCommandLineString)
 	{
-		lpNewStr = new char[strlen(g_pCommandLineString)+1];
-		strcpy(lpNewStr, g_pCommandLineString);
+		size_t len = strlen(g_pCommandLineString);
+		lpNewStr = AllocateDynamicString(len);
+		strcpy_s(lpNewStr, len + 1, g_pCommandLineString);
 	}
 	else
 	{
-		lpNewStr = new char[2];
-		strcpy(lpNewStr, "");
+		lpNewStr = AllocateDynamicString(0);
 	}
-	if(pDestStr) delete[] (LPSTR)pDestStr;
-	return (DWORD_PTR)lpNewStr;
+	if (pDestStr) FreeDynamicString(reinterpret_cast<void*>(pDestStr));
+	return reinterpret_cast<DWORD_PTR>(lpNewStr);
 }
 
 DARKSDK DWORD_PTR GetDate$(DWORD_PTR pDestStr)
@@ -5070,13 +5174,13 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD_PTR dwAllocation)
 					// Save Out Array (of x size)
 					for(DWORD n=0; n<dwSizeOfArray; n++)
 					{
-						DWORD* pEntry = *((DWORD**)dwAllocation+n);
+						uintptr_t* pEntry = *((uintptr_t**)dwAllocation+n);
 						if(pEntry)
 						{
 							// String data
 							DWORD dwStringSize=0;
 							LPSTR pStr = (LPSTR)*pEntry;
-							if(*pEntry) dwStringSize = static_cast<DWORD>(strlen(pStr));
+							if(*pEntry && IsValidStringPointer((DWORD_PTR)*pEntry)) dwStringSize = static_cast<DWORD>(strlen(pStr));
 							if(dwStringSize>0) WriteFile(hFile, pStr, dwStringSize, &written, FALSE);
 
 							// carriage return
@@ -5096,7 +5200,7 @@ DARKSDK void SaveArray(LPSTR pFilename, DWORD_PTR dwAllocation)
 					// Save Out Array (of x size)
 					for(DWORD n=0; n<dwSizeOfArray; n++)
 					{
-						DWORD* pEntry = *((DWORD**)dwAllocation+n);
+						uintptr_t* pEntry = *((uintptr_t**)dwAllocation+n);
 						if(pEntry)
 						{
 							// Write Index + Datablock
@@ -5145,7 +5249,7 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD_PTR dwAllocation)
 		DWORD dwExistingSizeOfArray = *((DWORD*)dwAllocation-4);
 		DWORD dwElementSize = *((DWORD*)dwAllocation-3);
 		DWORD dwExistingElementType = *((DWORD*)dwAllocation-2);
-		DWORD dwTableSizeInBytes = dwExistingSizeOfArray * 4;
+		DWORD dwTableSizeInBytes = dwExistingSizeOfArray * sizeof(uintptr_t);
 
 		// Can only save pure types
 		if(dwExistingElementType<9)
@@ -5174,19 +5278,19 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD_PTR dwAllocation)
 					DWORD dwStringSize = 0;
 					while(arrindex<(int)dwExistingSizeOfArray && TextLineCursorNext(&lineCursor, &pLineStart, &dwStringSize))
 					{
-						DWORD* pEntry = *((DWORD**)dwAllocation+arrindex);
+						uintptr_t* pEntry = *((uintptr_t**)dwAllocation+arrindex);
 						if(pEntry)
 						{
 							// Free any existing string
-							if(*pEntry) delete[] (LPSTR)(*pEntry);
+							if (*pEntry) FreeDynamicString(reinterpret_cast<void*>(*pEntry));
 
 							// Make string
-							LPSTR pNewStr = new char[dwStringSize+1];
+							char* pNewStr = AllocateDynamicString(dwStringSize);
 							memcpy(pNewStr, pLineStart, dwStringSize);
-							pNewStr[dwStringSize]=0;
+							pNewStr[dwStringSize] = 0;
 
 							// New string
-							*pEntry = static_cast<DWORD>( reinterpret_cast<DWORD_PTR>(pNewStr) );
+							*pEntry = reinterpret_cast<uintptr_t>(pNewStr);
 						}
 						arrindex++;
 					}
@@ -5208,7 +5312,7 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD_PTR dwAllocation)
 					if(dwElementType==dwExistingElementType && dwSizeOfArray==dwExistingSizeOfArray)
 					{
 						// Clear Array of old data
-						DWORD dwDataPointer=dwAllocation+dwTableSizeInBytes;
+						DWORD_PTR dwDataPointer=dwAllocation+dwTableSizeInBytes;
 						DWORD dwDataBlockSizeInBytes = dwSizeOfArray * dwElementSize;
 						ZeroMemory((LPSTR)dwDataPointer, dwDataBlockSizeInBytes);
 
@@ -5217,7 +5321,7 @@ DARKSDK void LoadArrayCore(LPSTR pFilename, DWORD_PTR dwAllocation)
 						ReadFile(hFile, &arrindex, 4, &readen, FALSE);
 						while(arrindex!=-1)
 						{
-							DWORD* pEntry = *((DWORD**)dwAllocation+arrindex);
+							uintptr_t* pEntry = *((uintptr_t**)dwAllocation+arrindex);
 							if(pEntry)
 							{
 								// Value

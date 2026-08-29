@@ -68,6 +68,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, uint32_t dwType, int
 		// PUSH STRING FROM UDT TO STACK
 		g_pASMWriter->WriteASMXtoRAX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
 		g_pASMWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, 3, iDisplacement);
+		g_pASMWriter->RecordPendingCallArg(3, 1u);
 		g_pASMWriter->WriteASMComment("PUSH TO STACK", "", "", "");
 
 		// Pass DEST + CURRENT STRING (same address)
@@ -257,11 +258,12 @@ bool CParseInstruction::WriteDBMBit(void)
 						{
 							// UDT is variable size
 							CResultData* pResultData = pCurrent->GetMathItem()->FindResultData();
-							DWORD dwUDTSize = 4;
+							const DWORD dwSlotBytes = g_pStructTable ? g_pStructTable->GetTargetAddressSize() : 8;
+							DWORD dwUDTSize = dwSlotBytes;
 							if ( pResultData->m_pStruct ) dwUDTSize = pResultData->m_pStruct->GetTypeSize();
-							DWORD dwStackSize = dwUDTSize/4;
-							if ( dwStackSize*4!=dwUDTSize )	dwStackSize++;
-							DWORD dwStackSizeInBytes=dwStackSize*4;
+							DWORD dwStackSize = dwUDTSize / dwSlotBytes;
+							if ( dwStackSize * dwSlotBytes != dwUDTSize ) dwStackSize++;
+							DWORD dwStackSizeInBytes = dwStackSize * dwSlotBytes;
 
 							// Push entire UDT data onto stack (force data through resultstructure)
 							CResultData pSizeData;
@@ -419,8 +421,9 @@ bool CParseInstruction::WriteDBMBit(void)
 			// Return stack pointer to normal
 			if(dwMustPopStack>0)
 			{
+				const DWORD dwSlotBytes = g_pStructTable ? g_pStructTable->GetTargetAddressSize() : 8;
 				CStr pData("");
-				pData.SetNumericText(dwMustPopStack*4);
+				pData.SetNumericText(dwMustPopStack * dwSlotBytes);
 				g_pASMWriter->WriteASMTaskCoreP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::AddRsp), &pData, 7);
 			}
 
@@ -713,7 +716,7 @@ bool CParseInstruction::WriteDBMHardCode(uint32_t dwBuildID, CResultData* pP1, C
 					g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PushAddress), pP1);
 
 				// Call MEMCPY equivilant
-				g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?CopyByteMemory@@YAXKKH@Z");
+				g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?CopyByteMemory@@YAX_K0H@Z");
 
 				// Pop params after calc - leefix - 170403 - stupidy stupidy stupidy
 				g_pASMWriter->WriteASMTaskP1(m_dwLineNumber, static_cast<DWORD>(ASMTask::PopRbx), nullptr);

@@ -49,17 +49,17 @@ sFileMap g_FileMap [ 256 ];
 #undef DARKSDK
 #define DARKSDK __declspec(dllexport)
 
-DARKSDK void  CreateFileMap    ( int iID, DWORD dwName, DWORD dwSize );
-DARKSDK void  OpenFileMap      ( int iID, DWORD dwName );
+DARKSDK void  CreateFileMap    ( int iID, DWORD_PTR dwName, DWORD dwSize );
+DARKSDK void  OpenFileMap      ( int iID, DWORD_PTR dwName );
 DARKSDK void  CloseFileMap     ( int iID );
 DARKSDK void  DestroyFileMap   ( int iID );
 
 DARKSDK DWORD GetFileMapDWORD  ( int iID, DWORD dwOffset );
-DARKSDK DWORD GetFileMapString ( DWORD dwDestStr, int iID, DWORD dwOffset );
+DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffset );
 DARKSDK DWORD GetFileMapFloat  ( int iID, DWORD dwOffset );
 
 DARKSDK void  SetFileMapDWORD  ( int iID, DWORD dwOffset, DWORD dwValue  );
-DARKSDK void  SetFileMapString ( int iID, DWORD dwOffset, DWORD dwString );
+DARKSDK void  SetFileMapString ( int iID, DWORD dwOffset, DWORD_PTR dwString );
 DARKSDK void  SetFileMapFloat  ( int iID, DWORD dwOffset, float fValue );
 
 DARKSDK void  SetEventAndWait  ( int iID );
@@ -75,7 +75,7 @@ bool CheckFileMapID ( int iID )
 	return true;
 }
 
-DARKSDK void CreateFileMap ( int iID, DWORD dwName, DWORD dwSize )
+DARKSDK void CreateFileMap ( int iID, DWORD_PTR dwName, DWORD dwSize )
 {
 	if ( !CheckFileMapID ( iID ) )
 		return;
@@ -89,7 +89,7 @@ DARKSDK void CreateFileMap ( int iID, DWORD dwName, DWORD dwSize )
 		strcpy ( g_FileMap [ iID ].szName, pName );
 }
 
-DARKSDK void OpenFileMap ( int iID, DWORD dwName )
+DARKSDK void OpenFileMap ( int iID, DWORD_PTR dwName )
 {
 	if ( !CheckFileMapID ( iID ) )
 		return;
@@ -138,7 +138,7 @@ DARKSDK DWORD GetFileMapDWORD ( int iID, DWORD dwOffset )
 	return dwValue;
 }
 
-DARKSDK DWORD GetFileMapString ( DWORD dwDestStr, int iID, DWORD dwOffset )
+DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffset )
 {
 	if ( !g_FileMap [ iID ].pIPC )
 		return 0;
@@ -155,7 +155,7 @@ DARKSDK DWORD GetFileMapString ( DWORD dwDestStr, int iID, DWORD dwOffset )
 		strcpy ( pReturnString, szString );
 	}
 
-	return (DWORD)(uintptr_t)pReturnString;
+	return (DWORD_PTR)pReturnString;
 }
 
 DARKSDK DWORD GetFileMapFloat ( int iID, DWORD dwOffset )
@@ -176,7 +176,7 @@ DARKSDK void SetFileMapDWORD ( int iID, DWORD dwOffset, DWORD dwValue )
 	g_FileMap [ iID ].pIPC->SendBuffer ( &dwValue, dwOffset, sizeof ( dwValue ) );
 }
 
-DARKSDK void SetFileMapString ( int iID, DWORD dwOffset, DWORD dwString )
+DARKSDK void SetFileMapString ( int iID, DWORD dwOffset, DWORD_PTR dwString )
 {
 	if ( !g_FileMap [ iID ].pIPC )
 		return;

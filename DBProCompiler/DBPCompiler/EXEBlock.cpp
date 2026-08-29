@@ -411,6 +411,62 @@ bool CEXEBlock::FileExists(LPSTR pFilename)
 
 bool CEXEBlock::Save(char* lpFilename)
 {
+	// [DIAG] Optional reference-table dump for crash diagnosis (DBP_DUMP_REFS=1)
+	{
+		const DWORD dumpEnabled = GetEnvironmentVariableA("DBP_DUMP_REFS", nullptr, 0);
+		if (dumpEnabled != 0)
+		{
+			const std::string dumpPath = std::string(lpFilename) + ".refs.txt";
+			FILE* dump = nullptr;
+			if (fopen_s(&dump, dumpPath.c_str(), "w") == 0 && dump != nullptr)
+			{
+				fprintf(dump, "refs=%lu strings=%lu commands=%lu mcb=%lu\n",
+					static_cast<unsigned long>(m_dwNumberOfReferences),
+					static_cast<unsigned long>(m_dwNumberOfStrings),
+					static_cast<unsigned long>(m_dwNumberOfCommands),
+					static_cast<unsigned long>(m_dwSizeOfMCB));
+				for (DWORD ref = 0; ref < m_dwNumberOfReferences; ref++)
+				{
+					const DWORD pos = m_pRefArray[ref];
+					const DWORD type = m_pRefTypeArray[ref];
+					const unsigned long long index = m_pRefIndexArray[ref];
+					const DWORD width = (m_pRefWidthArray != nullptr) ? m_pRefWidthArray[ref] : 8u;
+					const DWORD relEnd = (m_pRefRelEndArray != nullptr) ? m_pRefRelEndArray[ref] : 0u;
+					fprintf(dump, "ref[%lu] pos=0x%08X type=%lu index=0x%016llX width=%lu relEnd=0x%08X",
+						static_cast<unsigned long>(ref), pos,
+						static_cast<unsigned long>(type), index,
+						static_cast<unsigned long>(width),
+						static_cast<unsigned long>(relEnd));
+					if (type == 2 && index < m_dwNumberOfStrings && m_pStringsArray != nullptr)
+					{
+						const char* text = reinterpret_cast<const char*>(m_pStringsArray[index]);
+						if (text != nullptr)
+							fprintf(dump, " str=\"%.60s\"", text);
+					}
+					fprintf(dump, "\n");
+				}
+				// Overlap detection: two refs whose [pos, pos+width) intersect.
+				for (DWORD a = 0; a < m_dwNumberOfReferences; a++)
+				{
+					const DWORD pa = m_pRefArray[a];
+					const DWORD wa = (m_pRefWidthArray != nullptr) ? m_pRefWidthArray[a] : 8u;
+					for (DWORD b = a + 1; b < m_dwNumberOfReferences; b++)
+					{
+						const DWORD pb = m_pRefArray[b];
+						const DWORD wb = (m_pRefWidthArray != nullptr) ? m_pRefWidthArray[b] : 8u;
+						if (pa < pb + wb && pb < pa + wa)
+							fprintf(dump, "OVERLAP ref[%lu](pos=0x%X,w=%lu,t=%lu) ref[%lu](pos=0x%X,w=%lu,t=%lu)\n",
+								static_cast<unsigned long>(a), pa, static_cast<unsigned long>(wa),
+								static_cast<unsigned long>(m_pRefTypeArray[a]),
+								static_cast<unsigned long>(b), pb, static_cast<unsigned long>(wb),
+								static_cast<unsigned long>(m_pRefTypeArray[b]));
+					}
+				}
+				fclose(dump);
+			}
+		}
+	}
+
 	const auto outputPath = TextConvert::UTF8ToUTF16(lpFilename);
 	HANDLE hFile = CreateFileW(outputPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
@@ -434,7 +490,7 @@ bool CEXEBlock::Save(char* lpFilename)
 			strncpy_s(appName.data(), appName.size(), m_pInitialAppName, _TRUNCATE);
 		DWORD appNameLength = static_cast<DWORD>(appName.size());
 		auto* appNameData = reinterpret_cast<DWORD*>(appName.data());
-		record(SaveValueArrayBytes(hFile, &appNameData, &appNameLength));
+		record(SaveValueArrayBytes(hFile, reinterpret_cast<void**>(&appNameData), &appNameLength));
 
 		// DLL Data
 		record(SaveValue(hFile, &m_dwNumberOfDLLs));
@@ -456,7 +512,7 @@ bool CEXEBlock::Save(char* lpFilename)
 
 		// Machine Code Block (MCB)
 		record(SaveValue(hFile, &m_dwSizeOfMCB));
-		record(SaveValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB));
+                record(SaveValueArrayBytes(hFile, reinterpret_cast<void**>(&m_pMachineCodeBlock), &m_dwSizeOfMCB));
 
 		// Commands Data
 		record(SaveValue(hFile, &m_dwNumberOfCommands));
@@ -524,13 +580,26 @@ bool CEXEBlock::SaveValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
 	if (*Count == 0) return true;
 	if (*Count > (std::numeric_limits<DWORD>::max)() / sizeof(DWORD))
 		return false;
-	const DWORD expected = (*Count) * sizeof(DWORD);
+        const DWORD expected = (*Count) * sizeof(DWORD);
+        return *pArray != nullptr &&
+                WriteFile(hFile, *pArray, expected, &bytes, nullptr) != FALSE &&
+                bytes == expected;
+}
+
+bool CEXEBlock::SaveValueArray(HANDLE hFile, std::uint64_t** pArray, DWORD* Count)
+{
+	DWORD bytes=0;
+	if (pArray == nullptr || Count == nullptr) return false;
+	if (*Count == 0) return true;
+	if (*Count > (std::numeric_limits<DWORD>::max)() / sizeof(std::uint64_t))
+		return false;
+	const DWORD expected = (*Count) * sizeof(std::uint64_t);
 	return *pArray != nullptr &&
 		WriteFile(hFile, *pArray, expected, &bytes, nullptr) != FALSE &&
 		bytes == expected;
 }
 
-bool CEXEBlock::SaveValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
+bool CEXEBlock::SaveValueArrayBytes(HANDLE hFile, void** pArray, DWORD* Count)
 {
 	DWORD bytes=0;
 	if (pArray == nullptr || Count == nullptr) return false;
@@ -609,7 +678,7 @@ bool CEXEBlock::Load(char* lpFilename)
 
 		// AppName String
 		DWORD dwLength=256;
-                record(LoadValueArrayBytes(hFile, (DWORD**)&m_pInitialAppName, &dwLength));
+                record(LoadValueArrayBytes(hFile, reinterpret_cast<void**>(&m_pInitialAppName), &dwLength));
 
 		// DLL Data
                 record(LoadValue(hFile, &m_dwNumberOfDLLs));
@@ -633,7 +702,7 @@ bool CEXEBlock::Load(char* lpFilename)
 		// Machine Code Block (MCB)
 		// leeadd - 090305 - added flag for DEP protection allowance
                 record(LoadValue(hFile, &m_dwSizeOfMCB));
-                record(LoadValueArrayBytes(hFile, &m_pMachineCodeBlock, &m_dwSizeOfMCB, PAGE_READWRITE));
+                record(LoadValueArrayBytes(hFile, reinterpret_cast<void**>(&m_pMachineCodeBlock), &m_dwSizeOfMCB, PAGE_READWRITE));
 
 		// Commands Data
                 record(LoadValue(hFile, &m_dwNumberOfCommands));
@@ -714,7 +783,23 @@ bool CEXEBlock::LoadValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count)
                 bytes == expected;
 }
 
-bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, DWORD dwType)
+bool CEXEBlock::LoadValueArray(HANDLE hFile, std::uint64_t** pArray, DWORD* Count)
+{
+	DWORD bytes=0;
+        if (pArray == nullptr || Count == nullptr) return false;
+        if (*Count == 0) return true;
+
+        // Create Array (8-byte elements)
+        *pArray = std::make_unique<std::uint64_t[]>(*Count).release();
+
+        // Read data into Array
+        const DWORD expected = (*Count) * sizeof(std::uint64_t);
+        return *pArray != nullptr &&
+                Hook_ReadFile(hFile, *pArray, expected, &bytes, nullptr) != FALSE &&
+                bytes == expected;
+}
+
+bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, void** pArray, DWORD* Count, DWORD dwType)
 {
 	DWORD bytes=0;
         if (pArray == nullptr || Count == nullptr) return false;
@@ -729,7 +814,7 @@ bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, 
                 bytes == *Count;
 }
 
-bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count)
+bool CEXEBlock::LoadValueArrayBytes(HANDLE hFile, void** pArray, DWORD* Count)
 {
 	return LoadValueArrayBytes(hFile, pArray, Count, 0);
 }
@@ -1522,7 +1607,7 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 				// lee, somehow world3d decname is being looked for in imageDLL...
 
 				// Generate Pointers from Data
-				DWORD index = m_pRefIndexArray[ref];
+				std::uint64_t index = m_pRefIndexArray[ref];
 				if(iRefType==1)
 				{
 					// Command Address
@@ -1773,8 +1858,12 @@ bool CEXEBlock::Run(bool bResult)
 	if(!m_pMachineCodeBlock)
 		return bResult;
 
+	char szDbg[256];
+	sprintf_s(szDbg, "[EXEBlock] Calling g_CORE_Program: MCB=%p size=%lu\n", m_pMachineCodeBlock, m_dwSizeOfMCB);
+	OutputDebugStringA(szDbg);
 	g_CORE_Program = ( GDI_RetVoidParamVoidPFN ) m_pMachineCodeBlock;
 	g_CORE_Program();
+	OutputDebugStringA("[EXEBlock] g_CORE_Program returned successfully\n");
 
 	return bResult;
 }
@@ -1789,14 +1878,17 @@ bool CEXEBlock::RunFrom(bool bResult, DWORD dwOffset)
 	if(!m_pMachineCodeBlock)
 		return bResult;
 
+	OutputDebugStringA("[EXEBlock] Calling g_CORE_Program (RunFrom)\n");
 	g_CORE_Program = ( GDI_RetVoidParamVoidPFN ) ((LPSTR)m_pMachineCodeBlock + dwOffset);
 	g_CORE_Program();
+	OutputDebugStringA("[EXEBlock] g_CORE_Program returned successfully (RunFrom)\n");
 
 	return bResult;
 }
 
 void CEXEBlock::FreeUptoDisplay(void)
 {
+	OutputDebugStringA("[EXEBlock] FreeUptoDisplay start\n");
 	// [EXE] Delete All Allocations Within Data Space. String data items hold
 	// copies of the m_pDataStringsArray pointers; those originals are released
 	// by Clear(), so nothing here may free them a second time. The data space
@@ -1806,58 +1898,49 @@ void CEXEBlock::FreeUptoDisplay(void)
 	// [EXE] Delete Data Space
 	if(g_CORE_DeleteDataSpace) g_CORE_DeleteDataSpace();
 
+	OutputDebugStringA("[EXEBlock] FreeUptoDisplay: deleting var items\n");
 	// [EXE] Delete All Allocations Within Var Space
-	if(m_pVariableSpace)
+	if(m_pVariableSpace && m_pDynamicVarsArray && m_pDynamicVarsArrayType)
 	{
-		// Scan variables for all dynamic allocations (use dynamicvaroffsetarray).
-		// Each slot stores a pointer-sized handle (heap string / array / UDT
-		// block) at a fixed byte offset within the variable space. On x64 this
-		// handle is a full 8-byte value, so reads and writes must go through
-		// DWORD_PTR (never DWORD) to avoid truncation.
-		//
-		// Two distinct release paths exist depending on the slot type:
-		//   - DeleteVarItem expects the ADDRESS of the slot (it reads and frees
-		//     the pointer-sized handle itself, then nulls the slot). Used for
-		//     string / UDT / general heap entries.
-		//   - UnDim takes the array handle VALUE read from the slot, because the
-		//     array allocator tracks its own indirection. The slot is nulled
-		//     after the call to keep the variable space consistent.
-		//
-		// The DataType::Array branch below preserves both of those contracts.
 		for(DWORD dv=0; dv<m_dwDynamicVarsQuantity; dv++)
 		{
 			const DWORD dwOffset = m_pDynamicVarsArray[dv];
 			if(dwOffset + sizeof(DWORD_PTR) > m_dwVariableSpaceSize)
 				continue;
 			DWORD_PTR* pSlot = reinterpret_cast<DWORD_PTR*>(m_pVariableSpace + dwOffset);
-			if(!*pSlot)
+			if(!pSlot || !*pSlot)
 				continue;
 			if(m_pDynamicVarsArrayType[dv] == static_cast<DWORD>(DataType::Array))
 			{
-				g_CORE_UnDim(*pSlot);
+				if(g_CORE_UnDim) g_CORE_UnDim(*pSlot);
 				*pSlot = 0;
 			}
 			else
 			{
-				g_CORE_DeleteVarItem(pSlot);
+				if(g_CORE_DeleteVarItem) g_CORE_DeleteVarItem(pSlot);
 			}
 		}
 	}
 
+	OutputDebugStringA("[EXEBlock] FreeUptoDisplay: DeleteVarSpace\n");
 	// [EXE] Delete Variable Space
 	if(g_CORE_DeleteVarSpace) g_CORE_DeleteVarSpace();
 
+	OutputDebugStringA("[EXEBlock] FreeUptoDisplay: CloseDisplay\n");
 	// [EXE] Close Display
 	if(g_CORE_CloseDisplay) g_CORE_CloseDisplay();
+	OutputDebugStringA("[EXEBlock] FreeUptoDisplay end\n");
 }
 
 void CEXEBlock::Free(void)
 {
+	OutputDebugStringA("[EXEBlock] Free start\n");
 	// [CORE] Close any memory created for glob (allocated with new char[])
 	if ( g_pGlob && g_pGlob->pDynMemPtr ) SafeDeleteArray ( g_pGlob->pDynMemPtr );
 
 	// [EXE] Free Up Data Allocations (from Load)
 	Clear();
+	OutputDebugStringA("[EXEBlock] Free: Clear completed\n");
 
 	// [EXE] Freeing Up
 	if(!g_bSuccessfulDLLLinks)

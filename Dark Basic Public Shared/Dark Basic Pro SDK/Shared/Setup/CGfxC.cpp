@@ -885,8 +885,7 @@ DARKSDK BOOL CALLBACK EnumWindowsProc ( HWND hwnd, LPARAM lParam )
 {
 	char szBuffer [ MAX_PATH ];
 	GetWindowText ( hwnd, szBuffer, MAX_PATH );
-	int iResult = static_cast<int>( strspn ( szBuffer, g_szMainWindow ) );
-	if ( iResult )
+	if ( strstr ( szBuffer, g_szMainWindow ) != NULL )
 		EnumChildWindows ( hwnd, EnumChildProc, 0 );
 
 	return TRUE;
@@ -1889,6 +1888,10 @@ DARKSDK bool SetDisplayMode ( int iWidth, int iHeight, int iDepth, int iMode, in
 
 DARKSDK bool SetDisplayMode ( int iWidth, int iHeight, int iDepth, int iMode, int iVertexProcessing, int iLockable )
 {
+	char szDbg[256];
+	sprintf_s(szDbg, "[CGfxC] SetDisplayMode: iWidth=%d, iHeight=%d, iDepth=%d, iMode=%d, iVP=%d\n", iWidth, iHeight, iDepth, iMode, iVertexProcessing);
+	OutputDebugStringA(szDbg);
+
 	#if DEBUG_MODE
 			fwrite ( 
 						"\n** begin SetDisplayMode\n", 
@@ -3956,6 +3959,10 @@ DARKSDK void SetGamma ( int iR, int iG, int iB )
 
 DARKSDK void SetDisplayModeEx ( int iWidth, int iHeight, int iDepth )
 {
+	char szDbg[256];
+	sprintf_s(szDbg, "[CGfxC] SetDisplayModeEx: iWidth=%d, iHeight=%d, iDepth=%d\n", iWidth, iHeight, iDepth);
+	OutputDebugStringA(szDbg);
+
 	// Inform all DLLs to release resources
 	InformDLLsOfD3DChange(0);
 

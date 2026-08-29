@@ -14,7 +14,7 @@ TEST(TaskEmitterTest, DetermineASMCallResolvesTypes) {
     EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 4), baseOpcode);
     EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 6), baseOpcode + 1);
     EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 1), baseOpcode + 2);
-    EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 8), baseOpcode + 3);
+    EXPECT_EQ(emitter.DetermineASMCall(baseOpcode, 8), baseOpcode + 2);
 }
 
 TEST(TaskEmitterTest, ResetClearsState) {

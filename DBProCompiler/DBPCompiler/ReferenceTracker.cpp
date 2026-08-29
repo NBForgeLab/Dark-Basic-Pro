@@ -226,7 +226,7 @@ bool CReferenceTracker::UpdateMCBRefData(
     {
         std::uint32_t position;
         ReferenceKind kind;
-        std::uint32_t index;
+        std::uint64_t index;
         std::uint32_t slotBytes;
         std::uint32_t relEnd;
     };
@@ -241,7 +241,7 @@ bool CReferenceTracker::UpdateMCBRefData(
             return false;
         }
 
-        std::uint32_t resolvedIndex = parsed->index;
+        std::uint64_t resolvedIndex = parsed->index;
         if (IsSymbolic(parsed->kind))
         {
             const auto symbolIndex = resolveSymbol(*parsed);
@@ -276,7 +276,7 @@ bool CReferenceTracker::UpdateMCBRefData(
     const auto newCount = oldCount + resolved.size();
     auto positions = std::make_unique<DWORD[]>(newCount);
     auto types = std::make_unique<DWORD[]>(newCount);
-    auto indexes = std::make_unique<DWORD[]>(newCount);
+    auto indexes = std::make_unique<std::uint64_t[]>(newCount);
     auto widths = std::make_unique<DWORD[]>(newCount);
     auto relEnds = std::make_unique<DWORD[]>(newCount);
 

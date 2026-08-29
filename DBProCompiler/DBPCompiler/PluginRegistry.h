@@ -19,6 +19,10 @@ public:
         return (it != m_plugins.end()) ? it->second : nullptr;
     }
 
+    const std::unordered_map<std::string, HINSTANCE>& GetAll() const {
+        return m_plugins;
+    }
+
     void Clear() {
         m_plugins.clear();
     }

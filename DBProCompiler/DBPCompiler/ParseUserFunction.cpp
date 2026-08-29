@@ -79,6 +79,10 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 
 				// Put RAX overwrites DEST
 				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, nullptr, 7);
+
+				// Pop the 2 arguments from stack
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopRbx), nullptr, 0);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopRbx), nullptr, 0);
 			}
 			else
 			{
@@ -223,10 +227,11 @@ bool CParseUserFunction::ActOnLocalVars(DWORD PlacementCode, CStr* pDoNotFree)
 			{
 				// Calculate displacement to Local Variable (or ParamInputVar)
 				int iDisplacement;
+				const int iSlotSize = g_pStructTable ? static_cast<int>(g_pStructTable->GetTargetAddressSize()) : 8;
 				if(bSpecialRecreate==false)
-					iDisplacement=((dOffsetToLastParamInStruct)-dwOffset)-dwSizeOfData;
+					iDisplacement=((static_cast<int>(dOffsetToLastParamInStruct))-static_cast<int>(dwOffset))-static_cast<int>(dwSizeOfData);
 				else
-					iDisplacement=4+dwOffset;
+					iDisplacement=iSlotSize+static_cast<int>(dwOffset);
 
 				// Process as basic or user type
 				if(dwDecType==1001)
@@ -262,8 +267,9 @@ bool CParseUserFunction::WriteDBM(DWORD PlacementCode)
 		// Advance RSP Stack Register to skip 'local function space'
 		CStr pString(GetName()->GetStr());
 		DWORD dwTypeSize=g_pStructTable->GetSizeOfType(pString.GetStr());
+		const DWORD dwSlotSize = g_pStructTable ? g_pStructTable->GetTargetAddressSize() : 8;
 		CStr pStrNum("");
-		pStrNum.SetNumericText(dwTypeSize+4);//extra 4 bytes as start adds some for byte start
+		pStrNum.SetNumericText(dwTypeSize+dwSlotSize);//extra slot bytes as start adds some for byte start
 		g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::SubRsp), &pStrNum, 7);
 
 		// Clear all vars, and especially strings and array ptrs (and those in usertypes too)

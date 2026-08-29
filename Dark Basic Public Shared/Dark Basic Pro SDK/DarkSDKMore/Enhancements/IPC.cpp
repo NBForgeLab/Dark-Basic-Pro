@@ -46,7 +46,7 @@ cIPC::cIPC ( LPCTSTR SharedName, DWORD Size, BOOL bHandlesInheritable ) : m_nSiz
 	m_ipcd = ( tInterData* ) m_lpMappedViewOfFile;
 
 	// initialize buffer exchange memory
-	m_lpMem = ( LPVOID ) ( ( DWORD ) m_lpMappedViewOfFile + sizeof ( tInterData ) );
+	m_lpMem = ( LPVOID ) ( ( char* ) m_lpMappedViewOfFile + sizeof ( tInterData ) );
 
 	// try to open mutex
 	m_hDataMutex = OpenMutex ( MUTEX_ALL_ACCESS, m_bHandlesInheritable, m_szMutexName );

@@ -83,7 +83,7 @@ DARKSDK int		ReadByte						( int f );
 DARKSDK int		ReadWord						( int f );
 DARKSDK int		ReadLong						( int f );
 DARKSDK DWORD	ReadFloat						( int f );
-DARKSDK DWORD	ReadString						( int f, DWORD_PTR pDestStr );
+DARKSDK DWORD_PTR ReadString						( int f, DWORD_PTR pDestStr );
 DARKSDK void	ReadFileBlock					( int f, DWORD_PTR pFilename );
 DARKSDK void	SkipBytes						( int f, int iSkipValue );
 DARKSDK void	ReadDirBlock					( int f, DWORD_PTR pFilename );

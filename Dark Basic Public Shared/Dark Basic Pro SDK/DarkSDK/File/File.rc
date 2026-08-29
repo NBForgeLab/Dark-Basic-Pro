@@ -156,7 +156,7 @@ BEGIN
     IDS_STRING34            "READ FLOAT%LF*%?ReadFloat@@YAKH@Z%File Number, Variable"
     IDS_STRING35            "READ LONG%LL*%?ReadLong@@YAHH@Z%File Number, Variable"
     IDS_STRING36            "READ MEMBLOCK%LL%?ReadMemblock@@YAXHH@Z%File Number, Memblock Number"
-    IDS_STRING37            "READ STRING%LS*%?ReadString@@YAKH_K@Z%File Number, Variable String"
+    IDS_STRING37            "READ STRING%LS*%?ReadString@@YA_KH_K@Z%File Number, Variable String"
     IDS_STRING38            "READ WORD%LL*%?ReadWord@@YAHH@Z%File Number, Variable"
     IDS_STRING39            "RENAME FILE%SS%?RenameFile@@YAX_K0@Z%Source Filename, New Filename"
     IDS_STRING40            "SET DIR%S%?SetDir@@YAX_K@Z%Path$"

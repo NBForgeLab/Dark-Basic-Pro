@@ -3058,14 +3058,14 @@ bool CStatement::DoAllocation(DWORD StatementLineNumber, std::string_view varNam
 		if(pSizeParameter[d])
 			pFirstParameter->Add(pSizeParameter[d].release());
 
-	// Make Sure First Param is DWORD (so actual alloc address goes into array ptr var)
-	pFirstParameter->GetMathItem()->GetResultData()->m_dwType=7;
+	// In 64-bit architecture, array handles are 8-byte pointer types (DwordArray / 107)
+	pFirstParameter->GetMathItem()->GetResultData()->m_dwType = static_cast<DWORD>(DBPType::DwordArray);
 
 	// Complete Object Data
 	pInstruction->SetType(2);
 	pInstruction->SetValue(g_pInstructionTable->GetIIValue(static_cast<DWORD>(InternalInstruction::Alloc)));
 	pInstruction->SetInstructionRef(g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::Alloc)));
-	pInstruction->SetParamMax(10);
+	pInstruction->SetParamMax(11);
 	pInstruction->SetParameter(pFirstParameter.release());
 	pInstruction->SetLineNumber(StatementLineNumber);
 
@@ -3115,7 +3115,7 @@ bool CStatement::DoDeAllocation(DWORD StatementLineNumber)
 	}
 
 	// Ensure dealloc address uses POINTER MATHS (actual address, not relative address(as in array use))
-	pArrayParameter->GetMathItem()->SetResultType(7);
+	pArrayParameter->GetMathItem()->SetResultType(static_cast<DWORD>(DBPType::DwordArray));
 
 	// Complete Object Data
 	pInstruction->SetType(2);

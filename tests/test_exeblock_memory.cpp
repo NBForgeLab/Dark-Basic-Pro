@@ -35,7 +35,7 @@ void PopulateExeBlock(CEXEBlock& exe)
     exe.m_dwNumberOfReferences = 3;
     exe.m_pRefArray = exe.CreateArray(3);
     exe.m_pRefTypeArray = exe.CreateArray(3);
-    exe.m_pRefIndexArray = exe.CreateArray(3);
+    exe.m_pRefIndexArray = reinterpret_cast<std::uint64_t*>(exe.CreatePtrArray(3));
     exe.m_pRefWidthArray = exe.CreateArray(3);
     exe.m_pRefRelEndArray = exe.CreateArray(3);
 

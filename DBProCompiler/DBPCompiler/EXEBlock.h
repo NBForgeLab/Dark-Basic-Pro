@@ -74,14 +74,16 @@ class CEXEBlock
 		bool			LoadValue(HANDLE hFile, DWORD* Value);
 		bool			LoadBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize);
 		bool			LoadValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count);
-		bool			LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count, DWORD dwType);
-		bool			LoadValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count);
+		bool			LoadValueArray(HANDLE hFile, std::uint64_t** pArray, DWORD* Count);
+		bool			LoadValueArrayBytes(HANDLE hFile, void** pArray, DWORD* Count, DWORD dwType);
+		bool			LoadValueArrayBytes(HANDLE hFile, void** pArray, DWORD* Count);
 		bool			LoadStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* dwSize);
 		bool			Save(char* filename);
 		bool			SaveValue(HANDLE hFile, DWORD* Value);
 		bool			SaveBlock(HANDLE hFile, LPSTR* pMem, DWORD dwSize);
 		bool			SaveValueArray(HANDLE hFile, DWORD** pArray, DWORD* Count);
-		bool			SaveValueArrayBytes(HANDLE hFile, DWORD** pArray, DWORD* Count);
+		bool			SaveValueArray(HANDLE hFile, std::uint64_t** pArray, DWORD* Count);
+		bool			SaveValueArrayBytes(HANDLE hFile, void** pArray, DWORD* Count);
 		bool			SaveStringArray(HANDLE hFile, uintptr_t** pArray, DWORD* dwSize);
 		DWORD*			CreateArray(DWORD dwCount,DWORD dwType);
 		DWORD*			CreateArray(DWORD dwCount);
@@ -128,7 +130,7 @@ class CEXEBlock
 		DWORD			m_dwNumberOfReferences;
 		DWORD*			m_pRefArray;
 		DWORD*			m_pRefTypeArray;
-		DWORD*			m_pRefIndexArray;
+		std::uint64_t*	m_pRefIndexArray;
 		DWORD*			m_pRefWidthArray;
 		DWORD*			m_pRefRelEndArray;
 
@@ -146,7 +148,7 @@ class CEXEBlock
 
 		// Machine Code Block (MCB)
 		DWORD			m_dwSizeOfMCB;
-		DWORD*			m_pMachineCodeBlock;
+		std::uint8_t*	m_pMachineCodeBlock;
 		DWORD			m_dwStartOfMiniMC;
 
 		// Commands Data

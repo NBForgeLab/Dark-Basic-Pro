@@ -297,11 +297,12 @@ bool CStructTable::CalculateSize(void)
 				{
 					if(g_pStructTable->DoesTypeEvenExist(pDec->GetType()->GetStr()))
 					{
-						//leefix - 300305 - bytes must be stored in DWORDS (as they are passed onto stack as such)
+						// Native target size alignment (8 bytes on x64 as values are passed on stack as QWORDs)
+						const DWORD dwMinSlotSize = m_dwTargetAddressSize ? m_dwTargetAddressSize : 8;
 						DWORD dwSize=g_pStructTable->GetSizeOfType(pDec->GetType()->GetStr());
-						if ( dwSize <4 ) dwSize=4;
+						if ( dwSize < dwMinSlotSize ) dwSize = dwMinSlotSize;
 
-						if(pDec->GetArrFlag()==1) dwSize=4;
+						if(pDec->GetArrFlag()==1) dwSize = dwMinSlotSize;
 						if(dwSize>0)
 						{
 							// Calculate full size of field using array value
@@ -333,12 +334,13 @@ bool CStructTable::CalculateSize(void)
 				pDec = pDec->GetNext();
 			}
 
-			// leefix - 220604 - u54 - If not on DWORD boundary
-			int iRemainder = dwCumilitiveSize % 4;
+			// Boundary alignment to target address size
+			const DWORD dwAlignBoundary = m_dwTargetAddressSize ? m_dwTargetAddressSize : 8;
+			int iRemainder = dwCumilitiveSize % dwAlignBoundary;
 			if ( iRemainder > 0 )
 			{
-				// NOT DWORD boundary - add fillers
-				iRemainder = 4-iRemainder;
+				// NOT aligned - add fillers
+				iRemainder = static_cast<int>(dwAlignBoundary) - iRemainder;
 				for ( int i=0; i<iRemainder; i++ )
 				{
 					CDeclaration* pNewDec = new CDeclaration;

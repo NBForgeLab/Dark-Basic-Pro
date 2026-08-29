@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include "../DBPCompiler/PluginRegistry.h"
 
 // Defines and Externs
 #include "DarkEXE.h"
@@ -96,93 +97,90 @@ bool RunProgram(HINSTANCE hInstance, LPSTR* pReturnError)
 	#endif
 
 	// LEEADD - 221008 - U71 - EXTERNAL DEBUGGER SUPPORT
-	// kernel object names cannot contain path separators
-	std::string pUniqueMutexName = CEXE.m_AbsoluteAppFile + "(Mutex)";
-	for ( char& c : pUniqueMutexName )
-		if ( c == ':' || c == '@' || c == '/' ) c = '_';
-	HANDLE pAppMutex = OpenMutexW ( MUTEX_ALL_ACCESS, FALSE, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str() );
-	if ( pAppMutex )
 	{
-		// it appears another process has already created an identical mutex
-		// (which can happen if multiple programs with the same name are running)
-		// so we then check a shared storage location to see whether debugging
-		// has been requested by the 'external process' that may have created a mutex
-		std::string pSharedStringStorage;
 		// kernel object names cannot contain path separators
-		std::string pUniqueFileMapName = CEXE.m_AbsoluteAppFile + "(FileMap)";
-		for ( char& c : pUniqueFileMapName )
+		std::string pUniqueMutexName = CEXE.m_AbsoluteAppFile + "(Mutex)";
+		for ( char& c : pUniqueMutexName )
 			if ( c == ':' || c == '@' || c == '/' ) c = '_';
-
-		HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
-		if(hFileMap)
+		HANDLE pAppMutex = OpenMutexW ( MUTEX_ALL_ACCESS, FALSE, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str() );
+		if ( pAppMutex )
 		{
-			LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,0);
-			if(lpVoid)
+			// it appears another process has already created an identical mutex
+			// (which can happen if multiple programs with the same name are running)
+			// so we then check a shared storage location to see whether debugging
+			// has been requested by the 'external process' that may have created a mutex
+			std::string pSharedStringStorage;
+			// kernel object names cannot contain path separators
+			std::string pUniqueFileMapName = CEXE.m_AbsoluteAppFile + "(FileMap)";
+			for ( char& c : pUniqueFileMapName )
+				if ( c == ':' || c == '@' || c == '/' ) c = '_';
+
+			HANDLE hFileMap = OpenFileMappingW(FILE_MAP_READ,FALSE,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
+			if(hFileMap)
 			{
-				DWORD dwDataSize = 0;
-				dwDataSize = *((LPDWORD) lpVoid);
-				if ( dwDataSize>0 )
+				LPVOID lpVoid = MapViewOfFile(hFileMap,FILE_MAP_READ,0,0,0);
+				if(lpVoid)
 				{
-					const char* pPayload = reinterpret_cast<const char*>(lpVoid) + 4;
-					pSharedStringStorage.assign(pPayload, strnlen(pPayload, dwDataSize));
+					DWORD dwDataSize = 0;
+					dwDataSize = *((LPDWORD) lpVoid);
+					if ( dwDataSize>0 )
+					{
+						const char* pPayload = reinterpret_cast<const char*>(lpVoid) + 4;
+						pSharedStringStorage.assign(pPayload, strnlen(pPayload, dwDataSize));
+					}
+					UnmapViewOfFile(lpVoid);
 				}
-				UnmapViewOfFile(lpVoid);
+				CloseHandle(hFileMap);
 			}
-			CloseHandle(hFileMap);
-		}
-		if ( _stricmp(pSharedStringStorage.c_str(), "debugme") == 0 )
-		{
-			// a mutex for this app exists and the shared storage says it wants to
-			// DEBUG this application, so we pause here until we can own the mutex
-			// (which is achieved by the current owner of the mutex releasing it)
-
-			// but before we pause, we must replace the string in the shared storage
-			// so some new data which tells the debugger we are here now and waiting
-			// for ownership of the mutex so we can start running the program. In 
-			// order to keep this section simple, we simply pass in the memory address
-			// of the GLOBSTRUCT data, which includes all the information needed
-			DWORD dwWriteDataSize = sizeof(uintptr_t);
-			HANDLE hWriteFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
-			if(hWriteFileMap != nullptr && hWriteFileMap != INVALID_HANDLE_VALUE)
+			if ( _stricmp(pSharedStringStorage.c_str(), "debugme") == 0 )
 			{
-				LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize);
-				if(lpWriteVoid)
+				// a mutex for this app exists and the shared storage says it wants to
+				// DEBUG this application, so we pause here until we can own the mutex
+				// (which is achieved by the current owner of the mutex releasing it)
+
+				// but before we pause, we must replace the string in the shared storage
+				// so some new data which tells the debugger we are here now and waiting
+				// for ownership of the mutex so we can start running the program. In 
+				// order to keep this section simple, we simply pass in the memory address
+				// of the GLOBSTRUCT data, which includes all the information needed
+				DWORD dwWriteDataSize = sizeof(uintptr_t);
+				HANDLE hWriteFileMap = CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,dwWriteDataSize,TextConvert::UTF8ToUTF16(pUniqueFileMapName).c_str());
+				if(hWriteFileMap != nullptr && hWriteFileMap != INVALID_HANDLE_VALUE)
 				{
-					// Copy to Virtual File
-					*(uintptr_t*)lpWriteVoid = (uintptr_t)g_pGlob;
-					UnmapViewOfFile(lpWriteVoid);
+					LPVOID lpWriteVoid = MapViewOfFile(hWriteFileMap,FILE_MAP_WRITE,0,0,dwWriteDataSize);
+					if(lpWriteVoid)
+					{
+						// Copy to Virtual File
+						*(uintptr_t*)lpWriteVoid = (uintptr_t)g_pGlob;
+						UnmapViewOfFile(lpWriteVoid);
+					}
+					CloseHandle(hWriteFileMap);
 				}
-				CloseHandle(hWriteFileMap);
+
+				// friendly message
+				MessageBoxW ( nullptr, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str(), L"DBP App has deposited the glob struct in the filemap as a DWORD, and now wants to OWN this mutex...give it to me!", MB_OK );
+
+				// now wait for the external debugger to release the mutex
+				DWORD dwWaitResult = WaitForSingleObject ( pAppMutex, 5000L );
+				switch ( dwWaitResult ) 
+				{
+					// The thread got mutex ownership.
+					case WAIT_OBJECT_0:		dwWaitResult=dwWaitResult; break;
+					case WAIT_TIMEOUT:		dwWaitResult=dwWaitResult; break;
+					case WAIT_ABANDONED:	dwWaitResult=dwWaitResult; break;
+				}
 			}
-
-			// friendly message
-			MessageBoxW ( nullptr, TextConvert::UTF8ToUTF16(pUniqueMutexName).c_str(), L"DBP App has deposited the glob struct in the filemap as a DWORD, and now wants to OWN this mutex...give it to me!", MB_OK );
-
-			// now wait for the external debugger to release the mutex
-			DWORD dwWaitResult = WaitForSingleObject ( pAppMutex, 5000L );
-			switch ( dwWaitResult ) 
+			else
 			{
-				// The thread got mutex ownership.
-				case WAIT_OBJECT_0:		dwWaitResult=dwWaitResult; break;
-				case WAIT_TIMEOUT:		dwWaitResult=dwWaitResult; break;
-				case WAIT_ABANDONED:	dwWaitResult=dwWaitResult; break;
+				// for whatever reason, the shared string did NOT contain the text
+				// which would trigger this application to seek ownership of the 
+				// mutex and so can carry on without attempting to own this mutex
+				// as it was probably created by another app with the same mutex name
 			}
-		}
-		else
-		{
-			// for whatever reason, the shared string did NOT contain the text
-			// which would trigger this application to seek ownership of the 
-			// mutex and so can carry on without attempting to own this mutex
-			// as it was probably created by another app with the same mutex name
-		}
 
-		// close the mutex handle as we are finished with it
-		CloseHandle ( pAppMutex );
-	}
-	else
-	{
-		// could not find a MUTEX open, so no other apps with same mutex name
-		// are running, which includes any external debuggers so we continue as normal
+			// close the mutex handle as we are finished with it
+			CloseHandle ( pAppMutex );
+		}
 	}
 
 	// Run the EXE Program
@@ -600,6 +598,10 @@ static LONG WINAPI DbpVehCrashLocator(_EXCEPTION_POINTERS* pInfo)
 	if (!pInfo || !pInfo->ExceptionRecord)
 		return EXCEPTION_CONTINUE_SEARCH;
 
+	// Ignore OutputDebugString exception
+	if (pInfo->ExceptionRecord->ExceptionCode == 0x40010006)
+		return EXCEPTION_CONTINUE_SEARCH;
+
 	void* pAddr = pInfo->ExceptionRecord->ExceptionAddress;
 	HMODULE hMod = nullptr;
 	char szMod[MAX_PATH] = "?";
@@ -635,9 +637,155 @@ static LONG WINAPI DbpVehCrashLocator(_EXCEPTION_POINTERS* pInfo)
 			szMod, static_cast<unsigned long long>(uOff), pAddr);
 		if (pInfo->ExceptionRecord->ExceptionCode == 0xC0000005
 			&& pInfo->ExceptionRecord->NumberParameters >= 2)
+		{
 			fprintf(f, "     op=%s target=%p\n",
 				pInfo->ExceptionRecord->ExceptionInformation[0] ? "WRITE" : "READ",
 				reinterpret_cast<void*>(pInfo->ExceptionRecord->ExceptionInformation[1]));
+		}
+
+		if (pInfo->ContextRecord)
+		{
+			const auto& c = *pInfo->ContextRecord;
+			fprintf(f, "--- Registers ---\n");
+			fprintf(f, "  RIP=%016llX RSP=%016llX RBP=%016llX\n", c.Rip, c.Rsp, c.Rbp);
+			fprintf(f, "  RAX=%016llX RBX=%016llX RCX=%016llX RDX=%016llX\n", c.Rax, c.Rbx, c.Rcx, c.Rdx);
+			fprintf(f, "  RSI=%016llX RDI=%016llX R8 =%016llX R9 =%016llX\n", c.Rsi, c.Rdi, c.R8, c.R9);
+			fprintf(f, "  R10=%016llX R11=%016llX R12=%016llX R13=%016llX\n", c.R10, c.R11, c.R12, c.R13);
+			fprintf(f, "  R14=%016llX R15=%016llX EFLAGS=%08lX\n", c.R14, c.R15, c.EFlags);
+		}
+
+		if (CEXE.m_pMachineCodeBlock && CEXE.m_dwSizeOfMCB > 0)
+		{
+			uintptr_t mcbBase = reinterpret_cast<uintptr_t>(CEXE.m_pMachineCodeBlock);
+			uintptr_t mcbEnd = mcbBase + CEXE.m_dwSizeOfMCB;
+			fprintf(f, "MCB: [%p - %p] (size=%lu)\n", CEXE.m_pMachineCodeBlock, reinterpret_cast<void*>(mcbEnd), CEXE.m_dwSizeOfMCB);
+
+			// Dump around 0x35F262 if within bounds
+			if (CEXE.m_dwSizeOfMCB >= 0x35F262 + 64)
+			{
+				fprintf(f, "--- MCB at 0x35F262 (-48..+48) ---\n");
+				const unsigned char* pCode = (const unsigned char*)CEXE.m_pMachineCodeBlock + 0x35F262 - 48;
+				for (int b = 0; b < 96; ++b)
+				{
+					if (b == 48) fprintf(f, "\n[CALLSITE] ");
+					fprintf(f, "%02X ", pCode[b]);
+				}
+				fprintf(f, "\n");
+			}
+		}
+
+		void* stack[32] = {};
+		WORD frames = CaptureStackBackTrace(0, 32, stack, nullptr);
+		fprintf(f, "--- Stack Backtrace (%u frames) ---\n", frames);
+		for (WORD i = 0; i < frames; ++i)
+		{
+			HMODULE hFMod = nullptr;
+			char szFMod[MAX_PATH] = "?";
+			uintptr_t uFOff = reinterpret_cast<uintptr_t>(stack[i]);
+			uintptr_t sAddr = reinterpret_cast<uintptr_t>(stack[i]);
+			if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+				| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+				reinterpret_cast<LPCWSTR>(stack[i]), &hFMod) && hFMod)
+			{
+				WCHAR wFMod[MAX_PATH] = L"";
+				if (GetModuleFileNameW(hFMod, wFMod, MAX_PATH))
+				{
+					char szTmp[MAX_PATH] = "";
+					WideCharToMultiByte(CP_ACP, 0, wFMod, -1, szTmp, MAX_PATH, nullptr, nullptr);
+					strcpy_s(szFMod, szTmp);
+					uFOff = reinterpret_cast<uintptr_t>(stack[i]) - reinterpret_cast<uintptr_t>(hFMod);
+				}
+			}
+			else if (CEXE.m_pMachineCodeBlock && CEXE.m_dwSizeOfMCB > 0 && sAddr >= (uintptr_t)CEXE.m_pMachineCodeBlock && sAddr < (uintptr_t)CEXE.m_pMachineCodeBlock + CEXE.m_dwSizeOfMCB)
+			{
+				strcpy_s(szFMod, "MCB");
+				uFOff = sAddr - (uintptr_t)CEXE.m_pMachineCodeBlock;
+
+				// Print bytes at this location in MCB
+				const unsigned char* pBytes = reinterpret_cast<const unsigned char*>(sAddr - 16);
+				fprintf(f, "  [%02u] MCB+0x%llX (addr=%p)\n", i, static_cast<unsigned long long>(uFOff), stack[i]);
+				fprintf(f, "       Bytes (-16..+16): ");
+				for (int b = 0; b < 32; ++b)
+				{
+					fprintf(f, "%02X ", pBytes[b]);
+				}
+				fprintf(f, "\n");
+				continue;
+			}
+			else
+			{
+				// Check MemoryPE loaded plugins
+				for (const auto& [plugName, plugHandle] : PluginRegistry::GetInstance().GetAll())
+				{
+					uintptr_t plugBase = reinterpret_cast<uintptr_t>(plugHandle);
+					// Typically DLL memory image is at least 64KB - 32MB
+					if (plugBase && sAddr >= plugBase && sAddr < plugBase + 0x4000000)
+					{
+						sprintf_s(szFMod, "Plugin[%s]", plugName.c_str());
+						uFOff = sAddr - plugBase;
+						break;
+					}
+				}
+			}
+			fprintf(f, "  [%02u] %s+0x%llX (addr=%p)\n", i, szFMod, static_cast<unsigned long long>(uFOff), stack[i]);
+		}
+
+		if (pInfo->ContextRecord)
+		{
+			const auto& c = *pInfo->ContextRecord;
+			fprintf(f, "--- Stack Scan from RSP (%p) ---\n", (void*)c.Rsp);
+			uintptr_t* pRawStack = reinterpret_cast<uintptr_t*>(c.Rsp);
+			for (int s = 0; s < 32; ++s)
+			{
+				__try {
+					uintptr_t val = pRawStack[s];
+					char desc[128] = "";
+					if (CEXE.m_pMachineCodeBlock && val >= (uintptr_t)CEXE.m_pMachineCodeBlock && val < (uintptr_t)CEXE.m_pMachineCodeBlock + CEXE.m_dwSizeOfMCB)
+					{
+						sprintf_s(desc, " -> MCB+0x%llX", static_cast<unsigned long long>(val - (uintptr_t)CEXE.m_pMachineCodeBlock));
+					}
+					else
+					{
+						for (const auto& [plugName, plugHandle] : PluginRegistry::GetInstance().GetAll())
+						{
+							uintptr_t plugBase = reinterpret_cast<uintptr_t>(plugHandle);
+							if (plugBase && val >= plugBase && val < plugBase + 0x4000000)
+							{
+								sprintf_s(desc, " -> Plugin[%s]+0x%llX", plugName.c_str(), static_cast<unsigned long long>(val - plugBase));
+								break;
+							}
+						}
+					}
+					fprintf(f, "  [RSP+%03X] = %p%s\n", s * 8, (void*)val, desc);
+				}
+				__except (EXCEPTION_EXECUTE_HANDLER) {
+					break;
+				}
+			}
+
+			if (c.R12)
+			{
+				fprintf(f, "--- Stack Scan from R12 (%p) ---\n", (void*)c.R12);
+				uintptr_t* pR12Stack = reinterpret_cast<uintptr_t*>(c.R12);
+				for (int s = -4; s < 12; ++s)
+				{
+					__try {
+						uintptr_t val = pR12Stack[s];
+						char desc[128] = "";
+						if (CEXE.m_pMachineCodeBlock && val >= (uintptr_t)CEXE.m_pMachineCodeBlock && val < (uintptr_t)CEXE.m_pMachineCodeBlock + CEXE.m_dwSizeOfMCB)
+						{
+							sprintf_s(desc, " -> MCB+0x%llX", static_cast<unsigned long long>(val - (uintptr_t)CEXE.m_pMachineCodeBlock));
+						}
+						fprintf(f, "  [R12%+04d] = %p%s\n", s * 8, (void*)val, desc);
+					}
+					__except (EXCEPTION_EXECUTE_HANDLER) {
+						break;
+					}
+				}
+			}
+		}
+
+		fprintf(f, "-----------------------------------\n");
 		fclose(f);
 	}
 	return EXCEPTION_CONTINUE_SEARCH;

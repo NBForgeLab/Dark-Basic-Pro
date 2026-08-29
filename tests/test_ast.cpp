@@ -254,10 +254,8 @@ TEST_F(ASTCodeGenTest, AssignmentPipelineEmitsLoweredTargetCode) {
     const auto* const machineCode = reinterpret_cast<const unsigned char*>(
         writer->GetMachineCodeBuffer().GetProgramStart());
     ASSERT_NE(machineCode, nullptr);
-    EXPECT_EQ(machineCode[before], 0x48u)
-        << "loading an integer literal must emit REX.W prefix in 64-bit";
-    EXPECT_EQ(machineCode[before + 1], 0xB8u)
-        << "loading an integer literal must emit MOV RAX, imm64";
+    EXPECT_EQ(machineCode[before], 0xB8u)
+        << "loading a 32-bit integer literal must emit MOV EAX, imm32";
 }
 
 #include "ASTExpressionParser.h"

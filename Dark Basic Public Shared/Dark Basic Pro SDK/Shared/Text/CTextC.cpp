@@ -104,10 +104,39 @@ DARKSDK void ValidateWorkStringBySize ( uint32_t dwSize )
 	}
 }
 
+static inline bool IsValidStringPointer(const void* ptr)
+{
+	if (!ptr) return false;
+	uintptr_t u = reinterpret_cast<uintptr_t>(ptr);
+	return u > 0x10000 && u < 0x00007FFFFFFFFFFFULL;
+}
+
+static inline const char* SafeString(DWORD_PTR ptr)
+{
+	if (IsValidStringPointer(reinterpret_cast<const void*>(ptr)))
+	{
+		__try {
+			const char* s = reinterpret_cast<const char*>(ptr);
+			(void)strlen(s);
+			return s;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+			return "";
+		}
+	}
+	return "";
+}
+
 DARKSDK void ValidateWorkString(const char* pString)
 {
 	// Size from string
-	if ( pString ) ValidateWorkStringBySize ( static_cast<uint32_t>(strlen(pString) + 1) );
+	if ( pString && IsValidStringPointer(pString) )
+	{
+		__try {
+			ValidateWorkStringBySize ( static_cast<uint32_t>(strlen(pString) + 1) );
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -1115,7 +1144,8 @@ DARKSDK int	  Asc	( DWORD_PTR dwSrcStr )
 
 DARKSDK DWORD_PTR Bin( DWORD_PTR pDestStr, int iValue )
 {
-	std::string text = "%";
+	std::string text;
+	text.reserve( 32 );
 	for ( int bit = 31; bit >= 0; --bit )
 	{
 		const unsigned int mask = 1u << bit;
@@ -1148,8 +1178,7 @@ DARKSDK DWORD_PTR Hex( DWORD_PTR pDestStr, int iValue )
 
 DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
-	ValidateWorkString( (const char*)szText );
-	std::string text = szText ? (const char*)szText : "";
+	std::string text = SafeString( szText );
 
 	if ( iValue > 0 && iValue <= static_cast<int>( text.size() ) )
 		text.resize( iValue );
@@ -1163,16 +1192,13 @@ DARKSDK DWORD_PTR Left( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 
 DARKSDK int	  Len	( DWORD_PTR dwSrcStr )
 {
-	if(dwSrcStr)
-		return static_cast<int>(strlen((const char*)dwSrcStr));
-	else
-		return 0;
+	const char* s = SafeString( dwSrcStr );
+	return static_cast<int>(strlen(s));
 }
 
 DARKSDK DWORD_PTR Lower( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
-	ValidateWorkString( (const char*)szText );
-	std::string text = szText ? (const char*)szText : "";
+	std::string text = SafeString( szText );
 	for ( char& ch : text )
 		ch = static_cast<char>( std::tolower( static_cast<unsigned char>( ch ) ) );
 
@@ -1183,8 +1209,7 @@ DARKSDK DWORD_PTR Lower( DWORD_PTR pDestStr, DWORD_PTR szText )
 
 DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
-	ValidateWorkString( (const char*)szText );
-	const std::string src = szText ? (const char*)szText : "";
+	const std::string src = SafeString( szText );
 	std::string text;
 
 	const unsigned int index = static_cast<unsigned int>( iValue );
@@ -1198,8 +1223,7 @@ DARKSDK DWORD_PTR Mid( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 
 DARKSDK DWORD_PTR Right( DWORD_PTR pDestStr, DWORD_PTR szText, int iValue )
 {
-	ValidateWorkString( (const char*)szText );
-	std::string text = szText ? (const char*)szText : "";
+	std::string text = SafeString( szText );
 
 	const int length = static_cast<int>( text.size() );
 	const int rightmost = length - iValue;
@@ -1245,8 +1269,7 @@ DARKSDK DWORD_PTR Str( DWORD_PTR pDestStr, int iValue )
 
 DARKSDK DWORD_PTR Upper( DWORD_PTR pDestStr, DWORD_PTR szText )
 {
-	ValidateWorkString( (const char*)szText );
-	std::string text = szText ? (const char*)szText : "";
+	std::string text = SafeString( szText );
 	for ( char& ch : text )
 		ch = static_cast<char>( std::toupper( static_cast<unsigned char>( ch ) ) );
 

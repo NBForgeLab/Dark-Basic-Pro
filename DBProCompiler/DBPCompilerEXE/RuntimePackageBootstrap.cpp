@@ -387,10 +387,17 @@ RuntimePackageBootstrap::Start(
     auto descriptorPath = executable;
     descriptorPath.replace_extension(L".dbpakref");
     std::error_code descriptorExistsError;
-    const auto descriptorExists =
+    auto descriptorExists =
         std::filesystem::exists(
             descriptorPath,
             descriptorExistsError);
+    if (!descriptorExists && executable.has_parent_path() && executable.parent_path().has_parent_path()) {
+        const auto parentDescriptor = executable.parent_path().parent_path() / descriptorPath.filename();
+        if (std::filesystem::exists(parentDescriptor, descriptorExistsError)) {
+            descriptorPath = parentDescriptor;
+            descriptorExists = true;
+        }
+    }
     if (descriptorExistsError) {
         return BootstrapError<
             std::unique_ptr<RuntimePackageBootstrap>>(
@@ -406,10 +413,23 @@ RuntimePackageBootstrap::Start(
                 std::unique_ptr<RuntimePackageBootstrap>>::Failure(
                     descriptor.error());
         }
-        const auto packagePath =
+        auto packagePath =
             executable.parent_path() /
             std::filesystem::path(
                 descriptor.value().packageFileName);
+        if (!std::filesystem::exists(packagePath, descriptorExistsError)) {
+            if (descriptorPath.parent_path() != executable.parent_path()) {
+                const auto descriptorDirPackage = descriptorPath.parent_path() / std::filesystem::path(descriptor.value().packageFileName);
+                if (std::filesystem::exists(descriptorDirPackage, descriptorExistsError)) {
+                    packagePath = descriptorDirPackage;
+                }
+            } else if (executable.has_parent_path() && executable.parent_path().has_parent_path()) {
+                const auto parentPackage = executable.parent_path().parent_path() / std::filesystem::path(descriptor.value().packageFileName);
+                if (std::filesystem::exists(parentPackage, descriptorExistsError)) {
+                    packagePath = parentPackage;
+                }
+            }
+        }
         auto executableKey = ReadExecutablePackageKey(
             executable,
             descriptor.value().keyId);
@@ -470,8 +490,15 @@ RuntimePackageBootstrap::Start(
         auto sidecarPath = executable;
         sidecarPath.replace_extension(L".pck");
         std::error_code sidecarError;
-        const auto hasSidecar =
+        auto hasSidecar =
             std::filesystem::exists(sidecarPath, sidecarError);
+        if (!hasSidecar && executable.has_parent_path() && executable.parent_path().has_parent_path()) {
+            const auto parentSidecar = executable.parent_path().parent_path() / sidecarPath.filename();
+            if (std::filesystem::exists(parentSidecar, sidecarError)) {
+                sidecarPath = parentSidecar;
+                hasSidecar = true;
+            }
+        }
         if (sidecarError) {
             return BootstrapError<
                 std::unique_ptr<RuntimePackageBootstrap>>(

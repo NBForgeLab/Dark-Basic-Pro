@@ -363,6 +363,25 @@ enum class ASMOp : int {
 	ADDRDIIMM                 = 253,
 	REPSTOSQ                  = 254,
 	REPSTOSB                  = 255,
+	XORRAXRAX                 = 256,
+
+	// 32-bit memory-to-register loads with automatic zero-extension for array indices
+	MOVRBXRAXOFF32            = 260,
+	MOVRBXRBP32               = 261,
+	MOVRBXMEM32               = 262,
+	MOVRDXRAXOFF32            = 263,
+
+	// 64-bit immediate and pointer memory operations
+	MOVRAXIMM8                = 264,
+	MOVRBXIMM8                = 265,
+	MOVRCXIMM8                = 266,
+	MOVRDXIMM8                = 267,
+	MOVRAXMEM8                = 268,
+	MOVMEMRAX8                = 269,
+	MOVRAXRBP8                = 270,
+	MOVRBPRAX8                = 271,
+	MOVRAXRCXOFF8             = 272,
+	MOVRCXOFFRAX8             = 273,
 };
 
 // Parameter mode codes (converted from #define constants)
@@ -517,7 +536,7 @@ class CASMWriter : public ICodeGenerator
 		};
 
 		void ClearPendingCallArgs() noexcept;
-		void RecordPendingCallArg(DWORD dwType, DWORD dwSlotCount);
+		void RecordPendingCallArg(DWORD dwType, DWORD dwSlotCount) override;
 		bool EmitCommandCallAbiSetup();
 		void EmitCommandCallAbiTeardown(bool bKeepArgsOnStack);
 

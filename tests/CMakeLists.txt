@@ -57,6 +57,7 @@ add_executable(dbp_tests
     test_asmwriter_emission.cpp
     test_leap_marker_manager.cpp
     test_debugger_interface.cpp
+    test_debugger_protocol.cpp
     test_machine_code_buffer.cpp
     test_reference_tracker.cpp
     test_tokenizer.cpp

@@ -188,8 +188,8 @@ bool CInstructionTable::SetInternalInstructionDatabase(void)
 
 	// Internal Commands (generated internally)
 	AddCommandCore("+exitfunction", "", "", "", 0, 0, static_cast<DWORD>(InternalInstruction::UserFunctionExit), static_cast<DWORD>(BuildTask::UserFunctionExit));
-	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YA_K_KKKKKKKKKKK@Z", "DDDDDDDDDD", 7, 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
-	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YA_K_K@Z", "D", 7, 1, static_cast<DWORD>(InternalInstruction::Free), 0);
+	AddCommandCore("+allocate", "dbprocore.dll", "?DimDDD@@YA_K_KKKKKKKKKKK@Z", "RDDDDDDDDDD", static_cast<DWORD>(DBPType::DwordArray), 11, static_cast<DWORD>(InternalInstruction::Alloc), 0);
+	AddCommandCore("+deallocate", "dbprocore.dll", "?UnDimDD@@YA_K_K@Z", "R", static_cast<DWORD>(DBPType::DwordArray), 1, static_cast<DWORD>(InternalInstruction::Free), 0);
 	AddCommandCore("+assign", "", "MOVLL", "LL", 0, 0, static_cast<DWORD>(InternalInstruction::AssignLL), 0);
 	AddCommandCore("+assign", "", "MOVFF", "FF", 0, 0, static_cast<DWORD>(InternalInstruction::AssignFF), 0);
 	AddCommandCore("+assign", "dbprocore.dll", "?EquateSS@@YA_K_K0@Z", "S", 3, 2, static_cast<DWORD>(InternalInstruction::AssignSS), 0);

@@ -124,6 +124,7 @@ public:
     virtual bool WriteASMCheckBreakPointVar(void) = 0;
     virtual bool WriteASMForceEscapeAtCodeBREAK(void) = 0;
     virtual void SetBreakPointValue(void) = 0;
+    virtual void RecordPendingCallArg(DWORD dwType, DWORD slotCount) {}
 
     virtual DWORD AddCommandToTable(std::string_view dllString, std::string_view commandString) = 0;
     virtual DWORD AddCommandToTable(const char* pDLLString, const char* pCommandString) {

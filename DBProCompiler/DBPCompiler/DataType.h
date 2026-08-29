@@ -54,6 +54,31 @@ enum class DataType : uint8_t {
     return val == 1001 || val == 1101;
 }
 
+[[nodiscard]] constexpr bool IsPointerOrHandleType(DBPType type) noexcept {
+    switch (type) {
+        case DBPType::String:
+        case DBPType::Dabel:
+        case DBPType::UserDefinedPtr:
+        case DBPType::UserDefinedArrayPtr:
+        case DBPType::IntegerArray:
+        case DBPType::FloatArray:
+        case DBPType::StringArray:
+        case DBPType::BooleanArray:
+        case DBPType::ByteArray:
+        case DBPType::WordArray:
+        case DBPType::DwordArray:
+        case DBPType::DoubleFloatArray:
+        case DBPType::DoubleIntegerArray:
+            return true;
+        default:
+            return false;
+    }
+}
+
+[[nodiscard]] constexpr bool IsPointerOrHandleType(uint32_t typeVal) noexcept {
+    return IsPointerOrHandleType(static_cast<DBPType>(typeVal));
+}
+
 [[nodiscard]] constexpr bool IsNumericType(DBPType type) noexcept {
     switch (type) {
         case DBPType::Integer:

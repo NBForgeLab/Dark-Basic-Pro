@@ -166,10 +166,10 @@ DARKSDK void Constructor ( void )
 
 DARKSDK void Destructor ( void )
 {
-	if(hInternalFile)
+	if (hInternalFile != -1 && hInternalFile != 0)
 	{
 		_findclose(hInternalFile);
-		hInternalFile=NULL;
+		hInternalFile = -1;
 	}
 	for(DWORD f=0; f<MAX_FILES; f++)
 	{
@@ -219,21 +219,28 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 
 DARKSDK void FFindCloseFile(void)
 {
-	_findclose(hInternalFile);
-	hInternalFile=NULL;
+	if (hInternalFile != -1 && hInternalFile != 0)
+	{
+		_findclose(hInternalFile);
+	}
+	hInternalFile = -1;
+	FileReturnValue = -1;
 }
 
 DARKSDK void FFindFirstFile(void)
 {
-	if(hInternalFile) FFindCloseFile();
+	if (hInternalFile != -1 && hInternalFile != 0) FFindCloseFile();
 	hInternalFile = _findfirst("*.*", &filedata);
-	if(hInternalFile!=-1L)
+	if (hInternalFile != -1L)
 	{
 		// Success!
-		FileReturnValue=0;
+		FileReturnValue = 0;
 	}
 	else
+	{
+		FileReturnValue = -1;
 		RunTimeWarning(RUNTIMEERROR_CANNOTSCANCURRENTDIR);
+	}
 }
 
 DARKSDK int FGetFileReturnValue(void)
@@ -243,7 +250,18 @@ DARKSDK int FGetFileReturnValue(void)
 
 DARKSDK void FFindNextFile(void)
 {
-	FileReturnValue = _findnext(hInternalFile, &filedata);
+	if (hInternalFile != -1 && hInternalFile != 0)
+	{
+		FileReturnValue = _findnext(hInternalFile, &filedata);
+		if (FileReturnValue == -1)
+		{
+			FFindCloseFile();
+		}
+	}
+	else
+	{
+		FileReturnValue = -1;
+	}
 }
 
 DARKSDK int FGetActualTypeValue(int flagvalue)
@@ -257,51 +275,76 @@ DARKSDK int FGetActualTypeValue(int flagvalue)
 DARKSDK BOOL DB_FileExist(char* Filename)
 {
 	// If no string, no file
-	if(Filename==NULL)
+	if (Filename == NULL || Filename[0] == '\0')
 		return FALSE;
 
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy_s(VirtualFilename, sizeof(VirtualFilename), Filename);
-	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
+	if (g_pGlob && g_pGlob->UpdateFilenameFromVirtualTable)
+		g_pGlob->UpdateFilenameFromVirtualTable(VirtualFilename);
 
-	CheckForWorkshopFile ( VirtualFilename );
+	CheckForWorkshopFile(VirtualFilename);
 
-	// Open BASIC Script
-	HANDLE hfile = CreateFile(VirtualFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hfile==INVALID_HANDLE_VALUE)
-		return FALSE;
+	DWORD dwAttrib = GetFileAttributesA(VirtualFilename);
+	if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+		return TRUE;
 
-	CloseHandle(hfile);
-	return TRUE;
+	// Also check raw filename if VirtualFilename was modified
+	if (strcmp(VirtualFilename, Filename) != 0)
+	{
+		dwAttrib = GetFileAttributesA(Filename);
+		if (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+			return TRUE;
+	}
+
+	// Open BASIC Script fallback
+	HANDLE hfile = CreateFileA(VirtualFilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hfile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(hfile);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 DARKSDK DWORD DB_FileSize(char* Filename)
 {
-	DWORD size = 0;
-
-	// If no string, no file
-	if(Filename==NULL)
+	if (Filename == NULL || Filename[0] == '\0')
 		return 0;
 
 	// Uses actual or virtual file..
 	char VirtualFilename[_MAX_PATH];
 	strcpy_s(VirtualFilename, sizeof(VirtualFilename), Filename);
-	g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
+	if (g_pGlob && g_pGlob->UpdateFilenameFromVirtualTable)
+		g_pGlob->UpdateFilenameFromVirtualTable(VirtualFilename);
 
-	CheckForWorkshopFile ( VirtualFilename );
+	CheckForWorkshopFile(VirtualFilename);
 
-	// Open BASIC Script
-	HANDLE hfile = CreateFile(VirtualFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hfile==INVALID_HANDLE_VALUE)
+	WIN32_FILE_ATTRIBUTE_DATA fad{};
+	if (GetFileAttributesExA(VirtualFilename, GetFileExInfoStandard, &fad))
 	{
-		return 0;
+		if (!(fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			return fad.nFileSizeLow;
 	}
 
-	// Obtain filesize
-	size = GetFileSize(hfile, NULL);
-	CloseHandle(hfile);
+	if (strcmp(VirtualFilename, Filename) != 0)
+	{
+		if (GetFileAttributesExA(Filename, GetFileExInfoStandard, &fad))
+		{
+			if (!(fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				return fad.nFileSizeLow;
+		}
+	}
 
+	// Open BASIC Script fallback
+	HANDLE hfile = CreateFileA(VirtualFilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hfile == INVALID_HANDLE_VALUE)
+		return 0;
+
+	DWORD size = GetFileSize(hfile, NULL);
+	CloseHandle(hfile);
 	return size;
 }
 
@@ -482,16 +525,28 @@ DARKSDK BOOL DB_RenameFile(char* From, char* To)
 
 DARKSDK BOOL DB_PathExist(char* OriginalPathname)
 {
-	// Get File Data
-	DWORD Attribs = GetFileAttributes(OriginalPathname);
-	if(Attribs==0xFFFFFFFF)
+	if (!OriginalPathname || OriginalPathname[0] == '\0')
 		return FALSE;
 
-	// If file a directory
-	if(Attribs & FILE_ATTRIBUTE_DIRECTORY)
+	// Strip trailing backslashes/slashes for GetFileAttributes
+	char szCleanPath[_MAX_PATH];
+	strcpy_s(szCleanPath, sizeof(szCleanPath), OriginalPathname);
+	size_t len = strlen(szCleanPath);
+	while (len > 1 && (szCleanPath[len - 1] == '\\' || szCleanPath[len - 1] == '/'))
+	{
+		if (len == 3 && szCleanPath[1] == ':') break;
+		szCleanPath[len - 1] = '\0';
+		len--;
+	}
+
+	DWORD Attribs = GetFileAttributesA(szCleanPath);
+	if (Attribs != INVALID_FILE_ATTRIBUTES && (Attribs & FILE_ATTRIBUTE_DIRECTORY))
 		return TRUE;
 
-	// Not a directory
+	Attribs = GetFileAttributesA(OriginalPathname);
+	if (Attribs != INVALID_FILE_ATTRIBUTES && (Attribs & FILE_ATTRIBUTE_DIRECTORY))
+		return TRUE;
+
 	return FALSE;
 }
 
@@ -936,15 +991,13 @@ DARKSDK void FindFirst(void)
 
 DARKSDK void FindNext(void)
 {
-	if(hInternalFile)
+	if (hInternalFile != -1 && hInternalFile != 0)
 	{
-		if(FileReturnValue==-1L)
-		{
-			RunTimeError(RUNTIMEERROR_NOMOREFILESINDIR);
-			return;
-		}
-
 		FFindNextFile();
+	}
+	else
+	{
+		FileReturnValue = -1;
 	}
 }
 
@@ -1475,7 +1528,7 @@ DARKSDK DWORD ReadFloat( int f )
 	return *(DWORD*)&fResult;
 }
 
-DARKSDK DWORD ReadString( int f, DWORD_PTR pDestStr )
+DARKSDK DWORD_PTR ReadString( int f, DWORD_PTR pDestStr )
 {
     /*
         20091129 v75 - IRM - http://forum.thegamecreators.com/?m=forum_view&t=81894&b=15
@@ -1541,7 +1594,7 @@ DARKSDK DWORD ReadString( int f, DWORD_PTR pDestStr )
 
 fileerror:
 
-    return static_cast<DWORD>( (DWORD_PTR)pReturnString );
+    return reinterpret_cast<DWORD_PTR>( pReturnString );
 }
 
 DARKSDK void ReadFileBlockCore(char* FilenameString, int f )
@@ -2217,7 +2270,7 @@ DARKSDK DWORD_PTR GetDir( DWORD_PTR pDestStr )
 
 DARKSDK DWORD_PTR GetFileName( DWORD_PTR pDestStr )
 {
-	if(hInternalFile)
+	if(hInternalFile != -1 && hInternalFile != 0 && FileReturnValue != -1)
 		strcpy(m_pWorkString, filedata.name);
 	else
 		strcpy(m_pWorkString, "");
@@ -2229,7 +2282,7 @@ DARKSDK DWORD_PTR GetFileName( DWORD_PTR pDestStr )
 
 DARKSDK int GetFileType( void )
 {
-	if(FGetFileReturnValue()==-1L || hInternalFile==NULL)
+	if(FileReturnValue==-1L || hInternalFile==-1 || hInternalFile==0)
 		return -1;
 	else
 		return FGetActualTypeValue(filedata.attrib);
@@ -2237,7 +2290,7 @@ DARKSDK int GetFileType( void )
 
 DARKSDK DWORD_PTR GetFileDate( DWORD_PTR pDestStr )
 {
-	if(hInternalFile)
+	if(hInternalFile != -1 && hInternalFile != 0 && FileReturnValue != -1)
 		wsprintf(m_pWorkString, "%.24s", ctime( &( filedata.time_write)));
 	else
 		strcpy(m_pWorkString, "");
@@ -2249,7 +2302,7 @@ DARKSDK DWORD_PTR GetFileDate( DWORD_PTR pDestStr )
 
 DARKSDK DWORD_PTR GetFileCreation( DWORD_PTR pDestStr )
 {
-	if(hInternalFile)
+	if(hInternalFile != -1 && hInternalFile != 0 && FileReturnValue != -1)
 		wsprintf(m_pWorkString, "%.24s", ctime( &( filedata.time_create)));
 	else
 		strcpy(m_pWorkString, "");

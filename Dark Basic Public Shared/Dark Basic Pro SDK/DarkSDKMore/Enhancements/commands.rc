@@ -251,19 +251,19 @@ BEGIN
     IDS_STRING167           "GET FILE BLOCK DATA EXISTS[%LLS%?GetFileBlockDataExists@@YAHHK@Z%ID, File"
     IDS_STRING168           "GET FILE BLOCK KEY[%LL%?GetFileBlockKey@@YAHH@Z%ID"
     IDS_STRING169           "GET FILE BLOCK COMPRESSION[%LL%?GetFileBlockCompression@@YAHH@Z%ID"
-    IDS_STRING170           "CREATE FILE MAP%LSL%?CreateFileMap@@YAXHKK@Z%"
-    IDS_STRING171           "OPEN FILE MAP%LS%?OpenFileMap@@YAXHK@Z%"
+    IDS_STRING170           "CREATE FILE MAP%LSL%?CreateFileMap@@YAXH_KK@Z%"
+    IDS_STRING171           "OPEN FILE MAP%LS%?OpenFileMap@@YAXH_K@Z%"
     IDS_STRING172           "CLOSE FILE MAP%L%?CloseFileMap@@YAXH@Z%"
     IDS_STRING173           "DESTROY FILE MAP%L%?DestroyFileMap@@YAXH@Z%"
     IDS_STRING174           "SET FILE MAP DWORD%LLL%?SetFileMapDWORD@@YAXHKK@Z%"
-    IDS_STRING175           "SET FILE MAP STRING$%LLS%?SetFileMapString@@YAXHKK@Z%"
+    IDS_STRING175           "SET FILE MAP STRING$%LLS%?SetFileMapString@@YAXHK_K@Z%"
 END
 
 STRINGTABLE 
 BEGIN
     IDS_STRING176           "SET FILE MAP FLOAT%LLF%?SetFileMapFloat@@YAXHKM@Z%"
     IDS_STRING177           "GET FILE MAP DWORD[%LLL%?GetFileMapDWORD@@YAKHK@Z%"
-    IDS_STRING178           "GET FILE MAP STRING$[%SLL%?GetFileMapString@@YAKKHK@Z%"
+    IDS_STRING178           "GET FILE MAP STRING$[%SLL%?GetFileMapString@@YA_K_KHK@Z%"
     IDS_STRING179           "GET FILE MAP FLOAT[%FLL%?GetFileMapFloat@@YAKHK@Z%"
     IDS_STRING180           "GET PROCESSOR USAGE[%LL%?GetProcessorUsage@@YAHH@Z%ID"
     IDS_STRING181           "OPEN DATA FILE%SSL%?OpenDataFile@@YAXKKH@Z"
