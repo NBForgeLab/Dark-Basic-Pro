@@ -76,3 +76,8 @@ settings.ini
 # Python bytecode caches
 __pycache__/
 *.pyc
+
+# Generated codegen corpus reports
+tests/codegen/codegen_report.html
+tests/codegen/codegen_report.json
+tests/codegen/codegen_report.md
