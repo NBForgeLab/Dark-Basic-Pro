@@ -380,7 +380,7 @@ void ClipMeshWithBoundArea ( sMesh* pMesh, D3DXVECTOR3* pvecMin, D3DXVECTOR3* pv
 	pMesh->iDrawPrimitives = newi;
 
 	// delete temp buffer
-	SAFE_DELETE(pNewIndices);
+	SAFE_DELETE_ARRAY(pNewIndices);
 }
 
 bool cCSG::Clip ( sMesh* pMeshA, D3DXMATRIX OriginalMatA, sMesh* pMeshB, D3DXMATRIX OriginalMatB )

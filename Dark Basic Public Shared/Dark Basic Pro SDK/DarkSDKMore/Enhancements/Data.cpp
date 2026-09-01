@@ -40,13 +40,13 @@ sDataFile	g_Data [ 256 ];
 // FUNCTIONS ///////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////
 
-DARKSDK void  OpenDataFile           ( DWORD dwFileName, DWORD dwSeparator, int iID );
+DARKSDK void  OpenDataFile           ( DWORD_PTR dwFileName, DWORD_PTR dwSeparator, int iID );
 DARKSDK void  CloseDataFile          ( int iID );
 DARKSDK void  UpdateDataFile         ( int iID );
 
 DARKSDK int   GetDataFileExist		 ( int iID );
 
-DARKSDK DWORD GetDataFileCell        ( DWORD dwReturn, int iID, int iColumn, int iRow );
+DARKSDK DWORD_PTR GetDataFileCell    ( DWORD_PTR dwReturn, int iID, int iColumn, int iRow );
 DARKSDK int   GetDataFileRowCount    ( int iID );
 DARKSDK int   GetDataFileColumnCount ( int iID );
 
@@ -83,7 +83,7 @@ bool CheckDataFileID ( int iID )
 	return true;
 }
 
-void OpenDataFile ( DWORD dwFileName, DWORD dwSeparator, int iID )
+void OpenDataFile ( DWORD_PTR dwFileName, DWORD_PTR dwSeparator, int iID )
 {
 	if ( !CheckDataFileID ( iID ) )
 		return;

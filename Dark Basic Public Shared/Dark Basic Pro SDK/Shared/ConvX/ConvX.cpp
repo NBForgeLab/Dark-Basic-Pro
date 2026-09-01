@@ -1122,7 +1122,7 @@ DARKSDK bool XFILE_NEW_GetVertexColors ( IDirectXFileData* pSubData, sFrame* pFr
 	sVertexColor* pVColor = ( sVertexColor* ) ( pData + 1 );
 
 	// copy vertex data into global store for combining later
-	SAFE_DELETE(g_pVertexColorList);
+	SAFE_DELETE_ARRAY(g_pVertexColorList);
 	g_pVertexColorList = new sVertexColor [ g_dwVertexColorCount ];
 	memcpy ( g_pVertexColorList, pVColor, g_dwVertexColorCount*sizeof(sVertexColor) );
 
@@ -1337,7 +1337,7 @@ DARKSDK bool XFILE_NEW_GetMeshMaterialList ( IDirectXFileData* pSubData, sFrame*
 		}
 
 		// remove old material array and replace with new
-		SAFE_DELETE(g_pMaterialList);
+		SAFE_DELETE_ARRAY(g_pMaterialList);
 		g_pMaterialList = pNewMaterialList;
 		g_dwMaterialListIndexCount = dwNewMaterialListIndexCount;
 

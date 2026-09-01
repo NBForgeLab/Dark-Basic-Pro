@@ -564,10 +564,10 @@ void BT_QuadMap::GenerateDBPMesh(sMesh* Mesh)
 
 	//Fill mesh vertexdata
 		if(Mesh->pVertexData==NULL){
-			Mesh->pVertexData=(BYTE*)malloc(Mesh_Vertices*sizeof(BT_Meshdata_Vertex));
+			Mesh->pVertexData = new (std::nothrow) BYTE[Mesh_Vertices * sizeof(BT_Meshdata_Vertex)];
 			if(Mesh->pVertexData==nullptr)
 				BT_Intern_Error(C_BT_ERROR_MEMORYERROR);
-			Mesh->pIndices=(WORD*)malloc(Mesh_Indices*sizeof(unsigned short));
+			Mesh->pIndices = new (std::nothrow) WORD[Mesh_Indices];
 			if(Mesh->pIndices==nullptr)
 				BT_Intern_Error(C_BT_ERROR_MEMORYERROR);
 			Mesh->dwVertexCount=Mesh_Vertices;

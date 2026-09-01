@@ -155,7 +155,7 @@ HZBManager::~HZBManager(void)
     Reset();
 
     SAFE_RELEASE(m_pDepthEffect);
-    SAFE_DELETE(m_pVerticesForNextOcclusionDepthDraw);
+    SAFE_DELETE_ARRAY(m_pVerticesForNextOcclusionDepthDraw);
     SAFE_RELEASE(m_pDepthVertexDecl);
     SAFE_RELEASE(m_pOccluderVertexBuffer);
   
@@ -793,7 +793,7 @@ bool HZBManager::FillDepthRenderWithVerts ( sObject* pObject, DWORD* pdwVertexSt
 							// NOTE 210214 - we can continue from where we left off here instead of
 							// trying from scratch, just increase the size of the array (better memory usage too)
 							m_dwMaxVertexNumberRequired += (1600000);
-							SAFE_DELETE(m_pVerticesForNextOcclusionDepthDraw);
+							SAFE_DELETE_ARRAY(m_pVerticesForNextOcclusionDepthDraw);
 							//SAFE_RELEASE(m_pOccluderVertexBuffer);
 							m_pVerticesForNextOcclusionDepthDraw = new float[m_dwMaxVertexNumberRequired*4];
 							//HRESULT hr = m_pDevice->CreateVertexBuffer(m_dwMaxVertexNumberRequired * sizeof( VPos ), D3DUSAGE_WRITEONLY,

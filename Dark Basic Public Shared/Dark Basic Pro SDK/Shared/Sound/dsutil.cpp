@@ -458,7 +458,7 @@ HRESULT CSoundManager::Create( CSound** ppSound,
 
 	// leeadd - 270206 - u60 - Free internal wav data if any
 	SAFE_DELETE ( pWaveFile->m_pbData );
-    SAFE_DELETE( apDSBuffer );
+    SAFE_DELETE_ARRAY( apDSBuffer );
 
 	// leefix - 210306- u6b4 - absolutely must close WAV file, cannot delete otherwise
 	// the new CSound keeps the object alive in its own members, but file must be closed
@@ -475,7 +475,7 @@ HRESULT CSoundManager::Create( CSound** ppSound,
 LFail:
     // Cleanup
     SAFE_DELETE( pWaveFile );
-    SAFE_DELETE( apDSBuffer );
+    SAFE_DELETE_ARRAY( apDSBuffer );
 	#ifndef DARKSDK_COMPILE 
 	g_pGlob->dwInternalFunctionCode=15021; 
 	#endif
@@ -562,13 +562,13 @@ HRESULT CSoundManager::CreateFromMemory( CSound** ppSound,
     // Create the sound
     *ppSound = new CSound( apDSBuffer, dwDSBufferSize, dwNumBuffers, pWaveFile );
 
-    SAFE_DELETE( apDSBuffer );
+    SAFE_DELETE_ARRAY( apDSBuffer );
     return S_OK;
 
 LFail:
     // Cleanup
    
-    SAFE_DELETE( apDSBuffer );
+    SAFE_DELETE_ARRAY( apDSBuffer );
     return hr;
 }
 
@@ -635,7 +635,7 @@ HRESULT CSoundManager::CreateStreaming( CStreamingSound** ppStreamingSound,
     if( FAILED( hr = pDSBuffer->QueryInterface( IID_IDirectSoundNotify, 
                                                 (VOID**)&pDSNotify ) ) )
     {
-        SAFE_DELETE( aPosNotify );
+        SAFE_DELETE_ARRAY( aPosNotify );
         return hr;//DXTRACE_ERR( TEXT("QueryInterface"), hr );
     }
 
@@ -655,12 +655,12 @@ HRESULT CSoundManager::CreateStreaming( CStreamingSound** ppStreamingSound,
                                                           aPosNotify ) ) )
     {
         SAFE_RELEASE( pDSNotify );
-        SAFE_DELETE( aPosNotify );
+        SAFE_DELETE_ARRAY( aPosNotify );
         return hr;//DXTRACE_ERR( TEXT("SetNotificationPositions"), hr );
     }
 
     SAFE_RELEASE( pDSNotify );
-    SAFE_DELETE( aPosNotify );
+    SAFE_DELETE_ARRAY( aPosNotify );
 
     // Create the sound
     *ppStreamingSound = new CStreamingSound( pDSBuffer, dwDSBufferSize, pWaveFile, dwNotifySize );
@@ -709,7 +709,7 @@ CSound* CSoundManager::CloneSound ( CSound* pSound )
     pSound = new CSound( apDSBuffer, dwDSBufferSize, dwNumBuffers, pWaveFile );
 	pSound->m_bClone=true;
 
-    SAFE_DELETE( apDSBuffer );
+    SAFE_DELETE_ARRAY( apDSBuffer );
     return pSound;
 }
 
@@ -769,7 +769,7 @@ CSound::~CSound()
 		}
 	}
     SAFE_DELETE_ARRAY( m_apDSBuffer ); 
-	SAFE_DELETE(m_pCopyOfBuffer);
+	SAFE_DELETE_ARRAY(m_pCopyOfBuffer);
 
 	if(m_bClone==false)
 	{
@@ -794,7 +794,7 @@ HRESULT CSound::FillBufferWithSound( LPDIRECTSOUNDBUFFER pDSB, BOOL bRepeatWavIf
     VOID*   pDSLockedBuffer      = NULL; // Pointer to locked buffer memory
     DWORD   dwDSLockedBufferSize = 0;    // Size of the locked DirectSound buffer
     DWORD   dwWavDataRead        = 0;    // Amount of data read from the wav file 
-
+ 
     if( pDSB == NULL )
         return CO_E_NOTINITIALIZED;
 
@@ -815,7 +815,7 @@ HRESULT CSound::FillBufferWithSound( LPDIRECTSOUNDBUFFER pDSB, BOOL bRepeatWavIf
 		if ( m_pWaveFile->m_pbData )
 		{
 			// decompressed data already available, no need to read from wave file object
-			SAFE_DELETE(m_pCopyOfBuffer);
+			SAFE_DELETE_ARRAY(m_pCopyOfBuffer);
 			m_pCopyOfBuffer = new char[dwDSLockedBufferSize];
 			memcpy ( m_pCopyOfBuffer, m_pWaveFile->m_pbData, dwDSLockedBufferSize );
 			dwWavDataRead = dwDSLockedBufferSize;
@@ -826,7 +826,7 @@ HRESULT CSound::FillBufferWithSound( LPDIRECTSOUNDBUFFER pDSB, BOOL bRepeatWavIf
 			m_pWaveFile->ResetFile();
 
 			// Read First into buffer
-			SAFE_DELETE(m_pCopyOfBuffer);
+			SAFE_DELETE_ARRAY(m_pCopyOfBuffer);
 			m_pCopyOfBuffer = new char[dwDSLockedBufferSize];
 			if( FAILED( hr = m_pWaveFile->Read( (BYTE*)m_pCopyOfBuffer,
 												dwDSLockedBufferSize, 

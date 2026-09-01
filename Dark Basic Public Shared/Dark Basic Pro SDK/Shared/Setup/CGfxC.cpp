@@ -1603,26 +1603,23 @@ DARKSDK void CreateDrawBoxes ( DWORD* pdwDrawToBoxes, RECT** ppDrawBoxes )
 			}
 		}
 
-		// Create a copy of the safe boxes
-		RECT* pSafeBoxesCopy = new RECT [ g_pGlob->dwSafeRectMax ];
+		// Create a copy of the safe boxes using RAII vector
+		std::vector<RECT> safeBoxesCopy(g_pGlob->dwSafeRectMax);
 
 		// Initial area is entire screen
 		RECT area = { 0, 0, g_pGlob->iScreenWidth, g_pGlob->iScreenHeight };
 
 		// Count number of draw boxes
-		memcpy ( pSafeBoxesCopy, g_pGlob->pSafeRects, sizeof(RECT) * g_pGlob->dwSafeRectMax );
-		DivideAreaByRect ( &area, pSafeBoxesCopy, pdwDrawToBoxes, ppDrawBoxes );
+		memcpy ( safeBoxesCopy.data(), g_pGlob->pSafeRects, sizeof(RECT) * g_pGlob->dwSafeRectMax );
+		DivideAreaByRect ( &area, safeBoxesCopy.data(), pdwDrawToBoxes, ppDrawBoxes );
 
 		// Create draw array
 		*ppDrawBoxes = new RECT [ *pdwDrawToBoxes ];
 		*pdwDrawToBoxes = 0;
 
 		// Create draw boxes
-		memcpy ( pSafeBoxesCopy, g_pGlob->pSafeRects, sizeof(RECT) * g_pGlob->dwSafeRectMax );
-		DivideAreaByRect ( &area, pSafeBoxesCopy, pdwDrawToBoxes, ppDrawBoxes );
-
-		// Free copy of safe boxes
-		SAFE_DELETE(pSafeBoxesCopy);
+		memcpy ( safeBoxesCopy.data(), g_pGlob->pSafeRects, sizeof(RECT) * g_pGlob->dwSafeRectMax );
+		DivideAreaByRect ( &area, safeBoxesCopy.data(), pdwDrawToBoxes, ppDrawBoxes );
 	}
 }
 
@@ -1796,7 +1793,7 @@ DARKSDK void Render ( void )
 		}
 
 		// Free usages
-		SAFE_DELETE(pDrawBoxes);
+		SAFE_DELETE_ARRAY(pDrawBoxes);
 	}
 	else
 	{

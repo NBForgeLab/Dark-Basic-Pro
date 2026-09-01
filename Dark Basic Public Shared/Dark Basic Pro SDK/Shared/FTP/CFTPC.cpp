@@ -281,7 +281,7 @@ DARKSDK DWORD_PTR HTTPRequestData( DWORD_PTR pDestStr, DWORD_PTR dwVerb, DWORD_P
 
 	// delete temp return data
 	SAFE_DELETE(pReturnData);
-	SAFE_DELETE(pHeader);
+	SAFE_DELETE_ARRAY(pHeader);
 
 	// return new string
 	return (DWORD_PTR)pReturnString;

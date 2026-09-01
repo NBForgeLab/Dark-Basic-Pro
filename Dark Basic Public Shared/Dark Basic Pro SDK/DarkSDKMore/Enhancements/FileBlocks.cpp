@@ -96,31 +96,34 @@ char        g_szRestoreDir  [ 255 ];
 		GET FILE BLOCK COMPRESSION[%LL%?GetFileBlockCompression@@YAHH@Z%ID
 */
 
-void CheckID ( int iID )
+bool CheckID ( int iID )
 {
-	if ( iID < 0 || iID > 255 )
+	if ( iID < 0 || iID >= MAX_ZIP )
 	{
 		Error ( 7 );
-		return;
+		return false;
 	}
+	return true;
 }
 
-void CheckData ( int iID )
+bool CheckData ( int iID )
 {
+	if ( !CheckID ( iID ) )
+		return false;
 	// ensure the zip file is valid
 	if ( !g_FileBlocks [ iID ].pZip )
 	{
 		// display a runtime error if something is wrong
 		Error ( 11 );
-		return;
+		return false;
 	}
+	return true;
 }
 
 void SetupFileBlocks ( void )
 {
 	// set up the temp directory for file extraction
-	GetWindowsDirectory ( g_TempDirectory, 255 );
-	strcat ( g_TempDirectory, "\\temp\\" );
+	GetTempPathA ( 255, g_TempDirectory );
 }
 
 void DestroyFileBlocks ( void )
@@ -224,7 +227,7 @@ void CreateFileBlock ( int iID, char* szFilename )
 	strcpy ( g_FileBlocks [ iID ].szName, szFilename );
 }
 
-void AddObjectToBlock ( int iID, int iObject, DWORD dwFilename )
+void AddObjectToBlock ( int iID, int iObject, char* dwFilename )
 {
 	/*// check ID of file block
 	CheckID ( iID );
@@ -233,7 +236,7 @@ void AddObjectToBlock ( int iID, int iObject, DWORD dwFilename )
 	AddOrObtainResourceFromBlock ( iID, iObject, dwFilename, 0, 0 );*/
 }
 
-void AddImageToBlock ( int iID, int iImage, DWORD dwFilename )
+void AddImageToBlock ( int iID, int iImage, char* dwFilename )
 {
 	// check ID of file block
 	/*CheckID ( iID );
@@ -242,7 +245,7 @@ void AddImageToBlock ( int iID, int iImage, DWORD dwFilename )
 	AddOrObtainResourceFromBlock ( iID, iImage, dwFilename, 1, 0 );*/
 }
 
-void AddBitmapToBlock ( int iID, int iBitmap, DWORD dwFilename )
+void AddBitmapToBlock ( int iID, int iBitmap, char* dwFilename )
 {
 	// check ID of file block
 	/*CheckID ( iID );
@@ -251,7 +254,7 @@ void AddBitmapToBlock ( int iID, int iBitmap, DWORD dwFilename )
 	AddOrObtainResourceFromBlock ( iID, iBitmap, dwFilename, 2, 0 );*/
 }
 
-void AddOrObtainResourceFromBlock ( int iID, int iIndex, DWORD dwFilename, int iType, int iMode )
+void AddOrObtainResourceFromBlock ( int iID, int iIndex, char* dwFilename, int iType, int iMode )
 {
 }
 
@@ -694,7 +697,7 @@ const unsigned long* GetFileBlockAllFileSizes( int iID )
 	return g_FileBlocks [ iID ].pZip->GetAllFileSizes();
 }
 
-void LoadObjectFromBlock ( int iID, DWORD dwFile, int iObject )
+void LoadObjectFromBlock ( int iID, char* dwFile, int iObject )
 {
 	// check ID of file block
 	CheckID ( iID );
@@ -703,7 +706,7 @@ void LoadObjectFromBlock ( int iID, DWORD dwFile, int iObject )
 	AddOrObtainResourceFromBlock ( iID, iObject, dwFile, 0, 1 );
 }
 
-void LoadBitmapFromBlock ( int iID, DWORD dwFile, int iBitmap )
+void LoadBitmapFromBlock ( int iID, char* dwFile, int iBitmap )
 {
 	// check ID of file block
 	CheckID ( iID );
@@ -712,7 +715,7 @@ void LoadBitmapFromBlock ( int iID, DWORD dwFile, int iBitmap )
 	AddOrObtainResourceFromBlock ( iID, iBitmap, dwFile, 2, 1 );
 }
 
-void LoadImageFromBlock	( int iID, DWORD dwFile, int iImage )
+void LoadImageFromBlock	( int iID, char* dwFile, int iImage )
 {
 	// check ID of file block
 	CheckID ( iID );
@@ -721,22 +724,22 @@ void LoadImageFromBlock	( int iID, DWORD dwFile, int iImage )
 	AddOrObtainResourceFromBlock ( iID, iImage, dwFile, 1, 1 );
 }
 
-void LoadSoundFromBlock	( int iID, DWORD dwFile, int iSound )
+void LoadSoundFromBlock	( int iID, char* dwFile, int iSound )
 {
 
 }
 
-void LoadFileFromBlock ( int iID, DWORD dwFile, int iFile )
+void LoadFileFromBlock ( int iID, char* dwFile, int iFile )
 {
 
 }
 
-void LoadMemblockFromBlock ( int iID, DWORD dwFile, int iMemblock )
+void LoadMemblockFromBlock ( int iID, char* dwFile, int iMemblock )
 {
 
 }
 
-void LoadAnimationFromBlock	( int iID, DWORD dwFile, int iAnimation )
+void LoadAnimationFromBlock	( int iID, char* dwFile, int iAnimation )
 {
 
 }
@@ -759,42 +762,34 @@ int GetFileBlockSize ( int iID )
 	// get the size of the file block
 
 	// check ID of file block
-	CheckID ( iID );
-
-	// check the data
+	CheckID   ( iID );
 	CheckData ( iID );
 
 	// save the file block
 	SaveFileBlock ( iID );
 
-	// get size
-	DWORD dwSize;
-
-	HANDLE hfile = GG_CreateFile ( g_FileBlocks [ iID ].szName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-	
-	if ( hfile == INVALID_HANDLE_VALUE )
-		return -1;
-	
-	dwSize = GetFileSize ( hfile, NULL );
+	// 181007 - U67 - fixes to 64bit support (large files)
+	// return GetFileSize ( ( HANDLE ) g_FileBlocks [ iID ].szName, NULL );
+	//int iSize = ( int ) GetFileSize ( g_FileBlocks [ iID ].hFile, NULL );
+	HANDLE hfile = GG_CreateFile ( g_FileBlocks [ iID ].szName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+	DWORD dwFileSizeHigh = 0;
+	DWORD dwFileSize = GetFileSize ( hfile, &dwFileSizeHigh );
 	CloseHandle ( hfile );
 
-	// return the size
-	return ( int ) dwSize;
+	return ( int ) dwFileSize;
 }
 
 int GetFileBlockCount ( int iID )
 {
 	/*// check ID of file block
-	CheckID ( iID );
-
-	// ensure the file block is valid
+	CheckID   ( iID );
 	CheckData ( iID );
 
 	return g_FileBlocks [ iID ].pZip->GetNoEntries ( );*/
 	return 0;
 }
 
-int GetFileBlockDataExists ( int iID, DWORD dwFile )
+int GetFileBlockDataExists ( int iID, char* dwFile )
 {
 /*	// check ID of file block
 	CheckID   ( iID );

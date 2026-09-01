@@ -175,8 +175,8 @@ cUniverse::~cUniverse ( )
 	SAFE_DELETE(m_pScorchMesh);
 
 	// free collision pool
-	SAFE_DELETE(m_pCollisionPool);
-	SAFE_DELETE(m_pCollisionDiffuse);
+	SAFE_DELETE_ARRAY(m_pCollisionPool);
+	SAFE_DELETE_ARRAY(m_pCollisionDiffuse);
 }
 
 void cUniverse::Load ( LPSTR pFilename, int iDivideTextureSize )
@@ -945,7 +945,7 @@ void cUniverse::LoadDBU ( LPSTR pDBUFilename )
 			pNode->collisionE.clear();
 			for ( int iCol = 0; iCol < (int)dwColESize; iCol++ )
 				pNode->collisionE.push_back ( pColData [ iCol ] );
-			SAFE_DELETE(pColData);
+			SAFE_DELETE_ARRAY(pColData);
 		}
 
 		// close DBU file
@@ -1061,7 +1061,7 @@ void cUniverse::SaveDBU ( LPSTR pDBUFilename )
 			for ( int iCol = 0; iCol < (int)dwColESize; iCol++ )
 				pColData [ iCol ] = pNode->collisionE [ iCol ];
 			WriteFile(hwritefile, pColData, sizeof(sCollisionPolygon)*dwColESize, &written, NULL); 
-			SAFE_DELETE(pColData);
+			SAFE_DELETE_ARRAY(pColData);
 		}
 			
 		// close DBU file
@@ -4167,13 +4167,13 @@ void cUniverse::AddNodeColDataToPolygonList ( sNode* pCurrentNode )
 				// pool
 				float* pNewLargerPool = new float [ m_dwCollisionPoolMax+(512*9) ];
 				memcpy ( pNewLargerPool, m_pCollisionPool, m_dwCollisionPoolMax * sizeof(float) );
-				SAFE_DELETE(m_pCollisionPool);
+				SAFE_DELETE_ARRAY(m_pCollisionPool);
 				m_pCollisionPool = pNewLargerPool;
 
 				// diffuse
 				DWORD* pNewLargerDiffuse = new DWORD [ (m_dwCollisionPoolMax/9)+512 ];
 				memcpy ( pNewLargerDiffuse, m_pCollisionDiffuse, (m_dwCollisionPoolMax/9) * sizeof(DWORD) );
-				SAFE_DELETE(m_pCollisionDiffuse);
+				SAFE_DELETE_ARRAY(m_pCollisionDiffuse);
 				m_pCollisionDiffuse = pNewLargerDiffuse;
 
 				// increment permimnantly

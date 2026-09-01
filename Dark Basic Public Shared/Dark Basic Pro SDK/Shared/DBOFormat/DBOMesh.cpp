@@ -1057,7 +1057,7 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 						DWORD dwNewBoxMax = dwLogicalBoxesMax*2;
 						logicalboxtype* pNewLogicalBoxes = new logicalboxtype[dwNewBoxMax];
 						memcpy ( pNewLogicalBoxes, pLogicalBoxes, dwLogicalBoxesMax * sizeof(logicalboxtype) );
-						SAFE_DELETE(pLogicalBoxes);
+						SAFE_DELETE_ARRAY(pLogicalBoxes);
 						pLogicalBoxes=pNewLogicalBoxes;
 						dwLogicalBoxesMax=dwNewBoxMax;
 					}
@@ -1133,7 +1133,7 @@ DARKSDK_DLL void ReduceMeshPolygons ( sMesh* pOriginalMesh, int [[maybe_unused]]
 	}
 
 	// free usages
-	SAFE_DELETE(pLogicalBoxes);
+	SAFE_DELETE_ARRAY(pLogicalBoxes);
 
 	// flag mesh for a VB update
 	pOriginalMesh->bMeshHasBeenReplaced=true;

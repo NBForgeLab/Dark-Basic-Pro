@@ -1,4 +1,5 @@
 #include "IPC.h"
+#include <stdio.h>
 
 
 cIPC::~cIPC ( )
@@ -18,9 +19,19 @@ cIPC::cIPC ( LPCTSTR SharedName, DWORD Size, BOOL bHandlesInheritable ) : m_nSiz
 	m_hFileMap				= NULL;
 	m_lpMappedViewOfFile	= NULL;
 
-	wsprintf ( m_szFileMapName, _T ( "%s" ), SharedName );
-	wsprintf ( m_szMutexName,   _T ( "MUTEX_%s"   ), SharedName );
-	wsprintf ( m_szEventName,   _T ( "EVENT_%s"   ), SharedName );
+	if ( SharedName && SharedName[0] )
+	{
+		snprintf ( m_szFileMapName, sizeof(m_szFileMapName), "%s", SharedName );
+		snprintf ( m_szMutexName,   sizeof(m_szMutexName),   "MUTEX_%s", SharedName );
+		snprintf ( m_szEventName,   sizeof(m_szEventName),   "EVENT_%s", SharedName );
+	}
+	else
+	{
+		m_szFileMapName[0] = 0;
+		m_szMutexName[0] = 0;
+		m_szEventName[0] = 0;
+		return;
+	}
 
 	// open or create file map
 	m_hFileMap = OpenFileMapping ( FILE_MAP_ALL_ACCESS, m_bHandlesInheritable, m_szFileMapName );

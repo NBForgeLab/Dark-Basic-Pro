@@ -1,11 +1,26 @@
 // include definition
 #include "cerror.h"
 #include ".\..\core\globstruct.h"
+#include <cstdio>
+#include <cstdlib>
 #pragma comment ( lib, "user32.lib" )
 #define DB_PRO 1
 
 // Handler Passed into DLL
 CRuntimeErrorHandler* g_pErrorHandler = nullptr;
+
+// Diagnostic: when DBP_TRACE_ERROR env is set, append error info to error_trace.txt
+static void TraceRuntimeError(DWORD dwErrorCode, const char* tag)
+{
+	if (!getenv("DBP_TRACE_ERROR")) return;
+	FILE* f = nullptr;
+	fopen_s(&f, "error_trace.txt", "a");
+	if (f)
+	{
+		fprintf(f, "err=%u tag=%s\n", dwErrorCode, tag ? tag : "?");
+		fclose(f);
+	}
+}
 
 void Error ([[maybe_unused]] const char* szMessage)
 {
@@ -27,6 +42,8 @@ void Message ([[maybe_unused]] int iID, const char* szMessage, const char* szTit
 
 void RunTimeError ( DWORD dwErrorCode )
 {
+	// Diagnostic trace
+	TraceRuntimeError(dwErrorCode, "RunTimeError");
 	// Assign Run Time Error To Global Error Handler
 	if(g_pErrorHandler) g_pErrorHandler->dwErrorCode = dwErrorCode;
 }
@@ -41,6 +58,8 @@ void RunTimeSoftWarning ([[maybe_unused]] DWORD dwErrorCode)
 
 void RunTimeError(DWORD dwErrorCode, const char* pExtraErrorString)
 {
+	// Diagnostic trace
+	TraceRuntimeError(dwErrorCode, pExtraErrorString ? pExtraErrorString : "RunTimeError+str");
 	// lee - 180407 - now would it not be a good idea to know what the
 	// data was that caused the runtime error?
 	if ( pExtraErrorString )

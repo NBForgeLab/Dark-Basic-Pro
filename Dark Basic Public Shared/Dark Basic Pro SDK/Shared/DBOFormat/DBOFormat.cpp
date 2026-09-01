@@ -373,7 +373,7 @@ bool cSpecialEffect::Load ( LPCSTR pEffectFile, bool bUseXFile, bool bUseTexture
 	if ( pErrorBuffer ) 
 	{
 		g_dwEffectErrorMsgSize = pErrorBuffer->GetBufferSize();
-		SAFE_DELETE(g_pEffectErrorMsg);
+		SAFE_DELETE_ARRAY(g_pEffectErrorMsg);
 		g_pEffectErrorMsg = new char[g_dwEffectErrorMsgSize+1];
 		memcpy ( g_pEffectErrorMsg, pErrorBuffer->GetBufferPointer(), g_dwEffectErrorMsgSize );
 		MessageBox ( NULL, g_pEffectErrorMsg, g_pEffectErrorMsg, MB_OK );

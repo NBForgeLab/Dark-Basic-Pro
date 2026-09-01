@@ -23,12 +23,11 @@ ASTAT Adapter;
 
 void findMACaddress ( char* pMACAddress )
 {
-	char pLocalString [ 1024 ];
+	if (!pMACAddress) return;
+	char pLocalString [ 1024 ] = "001122334455";
 	NCB Ncb;
 	UCHAR uRetCode;
-	//char NetName[50];
-	LANA_ENUM   lenum;
-	int      i;
+	LANA_ENUM lenum;
 
 	memset( &Ncb, 0, sizeof(Ncb) );
 	Ncb.ncb_command = NCBENUM;
@@ -36,36 +35,39 @@ void findMACaddress ( char* pMACAddress )
 	Ncb.ncb_length = sizeof(lenum);
 	uRetCode = Netbios( &Ncb );
 
-	for(i=0; i < lenum.length ;i++)
+	if ( uRetCode == 0 )
 	{
-		memset( &Ncb, 0, sizeof(Ncb) );
-		Ncb.ncb_command = NCBRESET;
-		Ncb.ncb_lana_num = lenum.lana[i];
-		uRetCode = Netbios( &Ncb );
-
-		memset( &Ncb, 0, sizeof (Ncb) );
-		Ncb.ncb_command = NCBASTAT;
-		Ncb.ncb_lana_num = lenum.lana[i];
-		strcpy( (char*)Ncb.ncb_callname,  "*               " );
-		Ncb.ncb_buffer = (PUCHAR) &Adapter;
-		Ncb.ncb_length = sizeof(Adapter);
-		uRetCode = Netbios( &Ncb );
-
-		if ( uRetCode == 0 )
+		for(int i=0; i < lenum.length ;i++)
 		{
-			sprintf( pLocalString, "%02X%02X%02X%02X%02X%02X",
-					//lenum.lana[i],
-					Adapter.adapt.adapter_address[0],
-					Adapter.adapt.adapter_address[1],
-					Adapter.adapt.adapter_address[2],
-					Adapter.adapt.adapter_address[3],
-					Adapter.adapt.adapter_address[4],
-					Adapter.adapt.adapter_address[5] );
+			memset( &Ncb, 0, sizeof(Ncb) );
+			Ncb.ncb_command = NCBRESET;
+			Ncb.ncb_lana_num = lenum.lana[i];
+			uRetCode = Netbios( &Ncb );
+
+			memset( &Ncb, 0, sizeof (Ncb) );
+			Ncb.ncb_command = NCBASTAT;
+			Ncb.ncb_lana_num = lenum.lana[i];
+			strcpy_s( (char*)Ncb.ncb_callname, sizeof(Ncb.ncb_callname), "*               " );
+			Ncb.ncb_buffer = (PUCHAR) &Adapter;
+			Ncb.ncb_length = sizeof(Adapter);
+			uRetCode = Netbios( &Ncb );
+
+			if ( uRetCode == 0 )
+			{
+				sprintf_s( pLocalString, sizeof(pLocalString), "%02X%02X%02X%02X%02X%02X",
+						Adapter.adapt.adapter_address[0],
+						Adapter.adapt.adapter_address[1],
+						Adapter.adapt.adapter_address[2],
+						Adapter.adapt.adapter_address[3],
+						Adapter.adapt.adapter_address[4],
+						Adapter.adapt.adapter_address[5] );
+				break;
+			}
 		}
 	}
 
 	// copy MAC address back
-	strcpy ( pMACAddress, pLocalString );
+	strcpy_s ( pMACAddress, 256, pLocalString );
 }
 
 struct sHardDrive
@@ -94,7 +96,7 @@ int			g_iHardDriveCount = 0;
 
 bool CheckHardDriveID ( int iID )
 {
-	if ( iID < 0 || iID > 24 )
+	if ( iID < 0 || iID >= MAX_HARD_DRIVE )
 	{
 		Error ( 7 );
 		return false;
@@ -292,125 +294,76 @@ int GetDriveFileLengthSupport ( int iID )
 	return -1;
 }
 
-bool ReadFromRegistry ( LPCSTR PerfmonNamesKey, LPCSTR key, LPSTR* pReturnString )
+static std::string ReadRegistryString ( LPCSTR PerfmonNamesKey, LPCSTR key )
 {
-	HKEY hKeyNames = 0;
-	DWORD Status;
-	char ObjectType[256];
+	HKEY hKey = nullptr;
+	if ( RegOpenKeyExA ( HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKey ) != ERROR_SUCCESS )
+		return {};
 
-	// Name of key and optiontype
-	strcpy(ObjectType,"Num");
+	char data [ 256 ] = {};
+	DWORD size = sizeof(data) - 1;
+	DWORD type = REG_SZ;
+	LONG status = RegQueryValueExA ( hKey, key, nullptr, &type, reinterpret_cast<LPBYTE>(data), &size );
+	RegCloseKey ( hKey );
 
-	// Try to create it first
-	Status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, PerfmonNamesKey, 0L, KEY_READ, &hKeyNames);
-		
-	// We got the handle, now use it
-	LPSTR pData = NULL;
-    if(Status==ERROR_SUCCESS)
-	{
-		DWORD Size = 256;
-		DWORD Type = REG_SZ;
-		pData = new char [ Size ];
-		memset ( pData, 0, Size );
-		Status = RegQueryValueEx(hKeyNames, key, NULL, &Type, (LPBYTE)pData, &Size);
-		RegCloseKey(hKeyNames);
-	}
+	if ( status == ERROR_SUCCESS )
+		return std::string(data);
 
-	// Return data poiner
-	*pReturnString = pData;
-
-	// complete
-	return true;
+	return {};
 }
 
-DWORD GetDriveSerial ( DWORD dwReturn, int iID, int iUniqueCode )
+DWORD_PTR GetDriveSerial ( DWORD_PTR dwReturn, int iID, int iUniqueCode )
 {
-	// temp
-	LPSTR pString = new char [ 102400 ];
 	char szSerialA [ 256 ] = "";
 	char szSerialB [ 256 ] = "";
 
-	// unique or typical
-	if ( iUniqueCode==1 )
+	if ( iUniqueCode == 1 )
 	{
-		// scan registry for processor information
-		LPSTR pProcessorIdentifier, pProcessorNameString, pProcessorVendorIdentifier;
-		LPCSTR pPRKey = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
-		ReadFromRegistry ( pPRKey, "Identifier", &pProcessorIdentifier );
-		ReadFromRegistry ( pPRKey, "ProcessorNameString", &pProcessorNameString );
-		ReadFromRegistry ( pPRKey, "VendorIdentifier", &pProcessorVendorIdentifier );
+		std::string sCombined;
+		sCombined += ReadRegistryString ( "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "Identifier" );
+		sCombined += ReadRegistryString ( "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "ProcessorNameString" );
+		sCombined += ReadRegistryString ( "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "VendorIdentifier" );
 
-		// scan registry for harddrive information
-		char pHDKey [ 1024 ];
-		LPSTR pHardDriveIdentifier [ 5 ][ 8 ][ 2 ];
-		memset ( pHardDriveIdentifier, 0, sizeof(pHardDriveIdentifier) );
-		for ( int iPort=0; iPort<5; iPort++ )
+		for ( int iPort = 0; iPort < 5; ++iPort )
 		{
-			for ( int iBus=0; iBus<8; iBus++ )
+			for ( int iBus = 0; iBus < 8; ++iBus )
 			{
-				for ( int iTarget=0; iTarget<2; iTarget++ )
+				for ( int iTarget = 0; iTarget < 2; ++iTarget )
 				{
-					// get identifier of hardware device
-					wsprintf ( pHDKey, "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target ID %d\\Logical Unit Id 0", iPort, iBus, iTarget );
-					ReadFromRegistry ( pHDKey, "Identifier", &pHardDriveIdentifier[iPort][iBus][iTarget] );
+					char pHDKey [ 1024 ];
+					snprintf ( pHDKey, sizeof(pHDKey), "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target ID %d\\Logical Unit Id 0", iPort, iBus, iTarget );
+					sCombined += ReadRegistryString ( pHDKey, "Identifier" );
 				}
 			}
 		}
 
-		// build single string with all hardware profile data in
-		strcpy ( pString, "" );
-		if ( pProcessorIdentifier ) strcat ( pString, pProcessorIdentifier );
-		if ( pProcessorNameString ) strcat ( pString, pProcessorNameString );
-		if ( pProcessorVendorIdentifier ) strcat ( pString, pProcessorVendorIdentifier );
-		for ( int iPort=0; iPort<5; iPort++ )
-			for ( int iBus=0; iBus<8; iBus++ )
-				for ( int iTarget=0; iTarget<2; iTarget++ )
-					if ( pHardDriveIdentifier[iPort][iBus][iTarget] ) strcat ( pString, pHardDriveIdentifier[iPort][iBus][iTarget] );
+		findMACaddress ( szSerialA );
 
-		// now find MAC address too
-		findMACaddress( szSerialA );
-
-		// turn string into unique serial code
 		DWORD dwHugeNumber = 0x10000;
-		for ( int n=0; n<(int)strlen(pString); n++ )
+		for ( char ch : sCombined )
 		{
-			dwHugeNumber = dwHugeNumber + pString[n];
+			dwHugeNumber += static_cast<unsigned char>(ch);
 		}
-		sprintf ( szSerialB, "%X", dwHugeNumber );
-		szSerialB[5]=0;
-		strcat ( szSerialB, szSerialA );
+
+		snprintf ( szSerialB, sizeof(szSerialB), "%X%s", dwHugeNumber, szSerialA );
+		if ( strlen(szSerialB) > 5 )
+			szSerialB[5] = 0;
+		strcat_s ( szSerialB, sizeof(szSerialB), szSerialA );
 	}
 	else
 	{
 		if ( !CheckHardDriveID ( iID ) )
 			return 0;
 
-		DWORD dwSerialNumber    = 0;
-		if ( GetVolumeInformation ( g_HardDiskLetters [ iID ], NULL, 0, &dwSerialNumber, NULL, NULL, NULL, 0 ) )
+		DWORD dwSerialNumber = 0;
+		if ( GetVolumeInformationA ( g_HardDiskLetters [ iID ], nullptr, 0, &dwSerialNumber, nullptr, nullptr, nullptr, 0 ) )
 		{
-			// copy the serial number into the buffer
-			sprintf ( szSerialA, "%X", dwSerialNumber );
-
-			// now insert the "-" into the middle
-			strcpy ( szSerialB, "" );
-			memcpy ( szSerialB, szSerialA,               sizeof ( char ) * 4 );
-			memcpy ( &szSerialB [ 4 ], "-",              sizeof ( char ) * 1 );
-			memcpy ( &szSerialB [ 5 ], &szSerialA [ 4 ], sizeof ( char ) * 4 );
-
-			// end the string
-			szSerialB [ 9 ] = 0;
+			sprintf_s ( szSerialA, sizeof(szSerialA), "%08X", dwSerialNumber );
+			snprintf ( szSerialB, sizeof(szSerialB), "%.4s-%.4s", szSerialA, szSerialA + 4 );
 		}
 	}
 
-	// free usages
-	if ( pString )
-	{
-		delete pString;
-		pString = NULL;
-	}
-
-	// return the string
-	return ( DWORD_PTR ) SetupString ( szSerialB );
+	return reinterpret_cast<DWORD_PTR>(SetupString ( szSerialB ));
 }
 
 DWORD_PTR GetDriveSerial ( DWORD_PTR dwReturn, int iID )

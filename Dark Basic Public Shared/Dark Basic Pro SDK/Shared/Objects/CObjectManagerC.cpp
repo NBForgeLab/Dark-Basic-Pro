@@ -4245,8 +4245,8 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 																	NULL
 																	) ) )
 						{
-							SAFE_DELETE(pStoreVData);
-							SAFE_DELETE(pStoreIData);
+							SAFE_DELETE_ARRAY(pStoreVData);
+							SAFE_DELETE_ARRAY(pStoreIData);
 							SAFE_RELEASE(pStampBufferPtr->pVBRef);
 							SAFE_RELEASE(pStampBufferPtr->pIBRef);
 							return false;
@@ -4262,8 +4262,8 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 																		NULL
 																		) ) )
 							{
-								SAFE_DELETE(pStoreVData);
-								SAFE_DELETE(pStoreIData);
+								SAFE_DELETE_ARRAY(pStoreVData);
+								SAFE_DELETE_ARRAY(pStoreIData);
 								SAFE_RELEASE(pStampBufferPtr->pVBRef);
 								SAFE_RELEASE(pStampBufferPtr->pIBRef);
 								return false;
@@ -4273,8 +4273,8 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 						// lock new buffers
 						if ( FAILED ( pStampBufferPtr->pVBRef->Lock ( 0, 0, ( VOID** ) &pfLockedData, 0 ) ) )
 						{
-							SAFE_DELETE(pStoreVData);
-							SAFE_DELETE(pStoreIData);
+							SAFE_DELETE_ARRAY(pStoreVData);
+							SAFE_DELETE_ARRAY(pStoreIData);
 							SAFE_RELEASE(pStampBufferPtr->pVBRef);
 							SAFE_RELEASE(pStampBufferPtr->pIBRef);
 							return false;
@@ -4283,8 +4283,8 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 						{
 							if ( FAILED ( pStampBufferPtr->pIBRef->Lock ( 0, 0, ( VOID** ) &pfLockedIndexData, 0 ) ) )
 							{
-								SAFE_DELETE(pStoreVData);
-								SAFE_DELETE(pStoreIData);
+								SAFE_DELETE_ARRAY(pStoreVData);
+								SAFE_DELETE_ARRAY(pStoreIData);
 								SAFE_RELEASE(pStampBufferPtr->pVBRef);
 								SAFE_RELEASE(pStampBufferPtr->pIBRef);
 								return false;
@@ -4296,8 +4296,8 @@ bool CObjectManager::AddInstanceStampObjectToBuffer ( sObject* pObject, sInstanc
 						if ( pStoreIData ) memcpy ( pfLockedIndexData, pStoreIData, dwOldMaxIBSize );
 
 						// free usages
-						SAFE_DELETE(pStoreVData);
-						SAFE_DELETE(pStoreIData);
+						SAFE_DELETE_ARRAY(pStoreVData);
+						SAFE_DELETE_ARRAY(pStoreIData);
 
 						// update ptrs as we have new buffers
 						pDestPtr = pfLockedData;

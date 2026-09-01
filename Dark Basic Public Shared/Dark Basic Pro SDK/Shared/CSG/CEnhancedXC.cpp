@@ -328,7 +328,7 @@ void SaveMesh ( int iMeshID, char* szFilename )
 	HRESULT hRes = D3DXSaveMeshToX( szFilename, pMesh->m_Mesh, NULL, pMatList, pMesh->m_NumMaterials, DXFILEFORMAT_TEXT );
 
 	// free usages
-	SAFE_DELETE(pMatList);
+	SAFE_DELETE_ARRAY(pMatList);
 }
 
 void ChangeMesh	( int iObjectID, int iLimbID, int iMeshID )
@@ -383,8 +383,8 @@ void ChangeMesh	( int iObjectID, int iLimbID, int iMeshID )
 	float* pTempMeshData = CreatePureTriangleMeshData( pTempMeshDataRaw, &dwNewVertCount, dwInNumVert, dwInFVFSize, pTempIndiceData, dwInNumPoly );
 
 	// free temps so far
-	SAFE_DELETE(pTempMeshDataRaw);
-	SAFE_DELETE(pTempIndiceData);
+	SAFE_DELETE_ARRAY(pTempMeshDataRaw);
+	SAFE_DELETE_ARRAY(pTempIndiceData);
 
 	// find frame(limb) holdnig mesh(es)
 	sFrame* pLimbFrame = pObject->m_Object.m_Frames->FindFrame ( iLimbID );
@@ -446,7 +446,7 @@ void ChangeMesh	( int iObjectID, int iLimbID, int iMeshID )
 	}
 
 	// Free usages
-	SAFE_DELETE(pTempMeshData);
+	SAFE_DELETE_ARRAY(pTempMeshData);
 	SAFE_RELEASE(pNewMesh);
 }
 
@@ -548,7 +548,7 @@ void NewObjectFromMesh ( int iObjectID, int iMeshID )
 	MakeFromMesh ( iObjectID, dwInFVF, dwInFVFSize, pInMesh, dwInNumPoly, dwInNumVert, dwInPrimType );
 
 	// free usage
-	SAFE_DELETE(pInMesh);
+	SAFE_DELETE_ARRAY(pInMesh);
 }
 
 bool MakeMeshFromMesh (	int iID, DWORD dwInFVF, DWORD dwInFVFSize,
@@ -675,15 +675,15 @@ void MakeMeshFromObjectPart ( int iMeshID, int iObjectID, int iLimbPart )
 	// make mesh data not depend on indices
 	DWORD dwNewVertCount=0;
 	float* pNoIndexRequiredMesh = CreatePureTriangleMeshData( pTempMeshData, &dwNewVertCount, dwVertsSoFar, dwFVFSize, pTempIndiceData, dwPolysSoFar );
-	SAFE_DELETE(pTempMeshData);
+	SAFE_DELETE_ARRAY(pTempMeshData);
 
 	// create new mesh-object from single mesh
 	MakeMeshFromMesh ( iMeshID, dwFVF, dwFVFSize, pNoIndexRequiredMesh, dwNewVertCount/3, dwNewVertCount, D3DPT_TRIANGLELIST );
 
 	// free usages
-	SAFE_DELETE(pTempMeshData);
-	SAFE_DELETE(pTempIndiceData);
-	SAFE_DELETE(pNoIndexRequiredMesh);
+	SAFE_DELETE_ARRAY(pTempMeshData);
+	SAFE_DELETE_ARRAY(pTempIndiceData);
+	SAFE_DELETE_ARRAY(pNoIndexRequiredMesh);
 }
 
 void NewObjectFromLimb ( int iNewObjectID, int iSrcObjectID, int iLimbID )
@@ -2148,7 +2148,7 @@ void AddLimb ( int iID, int iLimbID, int iMeshID )
 
 	// free meshdata
 	SAFE_RELEASE(pNewMesh);
-	SAFE_DELETE(pInMesh);
+	SAFE_DELETE_ARRAY(pInMesh);
 
 	// link in mesh
 	Mesh->m_Next    = m_pModelData->m_Object.m_Meshes;
@@ -2751,8 +2751,8 @@ void GetMeshData( int iMeshID, DWORD* pdwFVF, DWORD* pdwFVFSize, DWORD* pdwVertM
 		// make mesh data not depend on indices
 		DWORD dwNewVertCount=0;
 		float* pNoIndexRequiredMesh = CreatePureTriangleMeshData( pInMesh, &dwNewVertCount, dwInNumVert, dwInFVFSize, pInIndices, dwInNumPoly );
-		SAFE_DELETE(pInIndices);
-		SAFE_DELETE(pInMesh);
+		SAFE_DELETE_ARRAY(pInIndices);
+		SAFE_DELETE_ARRAY(pInMesh);
 
 		// mesh data
 		*pdwFVF = dwInFVF;
@@ -2768,7 +2768,7 @@ void GetMeshData( int iMeshID, DWORD* pdwFVF, DWORD* pdwFVFSize, DWORD* pdwVertM
 		memcpy( *pData, pNoIndexRequiredMesh, dwSizeOfData );
 
 		// free usages
-		SAFE_DELETE(pNoIndexRequiredMesh);
+		SAFE_DELETE_ARRAY(pNoIndexRequiredMesh);
 
 		// free work mesh
 		SAFE_RELEASE(pWorkMesh);

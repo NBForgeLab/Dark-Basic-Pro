@@ -140,6 +140,11 @@ DARKSDK DWORD GetFileMapDWORD ( int iID, DWORD dwOffset )
 
 DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffset )
 {
+	if ( dwDestStr && g_pGlob && g_pGlob->CreateDeleteString )
+	{
+		g_pGlob->CreateDeleteString ( (DWORD_PTR*)&dwDestStr, 0 );
+	}
+
 	if ( !g_FileMap [ iID ].pIPC )
 		return 0;
 
@@ -149,10 +154,13 @@ DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffse
 	DWORD dwSize        = (DWORD)strlen ( szString );
 	char* pReturnString	= NULL;	
 	
-	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturnString, dwSize + 1 );
+	if ( g_pGlob && g_pGlob->CreateDeleteString )
+	{
+		g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturnString, dwSize + 1 );
+	}
 	if ( pReturnString )
 	{
-		strcpy ( pReturnString, szString );
+		strcpy_s ( pReturnString, dwSize + 1, szString );
 	}
 
 	return (DWORD_PTR)pReturnString;

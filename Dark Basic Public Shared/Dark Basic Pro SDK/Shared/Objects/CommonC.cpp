@@ -440,11 +440,20 @@ DARKSDK_DLL void DestructorD3D ( void )
 		if ( g_pGlob->bInvalidFlag == false )
 		{
 			if ( g_RawMeshList )
+			{
 				for ( int iMesh = 0; iMesh < g_iRawMeshListCount; iMesh++ )
-					SAFE_DELETE ( g_RawMeshList [ iMesh ] );
+				{
+					if ( g_RawMeshList [ iMesh ] )
+					{
+						DeleteRawMesh ( g_RawMeshList [ iMesh ] );
+						g_RawMeshList [ iMesh ] = NULL;
+					}
+				}
+			}
 
 			// free raw-mesh array
 			SAFE_DELETE_ARRAY ( g_RawMeshList );
+			g_iRawMeshListCount = 0;
 		}
 	}
 }
