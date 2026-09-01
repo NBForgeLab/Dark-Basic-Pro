@@ -71,14 +71,14 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 
 				// Pass DEST + CURRENT STRING (same address)
 				CStr pNull2("0");
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), &pData, 7);
-				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull2, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), &pData, dwType);
+				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Push), &pNull2, dwType);
 
 				// CALL EQUATE to create a NEW STRING from CURRENT STRING
 				g_pASMWriter->WriteASMCall(GetStartLineNumber(), "dbprocore.dll", "?EquateSS@@YA_K_K0@Z");
 
 				// Put RAX overwrites DEST
-				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, nullptr, 7);
+				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, dwType, nullptr, dwType);
 
 				// Pop the 2 arguments from stack
 				g_pASMWriter->WriteASMTaskCoreP1(GetStartLineNumber(), static_cast<DWORD>(ASMTask::PopRbx), nullptr, 0);
@@ -88,7 +88,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 			{
 				// Clear func-mem
 				//g_pASMWriter->WriteASMTaskCoreP2(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Assign), pData, 7, pNull, 7); //120108 - u71 - fix line number (and above)
-				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, 7, &pNull, 7);
+				g_pASMWriter->WriteASMTaskCoreP2(GetStartLineNumber(), static_cast<DWORD>(ASMTask::Assign), &pData, dwType, &pNull, dwType);
 			}
 		}
 		if(PlacementCode==DBMPLACEMENT_BOTTOM)
@@ -102,7 +102,7 @@ bool CParseUserFunction::ActOnSingleVar(DWORD dwType, int iDisplacement, DWORD P
 			// Only the return string is not freed here
 			if(bValidFree==true)
 			{
-				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Push), &pData, 7);
+				g_pASMWriter->WriteASMTaskCoreP1(GetEndLineNumber(), static_cast<DWORD>(ASMTask::Push), &pData, dwType);
 
 				CInstructionTableEntry* pRef = nullptr;
 				if(dwType==3) pRef=g_pInstructionTable->GetRef(static_cast<DWORD>(InternalInstruction::StrFree));

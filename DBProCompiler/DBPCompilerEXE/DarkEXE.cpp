@@ -232,7 +232,7 @@ LRESULT CALLBACK TempWindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		}
 
 		case WM_CLOSE:
-			PostQuitMessage(0);
+			OutputDebugStringA("[DarkEXE] TempWindowProc WM_CLOSE received (ignored)\n");
 			break;
 	}
 
@@ -591,226 +591,10 @@ bool FileExists(LPSTR pFilename)
 
 // WINDOWS MAIN FUNCTION
 
-// TEMP-DIAG: vectored exception logger naming the faulting module+offset
-// (remove after the x64 E2E crash hunt concludes)
-static LONG WINAPI DbpVehCrashLocator(_EXCEPTION_POINTERS* pInfo)
-{
-	if (!pInfo || !pInfo->ExceptionRecord)
-		return EXCEPTION_CONTINUE_SEARCH;
-
-	// Ignore OutputDebugString exception
-	if (pInfo->ExceptionRecord->ExceptionCode == 0x40010006)
-		return EXCEPTION_CONTINUE_SEARCH;
-
-	void* pAddr = pInfo->ExceptionRecord->ExceptionAddress;
-	HMODULE hMod = nullptr;
-	char szMod[MAX_PATH] = "?";
-	uintptr_t uOff = reinterpret_cast<uintptr_t>(pAddr);
-	if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
-		| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		reinterpret_cast<LPCWSTR>(pAddr), &hMod) && hMod)
-	{
-		WCHAR wMod[MAX_PATH] = L"";
-		if (GetModuleFileNameW(hMod, wMod, MAX_PATH))
-		{
-			char szTmp[MAX_PATH] = "";
-			WideCharToMultiByte(CP_ACP, 0, wMod, -1, szTmp, MAX_PATH, nullptr, nullptr);
-			strcpy_s(szMod, szTmp);
-			uOff = reinterpret_cast<uintptr_t>(pAddr) - reinterpret_cast<uintptr_t>(hMod);
-		}
-	}
-
-	WCHAR wExe[MAX_PATH] = L"";
-	GetModuleFileNameW(nullptr, wExe, MAX_PATH);
-	LPWSTR wDot = wcsrchr(wExe, L'.');
-	if (wDot) { wcscpy_s(wDot, 16, L"_veh.log"); }
-	else { wcscat_s(wExe, L"_veh.log"); }
-
-	char szLog[MAX_PATH] = "";
-	WideCharToMultiByte(CP_ACP, 0, wExe, -1, szLog, MAX_PATH, nullptr, nullptr);
-
-	FILE* f = nullptr;
-	if (!fopen_s(&f, szLog, "a") && f)
-	{
-		fprintf(f, "VEH code=0x%08X at %s+0x%llX (addr=%p)\n",
-			static_cast<unsigned>(pInfo->ExceptionRecord->ExceptionCode),
-			szMod, static_cast<unsigned long long>(uOff), pAddr);
-		if (pInfo->ExceptionRecord->ExceptionCode == 0xC0000005
-			&& pInfo->ExceptionRecord->NumberParameters >= 2)
-		{
-			fprintf(f, "     op=%s target=%p\n",
-				pInfo->ExceptionRecord->ExceptionInformation[0] ? "WRITE" : "READ",
-				reinterpret_cast<void*>(pInfo->ExceptionRecord->ExceptionInformation[1]));
-		}
-
-		if (pInfo->ContextRecord)
-		{
-			const auto& c = *pInfo->ContextRecord;
-			fprintf(f, "--- Registers ---\n");
-			fprintf(f, "  RIP=%016llX RSP=%016llX RBP=%016llX\n", c.Rip, c.Rsp, c.Rbp);
-			fprintf(f, "  RAX=%016llX RBX=%016llX RCX=%016llX RDX=%016llX\n", c.Rax, c.Rbx, c.Rcx, c.Rdx);
-			fprintf(f, "  RSI=%016llX RDI=%016llX R8 =%016llX R9 =%016llX\n", c.Rsi, c.Rdi, c.R8, c.R9);
-			fprintf(f, "  R10=%016llX R11=%016llX R12=%016llX R13=%016llX\n", c.R10, c.R11, c.R12, c.R13);
-			fprintf(f, "  R14=%016llX R15=%016llX EFLAGS=%08lX\n", c.R14, c.R15, c.EFlags);
-		}
-
-		if (CEXE.m_pMachineCodeBlock && CEXE.m_dwSizeOfMCB > 0)
-		{
-			uintptr_t mcbBase = reinterpret_cast<uintptr_t>(CEXE.m_pMachineCodeBlock);
-			uintptr_t mcbEnd = mcbBase + CEXE.m_dwSizeOfMCB;
-			fprintf(f, "MCB: [%p - %p] (size=%lu)\n", CEXE.m_pMachineCodeBlock, reinterpret_cast<void*>(mcbEnd), CEXE.m_dwSizeOfMCB);
-
-			// Dump around 0x35F262 if within bounds
-			if (CEXE.m_dwSizeOfMCB >= 0x35F262 + 64)
-			{
-				fprintf(f, "--- MCB at 0x35F262 (-48..+48) ---\n");
-				const unsigned char* pCode = (const unsigned char*)CEXE.m_pMachineCodeBlock + 0x35F262 - 48;
-				for (int b = 0; b < 96; ++b)
-				{
-					if (b == 48) fprintf(f, "\n[CALLSITE] ");
-					fprintf(f, "%02X ", pCode[b]);
-				}
-				fprintf(f, "\n");
-			}
-		}
-
-		void* stack[32] = {};
-		WORD frames = CaptureStackBackTrace(0, 32, stack, nullptr);
-		fprintf(f, "--- Stack Backtrace (%u frames) ---\n", frames);
-		for (WORD i = 0; i < frames; ++i)
-		{
-			HMODULE hFMod = nullptr;
-			char szFMod[MAX_PATH] = "?";
-			uintptr_t uFOff = reinterpret_cast<uintptr_t>(stack[i]);
-			uintptr_t sAddr = reinterpret_cast<uintptr_t>(stack[i]);
-			if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
-				| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-				reinterpret_cast<LPCWSTR>(stack[i]), &hFMod) && hFMod)
-			{
-				WCHAR wFMod[MAX_PATH] = L"";
-				if (GetModuleFileNameW(hFMod, wFMod, MAX_PATH))
-				{
-					char szTmp[MAX_PATH] = "";
-					WideCharToMultiByte(CP_ACP, 0, wFMod, -1, szTmp, MAX_PATH, nullptr, nullptr);
-					strcpy_s(szFMod, szTmp);
-					uFOff = reinterpret_cast<uintptr_t>(stack[i]) - reinterpret_cast<uintptr_t>(hFMod);
-				}
-			}
-			else if (CEXE.m_pMachineCodeBlock && CEXE.m_dwSizeOfMCB > 0 && sAddr >= (uintptr_t)CEXE.m_pMachineCodeBlock && sAddr < (uintptr_t)CEXE.m_pMachineCodeBlock + CEXE.m_dwSizeOfMCB)
-			{
-				strcpy_s(szFMod, "MCB");
-				uFOff = sAddr - (uintptr_t)CEXE.m_pMachineCodeBlock;
-
-				// Print bytes at this location in MCB
-				const unsigned char* pBytes = reinterpret_cast<const unsigned char*>(sAddr - 16);
-				fprintf(f, "  [%02u] MCB+0x%llX (addr=%p)\n", i, static_cast<unsigned long long>(uFOff), stack[i]);
-				fprintf(f, "       Bytes (-16..+16): ");
-				for (int b = 0; b < 32; ++b)
-				{
-					fprintf(f, "%02X ", pBytes[b]);
-				}
-				fprintf(f, "\n");
-				continue;
-			}
-			else
-			{
-				// Check MemoryPE loaded plugins
-				for (const auto& [plugName, plugHandle] : PluginRegistry::GetInstance().GetAll())
-				{
-					uintptr_t plugBase = reinterpret_cast<uintptr_t>(plugHandle);
-					// Typically DLL memory image is at least 64KB - 32MB
-					if (plugBase && sAddr >= plugBase && sAddr < plugBase + 0x4000000)
-					{
-						sprintf_s(szFMod, "Plugin[%s]", plugName.c_str());
-						uFOff = sAddr - plugBase;
-						break;
-					}
-				}
-			}
-			fprintf(f, "  [%02u] %s+0x%llX (addr=%p)\n", i, szFMod, static_cast<unsigned long long>(uFOff), stack[i]);
-		}
-
-		if (pInfo->ContextRecord)
-		{
-			const auto& c = *pInfo->ContextRecord;
-			fprintf(f, "--- Stack Scan from RSP (%p) ---\n", (void*)c.Rsp);
-			uintptr_t* pRawStack = reinterpret_cast<uintptr_t*>(c.Rsp);
-			for (int s = 0; s < 32; ++s)
-			{
-				__try {
-					uintptr_t val = pRawStack[s];
-					char desc[128] = "";
-					if (CEXE.m_pMachineCodeBlock && val >= (uintptr_t)CEXE.m_pMachineCodeBlock && val < (uintptr_t)CEXE.m_pMachineCodeBlock + CEXE.m_dwSizeOfMCB)
-					{
-						sprintf_s(desc, " -> MCB+0x%llX", static_cast<unsigned long long>(val - (uintptr_t)CEXE.m_pMachineCodeBlock));
-					}
-					else
-					{
-						for (const auto& [plugName, plugHandle] : PluginRegistry::GetInstance().GetAll())
-						{
-							uintptr_t plugBase = reinterpret_cast<uintptr_t>(plugHandle);
-							if (plugBase && val >= plugBase && val < plugBase + 0x4000000)
-							{
-								sprintf_s(desc, " -> Plugin[%s]+0x%llX", plugName.c_str(), static_cast<unsigned long long>(val - plugBase));
-								break;
-							}
-						}
-					}
-					fprintf(f, "  [RSP+%03X] = %p%s\n", s * 8, (void*)val, desc);
-				}
-				__except (EXCEPTION_EXECUTE_HANDLER) {
-					break;
-				}
-			}
-
-			if (c.R12)
-			{
-				fprintf(f, "--- Stack Scan from R12 (%p) ---\n", (void*)c.R12);
-				uintptr_t* pR12Stack = reinterpret_cast<uintptr_t*>(c.R12);
-				for (int s = -4; s < 12; ++s)
-				{
-					__try {
-						uintptr_t val = pR12Stack[s];
-						char desc[128] = "";
-						if (CEXE.m_pMachineCodeBlock && val >= (uintptr_t)CEXE.m_pMachineCodeBlock && val < (uintptr_t)CEXE.m_pMachineCodeBlock + CEXE.m_dwSizeOfMCB)
-						{
-							sprintf_s(desc, " -> MCB+0x%llX", static_cast<unsigned long long>(val - (uintptr_t)CEXE.m_pMachineCodeBlock));
-						}
-						fprintf(f, "  [R12%+04d] = %p%s\n", s * 8, (void*)val, desc);
-					}
-					__except (EXCEPTION_EXECUTE_HANDLER) {
-						break;
-					}
-				}
-			}
-		}
-
-		fprintf(f, "-----------------------------------\n");
-		fclose(f);
-	}
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-
 int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance, LPSTR lpCmdLine, [[maybe_unused]] int nCmdShow)
 {
 	// Install diagnostic handlers before any packaged asset is touched
 	db3::SetupDiagnosticHandlers();
-	{
-		void* pVeh = AddVectoredExceptionHandler(1, DbpVehCrashLocator);
-		WCHAR wExe[MAX_PATH] = L"";
-		GetModuleFileNameW(nullptr, wExe, MAX_PATH);
-		LPWSTR wDot = wcsrchr(wExe, L'.');
-		if (wDot) { wcscpy_s(wDot, 16, L"_veh.log"); }
-		else { wcscat_s(wExe, L"_veh.log"); }
-		char szLog[MAX_PATH] = "";
-		WideCharToMultiByte(CP_ACP, 0, wExe, -1, szLog, MAX_PATH, nullptr, nullptr);
-		FILE* f = nullptr;
-		if (!fopen_s(&f, szLog, "a") && f)
-		{
-			fprintf(f, "VEH installed=%s\n", pVeh ? "ok" : "FAILED");
-			fclose(f);
-		}
-	}
 
 	// Initialize Virtual File System hooks
 	if(!VFSHooks::Initialize())
@@ -825,20 +609,36 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 	// Store reference to CL$()
 	gRefCommandLineString=lpCmdLine;
 
-	// Resolve and authenticate the package belonging to this executable.
+	// Resolve the executable path and open a startup breadcrumb trace beside
+	// it. Several startup paths used to fail with no observable output; the
+	// trace records the last milestone reached and is flushed after every
+	// write, so it survives crashes. Overwritten on each start.
 	char ActualEXEFilename[_MAX_PATH];
 	std::filesystem::path ActualExecutablePath;
-	{
-		wchar_t wPath[_MAX_PATH];
-		GetModuleFileNameW(hInstance, wPath, _MAX_PATH);
-		ActualExecutablePath = std::filesystem::path(wPath);
-		std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
-		strcpy_s(ActualEXEFilename, _MAX_PATH, utf8Path.c_str());
-	}
+	wchar_t wPath[_MAX_PATH];
+	GetModuleFileNameW(hInstance, wPath, _MAX_PATH);
+	ActualExecutablePath = std::filesystem::path(wPath);
+	std::string utf8Path = TextConvert::UTF16ToUTF8(wPath);
+	strcpy_s(ActualEXEFilename, _MAX_PATH, utf8Path.c_str());
+
+	FILE* pStartupTraceFile = nullptr;
+	fopen_s(&pStartupTraceFile, (ActualExecutablePath.parent_path() / "dbp_startup.log").string().c_str(), "w");
+	const auto trace = [&pStartupTraceFile](const std::string& message) {
+		if (pStartupTraceFile)
+		{
+			fputs(message.c_str(), pStartupTraceFile);
+			fputc('\n', pStartupTraceFile);
+			fflush(pStartupTraceFile);
+		}
+	};
+	trace("WinMain entry");
+
+	// Authenticate the package belonging to this executable.
 	auto PackageStartup =
 		RuntimePackageBootstrap::Start(ActualExecutablePath);
 	if(!PackageStartup)
 	{
+		trace("package authentication FAILED: " + PackageStartup.error().message);
 		const auto message = TextConvert::UTF8ToUTF16(
 			"Dark Basic Professional could not authenticate its runtime package.\n\n" +
 			PackageStartup.error().message);
@@ -850,6 +650,7 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 		VFSHooks::Shutdown();
 		return 1;
 	}
+	trace("package authentication OK");
 	auto RuntimePackage = std::move(PackageStartup.value());
 
 	// Get current working directory (for temp folder compare)
@@ -887,11 +688,13 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 	// If EXE is an installer, create files then quit
 	if(RuntimePackage->mode()==dbp::package::RuntimeMode::Installer)
 	{
+		trace("runtime mode: installer");
 		const auto installed = RuntimePackage->MaterializeInstaller(
 			std::filesystem::path(
 				TextConvert::UTF8ToUTF16(CurrentDirectory)));
 		if(!installed)
 		{
+			trace("installer materialization FAILED: " + installed.error().message);
 			RuntimeExitCode = 1;
 			const auto message = TextConvert::UTF8ToUTF16(
 				"Dark Basic Professional could not publish the installed application.\n\n" +
@@ -902,9 +705,15 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 				L"Installer package error",
 				MB_OK | MB_ICONERROR | MB_TOPMOST);
 		}
+		else
+		{
+			trace("installer materialization OK");
+		}
 	}
 	else
 	{
+		trace("runtime mode: application");
+
 		// Send critical start info to CEXE
 		CEXE.StartInfo(gUnpackDirectory, 0);
 
@@ -915,28 +724,45 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 		LPSTR pErrorString = nullptr;
 
 		// Load EXE Block
+		trace("loading EXE block");
 		if(CEXE.Load(LoadWithFilename))
 		{
+			trace("EXE block loaded");
 			// creating window HERE will allow me to create the right size, type, etc
+			trace("creating temp window");
 			CreateTempWindow ( hInstance, ActualEXEFilename, CEXE.m_dwInitialDisplayWidth, CEXE.m_dwInitialDisplayHeight );
+			trace("temp window created");
 
 			// Execute behind an SEH boundary so a generated-code or plug-in
 			// fault is reported with a useful module offset and a failing exit.
 			RuntimeExecutionFailure executionFailure;
 			bool runResult = false;
+			trace("running program");
 			if (!TryRunProgram(
 					hInstance,
 					&pErrorString,
 					&runResult,
 					&executionFailure))
 			{
+				trace("program execution faulted");
+				trace(pErrorString
+					? std::string("run error: ") + pErrorString
+					: std::string("run error: (no error string)"));
 				DumpDebugReport(executionFailure, pErrorString);
 				RuntimeExitCode = 1;
 			}
 			else if (!runResult)
 			{
+				trace("program run returned failure");
+				trace(pErrorString
+					? std::string("run error: ") + pErrorString
+					: std::string("run error: (no error string)"));
 				DumpDebugReport(executionFailure, pErrorString);
 				RuntimeExitCode = 1;
+			}
+			else
+			{
+				trace("program finished");
 			}
 
 			// Free Display First
@@ -976,7 +802,7 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 						"An issue was detected and the session needs to restart: " + fullError);
 					MessageBoxW(nullptr, message.c_str(), L"Runtime Problem Detected", MB_TOPMOST | MB_OK);
 				}
-				SAFE_DELETE(pErrorString);
+				SAFE_DELETE_ARRAY(pErrorString);
 			}
 
 			// Free EXE Block
@@ -984,6 +810,19 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 		}
 		else
 		{
+			// Persist the load failure instead of exiting silently: the
+			// conformance/headless runtime cannot surface a dialog.
+			std::string loadError = CEXE.GetLoadError();
+			if (loadError.empty())
+				loadError = "The packaged EXE block could not be loaded.";
+			trace("EXE block load FAILED: " + loadError);
+			FILE* pErrorFile = nullptr;
+			if (fopen_s(&pErrorFile, "dbp_error.txt", "w") == 0 && pErrorFile)
+			{
+				fputs(loadError.c_str(), pErrorFile);
+				fputc('\n', pErrorFile);
+				fclose(pErrorFile);
+			}
 			RuntimeExitCode = 1;
 		}
 
@@ -991,6 +830,9 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 
 	// Unmount before shutting down the VFS hook layer.
 	RuntimePackage.reset();
+
+	// Shutdown Virtual File System hooks and free resources before filesystem cleanup
+	VFSHooks::Shutdown();
 
 	// Clean up old DBP data folders in temp directory
 	if (std::filesystem::exists(WindowsTempDirectory, ec))
@@ -1003,8 +845,6 @@ int WINAPI WinMain(HINSTANCE hInstance, [[maybe_unused]] HINSTANCE hPrevInstance
 	// Delete temporary unpack directory
 	std::filesystem::remove_all(gUnpackDirectory, ec);
 
-	// Shutdown Virtual File System hooks and free resources
-	VFSHooks::Shutdown();
-
+	trace("exit code " + std::to_string(RuntimeExitCode));
 	return RuntimeExitCode;
 }

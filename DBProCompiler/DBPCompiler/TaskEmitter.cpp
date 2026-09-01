@@ -9,6 +9,21 @@
 // External Globals
 extern CDebugInfo g_DebugInfo;
 
+namespace
+{
+// UDT array variables carry struct-index type values that
+// IsPointerOrHandleType does not cover; the '&' token marker is the reliable
+// indicator that the slot holds a 64-bit array handle.
+bool IsArrayHandleToken(const CStr* pP) noexcept
+{
+	if (!pP || !pP->GetStr()) return false;
+	const std::string_view p(pP->GetStr());
+	if (p.empty() || p.front() != '@') return false;
+	const bool isRbp = (p.size() > 1 && p[1] == ':');
+	return isRbp ? (p.size() > 2 && p[2] == '&') : (p.size() > 1 && p[1] == '&');
+}
+} // namespace
+
 uint32_t CTaskEmitter::DetermineASMCall(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept
 {
     // First Determine SizeCode From Type (0: 1 byte, 1: 2 bytes, 2: 4 bytes)
@@ -59,12 +74,34 @@ uint32_t CTaskEmitter::DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, uint32_
 	return dwASMCodeAsAByte + dwAddressSizeCode;
 }
 
-uint32_t CTaskEmitter::DetermineParamMode(const CStr* pP, uint32_t dwPType, uint32_t dwPOffset) const noexcept
+uint32_t CTaskEmitter::DetermineASMCallWide(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept
 {
-	return (pP && pP->GetStr()) ? DetermineParamMode(std::string_view(pP->GetStr()), dwPType, dwPOffset) : static_cast<uint32_t>(ParamMode::None);
+	// Pointer/handle values (strings, UDT pointers, array handles) are 64-bit
+	// on x64; the 1/2/4-byte families would truncate them.
+	if (IsPointerOrHandleType(dwTypeValue))
+	{
+		switch (dwASMCodeAsAByte)
+		{
+			case static_cast<uint32_t>(ASMOp::MOVRAXMEM1):    return static_cast<uint32_t>(ASMOp::MOVRAXMEM8);
+			case static_cast<uint32_t>(ASMOp::MOVMEMRAX1):    return static_cast<uint32_t>(ASMOp::MOVMEMRAX8);
+			case static_cast<uint32_t>(ASMOp::MOVRAXRCXOFF1): return static_cast<uint32_t>(ASMOp::MOVRAXRCXOFF8);
+			case static_cast<uint32_t>(ASMOp::MOVRCXOFFRAX1): return static_cast<uint32_t>(ASMOp::MOVRCXOFFRAX8);
+			case static_cast<uint32_t>(ASMOp::MOVRAXRBP1):    return static_cast<uint32_t>(ASMOp::MOVRAXRBP8);
+			case static_cast<uint32_t>(ASMOp::MOVRBPRAX1):    return static_cast<uint32_t>(ASMOp::MOVRBPRAX8);
+			case static_cast<uint32_t>(ASMOp::MOVRAXRAXREL1): return static_cast<uint32_t>(ASMOp::MOVRAXRAXREL8);
+			case static_cast<uint32_t>(ASMOp::MOVRAXRCXREL1): return static_cast<uint32_t>(ASMOp::MOVRAXRCXREL8);
+			default: break;
+		}
+	}
+	return DetermineASMCall(dwASMCodeAsAByte, dwTypeValue);
 }
 
-uint32_t CTaskEmitter::DetermineParamMode(std::string_view p, uint32_t dwPType, uint32_t dwPOffset) const noexcept
+uint32_t CTaskEmitter::DetermineParamMode(const CStr* pP, uint32_t dwPType, uint32_t dwPOffset, const CStr* pPIndex) const noexcept
+{
+	return (pP && pP->GetStr()) ? DetermineParamMode(std::string_view(pP->GetStr()), dwPType, dwPOffset, pPIndex) : static_cast<uint32_t>(ParamMode::None);
+}
+
+uint32_t CTaskEmitter::DetermineParamMode(std::string_view p, uint32_t dwPType, uint32_t dwPOffset, const CStr* pPIndex) const noexcept
 {
 	if (p.empty())
 		return static_cast<uint32_t>(ParamMode::None);
@@ -72,13 +109,22 @@ uint32_t CTaskEmitter::DetermineParamMode(std::string_view p, uint32_t dwPType, 
 	if (p.front() == '@')
 	{
 		const bool isRbp = (p.size() > 1 && p[1] == ':');
+		const bool isArrayHandle = isRbp ? (p.size() > 2 && p[2] == '&') : (p.size() > 1 && p[1] == '&');
 		const auto type = static_cast<DBPType>(dwPType);
+
+		// Array tokens split by access shape: an element access carries its
+		// linearized index in the additional-offset token and must dereference
+		// through the direct-layout element data; a missing index token means
+		// the whole 64-bit handle is the operand (DIM/UNDIM/push-address).
+		if (isArrayHandle || IsArrayType(type))
+		{
+			if (pPIndex)
+				return isRbp ? static_cast<uint32_t>(ParamMode::RbpArr) : static_cast<uint32_t>(ParamMode::MemArr);
+			return isRbp ? static_cast<uint32_t>(ParamMode::Rbp) : static_cast<uint32_t>(ParamMode::Mem);
+		}
 
 		if (type == DBPType::UserDefinedPtr)
 			return isRbp ? static_cast<uint32_t>(ParamMode::Rbp) : static_cast<uint32_t>(ParamMode::Mem);
-
-		if (IsArrayType(type))
-			return isRbp ? static_cast<uint32_t>(ParamMode::RbpArr) : static_cast<uint32_t>(ParamMode::MemArr);
 
 		if (dwPType > 200 && dwPType <= 299)
 			return isRbp ? static_cast<uint32_t>(ParamMode::RbpRel) : static_cast<uint32_t>(ParamMode::MemRel);
@@ -113,17 +159,31 @@ void CTaskEmitter::WriteASMARRtoRAX(CASMWriter* pASMWriter, [[maybe_unused]] uin
 
 	if(pASMWriter->GetArrayCheckFlag())
 	{
-		pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::CMPRAX4), "0");
+		pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::TESTRAXRAX), "");
 		pASMWriter->WriteASMLeapMarkerJump(static_cast<uint32_t>(ASMOp::JE), 1);
 	}
 
 	pASMWriter->CalculateArrayOffsetInRBX(pOffset);
-	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXSIB), "");
+
+	// Direct-layout array: RAX points at element zero, so the element address
+	// is RAX + index * stride. The stride is the runtime header's itemSize at
+	// [handle-12] — the real byte size of the element, which no compile-time
+	// table can supply for user-defined types.
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::PUSHRDX), "");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRDXRAXOFF4), "-12");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::IMULRBXRDX), "");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::POPRDX), "");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::ADDRAXRBX8), "");
 
 	switch(dwPType-100)
 	{
 		case 1001:
 					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::ADDRAX4), pOffset1Str->GetStr());
+					break;
+
+		case 3:
+					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXRAXOFF8), pOffset1Str->GetStr());
+					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXRCX8), "");
 					break;
 
 		case 8:
@@ -223,7 +283,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 			break;
 			
 		case static_cast<uint32_t>(ParamMode::Mem):
-			if (IsPointerOrHandleType(dwPType))
+			if (IsPointerOrHandleType(dwPType) || IsArrayHandleToken(pP))
 			{
 				pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXMEM8), pP->GetStr());
 			}
@@ -244,7 +304,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXMEM1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXMEM1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, pP->GetStr());
 						break;
 				}
@@ -274,7 +334,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 		
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRCXOFF1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRCXOFF1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 						break;
 				}
@@ -282,7 +342,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 			break;
 
 		case static_cast<uint32_t>(ParamMode::Rbp):
-			if (IsPointerOrHandleType(dwPType))
+			if (IsPointerOrHandleType(dwPType) || IsArrayHandleToken(pP))
 			{
 				pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXRBP8), (pP->GetStr()+2));
 			}
@@ -305,7 +365,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));	
 						break;
 				}
@@ -337,7 +397,7 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());	
 						break;
 				}
@@ -362,9 +422,9 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 				case 8: break;
 				case 9: break;
 				default:
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXMEM1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXMEM1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, pP->GetStr());
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRAXREL1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRAXREL1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
@@ -376,9 +436,9 @@ void CTaskEmitter::WriteASMXtoRAX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 				case 8: break;
 				case 9: break;
 				default:
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRAXREL1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRAXREL1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
@@ -401,17 +461,30 @@ void CTaskEmitter::WriteASMRAXtoARR(CASMWriter* pASMWriter, [[maybe_unused]] uin
 
 	if(pASMWriter->GetArrayCheckFlag())
 	{
-		pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::CMPRAX4), "0");
+		pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::TESTRAXRAX), "");
 		pASMWriter->WriteASMLeapMarkerJump(static_cast<uint32_t>(ASMOp::JE), 1);
 	}
 
 	pASMWriter->CalculateArrayOffsetInRBX(pOffset);
-	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXSIB), "");
+
+	// Direct-layout array: RAX points at element zero, so the element address
+	// is RAX + index * stride. The stride is the runtime header's itemSize at
+	// [handle-12] — the real byte size of the element, which no compile-time
+	// table can supply for user-defined types.
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::PUSHRDX), "");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRDXRAXOFF4), "-12");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::IMULRBXRDX), "");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::POPRDX), "");
+	pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::ADDRAXRBX8), "");
 
 	switch(dwPType-100)
 	{
 		case 1001:
 					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::ADDRAXRCX4), "");
+					break;
+
+		case 3:
+					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXOFFRCX8), pOffset1Str->GetStr());
 					break;
 
 		case 8:
@@ -467,7 +540,7 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 	switch(dwMode)
 	{
 		case static_cast<uint32_t>(ParamMode::Mem):
-			if (IsPointerOrHandleType(dwPType))
+			if (IsPointerOrHandleType(dwPType) || IsArrayHandleToken(pP))
 			{
 				pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVMEMRAX8), pP->GetStr());
 			}
@@ -488,7 +561,7 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 		
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVMEMRAX1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVMEMRAX1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, pP->GetStr());
 						break;
 				}
@@ -518,7 +591,7 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 		
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRCXOFFRAX1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRCXOFFRAX1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 						break;
 				}
@@ -526,7 +599,7 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 			break;
 
 		case static_cast<uint32_t>(ParamMode::Rbp):
-			if (IsPointerOrHandleType(dwPType))
+			if (IsPointerOrHandleType(dwPType) || IsArrayHandleToken(pP))
 			{
 				pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRBPRAX8), (pP->GetStr()+2));
 			}
@@ -549,7 +622,7 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRBPRAX1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRBPRAX1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
 						break;
 				}
@@ -581,7 +654,7 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 						break;
 
 					default:
-						dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRBPRAX1),dwPType);
+						dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRBPRAX1),dwPType);
 						pASMWriter->WriteASMLine(dwCorrectASMCode, pOffset1Str->GetStr());
 						break;
 				}
@@ -589,13 +662,13 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 			break;
 
 		case static_cast<uint32_t>(ParamMode::MemArr):
-			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXRAX4), "");
+			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXRAX8), "");
 			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXMEM8), pP->GetStr());
 			WriteASMRAXtoARR(pASMWriter, dwMode, pP, pPIndex, dwPType, dwPOffset);
 			break;
 
 		case static_cast<uint32_t>(ParamMode::RbpArr):
-			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXRAX4), "");
+			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRCXRAX8), "");
 			pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::MOVRAXRBP8), (pP->GetStr()+2));
 			WriteASMRAXtoARR(pASMWriter, dwMode, pP, pPIndex, dwPType, dwPOffset);
 			break;
@@ -635,9 +708,9 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 				case 8: break;
 				case 9: break;
 				default:
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXMEM1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXMEM1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, pP->GetStr());
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRCXREL1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRCXREL1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}
@@ -650,9 +723,9 @@ void CTaskEmitter::WriteASMRAXtoX(CASMWriter* pASMWriter, uint32_t dwMode, CStr*
 				case 8: break;
 				case 9: break;
 				default:
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRBP1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, (pP->GetStr()+2));
-							dwCorrectASMCode=DetermineASMCall(static_cast<uint32_t>(ASMOp::MOVRAXRCXREL1),dwPType);
+							dwCorrectASMCode=DetermineASMCallWide(static_cast<uint32_t>(ASMOp::MOVRAXRCXREL1),dwPType);
 							pASMWriter->WriteASMLine(dwCorrectASMCode, "");
 							break;
 			}

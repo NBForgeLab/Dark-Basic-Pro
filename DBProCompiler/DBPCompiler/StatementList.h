@@ -128,6 +128,12 @@ class CStatementList
 		bool			FindStartOfFileDataProgramLine(DWORD dwFindLineNumber, LPSTR* pReturnText);
 		size_t			GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen);
 
+		// DBM listing cursor: the last source line already emitted as
+		// "LINE : ..." text. Per-instance so a fresh compilation starts at
+		// line 1 instead of inheriting the previous compilation's position.
+		void			SetLastDBMLineNumber(DWORD line) noexcept { m_dwLastDBMLineNumber=line; }
+		[[nodiscard]] DWORD			GetLastDBMLineNumber(void) const noexcept { return m_dwLastDBMLineNumber; }
+
 		void			SetWriteStarted(bool bState) noexcept { m_bWriteStarted=bState; }
 		[[nodiscard]] bool			GetWriteStarted(void) const noexcept { return m_bWriteStarted; }
 		[[nodiscard]] CStatement*		GetRefStatement(void) noexcept { return m_pRefStatementDuringWrite; }
@@ -206,4 +212,13 @@ class CStatementList
 
 		// Track all lines
 		db3::TArray<char *> m_LinePtrs;
+
+		// Identity of the file-data buffer m_LinePtrs was built from; when the
+		// buffer changes (re-parse or mini-program) the table must be rebuilt.
+		bool			m_bLinePtrsBuilt = false;
+		LPSTR			m_LinePtrsSourceStart = nullptr;
+		LPSTR			m_LinePtrsSourceEnd = nullptr;
+
+		// DBM listing cursor (see SetLastDBMLineNumber)
+		DWORD			m_dwLastDBMLineNumber = 1;
 };

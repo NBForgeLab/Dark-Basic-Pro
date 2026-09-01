@@ -39,12 +39,22 @@ public:
 	 * Preserves relative offsets from program start when the underlying
 	 * std::vector storage is relocated by CMachineCodeBuffer::CheckAndExpandMCBMemory.
 	 *
-	 * @param[in] pNewProgramStart  New base address of the machine code buffer.
-	 * @param[in] dwNewMCBlockSize  New total size of the buffer (reserved for future use).
+	 * @param[in] pOldProgramStart  Base of the buffer *before* expansion. Every
+	 *                              recorded pointer is converted to an offset
+	 *                              relative to this base.
+	 * @param[in] pNewProgramStart  Base of the buffer *after* expansion.
+	 *
+	 * Markers that were never set are left as nullptr. Subtracting a null
+	 * pointer is undefined behaviour, and "rebasing" one would turn it into a
+	 * wild non-null pointer that every later null-check would wrongly accept —
+	 * which is how unset markers used to end up being dereferenced.
+	 *
+	 * Note m_pRecordRefPosition[] holds *offsets*, not pointers, so it needs no
+	 * rebasing.
 	 */
 	void RebaseForBufferExpansion(
-		LPSTR pNewProgramStart,
-		DWORD dwNewMCBlockSize);
+		LPSTR pOldProgramStart,
+		LPSTR pNewProgramStart) noexcept;
 
 	/** @brief Records the current MC position as the backward-jump target ("top" of a loop). */
 	bool WriteASMLeapMarkerTop(CASMWriter* pWriter);

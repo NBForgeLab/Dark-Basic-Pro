@@ -264,7 +264,10 @@ void CLabelTable::UpdateDataIndexOfLabelsAtLine(CStatement* pStatementRef, DWORD
 	while(pCurrent)
 	{
 		// Store DBM write position to label for later ref-replacement
-		if(pCurrent->GetSRef()==pStatementRef) pCurrent->SetBytePosition(dwData);
+		if(pCurrent->GetSRef()==pStatementRef)
+		{
+			pCurrent->SetBytePosition(dwData);
+		}
 		pCurrent = pCurrent->GetNext();
 	}
 }

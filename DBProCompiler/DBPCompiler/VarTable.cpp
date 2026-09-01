@@ -671,6 +671,7 @@ DWORD CVarTable::EstablishVarOffsets(DWORD* pdwOffsetValue)
 				// Assign offset to this variable
 				m_dwFinalDBMOffset = *pdwOffsetValue;
 				m_bOffsetAssigned = true;
+				DBP_INFO("Var offset {:#x}: name={}, type={}, arr={}", m_dwFinalDBMOffset, m_pVarName ? m_pVarName->GetStr() : "null", GetVarType() ? GetVarType()->GetStr() : "null", m_dwArrFlag);
 
 				// Work out size of variable datatype
 				DWORD dwAddSize=0;

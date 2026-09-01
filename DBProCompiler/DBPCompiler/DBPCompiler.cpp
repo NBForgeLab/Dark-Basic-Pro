@@ -3,6 +3,8 @@
 //////////////////////////////////////////////////////////////////////
 
 // Includes
+#include <windows.h>
+
 #include <stdio.h>
 #include "StringUtils.h"
 #include <iostream>
@@ -53,6 +55,18 @@ CVarTable*			g_pVarTable			= nullptr;
 CIncludeTable*		g_pIncludeTable		= nullptr;
 CDataTable*			g_pConstantsTable	= nullptr;
 CDebugInfo			g_DebugInfo;
+
+// Window handles referenced by EXEBlock.cpp. They are defined here — in the
+// library that uses them — so that every consumer of dbp_compiler_lib
+// (DBPCompiler.exe, dbp_tests, the corpus runner, the libFuzzer target) links
+// without each having to redefine them. Requiring every entry point to supply
+// them silently broke the fuzzer (unresolved externals at link time).
+// They stay null unless a host actually creates a window; headless compilation
+// (tests/fuzzing) never sets them.
+// DarkEXE is a standalone executable that does NOT link dbp_compiler_lib, so it
+// legitimately keeps its own definitions.
+HWND				g_hTempWindow		= nullptr;
+HWND				g_igLoader_HWND		= nullptr;
 
 // lee - 050406 - u6rc6 - new directive for academic non-admin users
 bool				g_bLocalTempFolder	= false;

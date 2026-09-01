@@ -56,7 +56,7 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                     dwOffset = 0;
                 }
 
-                DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
+                DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset, nullptr);
                 m_codeGen->WriteASMXtoRAX(dwAccessMode, &varName, nullptr, dwType, dwOffset);
                 m_codeGen->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, dwType, dwOffset);
                 break;
@@ -112,7 +112,7 @@ bool TargetCodegen::Generate(const IRProgram& ir) {
                     dwOffset = 0;
                 }
 
-                DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
+                DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset, nullptr);
                 m_codeGen->WriteASMRAXtoX(dwAccessMode, &varName, nullptr, dwType, dwOffset);
                 break;
             }

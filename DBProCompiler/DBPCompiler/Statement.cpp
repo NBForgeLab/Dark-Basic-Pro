@@ -603,19 +603,6 @@ bool CStatement::DoStatement(DWORD TokenID)
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+13);
 	else
 	{
-		// TEMP-DIAG: dump raw parser context at unmatched token (remove after root-cause hunt)
-		{
-			LPSTR pDiagRaw = g_pStatementList->GetFileDataPointer();
-			char szDiagRaw[64] = {};
-			if (pDiagRaw)
-				for (int i = 0; i < 48; ++i)
-				{
-					char c = pDiagRaw[i];
-					if (c == 0) { szDiagRaw[i] = '.'; break; }
-					szDiagRaw[i] = (c >= 32 && c < 127) ? c : '?';
-				}
-			DBP_WARN("DIAG unmatched: line={} raw='{}'", StatementLineNumber, szDiagRaw);
-		}
 		g_pErrorReport->SetError(StatementLineNumber, ERR_SYNTAX+11);
 	}
 
@@ -5029,8 +5016,9 @@ bool CStatement::DetermineIfFunctionName(std::string_view word, bool bIncludeUse
 	return false;
 }
 
-// U73 - 270309 - used to fill in gaps where line number DBM output missed (ENDFUNCTION)
-DWORD g_dwLastDBMLineNumber = 1;
+// U73 - 270309 - the "LINE :" catch-up cursor lives on CStatementList now
+// (GetLastDBMLineNumber): it must restart at 1 for every compilation, and a
+// process-global leaked the previous compilation's position into the next.
 
 #define __AARON_DBMPERF__ 1
 #define MAX_SCRATCH_BUFFER 65536
@@ -5058,23 +5046,25 @@ bool CStatement::WriteDBMNode(void)
 	{
 		// U73 - 270309 - Paste any lines that may have been missed (ENDFUNCTION lines usually are)
 		WriteDBMBit(0, "", "");
-		while ( g_dwLastDBMLineNumber <= m_dwLineNumber )
+		DWORD dwLastDBMLineNumber = g_pStatementList->GetLastDBMLineNumber();
+		while ( dwLastDBMLineNumber <= m_dwLineNumber )
 		{
 #ifdef __AARON_DBMPERF__
-			g_pStatementList->GetLineText(g_dwLastDBMLineNumber, s_Buf, sizeof(s_Buf));
-			WriteDBMBit(g_dwLastDBMLineNumber, "LINE : ", s_Buf);
+			g_pStatementList->GetLineText(dwLastDBMLineNumber, s_Buf, sizeof(s_Buf));
+			WriteDBMBit(dwLastDBMLineNumber, "LINE : ", s_Buf);
 			WriteDBMBit(0, "", "");
 #else
 			LPCSTR pProgramLineText=nullptr;
-			g_pStatementList->FindStartOfFileDataProgramLine(g_dwLastDBMLineNumber, &pProgramLineText);
-			WriteDBMBit(g_dwLastDBMLineNumber, "LINE : ", pProgramLineText);
+			g_pStatementList->FindStartOfFileDataProgramLine(dwLastDBMLineNumber, &pProgramLineText);
+			WriteDBMBit(dwLastDBMLineNumber, "LINE : ", pProgramLineText);
 			SafeDelete(pProgramLineText);
 			WriteDBMBit(0, "", "");
 #endif
 
 			// catch up to current line, which is written next..
-			g_dwLastDBMLineNumber++;
+			dwLastDBMLineNumber++;
 		}
+		g_pStatementList->SetLastDBMLineNumber(dwLastDBMLineNumber);
 
 		// If Debug Mode, generate DEBUGHOOK
 		if(m_bPerformJumpChecks)

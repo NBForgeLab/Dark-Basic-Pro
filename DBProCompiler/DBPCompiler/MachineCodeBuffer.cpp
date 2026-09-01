@@ -3,7 +3,57 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "MachineCodeBuffer.h"
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+
+namespace
+{
+// Optional raw emission audit channel: set DBP_TRACE_BYTES=1 to record every
+// emitted machine-code byte (offset + hex) to mcb_trace.txt in the compiler's
+// working directory. Used to audit ABI marshalling bytes for stack balance.
+class McbByteTrace
+{
+public:
+	static McbByteTrace& Get() noexcept
+	{
+		static McbByteTrace instance;
+		return instance;
+	}
+
+	static void Emit(DWORD offset, const void* bytes, size_t count) noexcept
+	{
+		McbByteTrace& self = Get();
+		if (!self.m_file) return;
+		std::fprintf(self.m_file, "%08X:", static_cast<unsigned>(offset));
+		const auto* p = static_cast<const uint8_t*>(bytes);
+		for (size_t i = 0; i < count; ++i)
+			std::fprintf(self.m_file, " %02X", p[i]);
+		std::fprintf(self.m_file, "\n");
+	}
+
+	static void Emit(DWORD offset, uint8_t byte) noexcept
+	{
+		Emit(offset, &byte, 1);
+	}
+
+private:
+	McbByteTrace() noexcept
+	{
+		const char* env = std::getenv("DBP_TRACE_BYTES");
+		if (env && env[0] != '\0')
+			m_file = std::fopen("mcb_trace.txt", "w");
+	}
+
+	~McbByteTrace() noexcept
+	{
+		if (m_file) std::fclose(m_file);
+	}
+
+	std::FILE* m_file = nullptr;
+};
+} // namespace
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -87,8 +137,10 @@ void CMachineCodeBuffer::WriteByte(int byte)
 {
 	if (CanWrite(sizeof(char)))
 	{
+		DWORD offset = GetCurrentMCPosition();
 		*(m_pMachineBlock) = static_cast<char>(byte);
 		(m_pMachineBlock)++;
+		McbByteTrace::Emit(offset, static_cast<uint8_t>(byte));
 	}
 }
 
@@ -97,8 +149,10 @@ void CMachineCodeBuffer::WriteDWORD(DWORD value, DWORD dwSize)
 	if (dwSize == 0 || dwSize > sizeof(value) || !CanWrite(dwSize))
 		return;
 
+	DWORD offset = GetCurrentMCPosition();
 	std::memcpy(m_pMachineBlock, &value, dwSize);
 	m_pMachineBlock += dwSize;
+	McbByteTrace::Emit(offset, &value, dwSize);
 }
 
 void CMachineCodeBuffer::WriteQWORD(uint64_t value, DWORD dwSize)
@@ -106,8 +160,10 @@ void CMachineCodeBuffer::WriteQWORD(uint64_t value, DWORD dwSize)
 	if (dwSize == 0 || dwSize > sizeof(value) || !CanWrite(dwSize))
 		return;
 
+	DWORD offset = GetCurrentMCPosition();
 	std::memcpy(m_pMachineBlock, &value, dwSize);
 	m_pMachineBlock += dwSize;
+	McbByteTrace::Emit(offset, &value, dwSize);
 }
 
 bool CMachineCodeBuffer::CanWrite(size_t byteCount) const noexcept

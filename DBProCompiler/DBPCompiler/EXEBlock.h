@@ -104,10 +104,16 @@ class CEXEBlock
 
 		[[nodiscard]] uint8_t* GetMachineCodeBlockBytePointer() const noexcept { return reinterpret_cast<uint8_t*>(m_pMachineCodeBlock); }
 
+		// Diagnostic text describing why the most recent Load() failed. Empty
+		// when Load() succeeded. Survives the Clear() performed on failure so
+		// callers can report the exact failing step instead of exiting silently.
+		[[nodiscard]] const std::string& GetLoadError() const noexcept { return m_LoadError; }
+
 	public:
 
 		// General Flags
 		bool			m_bEXEBlockPresent;
+		std::string		m_LoadError;
 
 		// Executable Settings
 		DWORD			m_dwInitialDisplayMode;

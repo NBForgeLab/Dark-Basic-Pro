@@ -126,6 +126,13 @@ file(
     OUTPUT "${DBP_COMPILER_RESOURCE}"
     CONTENT "${DBP_COMPILER_RESOURCE_CONTENT}"
 )
+# Re-embed the stub whenever the DarkEXE binary itself changes; otherwise the
+# resource compiler sees only the unchanged .rc and keeps a stale stub baked in.
+set_property(
+    SOURCE "${DBP_COMPILER_RESOURCE}"
+    APPEND
+    PROPERTY OBJECT_DEPENDS "$<TARGET_FILE:DarkEXE>"
+)
 
 # Compile main executable linking to the compiler library.
 add_executable(

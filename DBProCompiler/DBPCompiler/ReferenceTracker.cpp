@@ -258,9 +258,18 @@ bool CReferenceTracker::UpdateMCBRefData(
         {
             return false;
         }
+        // relEnd must receive the same base offset as position so that
+        // PC-relative displacement calculations (target - relEnd) remain
+        // correct after relocation into the combined MCB.
+        const std::uint64_t absoluteRelEnd =
+            static_cast<std::uint64_t>(record.relEnd) + machineCodeBaseOffset;
+        if (absoluteRelEnd > (std::numeric_limits<std::uint32_t>::max)())
+        {
+            return false;
+        }
         resolved.push_back(
             {static_cast<std::uint32_t>(absolutePosition), parsed->kind, resolvedIndex,
-             record.slotBytes, record.relEnd});
+             record.slotBytes, static_cast<std::uint32_t>(absoluteRelEnd)});
     }
 
     if (resolved.empty())

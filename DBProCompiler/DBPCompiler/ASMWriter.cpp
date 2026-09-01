@@ -308,6 +308,8 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRAXREL1),"MOV AL [RAX]",	-1,		0x8A,	0x00,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRAXREL2),"MOV AX [RAX]",	0x66,	0x8B,	0x00,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRAXREL4),"MOV EAX [RAX]",	-1,		0x8B,	0x00,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRAXREL8),"MOV RAX [RAX]8",	0x48,	0x8B,	0x00,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRCXREL8),"MOV [RAX] RCX8",	0x48,	0x89,	0x08,	false);
 	
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXRAXOFF1),"MOV CL [RAX+A]",	-1,		0x8A,	0x88,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXRAXOFF2),"MOV CX [RAX+A]",	0x66,	0x8B,	0x88,	true);
@@ -321,11 +323,14 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRDXRAXOFF2),"MOV DX [RAX+A]",	0x66,	0x8B,	0x90,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRDXRAXOFF4),"MOV EDX [RAX+A]",	-1,		0x8B,	0x90,	true);
 
-	DefineASM(static_cast<DWORD>(ASMOp::MULRDXRAXOFF4),"IMUL EDX [RAX+A]",-1,	0x0F,	0xAF,	true);
+	// IMUL r32, r/m32 is 0F AF /r - the ModRM byte (0x90 = [RAX+disp32], reg=EDX)
+	// is mandatory. Without it the CPU consumed the first displacement byte as
+	// ModRM and every multi-dimensional array index computation was corrupted.
+	DefineASM(static_cast<DWORD>(ASMOp::MULRDXRAXOFF4),"IMUL EDX [RAX+A]",-1,	0x0F,	0xAF,	true,	0x90);
 
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXRAXOFF1),"MOV BL [RAX+A]",	-1,		0x8A,	0x98,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXRAXOFF2),"MOV BX [RAX+A]",	0x66,	0x8B,	0x98,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXRAXOFF4),"MOV EBX [RAX+A]",	-1,		0x8B,	0x98,	true);
+	// MOVRBXRAXOFF4 removed: bit-identical alias of MOVRBXRAXOFF32, no call sites (M8).
 
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRBP1),	"MOV AL [RBP+A]",	-1,		0x8A,	0x85,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRBP2),	"MOV AX [RBP+A]",	0x66,	0x8B,	0x85,	true);
@@ -333,7 +338,7 @@ void CASMWriter::GenerateASMCodes(void)
 	
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXRBP1),	"MOV BL [RBP+A]",	-1,		0x8A,	0x9D,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXRBP2),	"MOV BX [RBP+A]",	0x66,	0x8B,	0x9D,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXRBP4),	"MOV EBX [RBP+A]",	-1,		0x8B,	0x9D,	true);
+	// MOVRBXRBP4 removed: bit-identical alias of MOVRBXRBP32, no call sites (M8).
 	
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBPRAX1),	"MOV [RBP+A] AL",	-1,		0x88,	0x85,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBPRAX2),	"MOV [RBP+A] AX",	0x66,	0x89,	0x85,	true);
@@ -398,15 +403,20 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::RELMOVRAXRRDX2),"REL MOV AX [RDX]",0x66,	0x8B,	0x02,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::RELMOVRAXRRDX4),"REL MOV EAX [RDX]",-1,	0x8B,	0x02,	true);
 
-	// SSE2 Scalar Floating Point Operations (Native 64-bit)
-	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMXMM0),	"MOVSD [MEM] XMM0",	0xF2,	0x0F,	0x11,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0MEM8),	"MOVSD XMM0 [MEM]",	0xF2,	0x0F,	0x10,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRBPXMM0),	"MOVSD [RBP+A] XMM0",0xF2,	0x0F,	0x11,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0RBP8),	"MOVSD XMM0 [RBP+A]",0xF2,	0x0F,	0x10,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXXMM0),	"MOVSD [RAX+A] XMM0",0xF2,	0x0F,	0x11,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0RAX8),	"MOVSD XMM0 [RAX+A]",0xF2,	0x0F,	0x10,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXOFFXMM0),"MOVSD [RCX+A] XMM0",0xF2,	0x0F,	0x11,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0RCXOFF8),"MOVSD XMM0 [RCX+A]",0xF2,	0x0F,	0x10,	true);
+	// SSE2 Scalar Floating Point Operations (Native 64-bit).
+	// MOVSD m64,xmm / xmm,m64 is F2 0F 11/10 /r - every form needs its ModRM
+	// byte in the iOp3 slot (0x05=[RIP+disp32], 0x85=[RBP+disp32],
+	// 0x80=[RAX+disp32], 0x81=[RCX+disp32]). Without it the CPU consumed the
+	// first displacement byte as ModRM and all double load/store sequences
+	// were corrupted.
+	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMXMM0),	"MOVSD [MEM] XMM0",	0xF2,	0x0F,	0x11,	true,	0x05);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0MEM8),	"MOVSD XMM0 [MEM]",	0xF2,	0x0F,	0x10,	true,	0x05);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRBPXMM0),	"MOVSD [RBP+A] XMM0",0xF2,	0x0F,	0x11,	true,	0x85);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0RBP8),	"MOVSD XMM0 [RBP+A]",0xF2,	0x0F,	0x10,	true,	0x85);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXXMM0),	"MOVSD [RAX+A] XMM0",0xF2,	0x0F,	0x11,	true,	0x80);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0RAX8),	"MOVSD XMM0 [RAX+A]",0xF2,	0x0F,	0x10,	true,	0x80);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXOFFXMM0),"MOVSD [RCX+A] XMM0",0xF2,	0x0F,	0x11,	true,	0x81);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVXMM0RCXOFF8),"MOVSD XMM0 [RCX+A]",0xF2,	0x0F,	0x10,	true,	0x81);
 	
 	DefineASM(static_cast<DWORD>(ASMOp::PUSHRAX),		"PUSH RAX",			-1,		0x50+0,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::PUSHRDX),		"PUSH RDX",			-1,		0x50+2,	-1,		true);
@@ -436,19 +446,19 @@ void CASMWriter::GenerateASMCodes(void)
 
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRAX1),		"CMP AL",			-1,		0x3C,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRAX2),		"CMP AX",			0x66,	0x3D,	-1,		true);
-	DefineASM(static_cast<DWORD>(ASMOp::CMPRAX4),		"CMP RAX",			-1,		0x3D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPRAX4),		"CMP EAX",			-1,		0x3D,	-1,		true);
 
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRBX1),		"CMP BL",			-1,		0x80,	0xFB,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRBX2),		"CMP BX",			0x66,	0x81,	0xFB,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::CMPRBX4),		"CMP RBX",			-1,		0x81,	0xFB,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPRBX4),		"CMP EBX",			-1,		0x81,	0xFB,	true);
 	
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRDXRBX),	"CMP RDX RBX",		0x48,	0x3B,	0xDA,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRDXRBX1),	"CMP DL BL",		-1,		0x3A,	0xDA,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::CMPRDXRBX2),	"CMP DX BX",		0x66,	0x3B,	0xDA,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::CMPRDXRBX4),	"CMP RDX RBX",		-1,		0x3B,	0xDA,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPRDXRBX4),	"CMP EDX EBX",		-1,		0x3B,	0xDA,	false);
 
-	DefineASM(static_cast<DWORD>(ASMOp::CMPRAXRBX4),	"CMP RAX RBX",		-1,		0x3B,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::CMPRAXRBX4),	"CMP EAX EBX",		-1,		0x3B,	0xD8,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::SETE),			"SETE AL",			0x0F,	0x94,	0xC0,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::SETNE),		"SETNE AL",			0x0F,	0x95,	0xC0,	false);
@@ -469,11 +479,13 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMRSP4),	"MOV MEM RSP",		0x48,	0x89,	0x25,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRSPMEM4),	"MOV RSP MEM",		0x48,	0x8B,	0x25,	true);
 
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXMEM4),	"MOV RBX MEM",		-1,		0x8B,	0x1D,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::MOVMEMRBX4),	"MOV MEM RBX",		-1,		0x89,	0x1D,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRBXMEM4),	"MOV EBX MEM",		-1,		0x8B,	0x1D,	true);
+	// MOVMEMRBX4 removed: no call sites after the 32-bit conversion (M8).
 
-	// SIB byte 0xD8 = [RAX + RBX*8] (scale=8, index=RBX, base=RAX)
-	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXSIB),	"MOV RAX [RAX+RBX*8]",	0x48,	0x8B,	0x04,	false,	0xD8);
+	// Direct-layout element addressing: RBX = index * header itemSize, RAX += RBX.
+	DefineASM(static_cast<DWORD>(ASMOp::IMULRBXRDX),	"IMUL RBX RDX",		0x48,	0x0F,	0xAF,	false,	0xDA);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDRAXRBX8),	"ADD RAX RBX 8",	0x48,	0x01,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXRAX8),	"MOV RCX RAX 8",	0x48,	0x8B,	0xC8,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::PUSHIMM4),		"PUSH IMM4",		-1,		0x68,	-1,		true);
 
@@ -486,65 +498,78 @@ void CASMWriter::GenerateASMCodes(void)
 
 	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX1),		"ADD AL IMM1",		-1,		0x04,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX2),		"ADD AX IMM2",		0x66,	0x05,	-1,		true);
-	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX4),		"ADD RAX IMM",		-1,		0x05,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX4),		"ADD EAX IMM",		-1,		0x05,	-1,		true);
 	
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX1),		"SUB AL IMM1",		-1,		0x2C,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX2),		"SUB AX IMM2",		0x66,	0x2D,	-1,		true);
-	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX4),		"SUB RAX IMM",		-1,		0x2D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX4),		"SUB EAX IMM",		-1,		0x2D,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX1),	"SUB AL BL",		-1,		0x28,	0xD8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX2),	"SUB AX BX",		0x66,	0x29,	0xD8,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX4),	"SUB RAX RBX",		-1,		0x29,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX4),	"SUB EAX EBX",		-1,		0x29,	0xD8,	false);
 
-	DefineASM(static_cast<DWORD>(ASMOp::MULRAXRBX1),	"IMUL AL BL",		-1,		0xF6,	0xEB,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::MULRAXRBX2),	"IMUL AX BX",		0x66,	0xF7,	0xEB,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::MULRAXRBX4),	"IMUL RAX RBX",		-1,		0x0F,	0xAF,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MULRAXRBX1),	"IMUL BL",			-1,		0xF6,	0xEB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MULRAXRBX2),	"IMUL BX",			0x66,	0xF7,	0xEB,	false);
+	// IMUL EAX, EBX = 0F AF C3 (two-operand form, /r ModRM 0xC3 mandatory).
+	// The migration dropped the ModRM byte: bare "0F AF" made the CPU decode
+	// the next instruction's first byte as ModRM, corrupting every integer
+	// multiply and the instruction stream after it.
+	DefineASM(static_cast<DWORD>(ASMOp::MULRAXRBX4),	"IMUL EAX EBX",		0x0F,	0xAF,	0xC3,	false);
 
-	DefineASM(static_cast<DWORD>(ASMOp::CQO),			"CQO",				0x48,	0x99,	-1,		false);
+	// Width-matched sign extension before IDIV (replaces the retired CQO).
+	// CBW (66 98): AL -> AX for IDIV r/m8. CWD (66 99): AX -> DX:AX for IDIV
+	// r/m16. CDQ (99): EAX -> EDX:EAX for IDIV r/m32 - the integer form this
+	// backend emits. Selected with the same DetermineASMCall() size code as
+	// the DIVRAXRBX1/2/4 op that follows, so the widths can never drift apart.
+	DefineASM(static_cast<DWORD>(ASMOp::SIGNEXTEND1),	"CBW",				0x66,	0x98,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::SIGNEXTEND2),	"CWD",				0x66,	0x99,	-1,		false);
+	DefineASM(static_cast<DWORD>(ASMOp::SIGNEXTEND4),	"CDQ",				-1,		0x99,	-1,		false);
 
-	DefineASM(static_cast<DWORD>(ASMOp::DIVRAXRBX1),	"IDIV AL BL",		-1,		0xF6,	0xFB,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::DIVRAXRBX2),	"IDIV AX BX",		0x66,	0xF7,	0xFB,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::DIVRAXRBX4),	"IDIV RBX",			-1,		0xF7,	0xFB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::DIVRAXRBX1),	"IDIV BL",			-1,		0xF6,	0xFB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::DIVRAXRBX2),	"IDIV BX",			0x66,	0xF7,	0xFB,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::DIVRAXRBX4),	"IDIV EBX",			-1,		0xF7,	0xFB,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::ANDRAX1),		"AND AL IMM1",		-1,		0x24,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ANDRAX2),		"AND AX IMM2",		0x66,	0x25,	-1,		true);
-	DefineASM(static_cast<DWORD>(ASMOp::ANDRAX4),		"AND RAX IMM",		-1,		0x25,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDRAX4),		"AND EAX IMM",		-1,		0x25,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ANDRAXRBX1),	"AND AL BL",		-1,		0x20,	0xD8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::ANDRAXRBX2),	"AND AX BX",		0x66,	0x21,	0xD8,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::ANDRAXRBX4),	"AND RAX RBX",		-1,		0x21,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ANDRAXRBX4),	"AND EAX EBX",		-1,		0x21,	0xD8,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::ORRAX1),		"OR AL IMM1",		-1,		0x0C,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ORRAX2),		"OR AX IMM2",		0x66,	0x0D,	-1,		true);
-	DefineASM(static_cast<DWORD>(ASMOp::ORRAX4),		"OR RAX IMM",		-1,		0x0D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::ORRAX4),		"OR EAX IMM",		-1,		0x0D,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ORRAXRBX1),	"OR AL BL",			-1,		0x08,	0xD8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::ORRAXRBX2),	"OR AX BX",			0x66,	0x09,	0xD8,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::ORRAXRBX4),	"OR RAX RBX",		-1,		0x09,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::ORRAXRBX4),	"OR EAX EBX",		-1,		0x09,	0xD8,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::NOTRAX1),		"NOT AL",			-1,		0xF6,	0xD0,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::NOTRAX2),		"NOT AX",			0x66,	0xF7,	0xD0,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::NOTRAX4),		"NOT RAX",			-1,		0xF7,	0xD0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::NOTRAX4),		"NOT EAX",			-1,		0xF7,	0xD0,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::XORRAX1),		"XOR AL IMM1",		-1,		0x34,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::XORRAX2),		"XOR AX IMM2",		0x66,	0x35,	-1,		true);
-	DefineASM(static_cast<DWORD>(ASMOp::XORRAX4),		"XOR RAX IMM",		-1,		0x35,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::XORRAX4),		"XOR EAX IMM",		-1,		0x35,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::XORRAXRBX1),	"XOR AL BL",		-1,		0x30,	0xD8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::XORRAXRBX2),	"XOR AX BX",		0x66,	0x31,	0xD8,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::XORRAXRBX4),	"XOR RAX RBX",		-1,		0x31,	0xD8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::XORRAXRBX4),	"XOR EAX EBX",		-1,		0x31,	0xD8,	false);
 	
 	DefineASM(static_cast<DWORD>(ASMOp::SHLRAX1),		"SHL AL IMM1",		-1,		0xC0,	0xE0,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::SHLRAX2),		"SHL AX IMM2",		0x66,	0xC1,	0xE0,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::SHLRAX4),		"SHL RAX IMM",		-1,		0xC1,	0xE0,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLRAX4),		"SHL EAX IMM",		-1,		0xC1,	0xE0,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::SHLRAXCLC1),	"SHL AL CL",		-1,		0xD2,	0xE0,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::SHLRAXCLC2),	"SHL AX CL",		0x66,	0xD3,	0xE0,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::SHLRAXCLC4),	"SHL RAX CL",		-1,		0xD3,	0xE0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHLRAXCLC4),	"SHL EAX CL",		-1,		0xD3,	0xE0,	false);
 
 	DefineASM(static_cast<DWORD>(ASMOp::SHRRAX1),		"SHR AL IMM1",		-1,		0xC0,	0xE8,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::SHRRAX2),		"SHR AX IMM2",		0x66,	0xC1,	0xE8,	true);
-	DefineASM(static_cast<DWORD>(ASMOp::SHRRAX4),		"SHR RAX IMM",		-1,		0xC1,	0xE8,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::SHRRAX4),		"SHR EAX IMM",		-1,		0xC1,	0xE8,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::SHRRAXCLC1),	"SHR AL CL",		-1,		0xD2,	0xE8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::SHRRAXCLC2),	"SHR AX CL",		0x66,	0xD3,	0xE8,	false);
-	DefineASM(static_cast<DWORD>(ASMOp::SHRRAXCLC4),	"SHR RAX CL",		-1,		0xD3,	0xE8,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::SHRRAXCLC4),	"SHR EAX CL",		-1,		0xD3,	0xE8,	false);
 
-	DefineASM(static_cast<DWORD>(ASMOp::MULRCXRDX4),	"IMUL RCX RDX",		0x48,	0x0F,	0xAF,	false);
+	// IMUL RCX, RDX = REX.W + 0F AF CA (ModRM 0xCA mandatory, same defect
+	// class as MULRAXRBX4).
+	DefineASM(static_cast<DWORD>(ASMOp::MULRCXRDX4),	"IMUL RCX RDX",		0x48,	0x0F,	0xAF,	false,	0xCA);
 	DefineASM(static_cast<DWORD>(ASMOp::ADDRBXRDX4),	"ADD RBX RDX",		0x48,	0x01,	0xD3,	false);
 
 	// Native x64-only register operations (Microsoft x64 ABI callee-saved set
@@ -583,9 +608,13 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRBPRAX8),	"MOV [RBP+A]8 RAX",	0x48,	0x89,	0x85,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRCXOFF8),	"MOV RAX [RCX+A]8",	0x48,	0x8B,	0x81,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXOFFRAX8),	"MOV [RCX+A]8 RAX",	0x48,	0x89,	0x81,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::TESTRAXRAX),	"TEST RAX RAX",		0x48,	0x85,	0xC0,	false);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRCXRAXOFF8),	"MOV RCX [RAX+A]8",	0x48,	0x8B,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXOFFRCX8),	"MOV [RAX+A]8 RCX",	0x48,	0x89,	0x88,	true);
+	DefineASM(static_cast<DWORD>(ASMOp::MOVRAXRCX8),	"MOV RAX RCX",		0x48,	0x8B,	0xC1,	false);
 }
 
-int CASMWriter::DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2)
+int CASMWriter::DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2, int iOp3)
 {
 	// rel32 direct branches: CALL/JMP (E8/E9) and Jcc (0F 8x)
 	if (iOp1 == 0xE8 || iOp1 == 0xE9) return 4;
@@ -619,8 +648,13 @@ int CASMWriter::DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2)
 	if (iOp1 == 0xC6) return 1;
 	if (iOp1 == 0xC7) return (iPreOp == 0x66) ? 2 : 4;
 
-	const int mod = (iOp2 >> 6) & 3;
-	const int rm  = iOp2 & 7;
+	// For three-byte-opcode forms (0F xx /r such as IMUL, and F2 0F xx /r
+	// SSE) the ModRM byte lives in the iOp3 slot while iOp2 is the second
+	// opcode byte; deriving mod/rm from the opcode byte would mis-size the
+	// displacement slot.
+	const int iModRM = (iOp1 == 0x0F && iOp3 != -1) ? iOp3 : iOp2;
+	const int mod = (iModRM >> 6) & 3;
+	const int rm  = iModRM & 7;
 	if (mod == 2) return 4;                      // [reg+disp32]
 	if (mod == 0 && rm == 5) return 4;           // [RIP+disp32]
 	if (mod == 1) return 1;                      // [reg+disp8]
@@ -661,7 +695,7 @@ void CASMWriter::DefineASM(DWORD dwASMCode, LPCSTR pDebugStr, int iPreOp, int iO
 
 	// Store operand slot width derived from the encoding (4 for disp32/rel32,
 	// 8 for imm64; other immediate widths for the value operands).
-	m_iASMOpDataWidth[dwASMCode] = DetermineOpDataWidth(iPreOp, iOp1, iOp2);
+	m_iASMOpDataWidth[dwASMCode] = DetermineOpDataWidth(iPreOp, iOp1, iOp2, iOp3);
 	m_iASMOpData2Width[dwASMCode] = DetermineSecondOpDataWidth(iPreOp, iOp1, iOp2);
 }
 
@@ -714,8 +748,12 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 	//     <op> [r11]               ModRM rm=011, no disp32
 	// The address ref slot moves into the imm64 of the mov r11; the memory
 	// instruction itself carries no displacement and works at any distance.
+	// For three-byte-opcode forms (0F xx /r, F2 0F xx /r SSE) the ModRM byte
+	// is carried in iOp3 instead of iOpCode2.
+	const bool bModRMInOp3 = (iOpCode1 == 0x0F && iOp3 != -1);
+	const int iModRMByte = bModRMInOp3 ? iOp3 : iOpCode2;
 	const bool bRipRelMemOp =
-		(iOpCode2 != -1) && ((iOpCode2 & 0x07) == 0x05) && ((iOpCode2 & 0xC0) == 0x00);
+		(iModRMByte != -1) && ((iModRMByte & 0x07) == 0x05) && ((iModRMByte & 0xC0) == 0x00);
 
 	bool bHasOpData = !opData.empty();
 	bool bHasOpData2 = !opData2.empty();
@@ -734,25 +772,28 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 		m_machineCodeBuffer.WriteQWORD(0xFFFFFFFFFFFFFFFFULL, 8u);
 		// The address is consumed by the mov r11; the memory op now uses [r11].
 		bHasOpData = false;
-		iOpCode2 = (iOpCode2 & 0xF8) | 0x03;   // rm=101 (RIP) -> rm=011 (R11)
+		if (bModRMInOp3)
+			iOp3 = (iOp3 & 0xF8) | 0x03;       // rm=101 (RIP) -> rm=011 (R11)
+		else
+			iOpCode2 = (iOpCode2 & 0xF8) | 0x03;   // rm=101 (RIP) -> rm=011 (R11)
 	}
 
 	// Write OpCode(s). The rewritten memory form needs REX.B for R11:
-	// 48 (REX.W) becomes 49 (REX.W+B), 66 keeps operand size with a 41
-	// prefix, and no-prefix forms get 41.
+	// 48 (REX.W) becomes 49 (REX.W+B). Legacy/mandatory prefixes (66/F2/F3)
+	// must be written BEFORE the REX byte: a REX prefix only takes effect
+	// when it immediately precedes the (escape) opcode, so the previous
+	// "41 66" order silently dropped REX.B and the op read [RBX] instead of
+	// [R11].
 	if(bRipRelMemOp)
 	{
 		if (iPreOpCode == 0x48)
 		{
 			m_machineCodeBuffer.WriteByte(0x49);
 		}
-		else if (iPreOpCode == 0x66)
-		{
-			m_machineCodeBuffer.WriteByte(0x41);
-			m_machineCodeBuffer.WriteByte(0x66);
-		}
 		else
 		{
+			if (iPreOpCode == 0x66 || iPreOpCode == 0xF2 || iPreOpCode == 0xF3)
+				m_machineCodeBuffer.WriteByte(iPreOpCode);
 			m_machineCodeBuffer.WriteByte(0x41);
 		}
 	}
@@ -775,7 +816,7 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 
 	// x64 operand slot widths derived from the instruction encoding.
 	const int iOpDataWidth = bRipRelMemOp
-		? 0 : DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2);
+		? 0 : DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2, iOp3);
 	const int iOpData2Width = DetermineSecondOpDataWidth(iPreOpCode, iOpCode1, iOpCode2);
 	int iOpcodeLen = 0;
 	if(iPreOpCode!=-1) iOpcodeLen++;
@@ -784,9 +825,10 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 	if(iOp3!=-1) iOpcodeLen++;
 	if (bRipRelMemOp)
 	{
-		// 49 BB mov r11, imm64 prefix; the 66 form also gains a 41 REX.B.
+		// 49 BB mov r11, imm64 prefix; a legacy/mandatory prefix (66/F2/F3)
+		// is kept alongside the added REX.B.
 		iOpcodeLen += 2;
-		if (iPreOpCode == 0x66) iOpcodeLen += 1;
+		if (iPreOpCode == 0x66 || iPreOpCode == 0xF2 || iPreOpCode == 0xF3) iOpcodeLen += 1;
 	}
 	const int iFullInstLen = iOpcodeLen + iOpDataWidth + iOpData2Width;
 
@@ -842,27 +884,20 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 
 bool CASMWriter::CheckAndExpandMCBMemory(void)
 {
-	// Save leap marker relative offsets before expansion
+	// Capture the base *before* the buffer may reallocate.
 	LPSTR pOldStart = m_machineCodeBuffer.GetProgramStart();
-	DWORD dwByteOffset = 0;
-	DWORD dwLeapRelDiff[9];
-	if (pOldStart)
-	{
-		dwByteOffset = static_cast<DWORD>(m_leapManager.GetRecordTopBytePosition() - pOldStart);
-		for(DWORD di=0; di<9; di++)
-			dwLeapRelDiff[di] = static_cast<DWORD>(m_leapManager.GetRecordBytePosition(di) - pOldStart);
-	}
 
 	// Delegate expansion to machine code buffer
-	bool bExpanded = m_machineCodeBuffer.CheckAndExpandMCBMemory();
+	const bool bExpanded = m_machineCodeBuffer.CheckAndExpandMCBMemory();
 
-	// If expansion occurred, rebase leap markers
+	// Only an actual reallocation leaves the recorded leap-marker pointers
+	// dangling. The manager rebases the ones that are set and leaves unset
+	// (null) markers alone; doing this arithmetic here previously turned unset
+	// markers into wild non-null pointers.
 	if (bExpanded)
 	{
-		LPSTR pNewStart = m_machineCodeBuffer.GetProgramStart();
-		m_leapManager.SetRecordTopBytePosition(pNewStart+dwByteOffset);
-		for(DWORD di=0; di<9; di++)
-			m_leapManager.SetRecordBytePosition(di, pNewStart+dwLeapRelDiff[di]);
+		m_leapManager.RebaseForBufferExpansion(
+			pOldStart, m_machineCodeBuffer.GetProgramStart());
 	}
 
 	return bExpanded;
@@ -1082,10 +1117,7 @@ bool CASMWriter::UpdateMCBRefData(void)
 		}
 
 		std::uint64_t bytePosition = label->GetBytePosition();
-		if (!dbp::iequals(label->GetName()->GetStr(), "$labelend"))
-		{
-			bytePosition += g_pEXE->m_dwStartOfMiniMC;
-		}
+		bytePosition += g_pEXE->m_dwStartOfMiniMC;
 		return bytePosition;
 	};
 
@@ -1551,9 +1583,9 @@ bool CASMWriter::WriteASMCall(DWORD dwLine, std::string_view dll, std::string_vi
 	return g_pASMWriter->WriteASMTaskCoreP1(dwLine, static_cast<DWORD>(ASMTask::Call), &CommandString, 1);
 }
 
-DWORD CASMWriter::DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset)
+DWORD CASMWriter::DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset, CStr* pPIndex)
 {
-	return m_taskEmitter.DetermineParamMode(pP, dwPType, dwPOffset);
+	return m_taskEmitter.DetermineParamMode(pP, dwPType, dwPOffset, pPIndex);
 }
 
 void CASMWriter::CalculateArrayOffsetInRBX ( CStr* pPIndex )
@@ -1731,9 +1763,9 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	m_dwLineNumber = dwLine;
 
 	// Determine Modes
-	DWORD dwP1Mode=DetMode(pP1, dwP1Type, dwP1Offset);
-	DWORD dwP2Mode=DetMode(pP2, dwP2Type, dwP2Offset);
-	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset);
+	DWORD dwP1Mode=DetMode(pP1, dwP1Type, dwP1Offset, pP1Off);
+	DWORD dwP2Mode=DetMode(pP2, dwP2Type, dwP2Offset, pP2Off);
+	DWORD dwP3Mode=DetMode(pP3, dwP3Type, dwP3Offset, pP3Off);
 
 	// Command-call argument tracking: the machine stack only accumulates
 	// command arguments across consecutive argument-producer tasks
@@ -1927,30 +1959,13 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::Return))
 	{
-		// Unscheduled RETs are dangerous=crash, so default is safe return
-		if(1)
-		{
-			// Get RSP into RAX
-			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXRSP), "");
-			// Get _RSP_ into RBX
-			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRBXMEM4), "@$_RSP_");
-			// Compare the values
-			WriteASMLine(static_cast<DWORD>(ASMOp::CMPRAXRBX4), nullptr);
-			// Jump over line that sets the flag
-			WriteASMLine(static_cast<DWORD>(ASMOp::JNE), "5");
-			// Line that exits the program due to illegal RETURN CALL
-			WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "$labelend");
-			// oh and the actual return!
-			WriteASMLine(static_cast<DWORD>(ASMOp::RET), "");
-			// Comment for safe return
-			WriteASMComment("SAFERETURN", "", "", "");
-		}
-		else
-		{
-			// Hard RET
-			WriteASMLine(static_cast<DWORD>(ASMOp::RET), "");
-			WriteASMComment("RETURN", "", "", "");
-		}
+		// x64: plain RET. The legacy SAFERETURN compared RSP against @_RSP_
+		// and silently terminated the program on mismatch, masking real bugs
+		// as silent exits. @_RSP_ remains in use only by the program epilogue
+		// (RestoreRsp in EndProgramAndQuit), which is self-balancing by design.
+		// Genuine stack corruption now surfaces through VEH crash diagnostics.
+		WriteASMLine(static_cast<DWORD>(ASMOp::RET), "");
+		WriteASMComment("RETURN", "", "", "");
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::PureReturn))
 	{
@@ -2302,10 +2317,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 						else
 							WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "5");
 
-						// actual division
-						WriteASMLine(static_cast<DWORD>(ASMOp::CQO), "");
-						dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DIVRAXRBX1),dwP1Type);
-						WriteASMLine(dwCorrectASMCode, "");
+					// actual division: sign-extend with the width-matched
+					// CBW/CWD/CDQ so it always pairs with the IDIV below
+					dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SIGNEXTEND1),dwP1Type);
+					WriteASMLine(dwCorrectASMCode, "");
+					dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DIVRAXRBX1),dwP1Type);
+					WriteASMLine(dwCorrectASMCode, "");
 
 						// mod takes only the remainder
 						if(dwTask==static_cast<DWORD>(ASMTask::Mod))
@@ -2445,10 +2462,12 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 						else
 							WriteASMLine(static_cast<DWORD>(ASMOp::JMP), "5");
 						
-						// div rax,rbx
-						WriteASMLine(static_cast<DWORD>(ASMOp::CQO), "");
-						DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DIVRAXRBX1),dwP1Type);
-						WriteASMLine(dwCorrectASMCode, "");
+					// div rax,rbx: sign-extend with the width-matched
+					// CBW/CWD/CDQ so it always pairs with the IDIV below
+					DWORD dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::SIGNEXTEND1),dwP1Type);
+					WriteASMLine(dwCorrectASMCode, "");
+					dwCorrectASMCode=DetermineASMCall(static_cast<DWORD>(ASMOp::DIVRAXRBX1),dwP1Type);
+					WriteASMLine(dwCorrectASMCode, "");
 
 						// mod takes only the remainder
 						if(dwTask==static_cast<DWORD>(ASMTask::Mod))
@@ -2689,9 +2708,14 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::PushInternalArrayIndex))
 	{
-		// Find Array location (in RAX)
-		if(dwP1Mode==static_cast<DWORD>(ParamMode::MemArr)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXMEM8), pP1->GetStr());
-		if(dwP1Mode==static_cast<DWORD>(ParamMode::RbpArr)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXRBP8), pP1->GetStr()+2);
+		// Find Array location (in RAX). The array may be referenced by an element
+		// token (@arr -> MemArr/RbpArr) or a handle token (@&arr -> Mem/Rbp); both
+		// store the 64-bit array handle, so it must be loaded in either case. If the
+		// load is skipped, RAX keeps a stale value, the null-check below mis-fires and
+		// skips the index PUSH while the consumer's matching POP still executes, which
+		// unbalances the machine stack (corrupting any enclosing gosub return address).
+		if(dwP1Mode==static_cast<DWORD>(ParamMode::MemArr) || dwP1Mode==static_cast<DWORD>(ParamMode::Mem)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXMEM8), pP1->GetStr());
+		if(dwP1Mode==static_cast<DWORD>(ParamMode::RbpArr) || dwP1Mode==static_cast<DWORD>(ParamMode::Rbp)) WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXRBP8), pP1->GetStr()+2);
 
 		/* old code crashes when safe array switched off and A() used instead of A( ) when A was not DIMMED
 		// If Array Check Active
@@ -2730,10 +2754,15 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 	}
 	if(dwTask==static_cast<DWORD>(ASMTask::CalcArrayOffset))
 	{
-		// Find the array header in RAX.
-		if(dwP2Mode==static_cast<DWORD>(ParamMode::MemArr))
+		// Find the array header in RAX. As with PushInternalArrayIndex, the array
+		// may be referenced by an element token (@arr -> MemArr/RbpArr) or a handle
+		// token (@&arr -> Mem/Rbp); every subscripted access emits the handle form,
+		// and both store the 64-bit array handle, so the load must happen in either
+		// case. Skipping it leaves the last subscript value in RAX and the stride
+		// multiplication below dereferences that value (AV on 2+ dimension arrays).
+		if(dwP2Mode==static_cast<DWORD>(ParamMode::MemArr) || dwP2Mode==static_cast<DWORD>(ParamMode::Mem))
 			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXMEM8), pP2->GetStr());
-		if(dwP2Mode==static_cast<DWORD>(ParamMode::RbpArr))
+		if(dwP2Mode==static_cast<DWORD>(ParamMode::RbpArr) || dwP2Mode==static_cast<DWORD>(ParamMode::Rbp))
 			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXRBP8), pP2->GetStr()+2);
 
 		if(GetArrayCheckFlag())

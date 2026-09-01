@@ -659,15 +659,44 @@ bool CEXEBlock::StartInfo(LPSTR pUnpackFolderName, DWORD dwEncryptionKey)
 
 bool CEXEBlock::Load(char* lpFilename)
 {
+        // StartInfo() is contracted to run before Load(), but Clear() resets
+        // the block state including those fields. Preserve them across the
+        // reset: an empty pEXEUnpackDirectory makes the runtime's re-encrypt
+        // cleanup (EncryptDecrypt) prefix-match every filename and delete the
+        // file that was just read.
+        const std::string unpackFolderName = m_UnpackFolderName;
+        const DWORD encryptionKey = m_dwEncryptionKey;
+        const std::string absoluteAppFile = m_AbsoluteAppFile;
         Clear();
+        m_UnpackFolderName = unpackFolderName;
+        m_dwEncryptionKey = encryptionKey;
+        m_AbsoluteAppFile = absoluteAppFile;
+        m_LoadError.clear();
 
 	// Load EXE Filedata
 	HANDLE hFile = Hook_CreateFileW(TextConvert::UTF8ToUTF16(lpFilename).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(hFile!=INVALID_HANDLE_VALUE)
 	{
                 bool success = true;
-                const auto record = [&success](const bool result) noexcept {
-                        success = result && success;
+                // Record the first failing read with its step number and stream
+                // offset so a truncated or misformatted block is diagnosable
+                // instead of surfacing as a silent exit code 1 from the
+                // packaged runtime.
+                DWORD stepIndex = 0;
+                const auto record = [this, hFile, &success, &stepIndex](const bool result) {
+                        ++stepIndex;
+                        if (!result && success)
+                        {
+                                success = false;
+                                m_LoadError = "EXE block load failed at record step " + std::to_string(stepIndex);
+                                LARGE_INTEGER zero{};
+                                LARGE_INTEGER position{};
+                                if (SetFilePointerEx(hFile, zero, &position, FILE_CURRENT))
+                                        m_LoadError += " (offset " + std::to_string(position.QuadPart) + ")";
+                                const DWORD lastError = GetLastError();
+                                if (lastError != ERROR_SUCCESS)
+                                        m_LoadError += " (Win32 error " + std::to_string(lastError) + ")";
+                        }
                 };
 
 		// Settings
@@ -741,7 +770,11 @@ bool CEXEBlock::Load(char* lpFilename)
 	}
 	else
 	{
-		// EXEBlock shared - silent fail
+		// Record why the open failed instead of failing silently
+		const DWORD lastError = GetLastError();
+		m_LoadError = std::string("EXE block open failed for '") + lpFilename + "'";
+		if (lastError != ERROR_SUCCESS)
+			m_LoadError += " (Win32 error " + std::to_string(lastError) + ")";
 		return false;
 	}
 }
@@ -956,7 +989,11 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		// uses DirectX, so error if not up to date
 		bDirectXIsUpToDateFlag = CheckIfGotLatestDirectX(false);
 		if ( bDirectXIsUpToDateFlag==false )
+		{
+			if(*pReturnError==nullptr) *pReturnError = new char[1024];
+			sprintf_s(*pReturnError, 1024, "The DirectX runtime required by this application is not up to date");
 			bResult=false;
+		}
 	}
 	else
 	{
@@ -1466,7 +1503,16 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 			if ( g_CORE_InitDisplay ( m_dwInitialDisplayMode, m_dwInitialDisplayWidth, m_dwInitialDisplayHeight, m_dwInitialDisplayDepth, hInstance, m_pInitialAppName)==1)
 			{
 				// Failed to DXSetup - Exit now
+				const DWORD displayInitLastError = GetLastError();
 				OutputDebugStringA("[EXEBlock] Step 5: g_CORE_InitDisplay failed\n");
+				if(*pReturnError==nullptr) *pReturnError = new char[1024];
+				sprintf_s(*pReturnError, 1024,
+					"Display initialisation failed (mode=%lu, %lux%lu depth=%lu, Win32 error %lu)",
+					static_cast<unsigned long>(m_dwInitialDisplayMode),
+					static_cast<unsigned long>(m_dwInitialDisplayWidth),
+					static_cast<unsigned long>(m_dwInitialDisplayHeight),
+					static_cast<unsigned long>(m_dwInitialDisplayDepth),
+					static_cast<unsigned long>(displayInitLastError));
 				bResult=false;
 			}
 			else
@@ -1838,6 +1884,10 @@ bool CEXEBlock::InitDebug(HINSTANCE hInstance, LPVOID pDHookS, LPVOID pDHookJ, L
 		if ( !VirtualProtect( m_pMachineCodeBlock, m_dwSizeOfMCB, PAGE_EXECUTE_READ, &oldProtect ) )
 		{
 			// Protection transition failed - MCB cannot be executed safely
+			if(*pReturnError==nullptr) *pReturnError = new char[1024];
+			sprintf_s(*pReturnError, 1024,
+				"Machine code block could not be made executable (Win32 error %lu)",
+				static_cast<unsigned long>(GetLastError()));
 			bResult = false;
 		}
 	}

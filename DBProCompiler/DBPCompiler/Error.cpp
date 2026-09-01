@@ -518,7 +518,6 @@ void CError::ConstructError(DWORD dwLine, DWORD dwErrCode, LPCSTR pIA, LPCSTR pI
 void CError::SetError(DWORD dwLine, DWORD dwErrCode)
 {
 	ConstructError(dwLine, dwErrCode, nullptr, nullptr, nullptr);
-	DB3_CRASH();
 }
 
 void CError::SetError(DWORD dwLine, DWORD dwErrCode, DWORD dw1)
@@ -526,19 +525,16 @@ void CError::SetError(DWORD dwLine, DWORD dwErrCode, DWORD dw1)
 	CStr pNum1;
 	pNum1.SetNumericText(dw1);
 	ConstructError(dwLine, dwErrCode, pNum1.GetStr(), nullptr, nullptr);
-	DB3_CRASH();
 }
 
 void CError::SetError(DWORD dwLine, DWORD dwErrCode, LPCSTR lp1)
 {
 	ConstructError(dwLine, dwErrCode, lp1, nullptr, nullptr);
-	DB3_CRASH();
 }
 
 void CError::SetError(DWORD dwLine, DWORD dwErrCode, LPCSTR lp1, LPCSTR lp2)
 {
 	ConstructError(dwLine, dwErrCode, lp1, lp2, nullptr);
-	DB3_CRASH();
 }
 
 

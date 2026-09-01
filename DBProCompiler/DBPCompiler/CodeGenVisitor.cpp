@@ -51,7 +51,7 @@ void CodeGenVisitor::Visit(ASTAssignmentNode* node) {
 
     // 4. Determine variable access mode and write RAX to variable
     CStr varName(const_cast<LPSTR>(node->m_varName.c_str()));
-    DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
+    DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset, nullptr);
     m_codeGen->WriteASMRAXtoX(dwAccessMode, &varName, nullptr, dwType, dwOffset);
     
     // 5. Write ASM comment
@@ -77,7 +77,7 @@ void CodeGenVisitor::Visit(ASTVariableNode* node) {
 
     // Load variable value to RAX, then push RAX onto stack
     CStr varName(const_cast<LPCSTR>(node->m_varName.c_str()));
-    DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset);
+    DWORD dwAccessMode = m_codeGen->DetMode(&varName, dwType, dwOffset, nullptr);
     m_codeGen->WriteASMXtoRAX(dwAccessMode, &varName, nullptr, dwType, dwOffset);
     m_codeGen->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, dwType, dwOffset);
 }

@@ -95,7 +95,7 @@ void CStatementList::UpdateLineDBMData(CStatement* pStatementAt)
 	// Add DBM position data to label information
 	DWORD dwBytePositionOfLastInstruction=g_pASMWriter->GetBytePosOfLastInstruction();
 	g_pLabelTable->UpdateDataIndexOfLabelsAtLine(pStatementAt, dwBytePositionOfLastInstruction);
-	
+
 	// For reference only (the writedbm error uses it to catch unknown local structures)
 	m_pRefStatementDuringWrite = pStatementAt;
 }
@@ -298,12 +298,14 @@ bool CStatementList::FindStartOfFileDataProgramLine(DWORD dwFindLineNumber, LPST
 }
 size_t CStatementList::GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen)
 {
-	static bool didInitLines = false;
-
-	if (!didInitLines)
+	// The line-pointer table is per-instance and keyed to the current file
+	// data buffer: a stale table from a previous parse would dangle into a
+	// freed source buffer and fault inside the memcpy below.
+	if (!m_bLinePtrsBuilt || m_LinePtrsSourceStart != m_pFileData ||
+	    m_LinePtrsSourceEnd != m_pFileDataEnd)
 	{
-		static db3::CLock lock;
-		db3::CAutolock autolock(lock);
+		m_LinePtrs.Clear();
+
 		char *p, *q;
 
 		m_LinePtrs.Push(m_pFileData);
@@ -318,7 +320,7 @@ size_t CStatementList::GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen
 				p++;
 			}
 
-			if (*p=='\n')
+			if (p <= m_pFileDataEnd && *p=='\n')
 			{
 				nl = true;
 				p++;
@@ -327,7 +329,11 @@ size_t CStatementList::GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen
 			if (nl)
 			{
 				q = p;
-				m_LinePtrs.Push(p);
+				// A CRLF that ends the buffer consumes the final byte: there is
+				// no line starting after it, and pushing end+1 would leave an
+				// inverted pair in the table (e < s) whose length underflows.
+				if (p <= m_pFileDataEnd)
+					m_LinePtrs.Push(p);
 			}
 			else
 				q = p + 1;
@@ -335,10 +341,13 @@ size_t CStatementList::GetLineText(DWORD dwLineNumber, char *pDst, size_t DstLen
 
 		m_LinePtrs.Push(m_pFileDataEnd);
 
-		didInitLines = true;
+		m_LinePtrsSourceStart = m_pFileData;
+		m_LinePtrsSourceEnd = m_pFileDataEnd;
+		m_bLinePtrsBuilt = true;
 	}
 
-	if (dwLineNumber - 1 >= m_LinePtrs.Size())
+	// Line N needs entries [N-1] and [N], so the largest valid N is Size()-1.
+	if (dwLineNumber == 0 || dwLineNumber >= m_LinePtrs.Size())
 		return 0;
 
 	char *s, *e;

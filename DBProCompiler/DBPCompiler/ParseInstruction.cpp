@@ -61,7 +61,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, uint32_t dwType, int
 		CStr pNull("0");
 
 		// Determine natural mode, and make sure its an offset to get at the UDT element
-		DWORD dwAccessMode = g_pASMWriter->DetMode(pVar->m_pStringToken.get(), pVar->m_dwType, pVar->m_dwDataOffset);
+		DWORD dwAccessMode = g_pASMWriter->DetMode(pVar->m_pStringToken.get(), pVar->m_dwType, pVar->m_dwDataOffset, pVar->m_pAdditionalOffset.get());
 		if ( dwAccessMode==static_cast<DWORD>(ParamMode::Mem) ) dwAccessMode=static_cast<DWORD>(ParamMode::MemOff);
 		if ( dwAccessMode==static_cast<DWORD>(ParamMode::Rbp) ) dwAccessMode=static_cast<DWORD>(ParamMode::RbpOff);
 

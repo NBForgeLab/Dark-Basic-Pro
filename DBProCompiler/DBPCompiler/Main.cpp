@@ -27,8 +27,9 @@
 #include <cctype>
 
 // Internal data
-HWND g_hTempWindow = nullptr;
-HWND g_igLoader_HWND = nullptr;
+// g_hTempWindow / g_igLoader_HWND are defined by dbp_compiler_lib
+// (DBPCompiler.cpp) because EXEBlock.cpp — which lives in the library — is what
+// uses them; an entry point must not redefine them or the link fails with LNK2005.
 char g_ActualCompilerFilename[256] = {};
 
 // External Class Pointers

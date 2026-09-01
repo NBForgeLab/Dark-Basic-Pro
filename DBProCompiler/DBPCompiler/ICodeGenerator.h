@@ -58,7 +58,7 @@ public:
 
     virtual DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) = 0;
     virtual DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) = 0;
-    virtual DWORD DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset) = 0;
+    virtual DWORD DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset, CStr* pPIndex) = 0;
 
     virtual void CalculateArrayOffsetInRBX(CStr* pStr) = 0;
     virtual void WriteASMRAXtoARR(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) = 0;

@@ -38,20 +38,27 @@ public:
         return DetermineASMCall(dwASMCodeAsAByte, static_cast<uint32_t>(type));
     }
 
+    /** @brief Like DetermineASMCall, but routes pointer/handle types (strings,
+     * UDT pointers, array handles) to the 8-byte mov variant so 64-bit values
+     * are not truncated on x64. */
+    [[nodiscard]] uint32_t DetermineASMCallWide(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept;
+
     /** @brief Resolves relative assembly call code from opcode and type. */
     [[nodiscard]] uint32_t DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept;
     [[nodiscard]] uint32_t DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, DBPType type) const noexcept {
         return DetermineASMCallForREL(dwASMCodeAsAByte, static_cast<uint32_t>(type));
     }
 
-    /** @brief Evaluates parameter access mode (Mem, Rbp, Imm, etc.) for a token. */
-    [[nodiscard]] uint32_t DetermineParamMode(std::string_view p, uint32_t dwPType, uint32_t dwPOffset) const noexcept;
-    [[nodiscard]] uint32_t DetermineParamMode(std::string_view p, DBPType type, uint32_t dwPOffset) const noexcept {
-        return DetermineParamMode(p, static_cast<uint32_t>(type), dwPOffset);
+    /** @brief Evaluates parameter access mode (Mem, Rbp, Imm, etc.) for a token.
+     * pPIndex carries the array element index token (additional offset) when the
+     * access targets an element; nullptr means the whole variable/handle. */
+    [[nodiscard]] uint32_t DetermineParamMode(std::string_view p, uint32_t dwPType, uint32_t dwPOffset, const class CStr* pPIndex) const noexcept;
+    [[nodiscard]] uint32_t DetermineParamMode(std::string_view p, DBPType type, uint32_t dwPOffset, const class CStr* pPIndex) const noexcept {
+        return DetermineParamMode(p, static_cast<uint32_t>(type), dwPOffset, pPIndex);
     }
-    [[nodiscard]] uint32_t DetermineParamMode(const class CStr* pP, uint32_t dwPType, uint32_t dwPOffset) const noexcept;
-    [[nodiscard]] uint32_t DetermineParamMode(const class CStr* pP, DBPType type, uint32_t dwPOffset) const noexcept {
-        return DetermineParamMode(pP, static_cast<uint32_t>(type), dwPOffset);
+    [[nodiscard]] uint32_t DetermineParamMode(const class CStr* pP, uint32_t dwPType, uint32_t dwPOffset, const class CStr* pPIndex) const noexcept;
+    [[nodiscard]] uint32_t DetermineParamMode(const class CStr* pP, DBPType type, uint32_t dwPOffset, const class CStr* pPIndex) const noexcept {
+        return DetermineParamMode(pP, static_cast<uint32_t>(type), dwPOffset, pPIndex);
     }
 
     /** @brief Calculates pass offset for multi-pass task emission. */

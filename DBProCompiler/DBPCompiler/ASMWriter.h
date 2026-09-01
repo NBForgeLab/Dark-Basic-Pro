@@ -205,7 +205,6 @@ enum class ASMOp : int {
 	JMP                       = 81,
 	JNE                       = 82,
 	JE                        = 83,
-	MOVRAXSIB                 = 85,
 	MOVRCXRAX4                = 86,
 	MOVRAXRBP1                = 87,
 	MOVRAXRBP2                = 88,
@@ -248,7 +247,8 @@ enum class ASMOp : int {
 	JMPRBX                    = 131,
 	MOVRBXRAXOFF1             = 135,
 	MOVRBXRAXOFF2             = 136,
-	MOVRBXRAXOFF4             = 137,
+	// 137 retired: MOVRBXRAXOFF4 was a bit-identical alias of MOVRBXRAXOFF32
+	// after the 32-bit conversion and had no call sites (M8 cleanup).
 	MOVRDXRAXOFF1             = 138,
 	MOVRDXRAXOFF2             = 139,
 	MOVRDXRAXOFF4             = 140,
@@ -279,6 +279,13 @@ enum class ASMOp : int {
 	MOVRBXIMM1                = 165,
 	MOVRBXIMM2                = 166,
 	MOVRBXIMM4                = 167,
+	// RETIRED - do not emit. 64-bit CQO (48 99) must never precede the 32-bit
+	// IDIV this backend emits: it sign-extends RAX into RDX:RAX while IDIV
+	// divides EDX:EAX, so negative dividends divide as huge positives (-7/2
+	// gave 2147483644 instead of -3). Use SIGNEXTEND1/2/4 (CBW/CWD/CDQ), which
+	// are selected with the same DetermineASMCall() size code as the IDIV they
+	// precede. The enumerator is kept only to preserve the pinned ASMOp
+	// numbering; it has no instruction-table entry.
 	CQO                       = 168,
 	CMPRDXRBX1                = 169,
 	CMPRDXRBX2                = 170,
@@ -334,14 +341,16 @@ enum class ASMOp : int {
 	CMPRAXRBX4                = 220,
 	MOVRBXRBP1                = 221,
 	MOVRBXRBP2                = 222,
-	MOVRBXRBP4                = 223,
+	// 223 retired: MOVRBXRBP4 was a bit-identical alias of MOVRBXRBP32 with no
+	// call sites (M8 cleanup).
 	POPRDX                    = 224,
 	POPRCX                    = 225,
 	PUSHRCX                   = 226,
 	MULRCXRDX4                = 227,
 	ADDRBXRDX4                = 228,
 	MULRDXRAXOFF4             = 229,
-	MOVMEMRBX4                = 230,
+	// 230 retired: MOVMEMRBX4 had no call sites after the 32-bit conversion
+	// (M8 cleanup); MOVMEMRAX8/MOVMEMRAX4 cover both store widths.
 	MOVRAXRBX4                = 231,
 	PUSHFROMRAX               = 232,
 	MOVRAXRBP                 = 233,
@@ -382,6 +391,33 @@ enum class ASMOp : int {
 	MOVRBPRAX8                = 271,
 	MOVRAXRCXOFF8             = 272,
 	MOVRCXOFFRAX8             = 273,
+
+	// Sign extension emitted immediately before IDIV. The width must match the
+	// operand size of the IDIV that follows it (see DetermineASMCall): CBW fills
+	// AX from AL for IDIV r/m8, CWD fills DX:AX from AX for IDIV r/m16, and CDQ
+	// fills EDX:EAX from EAX for IDIV r/m32 - the 32-bit integer form this
+	// backend emits. 64-bit CQO (48 99) must never pair with a 32-bit IDIV: it
+	// leaves EDX as the sign of RAX's upper half, so negative dividends divide
+	// as huge positives (-7/2 yields 2147483644 instead of -3).
+	SIGNEXTEND1               = 274,
+	SIGNEXTEND2               = 275,
+	SIGNEXTEND4               = 276,
+
+	// 64-bit array element and test operations
+	TESTRAXRAX                = 277,
+	MOVRCXRAXOFF8             = 278,
+	MOVRAXOFFRCX8             = 279,
+	MOVRAXRCX8                = 280,
+
+	// 64-bit register-indirect moves for pointer-width values (strings, handles)
+	MOVRAXRAXREL8             = 281,
+	MOVRAXRCXREL8             = 282,
+
+	// Direct-layout array element addressing: the runtime header carries the
+	// authoritative stride at [handle-12], so the byte offset is index * stride.
+	IMULRBXRDX                = 285, // IMUL RBX, RDX
+	ADDRAXRBX8                = 286, // ADD RAX, RBX (64-bit)
+	MOVRCXRAX8                = 287, // MOV RCX, RAX (full 64-bit value save)
 };
 
 // Parameter mode codes (converted from #define constants)
@@ -457,13 +493,16 @@ class CASMWriter : public ICodeGenerator
 		void ClearCodeBuffer() noexcept { m_codeBuffer.clear(); }
 
 		void GenerateASMCodes(void);
-		void DefineASM(DWORD dwASMCode, LPCSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData, int iOp3 = -1);
-		// Width in bytes of the reference operand slot emitted for each ASM op.
-		// disp32/rel32 slots are 4 bytes; imm64 slots are 8 bytes. The legacy
-		// uniform-8-byte model corrupted every 4-byte slot and clobbered the
-		// following instruction, which is the core boot AV this fixes.
-		static int DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2);
-		static int DetermineSecondOpDataWidth(int iPreOp, int iOp1, int iOp2);
+	void DefineASM(DWORD dwASMCode, LPCSTR pDebugStr, int iPreOp, int iOp1, int iOp2, bool bOpData, int iOp3 = -1);
+	// Width in bytes of the reference operand slot emitted for each ASM op.
+	// disp32/rel32 slots are 4 bytes; imm64 slots are 8 bytes. The legacy
+	// uniform-8-byte model corrupted every 4-byte slot and clobbered the
+	// following instruction, which is the core boot AV this fixes.
+	// iOp3 carries the ModRM byte for three-byte-opcode forms (0F xx /r and
+	// F2 0F xx /r SSE); pass it so the disp32 width is derived from the real
+	// ModRM instead of the second opcode byte.
+	static int DetermineOpDataWidth(int iPreOp, int iOp1, int iOp2, int iOp3 = -1);
+	static int DetermineSecondOpDataWidth(int iPreOp, int iOp1, int iOp2);
 
 		using ICodeGenerator::CreateASMMiddle;
 		using ICodeGenerator::CreateASMMiddleCore;
@@ -508,7 +547,7 @@ class CASMWriter : public ICodeGenerator
 
 		DWORD DetermineASMCall(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) override;
 		DWORD DetermineASMCallForREL(DWORD dwASMCodeAsAByte, DWORD dwTypeValue) override;
-		DWORD DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset) override;
+		DWORD DetMode(CStr* pP, DWORD dwPType, DWORD dwPOffset, CStr* pPIndex) override;
 
 		void CalculateArrayOffsetInRBX ( CStr* pStr ) override;
 		void WriteASMRAXtoARR(DWORD dwMode, CStr* pP, CStr* pPIndex, DWORD dwPType, DWORD dwPOffset) override;

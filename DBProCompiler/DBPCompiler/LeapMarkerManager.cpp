@@ -31,22 +31,33 @@ void CLeapMarkerManager::Reset() noexcept
 }
 
 void CLeapMarkerManager::RebaseForBufferExpansion(
-	LPSTR pNewProgramStart,
-	[[maybe_unused]] DWORD dwNewMCBlockSize)
+	LPSTR pOldProgramStart,
+	LPSTR pNewProgramStart) noexcept
 {
-	if (!pNewProgramStart)
+	// Nothing to do when there is no old base, no new base, or the storage did
+	// not actually move.
+	if (!pOldProgramStart || !pNewProgramStart || pOldProgramStart == pNewProgramStart)
 		return;
 
-	// Save relative offsets
-	DWORD dwByteOffset = static_cast<DWORD>(m_pRecordTopBytePosition - pNewProgramStart);
-	DWORD dwLeapRelDiff[MAX_LEAP_MARKERS];
-	for (DWORD di = 0; di < MAX_LEAP_MARKERS; di++)
-		dwLeapRelDiff[di] = static_cast<DWORD>(m_pRecordBytePosition[di] - pNewProgramStart);
+	// Rebase only the markers that are actually set. An unset marker must stay
+	// nullptr: subtracting it is undefined behaviour, and rebasing it would
+	// produce a wild non-null pointer that later "is this marker set?" checks
+	// would accept, leading to reads/writes through an arbitrary address.
+	if (m_pRecordTopBytePosition)
+	{
+		m_pRecordTopBytePosition =
+			pNewProgramStart + (m_pRecordTopBytePosition - pOldProgramStart);
+	}
 
-	// Rebase using the new program start
-	m_pRecordTopBytePosition = pNewProgramStart + dwByteOffset;
 	for (DWORD di = 0; di < MAX_LEAP_MARKERS; di++)
-		m_pRecordBytePosition[di] = pNewProgramStart + dwLeapRelDiff[di];
+	{
+		if (m_pRecordBytePosition[di])
+		{
+			m_pRecordBytePosition[di] =
+				pNewProgramStart + (m_pRecordBytePosition[di] - pOldProgramStart);
+		}
+	}
+	// m_pRecordRefPosition[] stores offsets, not pointers: unaffected by a move.
 }
 
 //////////////////////////////////////////////////////////////////////
