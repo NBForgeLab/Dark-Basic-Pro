@@ -262,7 +262,7 @@ int	MultiplayerGetPlayerCount ( void )
 	return g_PlayerList.size ( );
 }
 
-static char* SetupString ( char* szInput )
+static char* SetupString ( const char* szInput )
 {
 	char* pReturn = NULL;
 	DWORD dwSize  = strlen ( szInput );
@@ -883,7 +883,7 @@ void MultiplayerSetDebugState ( int iState )
 	g_bMultiplayerDebug = true;
 }
 
-void MultiplayerDisplayDebug ( char* szInformation )
+void MultiplayerDisplayDebug ( const char* szInformation )
 {
 	// can cause a crash due to threading - leave this for now
 

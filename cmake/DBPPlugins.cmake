@@ -48,12 +48,11 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SD
 # To restore Steam support, re-add this subdirectory and the Core bootstrap.
 # add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/DarkSDKMore/SteamMultiplayer" "${CMAKE_BINARY_DIR}/plugins/steammultiplayer")
 
-# Multiplayer and MultiplayerPlus are excluded: they depend on the deprecated
-# DirectPlay4/8 SDK headers (dplay.h, dplobby.h, dplay8.h, dpaddr.h) which are
-# not available in modern Windows SDKs or the Microsoft.DXSDK.D3DX NuGet package.
-# Re-enable when the legacy June 2010 DirectX SDK is installed or shim headers
-# are provided.
+# Multiplayer (DirectPlay4) remains excluded: dplay.h/dplobby.h are not
+# vendored and no game in the acceptance set needs it.
 # add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Multiplayer" "${CMAKE_BINARY_DIR}/plugins/multiplayer")
-# add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/MultiplayerPlus" "${CMAKE_BINARY_DIR}/plugins/multiplayerplus")
+# MultiplayerPlus (DirectPlay8) builds against the vendored DX8 headers in
+# ThirdParty/DirectPlay8/include; dpnet.dll provides the runtime on Windows.
+add_subdirectory("${CMAKE_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/MultiplayerPlus" "${CMAKE_BINARY_DIR}/plugins/multiplayerplus")
 
 

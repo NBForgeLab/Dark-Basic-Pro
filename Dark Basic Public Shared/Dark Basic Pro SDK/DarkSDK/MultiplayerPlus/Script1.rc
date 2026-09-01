@@ -57,7 +57,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     IDS_STRING1             "MULTIPLAYER START%0%?MultiplayerStart@@YAXXZ%"
     IDS_STRING2             "MULTIPLAYER SET DEBUG STATE%L%?MultiplayerSetDebugState@@YAXH@Z%"
-    IDS_STRING3             "MULTIPLAYER DISPLAY DEBUG%S%?MultiplayerDisplayDebug@@YAXPEAD@Z%"
+    IDS_STRING3             "MULTIPLAYER DISPLAY DEBUG%S%?MultiplayerDisplayDebug@@YAXPEBD@Z%"
     IDS_STRING4             "MULTIPLAYER CREATE TCP SERVER%S%?MultiplayerCreateTCPServer@@YAXPEAD@Z%"
     IDS_STRING5             "MULTIPLAYER CREATE TCP SERVER%SL%?MultiplayerCreateTCPServer@@YAXPEADK@Z%"
     IDS_STRING6             "MULTIPLAYER CONNECT TO TCP SERVER%SS%?MultiplayerConnectToTCPServer@@YAXPEAD0@Z%"

@@ -17,9 +17,13 @@
 #include <basetsd.h>
 #include <dplay8.h>
 #include <dpaddr.h>
-#include <dxerr9.h>
 #include <tchar.h>
 #include <objbase.h>
+
+// Not present in the original DX8 dplay8.h; both exist in DX9-era SDKs and
+// are honored by the dpnet.dll runtime. Values match the June 2010 SDK.
+#define DPNCLOSE_IMMEDIATE 0x00000001
+DEFINE_GUID(CLSID_DP8SP_BLUETOOTH, 0x995513af, 0x3027, 0x4b9a, 0x95, 0x6e, 0xc7, 0x72, 0xb3, 0xf7, 0x80, 0x06);
 
 #define DARKSDK	__declspec ( dllexport )
 #define WIN32_LEAN_AND_MEAN
@@ -136,7 +140,7 @@ DARKSDK void			ReceiveCoreDataPtr							( LPVOID pCore );
 DARKSDK	void			SetErrorHandler								( LPVOID pErrorHandlerPtr );
 
 DARKSDK void			MultiplayerSetDebugState					( int iState );
-DARKSDK void			MultiplayerDisplayDebug						( char* szInformation );
+DARKSDK void			MultiplayerDisplayDebug						( const char* szInformation );
 
 DARKSDK void			MultiplayerCreateTCPServer					( char* szName );
 DARKSDK void			MultiplayerCreateTCPServer					( char* szName, DWORD dwPort );
