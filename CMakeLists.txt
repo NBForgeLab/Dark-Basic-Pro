@@ -125,12 +125,23 @@ endif()
 # Target-specific include and library paths are configured per-target in their
 # own CMakeLists.txt files (see dbp_compiler_lib in DBProCompiler/DBPCompiler).
 
+# Build-integrated deployment into the sibling FPS Creator Classic checkout.
+# SETTINGS phase first: resolves deploy paths and defines dbp_deploy_target(),
+# which individual target directories call to attach POST_BUILD sync hooks.
+set(DBP_DEPLOY_PHASE SETTINGS)
+include(cmake/DBPDeploy.cmake)
+
 # إضافة المشاريع الفرعية للترجمة والمشغل والمصحح والمكتبات الفرعية
 add_subdirectory(DBProShared/Package)
 include(cmake/DBPPlugins.cmake)
 add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 add_subdirectory(DBProCompiler/DBPDebugger)
+
+# TARGETS phase: manifest generation and the fpsc-deploy / fpsc-verify /
+# fpsc-package workflow targets. Included after all deployable targets exist.
+set(DBP_DEPLOY_PHASE TARGETS)
+include(cmake/DBPDeploy.cmake)
 
 # fuzz/ hosts two kinds of targets with different reachability requirements:
 #   * the corpus seed generator — a plain host tool that must exist on every

@@ -18,3 +18,6 @@ target_link_libraries(DBPDebugger PRIVATE
 set_target_properties(DBPDebugger PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin/$<CONFIG>"
 )
+
+# Deploy into the FPSC checkout after every build (see cmake/DBPDeploy.cmake).
+dbp_deploy_target(DBPDebugger)

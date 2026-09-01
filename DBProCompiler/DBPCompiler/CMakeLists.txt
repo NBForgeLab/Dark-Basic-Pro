@@ -186,3 +186,6 @@ add_custom_command(
     VERBATIM
     COMMENT "Deploying the DBPro compiler host runtime"
 )
+
+# Deploy into the FPSC checkout after every build (see cmake/DBPDeploy.cmake).
+dbp_deploy_target(DBPCompiler)

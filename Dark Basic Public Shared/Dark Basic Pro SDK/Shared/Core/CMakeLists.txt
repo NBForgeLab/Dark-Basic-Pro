@@ -86,3 +86,6 @@ target_link_libraries(DBProCore PRIVATE
     odbc32
     odbccp32
 )
+
+# Deploy into the FPSC checkout after every build (see cmake/DBPDeploy.cmake).
+dbp_deploy_target(DBProCore)
