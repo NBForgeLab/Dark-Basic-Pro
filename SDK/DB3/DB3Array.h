@@ -126,6 +126,13 @@ public:
 		return true;
 	}
 
+	inline void Clear()
+	{
+		CAutolock autolock(m_Lock);
+
+		m_Length = 0;
+	}
+
 	inline T &Element(uint index)
 	{
 		return m_Array[index];
