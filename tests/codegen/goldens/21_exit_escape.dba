@@ -1,0 +1,13 @@
+REM Golden case: early escape from every loop form.
+REM Exercises: the unconditional escape jump emitted for exit.
+REM (DBPro has no 'break' keyword; 'exit' escapes from any nesting depth.)
+for i = 1 to 100
+  if i = 10 then exit
+next i
+while 1
+  exit
+endwhile
+do
+  exit
+loop
+end

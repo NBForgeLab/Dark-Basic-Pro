@@ -1,0 +1,30 @@
+gosub S3
+dim j(10)
+for c = 1 to 6
+  exit
+next c
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(7)
+arr(0) = 1
+end

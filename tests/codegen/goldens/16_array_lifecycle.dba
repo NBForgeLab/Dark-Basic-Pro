@@ -1,0 +1,14 @@
+REM Golden case: array allocation, redimensioning and release.
+REM Exercises: +allocate / +deallocate and multidimensional index math.
+dim a(10)
+a(0) = 1
+a(10) = 2
+undim a()
+dim grid(4, 5)
+grid(1, 2) = 7
+grid(4, 5) = grid(1, 2) * 2
+dim cube(2, 3, 4)
+cube(1, 2, 3) = 9
+undim grid()
+undim cube()
+end

@@ -1,0 +1,34 @@
+select b
+  case 1
+    dim i(7)
+  case 2
+    dim n(6)
+endselect
+for n = 1 to 6
+  z$ = "887"
+next n
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  j = 1
+return
+
+dim arr(7)
+arr(0) = 1
+end

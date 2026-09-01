@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
-#include <windows.h>
 #include "CrashHandler.h"
 #include "DB3.h"
 
-// Define window globals needed by EXEBlock.cpp (which are normally defined in Main.cpp)
-HWND g_hTempWindow = NULL;
-HWND g_igLoader_HWND = NULL;
+// g_hTempWindow / g_igLoader_HWND are defined once by dbp_compiler_lib
+// (DBPCompiler.cpp). Every executable that links the library — including this
+// one — gets them from there; redefining them here would be a duplicate symbol.
 
 int main(int argc, char** argv) {
     // Tests run unattended: suppress blocking DB3_CRASH()/assert dialogs

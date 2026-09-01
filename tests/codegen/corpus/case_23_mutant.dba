@@ -1,0 +1,61 @@
+j = b# + c# + n / b
+$$$ broken @@@ not_a_command
+gosub S3
+select a
+  case 1
+    select c
+      case 1
+        b$ = "963"
+      case 2
+        select j
+          case 1
+            if i < n#
+              r = F(i)
+            else
+              for x = 1 to 17
+                exit
+              next x
+            endif
+        endselect
+    endselect
+  case 2
+    for y = 1 to 10
+      for b = 1 to 5
+        for c = 1 to 8
+          for c = 1 to 11
+            b$ = "216"
+          next c
+        next c
+      next b
+    next y
+  case 3
+    while (j >= b#) or (y# >= k#)
+      gosub S2
+    endwhile
+endselect
+dim x(20)
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(13)
+arr(0) = 1
+end

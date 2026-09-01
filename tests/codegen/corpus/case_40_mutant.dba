@@ -1,0 +1,34 @@
+for k = 1 to 11
+  dim i(7)
+ k
+r = F(c)
+while a + i# / z * c# < 28
+  while ((n > y) and (b# > x)) and ((y <= n#) or (n# >= x))
+    exit
+  endwhile
+endwhile
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  y = 1
+return
+
+dim arr(19)
+arr(0) = 1
+end

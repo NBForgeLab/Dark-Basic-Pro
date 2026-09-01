@@ -1,0 +1,40 @@
+j = 4
+while (((x# >= i#) or (j# < y#)) or ((n# <> k#) or (n# <= a#))) or (((a <> x#) and (n# <= x)) and ((k >= k) and (y <= c)))
+  while ((y > a#) and (i# <> z#)) and ((n <= x#) or (y <= b))
+    gosub S2
+  endwhile
+endwhile
+y = z# / a#
+r = F(x)
+select z
+  case 1
+    while i# >= b
+      b$ = "79"
+    endwhile
+endselect
+dim b(15)
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  z = 1
+return
+
+S3:
+  a = 1
+return
+
+dim arr(4)
+arr(0) = 1
+end

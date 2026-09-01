@@ -1,0 +1,57 @@
+for j = 1 to 14
+  select x
+    case 1
+      c = y#
+    case 2
+      dim j(13)
+    case 3
+      while a == b
+        if c# >= y
+          for n = 1 to 20
+            gosub S1
+          next n
+        else
+          dim x(16)
+        
+      endwhile
+  endselect
+next j
+a$ = "252"
+if (a / n# < z# - k#) or (b * k# < z# + i#)
+  k = j / x - 86
+else
+  i$ = "56"
+endif
+select k
+  case 1
+    c = 65
+  case 2
+    y = j# - i
+endselect
+r = F(k)
+r = F(k)
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  b = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  y = 1
+return
+
+dim arr(14)
+arr(0) = 1
+end

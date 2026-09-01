@@ -1,0 +1,31 @@
+while (j# == b#) or ((n == k) or (c < b))
+  x = c# / x#
+endwhile
+gosub S0
+gosub S1
+gosub S1
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  a = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

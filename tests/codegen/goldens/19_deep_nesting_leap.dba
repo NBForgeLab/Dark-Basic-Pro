@@ -1,0 +1,25 @@
+REM Golden case: 9 levels of nested IF blocks.
+REM CLeapMarkerManager only supports MAX_LEAP_MARKERS = 9 nested forward
+REM markers (LeapMarkerManager.h:98). This case sits exactly at the limit and
+REM is the guard against a silent "marker index out of range" regression.
+a = 1
+if a > 0
+  if a > 1
+    if a > 2
+      if a > 3
+        if a > 4
+          if a > 5
+            if a > 6
+              if a > 7
+                if a > 8
+                  deep = 9
+                endif
+              endif
+            endif
+          endif
+        endif
+      endif
+    endif
+  endif
+endif
+end

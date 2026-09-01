@@ -1,0 +1,126 @@
+x = k * k - (z# > i)
+gosub S0
+if ((x# > b#) and (c < b)) and (c# > i)
+  select j
+    case 1
+      select j
+        case 1
+          select x
+            case 1
+              dim k(12)
+            case 2
+              select a
+                case 1
+                  r = F(y)
+                case 2
+                  if y == b#
+                    for j = 1 to 20
+                      dim b(15)
+                    next j
+                  else
+                    r = F(c)
+                  endif
+              endselect
+          endselect
+        case 2
+          gosub S1
+      endselect
+    case 2
+      select x
+        case 1
+          dim z(18)
+      endselect
+    case 3
+      select k
+        case 1
+          select k
+            case 1
+              while n# <> b#
+                while i > i
+                  if b# < x#
+                    i$ = "194"
+                  else
+                    r = F(j)
+                  endif
+                endwhile
+              endwhile
+          endselect
+        case 2
+          while a <= c#
+            for n = 1 to 16
+              for z = 1 to 19
+                gosub S3
+              next z
+            next n
+          endwhile
+        case 3
+          select k
+            case 1
+              gosub S3
+            case 2
+              while j# <= b#
+                x$ = "817"
+              endwhile
+          endselect
+      endselect
+  endselect
+else
+  if (x >= k) or (c >= k)
+    r = F(c)
+  else
+    i = b#
+  endif
+endif
+select b
+  case 1
+    dim i(8)
+  case 2
+    if a# <= n#
+      while k# > c
+        k = z#
+      endwhile
+    else
+      for y = 1 to 4
+        r = F(a)
+      next y
+    endif
+endselect
+for x = 1 to 9
+  if (a >= c#) and (j > b#)
+    z$ = "666"
+  else
+    i$ = "246"
+  endif
+next x
+while (k# <= k) or (n == n)
+  for j = 1 to 10
+    for j = 1 to 13
+      y$ = "452"
+    next j
+  next j
+endwhile
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(7)
+arr(0) = 1
+end

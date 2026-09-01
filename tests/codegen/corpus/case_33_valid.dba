@@ -1,0 +1,95 @@
+select k
+  case 1
+    while ((i# > z#) and (n# >= i#)) or ((c <= a) or (x# < i#))
+      exit
+    endwhile
+  case 2
+    for b = 1 to 17
+      y = n# * z#
+    next b
+endselect
+dim j(20)
+r = F(a)
+if i# - i / b# / n < (k - b# > z# / a)
+  while (y == i#) and ((n <= z#) or (n <> z#))
+    for k = 1 to 7
+      b$ = "518"
+    next k
+  endwhile
+else
+  while y# / z > i - k#
+    i$ = "594"
+  endwhile
+endif
+while (((b <= y) and (n# <= n#)) or ((b# <> a#) or (j >= i#))) or (((a# <> c#) or (z < z#)) or ((b < a) and (x <= i#)))
+  select j
+    case 1
+      dim j(7)
+    case 2
+      while z# == y
+        select a
+          case 1
+            a = k
+          case 2
+            gosub S3
+          case 3
+            a = z
+        endselect
+      endwhile
+    case 3
+      if n < j
+        while z# > i
+          if k >= z
+            for z = 1 to 3
+              if z# == z
+                r = F(i)
+              else
+                select x
+                  case 1
+                    gosub S2
+                  case 2
+                    while b >= b
+                      gosub S0
+                    endwhile
+                endselect
+              endif
+            next z
+          else
+            for n = 1 to 17
+              exit
+            next n
+          endif
+        endwhile
+      else
+        while n <> a#
+          y = b#
+        endwhile
+      endif
+  endselect
+endwhile
+b$ = "800"
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(13)
+arr(0) = 1
+end

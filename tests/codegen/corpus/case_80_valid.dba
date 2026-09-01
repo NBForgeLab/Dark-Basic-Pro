@@ -1,0 +1,31 @@
+for n = 1 to 5
+  r = F(j)
+next n
+r = F(z)
+c$ = "254"
+gosub S3
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(5)
+arr(0) = 1
+end

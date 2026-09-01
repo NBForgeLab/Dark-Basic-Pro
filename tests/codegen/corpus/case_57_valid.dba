@@ -1,0 +1,53 @@
+dim k(17)
+for c = 1 to 17
+  if (b < z) or (k# < x)
+    for k = 1 to 5
+      r = F(j)
+    next k
+  else
+    for a = 1 to 16
+      exit
+    next a
+  endif
+next c
+if (i# < b#) and ((j <> i) or (a# == k#))
+  gosub S2
+else
+  select i
+    case 1
+      while n# >= y#
+        r = F(a)
+      endwhile
+    case 2
+      gosub S2
+  endselect
+endif
+select i
+  case 1
+    n = b#
+endselect
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(15)
+arr(0) = 1
+end

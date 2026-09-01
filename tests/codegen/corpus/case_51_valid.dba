@@ -1,0 +1,27 @@
+r = F(c)
+r = F(n)
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  b = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  i = 1
+return
+
+dim arr(17)
+arr(0) = 1
+end

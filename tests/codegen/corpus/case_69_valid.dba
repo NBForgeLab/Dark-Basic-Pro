@@ -1,0 +1,31 @@
+dim n(9)
+while 43 == c * i#
+  dim b(12)
+endwhile
+gosub S1
+gosub S0
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  y = 1
+return
+
+S1:
+  n = 1
+return
+
+S2:
+  n = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(7)
+arr(0) = 1
+end

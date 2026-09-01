@@ -1,0 +1,11 @@
+REM Golden case: explicit typed declaration forms (#constant unfolding is a
+REM pre-parse stage outside this hermetic pipeline, so literals are used).
+REM Exercises: global typed declarations and typed variable creation.
+global gCounter as integer
+global gRatio as float
+global gName as string
+gCounter = gCounter + 1
+gRatio = 0.5
+gName$ = "player"
+hp = 100
+end

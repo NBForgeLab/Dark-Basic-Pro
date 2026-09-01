@@ -132,7 +132,14 @@ add_subdirectory(DBProCompiler/DBPCompiler)
 add_subdirectory(DBProCompiler/DBPCompilerEXE)
 add_subdirectory(DBProCompiler/DBPDebugger)
 
-if(DBP_BUILD_FUZZERS)
+# fuzz/ hosts two kinds of targets with different reachability requirements:
+#   * the corpus seed generator — a plain host tool that must exist on every
+#     toolchain (the MSVC corpus workflow and the Clang fuzzing workflow both
+#     run the same binary), so it is built whenever tests OR fuzzers are on;
+#   * the libFuzzer targets — Clang-only, gated inside fuzz/CMakeLists.txt.
+# The directory is entered once, so the seed generator is defined exactly once
+# (defining it here and again under tests/ is a hard CMake error: duplicate target).
+if(DBP_BUILD_FUZZERS OR BUILD_TESTING)
     add_subdirectory(fuzz)
 endif()
 

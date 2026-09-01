@@ -1,0 +1,29 @@
+z$ = "712"
+while (b# > y#) * c + y# < z + c + (c# > z)
+  dim b(5)
+endwhile
+
+function F(x)
+  local t
+  t = x * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(12)
+arr(0) = 1
+end

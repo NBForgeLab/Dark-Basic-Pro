@@ -1,0 +1,33 @@
+b$ = "851"
+if 89 < n# - z
+  n$ = "936"
+else
+  dim k(12)
+endif
+r = F(k)
+gosub S0
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  a = 1
+return
+
+S2:
+  a = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(17)
+arr(0) = 1
+end

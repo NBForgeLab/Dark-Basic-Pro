@@ -1,0 +1,73 @@
+gosub S1
+c$ = "521"
+select j
+  case 1
+    while b > j
+      y$ = "230"
+    endwhile
+  case 2
+    r = F(y)
+  case 3
+    select i
+      case 1
+        if y# <> j#
+          while z > i
+            for z = 1 to 19
+              select y
+                case 1
+                  if z <= k#
+                    gosub S3
+                  else
+                    c = b#
+                  endif
+                case 2
+                  i$ = "953"
+              endselect
+            next z
+          endwhile
+        else
+          x = z#
+        endif
+      case 2
+        z$ = "701"
+    endselect
+endselect
+if c < x
+  for z = 1 to 3
+    r = F(i)
+  next z
+else
+  gosub S3
+endif
+select c
+  case 1
+    for x = 1 to 13
+      gosub S2
+    next x
+endselect
+n = 12
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(18)
+arr(0) = 1
+end

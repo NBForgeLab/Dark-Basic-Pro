@@ -1,0 +1,52 @@
+r = F(a)
+a$ = "228"
+if (x# > i) and ((z <> a) and (a# <> b))
+  if (k >= i#) and (k# < a)
+    if a <= i#
+      gosub S2
+    else
+      for a = 1 to 12
+        n = x
+      next a
+    endif
+  else
+    r = F(x)
+  endif
+else
+  dim i(2)
+endif
+for k = 1 to 5
+  c$ = "841"
+next k
+if a# + b * j# / j# == 5
+  a = 62 - (k# > z)
+else
+  while ((a# <> x#) or (z <> x#)) or ((j# < a#) and (x >= z#))
+    gosub S0
+  endwhile
+endif
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(16)
+arr(0) = 1
+end

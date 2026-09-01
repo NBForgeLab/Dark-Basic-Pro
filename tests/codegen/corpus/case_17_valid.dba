@@ -1,0 +1,50 @@
+select n
+  case 1
+    select n
+      case 1
+        x = z
+      case 2
+        gosub S3
+    endselect
+endselect
+if (j < z) or ((b < k) and (y# == k))
+  if (a# >= k) or (z# == i)
+    dim j(17)
+  else
+    for y = 1 to 15
+      b$ = "241"
+    next y
+  endif
+else
+  while b# == a#
+    dim x(14)
+  endwhile
+endif
+for y = 1 to 16
+  dim c(19)
+next y
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  y = 1
+return
+
+dim arr(20)
+arr(0) = 1
+end

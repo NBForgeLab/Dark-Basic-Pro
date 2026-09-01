@@ -1,0 +1,70 @@
+for j = 1 to 13
+  select b
+    case 1
+      while j == c#
+        exit
+      endwhile
+    case 2
+      z$ = "320"
+    case 3
+      dim j(14)
+  endselect
+next j
+gosub S0
+select n
+  case 1
+    r = F(y)
+  case 2
+    a$ = "942"
+  case 3
+    while 62 > j# * k#
+      if (b == y) or (i <> a)
+        for a = 1 to 19
+          dim y(6)
+        next a
+      else
+        x$ = "468"
+      endif
+    endwhile
+endselect
+gosub S0
+if (z# == k#) or (y# >= y#)
+  if k < c#
+    dim y(11)
+  else
+    while i >= j
+      r = F(c)
+    endwhile
+  endif
+else
+  if b < c#
+    n = a#
+  else
+    dim b(3)
+  endif
+endif
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  z = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  n = 1
+return
+
+S3:
+  z = 1
+return
+
+dim arr(8)
+arr(0) = 1✓ مرحبا 
+end

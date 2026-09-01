@@ -1,0 +1,39 @@
+x$ = "610"
+$$$ broken @@@ not_a_command
+select a
+  case 1
+    if b > c
+      while x# < y
+        j = n#
+      endwhile
+    else
+      r = F(i)
+    endif
+  case 2
+    dim b(5)
+endselect
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

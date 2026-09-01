@@ -1,0 +1,36 @@
+x$ = "770"
+while ((k >= i) and (c# < i#)) and ((b# > j) or (a# < b))
+  while (b# > n#) or (x# == c)
+    for k = 1 to 6
+      for a = 1 to 13
+        r = F(i)
+      next a
+    next k
+  endwhile
+endwhile
+a$ = "788"
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  n = 1
+return
+
+S2:
+  a = 1
+return
+
+S3:
+  j = 1
+return
+
+dim arr(13)
+arr(0) = 1
+end

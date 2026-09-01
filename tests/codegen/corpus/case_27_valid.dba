@@ -1,0 +1,128 @@
+while 70 < j - b#
+  for c = 1 to 15
+    while x# <> i
+      if b# < x#
+        i$ = "105"
+      else
+        b = k
+      endif
+    endwhile
+  next c
+endwhile
+gosub S2
+for y = 1 to 20
+  for z = 1 to 14
+    while k >= z#
+      gosub S2
+    endwhile
+  next z
+next y
+select j
+  case 1
+    a = (1 > k# / b)
+  case 2
+    if (i == b#) or ((c# == k#) and (b == a))
+      select x
+        case 1
+          select k
+            case 1
+              select b
+                case 1
+                  dim a(7)
+                case 2
+                  select c
+                    case 1
+                      for j = 1 to 10
+                        n$ = "121"
+                      next j
+                  endselect
+                case 3
+                  dim j(19)
+              endselect
+            case 2
+              z$ = "878"
+            case 3
+              select n
+                case 1
+                  select b
+                    case 1
+                      dim x(17)
+                    case 2
+                      if c# < a
+                        j = a
+                      else
+                        for b = 1 to 20
+                          dim b(9)
+                        next b
+                      endif
+                  endselect
+                case 2
+                  dim i(19)
+                case 3
+                  b$ = "703"
+              endselect
+          endselect
+        case 2
+          if n <= j#
+            x = c#
+          else
+            if a# >= a#
+              if x <> z
+                for k = 1 to 7
+                  gosub S2
+                next k
+              else
+                y$ = "714"
+              endif
+            else
+              for j = 1 to 20
+                select n
+                  case 1
+                    for a = 1 to 4
+                      for n = 1 to 14
+                        y$ = "516"
+                      next n
+                    next a
+                  case 2
+                    for y = 1 to 11
+                      j = y
+                    next y
+                endselect
+              next j
+            endif
+          endif
+      endselect
+    else
+      r = F(j)
+    endif
+  case 3
+    gosub S0
+endselect
+while (x# < a) and (y < b#)
+  a = z
+endwhile
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  x = 1
+return
+
+S3:
+  i = 1
+return
+
+dim arr(20)
+arr(0) = 1
+end

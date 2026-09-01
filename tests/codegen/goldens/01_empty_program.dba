@@ -1,0 +1,3 @@
+REM Golden case: the smallest compilable program.
+REM Exercises: DoInitCode/DoEndCode prologue + epilogue with no user statements.
+end

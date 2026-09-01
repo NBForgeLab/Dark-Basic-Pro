@@ -1,0 +1,44 @@
+dim z(14)
+select y
+  case 1
+    gosub S2
+endselect
+if (a - b# > i# / a) < 100 + 14
+  dim b(15)
+else
+  dim i(19)
+endif
+n$ = "777"
+b = 75
+for b = 1 to 18
+  if j# < i
+    j = y#
+  else
+    gosub S1
+  endif
+next b
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(6)
+arr(0) = 1
+end

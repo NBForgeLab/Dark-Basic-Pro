@@ -1,0 +1,47 @@
+for z = 1 to 9
+  dim a(12)
+ z
+select n
+  case 1
+    n$ = "747"
+  case 2
+    select x
+      case 1
+        gosub S3
+      case 2
+        b$ = "350"
+      case 3
+        while x > x#
+          x$ = "700"
+        endwhile
+    endselect
+  case 3
+    j$ = "490"
+endselect
+r = F(k)
+r = F(k)
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  x = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(19)
+arr(0) = 1
+end

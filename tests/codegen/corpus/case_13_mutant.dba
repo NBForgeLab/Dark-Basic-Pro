@@ -1,0 +1,41 @@
+dim j(6)
+$$$ broken @@@ not_a_command
+while 31 > c# - j + z / a#
+  n$ = "264"
+endwhile
+select c
+  case 1
+    while ((n <> k) and (j# == z#)) and (n# > b#)
+      dim a(12)
+    endwhile
+  case 2
+    dim n(20)
+  case 3
+    dim a(4)
+endselect
+i$ = "410"
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  k = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  b = 1
+return
+
+dim arr(7)
+arr(0) = 1
+end

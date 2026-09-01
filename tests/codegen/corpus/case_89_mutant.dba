@@ -1,0 +1,15 @@
+r = F(y)
+for n = 1 to 14
+  a$ = "242"
+next n
+if c# * i# + 39 < (b / z# > c / k)
+  gosub S2
+else
+  dim c(13)
+endif
+select i
+  case 1
+    b$ = "520"
+  case 2
+    dim z(14)
+endselect

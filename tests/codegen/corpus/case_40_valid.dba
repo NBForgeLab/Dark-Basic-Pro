@@ -1,0 +1,29 @@
+j = z * n * x# + j#
+k$ = "139"
+r = F(b)
+dim z(8)
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(5)
+arr(0) = 1
+end

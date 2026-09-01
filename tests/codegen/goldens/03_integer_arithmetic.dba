@@ -1,0 +1,10 @@
+REM Golden case: integer arithmetic and precedence folding.
+REM Exercises: ADDLLL / SUBLLL / MULLLL / DIVLLL / MODLLL / POWERLLL.
+x = 1 + 2 * 3
+y = (1 + 2) * 3
+z = 10 - 4 - 3
+w = 100 / 7
+m = 100 mod 7
+p = 2 ^ 10
+n = -x
+end

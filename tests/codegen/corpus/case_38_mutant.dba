@@ -1,0 +1,49 @@
+for y = 1 to 15
+for y = 1 to 15
+  for i = 1 to 7
+    while (c# > j#) and (z == i#)
+      if k <= j
+        c$ = "421"
+      else
+        a$ = "769"
+      endif
+    endwhile
+  next i
+next y
+x = b# + b / n# * i#
+b$ = "460"
+select y
+  case 1
+    n$ = "717"
+  case 2
+    for a = 1 to 7
+      n$ = "901"
+    next a
+endselect
+x = 24 + (z# + z > a - i)
+dim c(8)
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  a = 1
+return
+
+dim arr(17)
+arr(0) = 1
+end

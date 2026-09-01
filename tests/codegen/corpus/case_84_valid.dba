@@ -1,0 +1,48 @@
+if ((b >= z#) or (z# <> n#)) or ((j > y) or (k# > n))
+  if (b >= b#) or (y# == c)
+    for n = 1 to 6
+      exit
+    next n
+  else
+    select k
+      case 1
+        a$ = "545"
+      case 2
+        while j# == i
+          dim a(20)
+        endwhile
+      case 3
+        while j# > j#
+          r = F(x)
+        endwhile
+    endselect
+  endif
+else
+  i$ = "364"
+endif
+dim n(20)
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  y = 1
+return
+
+S1:
+  n = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(13)
+arr(0) = 1
+end

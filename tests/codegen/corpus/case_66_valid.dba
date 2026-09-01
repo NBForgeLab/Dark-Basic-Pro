@@ -1,0 +1,45 @@
+c$ = "652"
+while ((y == i) or (n == n#)) and ((b# <= j) or (i# <= y#))
+  a = z + j
+endwhile
+select n
+  case 1
+    select c
+      case 1
+        if i == i#
+          if b# > x
+            x$ = "598"
+          else
+            y$ = "929"
+          endif
+        else
+          gosub S0
+        endif
+    endselect
+endselect
+gosub S2
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  x = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(9)
+arr(0) = 1
+end

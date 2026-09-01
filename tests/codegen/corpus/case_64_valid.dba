@@ -1,0 +1,55 @@
+dim b(6)
+select n
+  case 1
+    for j = 1 to 17
+      dim i(17)
+    next j
+  case 2
+    dim n(3)
+  case 3
+    z = ((b > a) > b# + z#)
+endselect
+if (z# < z) or ((b# <> b) and (a >= a))
+  for k = 1 to 9
+    while k > b#
+      gosub S2
+    endwhile
+  next k
+else
+  while (y# < j#) or (k <= j)
+    select n
+      case 1
+        for x = 1 to 9
+          gosub S0
+        next x
+    endselect
+  endwhile
+endif
+n$ = "177"
+gosub S2
+dim y(16)
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  z = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(18)
+arr(0) = 1
+end

@@ -1,0 +1,30 @@
+for b = 1 to 7
+  exit
+next b
+c$ = "760"
+c = x - y
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  x = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(3)
+arr(0) = 1
+end

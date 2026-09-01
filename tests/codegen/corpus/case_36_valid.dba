@@ -1,0 +1,37 @@
+select j
+  case 1
+    dim b(8)
+endselect
+if (a# >= n) or (c# == y)
+  gosub S3
+else
+  dim j(11)
+endif
+a = n / n#
+j = z / j
+n = c# / k#
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(5)
+arr(0) = 1
+end

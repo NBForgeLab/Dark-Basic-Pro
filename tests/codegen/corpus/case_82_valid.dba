@@ -1,0 +1,49 @@
+for c = 1 to 17
+  while (x < y#) and (y > x#)
+    gosub S0
+  endwhile
+next c
+r = F(j)
+z = 86 / b / z / 70 / n# * c#
+select k
+  case 1
+    while k <= b
+      x = x#
+    endwhile
+  case 2
+    while i# < x#
+      if b == b#
+        gosub S2
+      else
+        while z# >= c#
+          dim n(16)
+        endwhile
+      endif
+    endwhile
+endselect
+k$ = "263"
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  j = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(12)
+arr(0) = 1
+end

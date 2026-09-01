@@ -1,0 +1,45 @@
+if ((z <= x#) or (x# < x#)) or (i# < c#)
+  for n = 1 to 19
+    exit
+  next n
+else
+  for b = 1 to 5
+    gosub S2
+  next b
+
+for z = 1 to 5
+  for n = 1 to 18
+    dim z(15)
+  next n
+next z
+c$ = "240"
+select z
+  case 1
+    i = (c# > k)
+endselect
+y = (c# > a)
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  n = 1
+return
+
+S3:
+  i = 1
+return
+
+dim arr(18)
+arr(0) = 1
+end

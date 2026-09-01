@@ -1,0 +1,36 @@
+j = z + x# + x# - z# - i# - z * (n# > y)
+j = z + x# + x# - z# - i# - z * (n# > y)
+while (z < c#) or (a# < z)
+  gosub S3
+endwhile
+gosub S1
+while (k / a > a + y) < 10
+  for y = 1 to 14
+    k = a * y
+  next y
+endwhile
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(15)
+arr(0) = 1
+end

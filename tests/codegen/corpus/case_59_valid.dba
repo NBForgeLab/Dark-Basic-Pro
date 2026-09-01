@@ -1,0 +1,40 @@
+select y
+  case 1
+    x$ = "525"
+  case 2
+    dim y(11)
+endselect
+if (z# <> z) and (j# < c)
+  if a# >= a
+    r = F(c)
+  else
+    dim j(9)
+  endif
+else
+  gosub S1
+endif
+
+function F(x)
+  local t
+  t = x * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  x = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

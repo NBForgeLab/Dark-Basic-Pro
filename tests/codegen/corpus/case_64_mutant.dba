@@ -1,0 +1,38 @@
+a = j# + b#
+$$$ broken @@@ not_a_command
+a$ = "230"
+r = F(a)
+select b
+  case 1
+    dim n(7)
+endselect
+while (k# <= c) and (n > y#)
+  while n < n#
+    dim n(8)
+  endwhile
+endwhile
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  y = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(19)
+arr(0) = 1
+end

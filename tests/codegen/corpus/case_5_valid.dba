@@ -1,0 +1,49 @@
+y$ = "418"
+while a# + n# > z# + y
+  if (n == j#) or (c <= n#)
+    select z
+      case 1
+        i = k#
+      case 2
+        while k# == y#
+          b = c
+        endwhile
+      case 3
+        r = F(z)
+    endselect
+  else
+    while x > b#
+      for j = 1 to 5
+        select k
+          case 1
+            x$ = "347"
+        endselect
+      next j
+    endwhile
+  endif
+endwhile
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  n = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(4)
+arr(0) = 1
+end

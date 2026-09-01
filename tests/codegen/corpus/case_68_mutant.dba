@@ -1,0 +1,77 @@
+select j
+  case 1
+    r = F(y)
+  case 2
+    dim z(11)
+endselect
+if (x - a < j + j#) or (19 < i + x#)
+  b$ = "802"
+else
+  n = (b# > j) + y# - j#
+endif
+if j# > b
+  r = F(z)
+else
+  r = F(x)
+endif
+while (j# / i > c# / a) and ((b > c#) and ((i == n) and (a# >= y#)))
+  if ((j# >= b#) or (z <= c)) or ((k == z) or (b == z))
+    for x = 1 to 19
+      for j = 1 to 3
+        gosub S2
+      next j
+    next x
+  else
+    select y
+      case 1
+        dim n(11)
+      case 2
+        dim k(16)
+      case 3
+        if k <= x#
+          while a# >= c
+            for z = 1 to 5
+              for b = 1 to 13
+                r = F(a)
+              next b
+            next z
+          endwhile
+        else
+          while i# < a
+            for c = 1 to 17
+              i = c#
+            next c
+          endwhile
+        endif
+    endselect
+  endif
+endwhile
+y$ = "502"
+for j = 1 to 17
+  r = F(b)
+next j
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(18)
+arr(0) = 1✓ مرحبا 
+end

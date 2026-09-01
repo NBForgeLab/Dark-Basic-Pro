@@ -1,0 +1,28 @@
+dim c(11)
+dim i(13)
+k = n# - j - x# * z#
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  b = 1
+return
+
+dim arr(9)
+arr(0) = 1
+end

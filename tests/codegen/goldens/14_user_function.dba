@@ -1,0 +1,9 @@
+REM Golden case: user function definition, parameters and call.
+REM Exercises: CParseUserFunction frames, parameter pushes and exit code.
+result = Add(3, 4)
+result = Add(result, 10)
+end
+
+function Add(a, b)
+  sum = a + b
+endfunction sum

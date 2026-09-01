@@ -1,0 +1,59 @@
+dim i(11)
+dim i(16)
+for j = 1 to 20
+  for k = 1 to 14
+    select a
+      case 1
+        r = F(z)
+      case 2
+        gosub S2
+      case 3
+        gosub S2
+    endselect
+  next k
+next j
+select y
+  case 1
+    while y > j#
+      select j
+        case 1
+          while a <> b#
+            j$ = "37"
+          endwhile
+        case 2
+          dim i(16)
+        case 3
+          r = F(x)
+      endselect
+    endwhile
+  case 2
+    k = y#
+endselect
+for y = 1 to 2
+  r = F(j)
+next y
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  z = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  z = 1
+return
+
+dim arr(10)
+arr(0) = 1
+end

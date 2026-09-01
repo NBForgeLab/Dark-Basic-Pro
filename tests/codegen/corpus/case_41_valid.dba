@@ -1,0 +1,80 @@
+a$ = "305"
+if z# < a
+  r = F(i)
+else
+  select y
+    case 1
+      if j >= y#
+        dim y(12)
+      else
+        while y <> b
+          dim y(8)
+        endwhile
+      endif
+    case 2
+      x = a#
+    case 3
+      r = F(b)
+  endselect
+endif
+select n
+  case 1
+    if (a < a#) or ((b >= i) and (c == c))
+      if (j# > i#) and (i > k#)
+        for i = 1 to 8
+          for c = 1 to 20
+            dim k(14)
+          next c
+        next i
+      else
+        if z# <= i
+          while z# <= n#
+            a = x#
+          endwhile
+        else
+          while n == c#
+            gosub S0
+          endwhile
+        endif
+      endif
+    else
+      if b# < k#
+        if y# <> c#
+          for c = 1 to 2
+            r = F(y)
+          next c
+        else
+          c$ = "963"
+        endif
+      else
+        r = F(b)
+      endif
+    endif
+endselect
+r = F(a)
+i = 8 / i# + c - z# * c
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  z = 1
+return
+
+S3:
+  j = 1
+return
+
+dim arr(11)
+arr(0) = 1
+end

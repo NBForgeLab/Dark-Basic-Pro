@@ -1,0 +1,65 @@
+for y = 1 to 18
+  while (x# == k#) and (j > j#)
+    r = F(z)
+  endwhile
+next y
+gosub S2
+while ((z# >= b) or (c > k)) or ((a# == n) and (n# >= c#))
+  while c == z#
+    while j == c#
+      if c >= k#
+        y$ = "494"
+      else
+        while b# >= c
+          if c < b
+            if y# > y
+              while c <= b
+                for i = 1 to 2
+                  if n# == n
+                    r = F(n)
+                  else
+                    for c = 1 to 15
+                      select i
+                        case 1
+                          r = F(x)
+                      endselect
+                    next c
+                  endif
+                next i
+              endwhile
+            else
+              x$ = "981"
+            endif
+          else
+            gosub S3
+          endif
+        endwhile
+      endif
+    endwhile
+  endwhile
+endwhile
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  b = 1
+return
+
+S2:
+  n = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(10)
+arr(0) = 1
+end

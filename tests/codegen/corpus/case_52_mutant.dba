@@ -1,0 +1,19 @@
+c$ = "14"
+for n = 1 to 18
+  exit
+next n
+select j
+  case 1
+    c$ = "692"
+  case 2
+    if k# == a
+      a = z
+    else
+      dim k(15)
+    endif
+endselect
+if (n# < z) and (y > i#)
+  if x# > n#
+    x$ = "427"
+  else
+    while n < a#

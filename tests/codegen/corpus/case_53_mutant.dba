@@ -1,0 +1,12 @@
+if y > i
+  n = y#
+else
+  gosub S2
+endif
+c = c / b# * y# - x#
+dim n(16)
+
+function F(z)
+  local t
+  t = z * 2
+endfunction 

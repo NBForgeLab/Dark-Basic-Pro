@@ -1,0 +1,10 @@
+REM Golden case: float arithmetic across the float operator set.
+REM Exercises: ADDFFF / SUBFFF / MULFFF / DIVFFF / POWERFFF.
+a# = 1.5 + 2.25
+b# = 10.0 / 4.0
+c# = a# * b#
+d# = 2.0 ^ 0.5
+e# = 3.14159
+f# = a# + b# + c#
+g# = d# - e# * f#
+end

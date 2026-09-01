@@ -1,0 +1,92 @@
+r = F(x)
+select i
+  case 1
+    r = F(c)
+endselect
+select y
+  case 1
+    if (n# < x) and (a# <= j)
+      while x# >= y#
+        if b <= c#
+          dim a(6)
+        else
+          select b
+            case 1
+              for c = 1 to 9
+                if y <= z#
+                  dim x(5)
+                else
+                  while a# >= y#
+                    for x = 1 to 2
+                      for c = 1 to 10
+                        while c <= k
+                          select a
+                            case 1
+                              r = F(y)
+                            case 2
+                              while x# >= c
+                                while i <> k
+                                  while z >= y#
+                                    for z = 1 to 13
+                                      select i
+                                        case 1
+                                          dim x(16)
+                                      endselect
+                                    next z
+                                  endwhile
+                                endwhile
+                              endwhile
+                          endselect
+                        endwhile
+                      next c
+                    next x
+                  endwhile
+                endif
+              next c
+            case 2
+              k = x
+          endselect
+        endif
+      endwhile
+    else
+      while b <> y#
+        r = F(c)
+      endwhile
+    endif
+  case 2
+    dim i(18)
+endselect
+while k# / c# / c# * n < 66
+  if z * i# < i# + c
+    r = F(y)
+  else
+    for c = 1 to 20
+      dim i(11)
+    next c
+  endif
+endwhile
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(17)
+arr(0) = 1
+end

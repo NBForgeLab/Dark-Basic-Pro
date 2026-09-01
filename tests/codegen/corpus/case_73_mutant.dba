@@ -1,0 +1,28 @@
+a = 62
+a$ = "203"
+r = F(x)
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  n = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  b = 1
+return
+
+dim arr(18)
+arr(0) = 1✓ مرحبا 
+end

@@ -1,0 +1,48 @@
+dim y(4)
+$$$ broken @@@ not_a_command
+gosub S1
+for y = 1 to 17
+  exit
+next y
+r = F(z)
+r = F(a)
+if (b# >= k#) or (a <= a)
+  select n
+    case 1
+      select z
+        case 1
+          r = F(y)
+        case 2
+          k$ = "447"
+        case 3
+          c$ = "759"
+      endselect
+  endselect
+else
+  r = F(x)
+endif
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  j = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

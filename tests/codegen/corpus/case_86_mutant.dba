@@ -1,0 +1,55 @@
+if (a <= a#) and (a >= a)
+  gosub S1
+else
+  dim b(8)
+endif
+if (k# - k# > b# / a#) > (y# + c# > b + n#)
+  dim x(12)
+else
+  for x = 1 to 10
+    select y
+      case 1
+        if n# >= i
+          r = F(a)
+        else
+          i$ = "161"
+        endif
+      case 2
+        select b
+          case 1
+            y = a
+          case 2
+            a$ = "524"
+        endselect
+      case 3
+        gosub S3
+    endselect
+  next x
+endif
+gosub S2
+n$ = "360"
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(2)
+arr(0) = 1✓ مرحبا 
+end

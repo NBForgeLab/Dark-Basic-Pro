@@ -1,0 +1,18 @@
+REM Golden case: select / case / case default / endselect.
+REM Exercises: case dispatch chain and its default fallthrough jump.
+n = 3
+select n
+  case 1
+    r = 10
+  endcase
+  case 2
+    r = 20
+  endcase
+  case 3, 4
+    r = 30
+  endcase
+  case default
+    r = -1
+  endcase
+endselect
+end

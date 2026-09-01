@@ -1,0 +1,57 @@
+r = F(b)
+if k# < c
+  while n# == i
+    if a# < c
+      while k# == a#
+        if n < j
+          select x
+            case 1
+              i$ = "629"
+          endselect
+        else
+          dim j(2)
+        endif
+      endwhile
+    else
+      j$ = "35"
+    endif
+  endwhile
+else
+  r = F(y)
+endif
+if (i <= y#) or (z == z#)
+  for a = 1 to 13
+    dim j(10)
+  next a
+else
+  while x# >= n#
+    while n <> z#
+      j$ = "996"
+    endwhile
+  endwhile
+endif
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  n = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

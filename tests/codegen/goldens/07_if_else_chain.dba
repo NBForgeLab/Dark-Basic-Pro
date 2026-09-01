@@ -1,0 +1,23 @@
+REM Golden case: if / else chains with nested blocks.
+REM Exercises: forward leap markers, CMP + JNE backpatching, marker nesting.
+a = 5
+if a = 5
+  b = 1
+else
+  b = 2
+endif
+if a > 10
+  c = 1
+else
+  if a > 3
+    c = 2
+  else
+    c = 3
+  endif
+endif
+if a > 0
+  if a > 4
+    d = 1
+  endif
+endif
+end

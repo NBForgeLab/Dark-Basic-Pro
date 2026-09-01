@@ -1,0 +1,59 @@
+dim b(17)
+if (i < y) and ((z <= a#) or (n# > x))
+  r = F(i)
+else
+  r = F(y)
+endif
+select y
+  case 1
+    dim x(15)
+  case 2
+    for x = 1 to 9
+      gosub S2
+    next x
+  case 3
+    if ((i# < z) and (i == b#)) and ((j <> j#) and (b > c))
+      select n
+        case 1
+          while n# < x#
+            z = x
+          endwhile
+        case 2
+          gosub S1
+      endselect
+    else
+      dim k(8)
+    endif
+endselect
+while (n# <= z#) or (y# <= z)
+  gosub S3
+endwhile
+for j = 1 to 6
+  r = F(b)
+next j
+b = z# + x
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  y = 1
+return
+
+S1:
+  a = 1
+return
+
+S2:
+  z = 1
+return
+
+S3:
+  b = 1
+return
+
+dim arr(15)
+arr(0) = 1
+end

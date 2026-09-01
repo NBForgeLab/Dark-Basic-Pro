@@ -47,6 +47,7 @@ add_executable(dbp_tests
         test_redim_multidimensional.cpp
         test_array_memory_safety.cpp
         test_array_index_bounds.cpp
+        test_array_direct_layout.cpp
         test_stack_queue_bounds.cpp
         test_statement_userfunction.cpp
         test_statement_assignment.cpp
@@ -100,6 +101,23 @@ add_executable(dbp_tests
     test_install_rules.cpp
     test_e2e_x64_compilation.cpp
     test_x64_intensive_verification.cpp
+
+    # --- Codegen verification suite (compiler + assembly generator) ---------
+    # Shared in-process driver that runs the real emission pipeline without
+    # touching disk, then captures bytes / listing / references.
+    codegen/CodegenHarness.cpp
+    # Golden-file regression net over tests/codegen/goldens.
+    codegen/test_codegen_golden.cpp
+    # Invariant checks that must hold for any generated program.
+    codegen/test_codegen_oracles.cpp
+    # Boundary and hostile inputs.
+    codegen/test_codegen_edge_cases.cpp
+    # Unattended soak: heap / handle / determinism hygiene.
+    codegen/test_codegen_headless.cpp
+    # Per-instruction and per-construct codegen matrices.
+    codegen/test_codegen_instruction_matrix.cpp
+    codegen/test_codegen_language_matrix.cpp
+
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
@@ -125,6 +143,7 @@ if(DBP_ENABLE_COVERAGE)
 endif()
 
 target_include_directories(dbp_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"  # tests/ root: lets codegen/*.cpp include "codegen/CodegenHarness.h"
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompiler"
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPDebugger"
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE"
@@ -142,7 +161,12 @@ configure_file(
 )
 
 if(MSVC)
-    target_link_options(dbp_tests PRIVATE /SAFESEH:NO)
+    # Same thread-stack contract as the production compiler binaries
+    # (DBPCompiler / DarkEXE link with /STACK:33554432,1048576): the legacy
+    # emission pipeline needs far more than the default 1MB, and with the
+    # default the suite intermittently exhausts the stack and faults inside
+    # whatever frame touches the guard page.
+    target_link_options(dbp_tests PRIVATE /SAFESEH:NO "/STACK:33554432,1048576")
 endif()
 
 set(dbp_test_properties TIMEOUT 180)
@@ -202,3 +226,40 @@ endif()
 
 add_test(NAME dbp_tests COMMAND dbp_tests)
 set_tests_properties(dbp_tests PROPERTIES ${dbp_test_properties})
+
+# ---------------------------------------------------------------------------
+# Codegen fuzz-corpus tooling (coverage expansion)
+# ---------------------------------------------------------------------------
+# NOTE: the deterministic corpus generator (dbp_codegen_seed_generator) is NOT
+# defined here. It must be buildable on every toolchain and in the Clang fuzzing
+# configuration too, so it lives — exactly once — in fuzz/CMakeLists.txt, outside
+# that file's Clang-only libFuzzer guard. Defining it here as well made CMake
+# fail with a duplicate target whenever BUILD_TESTING and DBP_BUILD_FUZZERS were
+# both enabled.
+
+# Standalone per-input driver: compiles one .dba file via the in-process harness
+# and enforces the universal codegen contract. Launched in isolation by
+# run_codegen_tests.py so a crash in one input cannot mask the others.
+add_executable(dbp_codegen_corpus_runner
+    codegen/CodegenCorpusRunner.cpp
+    codegen/CodegenHarness.cpp
+)
+target_compile_features(dbp_codegen_corpus_runner PRIVATE cxx_std_17)
+target_link_libraries(dbp_codegen_corpus_runner PRIVATE
+    dbp_compiler_lib
+    spdlog::spdlog
+)
+target_compile_definitions(dbp_codegen_corpus_runner PRIVATE
+    DBP_TESTS_COMPILATION
+    DBP_TEST_SOURCE_ROOT="${PROJECT_SOURCE_DIR}"
+)
+target_include_directories(dbp_codegen_corpus_runner PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompiler"
+    "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPDebugger"
+    "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
+    "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"
+)
+if(MSVC)
+    target_link_options(dbp_codegen_corpus_runner PRIVATE /SAFESEH:NO "/STACK:33554432,1048576")
+endif()

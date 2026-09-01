@@ -1,0 +1,51 @@
+if 62 == 35
+if 62 == 35
+  if 45 > c# * i
+    for a = 1 to 10
+      select j
+        case 1
+          y = n
+        case 2
+          while z >= y
+            r = F(a)
+          endwhile
+        case 3
+          if x# <= n#
+            gosub S1
+          else
+            i = i#
+          endif
+      endselect
+    next a
+  else
+    gosub S0
+  endif
+else
+  k$ = "51"
+endif
+dim k(8)
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  x = 1
+return
+
+S2:
+  x = 1
+return
+
+S3:
+  i = 1
+return
+
+dim arr(8)
+arr(0) = 1
+end

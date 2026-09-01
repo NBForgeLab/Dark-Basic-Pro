@@ -1,0 +1,47 @@
+select i
+$$$ broken @@@ not_a_command
+  case 1
+    gosub S2
+endselect
+select k
+  case 1
+    i = x
+  case 2
+    x = a
+endselect
+n = b# * b * z / y
+z = 34 + i# - x# / 44
+select y
+  case 1
+    x$ = "496"
+  case 2
+    gosub S1
+  case 3
+    r = F(b)
+endselect
+z = z - n
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  z = 1
+return
+
+dim arr(4)
+arr(0) = 1
+end

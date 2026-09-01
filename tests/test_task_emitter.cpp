@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <cstdint>
 #include "../DBProCompiler/DBPCompiler/TaskEmitter.h"
+#include "../DBProCompiler/DBPCompiler/ASMWriter.h"
+#include "../DBProCompiler/DBPCompiler/Str.h"
 
 TEST(TaskEmitterTest, InitialStateIsClean) {
     CTaskEmitter emitter;
@@ -34,5 +36,26 @@ TEST(TaskEmitterTest, DetermineASMCallForRELResolvesTypes) {
 
 TEST(TaskEmitterTest, DetermineParamModeResolvesModes) {
     CTaskEmitter emitter;
-    EXPECT_EQ(emitter.DetermineParamMode(nullptr, 0, 0), 0u); // ParamMode::None
+    EXPECT_EQ(emitter.DetermineParamMode(nullptr, 0, 0, nullptr), 0u); // ParamMode::None
+}
+
+TEST(TaskEmitterTest, ArrayTokensSplitByElementIndexPresence) {
+    CTaskEmitter emitter;
+    CStr indexToken("@$_TEMPIDX_");
+
+    // Whole-handle operations (DIM/UNDIM/push) carry no element index.
+    EXPECT_EQ(emitter.DetermineParamMode("@&arr", 107u, 0u, nullptr),
+              static_cast<uint32_t>(ParamMode::Mem));
+    EXPECT_EQ(emitter.DetermineParamMode("@:&arr", 107u, 0u, nullptr),
+              static_cast<uint32_t>(ParamMode::Rbp));
+
+    // Element accesses carry the linearized index in the additional-offset
+    // token and must dereference through the direct-layout element data.
+    EXPECT_EQ(emitter.DetermineParamMode("@&arr", 101u, 0u, &indexToken),
+              static_cast<uint32_t>(ParamMode::MemArr));
+    EXPECT_EQ(emitter.DetermineParamMode("@:&arr", 101u, 0u, &indexToken),
+              static_cast<uint32_t>(ParamMode::RbpArr));
+    // Field access on a UDT array element: type folds to 100+fieldtype.
+    EXPECT_EQ(emitter.DetermineParamMode("@&udtarr", 103u, 8u, &indexToken),
+              static_cast<uint32_t>(ParamMode::MemArr));
 }

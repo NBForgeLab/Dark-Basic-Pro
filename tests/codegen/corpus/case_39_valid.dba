@@ -1,0 +1,27 @@
+z = z# - y + c# - y# / (4 > x / c#)
+gosub S3
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  k = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(3)
+arr(0) = 1
+end

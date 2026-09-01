@@ -1,0 +1,52 @@
+c = y + j
+while i < k#
+  if z <> y
+    n = a#
+  else
+    select k
+      case 1
+        if a >= y#
+          select n
+            case 1
+              while z# > k#
+                for b = 1 to 11
+                  n$ = "384"
+                next b
+              endwhile
+            case 2
+              r = F(b)
+          endselect
+        else
+          dim z(8)
+        endif
+    endselect
+  endif
+endwhile
+for b = 1 to 6
+  gosub S2
+next b
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(3)
+arr(0) = 1
+end

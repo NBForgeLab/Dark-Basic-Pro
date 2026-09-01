@@ -1,0 +1,31 @@
+while (y# < n) or (x < b)
+  i$ = "380"
+endwhile
+while (((i# == i#) and (a <= y)) or (k# > j)) and (((n >= z#) and (c# == n)) or ((k == y) and (n <= b#)))
+  exit
+endwhile
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  y = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  a = 1
+return
+
+dim arr(16)
+arr(0) = 1
+end

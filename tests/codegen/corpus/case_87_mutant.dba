@@ -1,0 +1,54 @@
+if c# > n#
+$$$ broken @@@ not_a_command
+  r = F(n)
+else
+  select k
+    case 1
+      select j
+        case 1
+          while i# < i
+            i$ = "258"
+          endwhile
+        case 2
+          if n# > c
+            while i < c
+              a$ = "443"
+            endwhile
+          else
+            gosub S2
+          endif
+      endselect
+    case 2
+      z = z#
+    case 3
+      z$ = "310"
+  endselect
+endif
+while b# + i# - b# + i# == x - a# + z * b
+  r = F(k)
+endwhile
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  k = 1
+return
+
+S1:
+  x = 1
+return
+
+S2:
+  x = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(18)
+arr(0) = 1
+end

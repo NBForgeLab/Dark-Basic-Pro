@@ -1,0 +1,14 @@
+REM Golden case: relational and logical operators.
+REM Exercises: EqualLLL / NotEqualLLL / GreaterLLL / AndLLL / OrLLL / NotLLL.
+a = 1
+b = 2
+r = a = b
+r = a <> b
+r = a > b
+r = a < b
+r = a >= b
+r = a <= b
+r = (a < b) and (a > 0)
+r = (a < b) or (a > 5)
+r = not (a = b)
+end

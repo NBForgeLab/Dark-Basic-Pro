@@ -1,0 +1,9 @@
+REM Golden case: string assignment, concatenation and comparison.
+REM Exercises: EquateSS, string literal table entries and StrFree.
+first$ = "Dark"
+second$ = "BASIC"
+joined$ = first$ + " " + second$
+other$ = joined$
+same = (first$ = second$)
+other = (first$ < second$)
+end

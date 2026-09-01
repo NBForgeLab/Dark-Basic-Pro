@@ -1,0 +1,27 @@
+dim i(19)
+gosub S2
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(6)
+arr(0) = 1
+end

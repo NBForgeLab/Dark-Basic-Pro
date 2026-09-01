@@ -62,7 +62,9 @@ TEST(ASMWriterEnumTest, OpCqoValue)           { EXPECT_EQ(static_cast<int>(ASMOp
 TEST(ASMWriterEnumTest, OpCmpRdxRbxValue)     { EXPECT_EQ(static_cast<int>(ASMOp::CMPRDXRBX), 141); }
 
 // --- native x64-only ops (no 32-bit equivalent) ---
-TEST(ASMWriterEnumTest, OpMovRaxSibValue)     { EXPECT_EQ(static_cast<int>(ASMOp::MOVRAXSIB), 85); }
+TEST(ASMWriterEnumTest, OpImulRbxRdxValue)      { EXPECT_EQ(static_cast<int>(ASMOp::IMULRBXRDX), 285); }
+TEST(ASMWriterEnumTest, OpAddRaxRbx8Value)      { EXPECT_EQ(static_cast<int>(ASMOp::ADDRAXRBX8), 286); }
+TEST(ASMWriterEnumTest, OpMovRcxRax8Value)      { EXPECT_EQ(static_cast<int>(ASMOp::MOVRCXRAX8), 287); }
 TEST(ASMWriterEnumTest, OpPushR12Value)       { EXPECT_EQ(static_cast<int>(ASMOp::PUSHR12), 242); }
 TEST(ASMWriterEnumTest, OpPushR15Value)       { EXPECT_EQ(static_cast<int>(ASMOp::PUSHR15), 245); }
 TEST(ASMWriterEnumTest, OpPopR12Value)        { EXPECT_EQ(static_cast<int>(ASMOp::POPR12), 248); }

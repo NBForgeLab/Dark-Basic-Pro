@@ -1,0 +1,43 @@
+a = 1
+  if a > 0
+    if a > 1
+      if a > 2
+        if a > 3
+          if a > 4
+            if a > 5
+              if a > 6
+                if a > 7
+                  if a > 8
+                    if a > 9
+                      if a > 10
+                        if a > 11
+                          if a > 12
+                            if a > 13
+                              if a > 14
+                                if a > 15
+                                  if a > 16
+                                    if a > 17
+                                      if a > 18
+                                        if a > 19
+                                          deep = 1
+  endif
+    endif
+      endif
+        endif
+          endif
+            endif
+              endif
+                endif
+                  endif
+                    endif
+                      endif
+                        endif
+                          endif
+                            endif
+                              endif
+                                endif
+                                  endif
+                                    endif
+                                      endif
+                                        endif
+end

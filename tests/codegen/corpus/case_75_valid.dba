@@ -1,0 +1,50 @@
+r = F(c)
+r = F(b)
+b$ = "709"
+while a# - n == 38
+  while (y >= b#) and (c# > n#)
+    select i
+      case 1
+        select b
+          case 1
+            x$ = "436"
+          case 2
+            dim x(8)
+          case 3
+            r = F(i)
+        endselect
+      case 2
+        gosub S1
+      case 3
+        z = c
+    endselect
+  endwhile
+endwhile
+while j - k# == (a# > z#)
+  r = F(n)
+endwhile
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  i = 1
+return
+
+S1:
+  x = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(3)
+arr(0) = 1
+end

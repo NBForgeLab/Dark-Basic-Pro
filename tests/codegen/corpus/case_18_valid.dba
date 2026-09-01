@@ -1,0 +1,31 @@
+c$ = "353"
+while (c# == j#) and (c# < n#)
+  for i = 1 to 13
+    r = F(x)
+  next i
+endwhile
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(5)
+arr(0) = 1
+end

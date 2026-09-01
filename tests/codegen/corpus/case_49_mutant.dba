@@ -1,0 +1,48 @@
+while (i > a#) or (c <> z#)
+$$$ broken @@@ not_a_command
+  a$ = "162"
+endwhile
+for n = 1 to 20
+  if ((b <= x) or (i < y#)) and (i# > i#)
+    r = F(a)
+  else
+    if (i# <> b#) and (k# > j#)
+      r = F(k)
+    else
+      gosub S0
+    endif
+  endif
+next n
+gosub S0
+j = (z# > x#) + y * n#
+if (((i > n#) or (n > a#)) and ((x# < n#) or (j <= a#))) and (((b# > x) or (j# > c#)) and ((k >= j) and (i <> z#)))
+  r = F(z)
+else
+  dim b(19)
+endif
+r = F(c)
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

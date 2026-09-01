@@ -1,0 +1,30 @@
+c$ = "884"
+for z = 1 to 9
+  exit
+next z
+gosub S0
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  k = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  j = 1
+return
+
+dim arr(8)
+arr(0) = 1
+end

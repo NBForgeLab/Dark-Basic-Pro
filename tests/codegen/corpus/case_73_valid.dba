@@ -1,0 +1,37 @@
+select y
+  case 1
+    r = F(n)
+  case 2
+    while x == x
+      n$ = "641"
+    endwhile
+endselect
+k$ = "560"
+for i = 1 to 20
+  n$ = "128"
+next i
+
+function F(b)
+  local t
+  t = b * 2
+endfunction t
+
+S0:
+  z = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  j = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(13)
+arr(0) = 1
+end

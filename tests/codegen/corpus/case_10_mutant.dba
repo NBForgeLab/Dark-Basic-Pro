@@ -1,0 +1,58 @@
+gosub S0
+$$$ broken @@@ not_a_command
+gosub S0
+select c
+  case 1
+    x$ = "934"
+  case 2
+    select c
+      case 1
+        while (j# <> y) and (n# <> y#)
+          while x <> z#
+            for c = 1 to 3
+              r = F(y)
+            next c
+          endwhile
+        endwhile
+    endselect
+endselect
+while k > k#
+  if a# <= x
+    for c = 1 to 14
+      for x = 1 to 12
+        x = i
+      next x
+    next c
+  else
+    b = y
+  endif
+endwhile
+r = F(a)
+for c = 1 to 3
+  gosub S0
+next c
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  k = 1
+return
+
+dim arr(4)
+arr(0) = 1
+end

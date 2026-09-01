@@ -1,0 +1,43 @@
+for a = 1 to 17
+for a = 1 to 17
+  select c
+    case 1
+      gosub S3
+    case 2
+      for k = 1 to 13
+        b$ = "858"
+      next k
+    case 3
+      gosub S0
+  endselect
+next a
+dim b(14)
+k$ = "98"
+while x# + k# + a# / z# > a + b - 98
+  gosub S0
+endwhile
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  a = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(17)
+arr(0) = 1
+end

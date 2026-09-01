@@ -1,0 +1,104 @@
+while (a > j) and (z > i#)
+  select y
+    case 1
+      if a# >= a#
+        for a = 1 to 16
+          k = z#
+        next a
+      else
+        while y# == x#
+          for b = 1 to 16
+            b = n#
+          next b
+        endwhile
+      endif
+  endselect
+endwhile
+r = F(j)
+while (j * y > (y > c)) and (y * a# < a# / a)
+  select n
+    case 1
+      if y# == x
+        select n
+          case 1
+            if i# > z
+              dim c(13)
+            else
+              for y = 1 to 7
+                dim b(2)
+              next y
+            endif
+        endselect
+      else
+        gosub S2
+      endif
+    case 2
+      for j = 1 to 18
+        gosub S0
+      next j
+    case 3
+      a$ = "233"
+  endselect
+endwhile
+while (((n <> b#) and (k <> k#)) and ((x > c) and (b >= z#))) and (((j < i) and (a# == y)) and ((b# == y#) and (x <= c#)))
+  if a - a > i + y
+    if c# == x#
+      for k = 1 to 9
+        dim y(10)
+      next k
+    else
+      z$ = "582"
+    endif
+  else
+    for n = 1 to 14
+      while i <> y
+        if n# > n#
+          dim c(16)
+        else
+          j = z#
+        endif
+      endwhile
+    next n
+  endif
+endwhile
+if (i < x#) or (b# < k)
+  while (c <= x) or (c == j)
+    if x == n
+      dim i(10)
+    else
+      gosub S0
+    endif
+  endwhile
+else
+  for a = 1 to 18
+    gosub S3
+  next a
+endif
+while (x >= j) or (i > a)
+  y$ = "735"
+endwhile
+
+function F(i)
+  local t
+  t = i * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  x = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  c = 1
+return
+
+dim arr(10)
+arr(0) = 1
+end

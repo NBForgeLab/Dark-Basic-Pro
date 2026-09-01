@@ -1,0 +1,9 @@
+REM Golden case: gosub / return subroutine call.
+REM Exercises: label table resolution and the return-address reference.
+gosub Subroutine
+end
+
+Subroutine:
+  v = 1
+  v = v + 1
+return

@@ -1,0 +1,11 @@
+REM Golden case: deeply mixed expression tree with casts on both sides.
+REM Exercises: CMathOp operand marshalling and implicit widening casts.
+a = 1
+b# = 2.5
+c$ = "3"
+d = a + b# * 2 - (a / 2)
+e# = (a + b#) / (b# - 1.0)
+f = a + 1.7
+g# = a
+h = b#
+end

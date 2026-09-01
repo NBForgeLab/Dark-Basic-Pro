@@ -1,0 +1,68 @@
+select b
+  case 1
+    r = F(c)
+  case 2
+    y$ = "214"
+  case 3
+    if (y# == k#) or (y < z#)
+      select c
+        case 1
+          for z = 1 to 7
+            r = F(x)
+          next z
+        case 2
+          select j
+            case 1
+              dim z(3)
+          endselect
+      endselect
+    else
+      if (k > b) and (a# > k)
+        k = a
+      else
+        select a
+          case 1
+            y$ = "890"
+          case 2
+            select b
+              case 1
+                if n# < n
+                  while y >= x#
+                    gosub S3
+                  endwhile
+                else
+                  n = b#
+                endif
+            endselect
+          case 3
+            b$ = "279"
+        endselect
+      endif
+    endif
+endselect
+dim b(10)
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  b = 1
+return
+
+S1:
+  a = 1
+return
+
+S2:
+  x = 1
+return
+
+S3:
+  n = 1
+return
+
+dim arr(19)
+arr(0) = 1
+end

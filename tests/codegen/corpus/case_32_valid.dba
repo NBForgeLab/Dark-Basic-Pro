@@ -1,0 +1,73 @@
+a$ = "400"
+if (i# <= x) and (k# >= b#)
+  for i = 1 to 6
+    while a == x
+      while i == x#
+        if y# > c#
+          dim i(19)
+        else
+          for y = 1 to 16
+            gosub S1
+          next y
+        endif
+      endwhile
+    endwhile
+  next i
+else
+  for z = 1 to 3
+    r = F(i)
+  next z
+endif
+while (b# <> k#) or (j <= b#)
+  while c > k
+    select z
+      case 1
+        select n
+          case 1
+            select n
+              case 1
+                dim x(19)
+            endselect
+          case 2
+            while c < c
+              n$ = "129"
+            endwhile
+        endselect
+      case 2
+        a = k#
+      case 3
+        while x == k#
+          while y# >= b
+            gosub S2
+          endwhile
+        endwhile
+    endselect
+  endwhile
+endwhile
+gosub S0
+r = F(k)
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  a = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  a = 1
+return
+
+dim arr(8)
+arr(0) = 1
+end

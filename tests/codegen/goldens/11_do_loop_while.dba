@@ -1,0 +1,15 @@
+REM Golden case: do / loop escaped via exit (this dialect's LOOP takes no tail condition).
+REM Exercises: the DO/LOOP block encoding and the loop-exit escape jump.
+i = 0
+do
+  i = i + 1
+  if i > 5
+    exit
+  endif
+loop
+j = 0
+do
+  j = j + 2
+  if j >= 10 then exit
+loop
+end

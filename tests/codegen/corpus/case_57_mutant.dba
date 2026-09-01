@@ -1,0 +1,30 @@
+while 91 > 83
+  c$ = "766"
+endwhile
+i$ = "219"
+z = 60 * k / i
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  x = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  k = 1
+return
+
+S3:
+  a = 1
+return
+
+dim arr(12)
+arr(0) = 1✓ مرحبا 
+end

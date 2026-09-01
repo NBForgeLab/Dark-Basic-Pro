@@ -1,0 +1,57 @@
+if y > y#
+  z = k#
+else
+  x$ = "233"
+endif
+while ((j <> n#) or (a <= a#)) and ((b == i) or (a == c))
+  x = b * j
+endwhile
+while ((x > a#) and (z <= a#)) or ((z# >= i#) or (y# <> c#))
+  select n
+    case 1
+      select y
+        case 1
+          gosub S0
+        case 2
+          if a# <= y#
+            x = a
+          else
+            gosub S3
+          endif
+      endselect
+    case 2
+      n$ = "958"
+    case 3
+      n = c#
+  endselect
+endwhile
+dim n(13)
+for z = 1 to 18
+  y = j + z
+next z
+r = F(y)
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  k = 1
+return
+
+S1:
+  y = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  j = 1
+return
+
+dim arr(7)
+arr(0) = 1
+end

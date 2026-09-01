@@ -1,0 +1,12 @@
+r = F(x)
+for j = 1 to 18
+  x = n
+next j
+
+function F(c)
+  local t
+  t = c * 2
+endfunction t
+
+S0:
+  k = 1

@@ -234,12 +234,20 @@ jobs:
             --config Release `
             --target dbp_package_reader_fuzzer `
               dbp_legacy_pck_reader_fuzzer `
-              dbp_fuzz_seed_generator
+              dbp_fuzz_seed_generator `
+              dbp_codegen_fuzzer `
+              dbp_codegen_seed_generator
 
       - name: Run bounded valid and malformed corpus smoke
         shell: pwsh
         run: |
           ./fuzz/run-corpus-smoke.ps1 `
+            -BinaryDirectory out/build/windows-x64-fuzz/bin/Release
+
+      - name: Run bounded codegen corpus smoke
+        shell: pwsh
+        run: |
+          ./fuzz/run-codegen-corpus-smoke.ps1 `
             -BinaryDirectory out/build/windows-x64-fuzz/bin/Release
 
   clang-tidy:

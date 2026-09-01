@@ -1,0 +1,52 @@
+n$ = "326"
+$$$ broken @@@ not_a_command
+for j = 1 to 14
+  gosub S2
+next j
+dim z(10)
+dim z(7)
+if (k <> j#) and (x# > i#)
+  b$ = "392"
+else
+  for b = 1 to 3
+    while k# == j#
+      if z < z#
+        while i < n
+          exit
+        endwhile
+      else
+        j = i#
+      endif
+    endwhile
+  next b
+endif
+if (((y# <> c) or (y < a#)) or (n == a#)) and (((z >= z#) and (k < j#)) and (j# < z))
+  dim b(10)
+else
+  r = F(y)
+endif
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  z = 1
+return
+
+S1:
+  j = 1
+return
+
+S2:
+  j = 1
+return
+
+S3:
+  z = 1
+return
+
+dim arr(19)
+arr(0) = 1
+end

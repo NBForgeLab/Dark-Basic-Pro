@@ -1,0 +1,52 @@
+x$ = "825"
+for k = 1 to 18
+  if (b >= b) and (n <= a)
+    r = F(a)
+  else
+    while a# <> y
+      r = F(a)
+    endwhile
+  endif
+next k
+gosub S1
+n = 37
+select j
+  case 1
+    if ((z# < n) or (x# < c)) and ((b > b#) or (k == k#))
+      dim x(10)
+    else
+      gosub S3
+    endif
+endselect
+for j = 1 to 4
+  if z# > n
+    dim i(7)
+  else
+    z = x
+  endif
+next j
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  z = 1
+return
+
+S1:
+  i = 1
+return
+
+S2:
+  y = 1
+return
+
+S3:
+  b = 1
+return
+
+dim arr(19)
+arr(0) = 1
+end

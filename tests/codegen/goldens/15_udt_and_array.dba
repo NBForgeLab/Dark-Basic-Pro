@@ -1,0 +1,16 @@
+REM Golden case: user-defined type plus array member access.
+REM Exercises: MOVUDT, StructTable sizing and UDT member offsets.
+type Vec3
+  x as integer
+  y as integer
+  z as integer
+endtype
+
+v as Vec3
+v.x = 1
+v.y = 2
+v.z = 3
+dim points(10) as Vec3
+points(0).x = 5
+w = points(0).x + v.x
+end

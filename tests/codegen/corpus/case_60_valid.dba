@@ -1,0 +1,53 @@
+gosub S2
+while (((y# > i) or (x# <= a)) and ((k > a#) and (n >= c#))) and (c * a > x# + j)
+  while k# * i# == c / z#
+    select a
+      case 1
+        j$ = "203"
+    endselect
+  endwhile
+endwhile
+gosub S2
+if (k# < x) or (b# <> i)
+  gosub S0
+else
+  for a = 1 to 12
+    for i = 1 to 4
+      select y
+        case 1
+          dim a(7)
+        case 2
+          while b# <= n#
+            dim a(14)
+          endwhile
+        case 3
+          gosub S2
+      endselect
+    next i
+  next a
+endif
+
+function F(y)
+  local t
+  t = y * 2
+endfunction t
+
+S0:
+  y = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  z = 1
+return
+
+S3:
+  j = 1
+return
+
+dim arr(13)
+arr(0) = 1
+end

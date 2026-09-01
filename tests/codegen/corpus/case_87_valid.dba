@@ -1,0 +1,30 @@
+select x
+  case 1
+    b = b * n# + z - n
+endselect
+dim c(14)
+
+function F(j)
+  local t
+  t = j * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  k = 1
+return
+
+S2:
+  j = 1
+return
+
+S3:
+  x = 1
+return
+
+dim arr(11)
+arr(0) = 1
+end

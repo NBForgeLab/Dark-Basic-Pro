@@ -1,0 +1,48 @@
+while (i# <= i#) and (y# <= j#)
+  for x = 1 to 5
+    if z >= j
+      select y
+        case 1
+          z$ = "654"
+        case 2
+          r = F(y)
+        case 3
+          dim z(9)
+      endselect
+    else
+      while k > b#
+        gosub S0
+      endwhile
+    endif
+  next x
+endwhile
+gosub S0
+for k = 1 to 3
+  r = F(y)
+next k
+dim k(16)
+
+function F(z)
+  local t
+  t = z * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  z = 1
+return
+
+S2:
+  c = 1
+return
+
+S3:
+  z = 1
+return
+
+dim arr(18)
+arr(0) = 1
+end

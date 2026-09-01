@@ -1,0 +1,33 @@
+if k# + k# / j * k > i + k# - i# - y
+  z$ = "346"
+else
+  r = F(y)
+endif
+x = a + x
+gosub S1
+gosub S3
+
+function F(k)
+  local t
+  t = k * 2
+endfunction t
+
+S0:
+  j = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  j = 1
+return
+
+S3:
+  z = 1
+return
+
+dim arr(15)
+arr(0) = 1
+end

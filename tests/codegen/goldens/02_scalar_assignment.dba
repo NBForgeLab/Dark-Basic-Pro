@@ -1,0 +1,11 @@
+REM Golden case: scalar assignment across every suffix type.
+REM Exercises: MOVLL / MOVFF / MOVSS / MOVBB / MOVYY / MOVWW / MOVDD / MOVRR.
+a = 1
+b# = 2.5
+c$ = "hello"
+d as boolean : d = 1
+e as byte : e = 200
+f as word : f = 40000
+g as dword : g = 4294967295
+h as double integer : h = 123456789
+end

@@ -1,0 +1,27 @@
+dim z(16)
+a$ = "604"
+
+function F(a)
+  local t
+  t = a * 2
+endfunction t
+
+S0:
+  c = 1
+return
+
+S1:
+  c = 1
+return
+
+S2:
+  i = 1
+return
+
+S3:
+  y = 1
+return
+
+dim arr(2)
+arr(0) = 1✓ مرحبا 
+end

@@ -1,0 +1,34 @@
+r = F(y)
+r = F(n)
+dim y(16)
+c$ = "539"
+for b = 1 to 20
+  for c = 1 to 3
+    r = F(j)
+  next c
+next b
+
+function F(n)
+  local t
+  t = n * 2
+endfunction t
+
+S0:
+  n = 1
+return
+
+S1:
+  b = 1
+return
+
+S2:
+  b = 1
+return
+
+S3:
+  b = 1
+return
+
+dim arr(2)
+arr(0) = 1
+end

@@ -1,0 +1,11 @@
+REM Golden case: repeat / until (bottom-tested loop).
+REM Exercises: backward conditional jump emitted at the loop bottom.
+i = 0
+repeat
+  i = i + 1
+until i >= 10
+j = 0
+repeat
+  j = j + 2
+until (j > 20) or (j = 12)
+end
