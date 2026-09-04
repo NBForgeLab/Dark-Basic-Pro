@@ -35,64 +35,56 @@
 
 int GetInstalledMemory ( int iReturn )
 {
-	MEMORYSTATUS memoryStatus = { 0 };
-	
-	memoryStatus.dwLength = sizeof ( MEMORYSTATUS );
-	
-	::GlobalMemoryStatus ( &memoryStatus );
-	
+	MEMORYSTATUSEX memStatus{};
+	memStatus.dwLength = sizeof(memStatus);
+	if ( !::GlobalMemoryStatusEx ( &memStatus ) )
+		return 0;
+
 	if ( iReturn == 0 )
-		return ( int ) ceil ( ( float ) memoryStatus.dwTotalPhys / 1024 );
-	
+		return static_cast<int>( (memStatus.ullTotalPhys + 1023) / 1024 );
 	if ( iReturn == 1 )
-		return ( int ) ceil ( ( float ) memoryStatus.dwTotalPhys / 1024 / 1024 );
-	
+		return static_cast<int>( (memStatus.ullTotalPhys + (1024 * 1024 - 1)) / (1024 * 1024) );
 	if ( iReturn == 2 )
-		return ( int ) ceil ( ( float ) memoryStatus.dwTotalPhys / 1024 / 1024 / 1024 );
-	
+		return static_cast<int>( (memStatus.ullTotalPhys + (1024ULL * 1024 * 1024 - 1)) / (1024ULL * 1024 * 1024) );
+
 	return 0;
 }
 
 int GetMemoryAvailable ( int iReturn )
 {
-	MEMORYSTATUS memoryStatus = { 0 };
-	
-	memoryStatus.dwLength = sizeof ( MEMORYSTATUS );
-	
-	::GlobalMemoryStatus ( &memoryStatus );
+	MEMORYSTATUSEX memStatus{};
+	memStatus.dwLength = sizeof(memStatus);
+	if ( !::GlobalMemoryStatusEx ( &memStatus ) )
+		return 0;
 
 	if ( iReturn == 0 )
-		return ( int ) ceil ( ( float ) memoryStatus.dwAvailPhys / 1024 );
-	
+		return static_cast<int>( (memStatus.ullAvailPhys + 1023) / 1024 );
 	if ( iReturn == 1 )
-		return ( int ) ceil ( ( float ) memoryStatus.dwAvailPhys / 1024 / 1024 );
-	
+		return static_cast<int>( (memStatus.ullAvailPhys + (1024 * 1024 - 1)) / (1024 * 1024) );
 	if ( iReturn == 2 )
-		return ( int ) ceil ( ( float ) memoryStatus.dwAvailPhys / 1024 / 1024 / 1024 );
-	
+		return static_cast<int>( (memStatus.ullAvailPhys + (1024ULL * 1024 * 1024 - 1)) / (1024ULL * 1024 * 1024) );
+
 	return 0;
 }
 
 int GetMemoryPercentUsed ( void )
 {
-	MEMORYSTATUS memoryStatus = { 0 };
-	
-	memoryStatus.dwLength = sizeof ( MEMORYSTATUS );
-	
-	::GlobalMemoryStatus ( &memoryStatus );
+	MEMORYSTATUSEX memStatus{};
+	memStatus.dwLength = sizeof(memStatus);
+	if ( !::GlobalMemoryStatusEx ( &memStatus ) )
+		return 0;
 
-	return memoryStatus.dwMemoryLoad;
+	return static_cast<int>( memStatus.dwMemoryLoad );
 }
 
 int GetMemoryPercentFree ( void )
 {
-	MEMORYSTATUS memoryStatus = { 0 };
-	
-	memoryStatus.dwLength = sizeof ( MEMORYSTATUS );
-	
-	::GlobalMemoryStatus ( &memoryStatus );
+	MEMORYSTATUSEX memStatus{};
+	memStatus.dwLength = sizeof(memStatus);
+	if ( !::GlobalMemoryStatusEx ( &memStatus ) )
+		return 0;
 
-	return 100 - memoryStatus.dwMemoryLoad;
+	return 100 - static_cast<int>( memStatus.dwMemoryLoad );
 }
 
 ////////////////////////////////////////////////////////////////////

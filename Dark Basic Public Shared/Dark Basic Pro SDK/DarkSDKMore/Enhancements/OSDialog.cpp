@@ -1,86 +1,49 @@
-
-////////////////////////////////////////////////////////////////////
-// INFORMATION /////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-/*
-	DIALOG COMMANDS
-*/
-
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////
-// DEFINES AND INCLUDES ////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-//#define DARKSDK	__declspec ( dllexport )
-#define DARKSDK	
-
-//#define WIN32_LEAN_AND_MEAN
 #include "stdafx.h"
-//#include <windows.h>
 #include <commdlg.h>
 #include "core.h"
 #include "Enchancements.h"
+#include <cstdint>
 
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-/*
-	// export names for string table -
-
-		OPEN FILE DIALOG[%SSSS%?OpenFileDialog@@YAKKKKK@Z%Directory, Filter, Title
-		SAVE FILE DIALOG[%SSSS%?SaveFileDialog@@YAKKKKK@Z%Directory, Filter, Title
-*/
+#define DARKSDK	
 
 DWORD_PTR OpenFileDialog ( DWORD_PTR dwReturn, DWORD_PTR dwDir, DWORD_PTR dwFilter, DWORD_PTR dwTitle )
 {
-	OPENFILENAME	ofn;
-	char			szFile [ 260 ];
+	OPENFILENAMEA	ofn{};
+	char			szFile [ 260 ] = {};
 	
-	memset ( szFile,  0, sizeof ( szFile ) );
-	memset ( &ofn,    0, sizeof ( ofn    ) );
-
 	ofn.lStructSize     = sizeof ( ofn );
-	ofn.hwndOwner       = NULL;
+	ofn.hwndOwner       = nullptr;
 	ofn.lpstrFile       = szFile;
 	ofn.nMaxFile        = sizeof ( szFile );
-	ofn.lpstrFilter     = ( char* ) dwFilter;
+	ofn.lpstrFilter     = IsReadablePointer(dwFilter) ? reinterpret_cast<LPCSTR>(dwFilter) : nullptr;
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrTitle      = ( char* ) dwTitle;
+	ofn.lpstrTitle      = IsReadablePointer(dwTitle) ? reinterpret_cast<LPCSTR>(dwTitle) : nullptr;
 	ofn.nMaxFileTitle   = 0;
-	ofn.lpstrInitialDir = ( char* ) dwDir;
+	ofn.lpstrInitialDir = IsReadablePointer(dwDir) ? reinterpret_cast<LPCSTR>(dwDir) : nullptr;
 	ofn.Flags           = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 	
-	GetOpenFileName ( &ofn );
+	GetOpenFileNameA ( &ofn );
 
-	return ( DWORD_PTR ) SetupString ( ofn.lpstrFile );
+	return reinterpret_cast<DWORD_PTR>( SetupString ( ofn.lpstrFile ) );
 }
 
 DWORD_PTR SaveFileDialog ( DWORD_PTR dwReturn, DWORD_PTR dwDir, DWORD_PTR dwFilter, DWORD_PTR dwTitle )
 {
-	OPENFILENAME	ofn;
-	char			szFile [ 260 ];
+	OPENFILENAMEA	ofn{};
+	char			szFile [ 260 ] = {};
 	
-	memset ( szFile,  0, sizeof ( szFile ) );
-	memset ( &ofn,    0, sizeof ( ofn    ) );
-
 	ofn.lStructSize     = sizeof ( ofn );
-	ofn.hwndOwner       = NULL;
+	ofn.hwndOwner       = nullptr;
 	ofn.lpstrFile       = szFile;
 	ofn.nMaxFile        = sizeof ( szFile );
-	ofn.lpstrFilter     = ( char* ) dwFilter;
+	ofn.lpstrFilter     = IsReadablePointer(dwFilter) ? reinterpret_cast<LPCSTR>(dwFilter) : nullptr;
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrTitle      = ( char* ) dwTitle;
+	ofn.lpstrTitle      = IsReadablePointer(dwTitle) ? reinterpret_cast<LPCSTR>(dwTitle) : nullptr;
 	ofn.nMaxFileTitle   = 0;
-	ofn.lpstrInitialDir = ( char* ) dwDir;
+	ofn.lpstrInitialDir = IsReadablePointer(dwDir) ? reinterpret_cast<LPCSTR>(dwDir) : nullptr;
 	ofn.Flags           = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 	
-	GetSaveFileName ( &ofn );
+	GetSaveFileNameA ( &ofn );
 
-	return ( DWORD_PTR ) SetupString ( ofn.lpstrFile );
+	return reinterpret_cast<DWORD_PTR>( SetupString ( ofn.lpstrFile ) );
 }
-
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////

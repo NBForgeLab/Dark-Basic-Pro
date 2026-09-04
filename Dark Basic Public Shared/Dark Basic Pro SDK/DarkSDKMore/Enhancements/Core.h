@@ -53,5 +53,51 @@ extern GetSoundBufferPFN		g_pGetSoundBuffer;
 void Error ( int iID );
 char* SetupString ( const char* szInput );
 
+static inline bool IsReadablePointer(DWORD_PTR ptr)
+{
+	if (ptr <= 0x10000 || ptr >= 0x00007FFFFFFFFFFFULL)
+		return false;
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(reinterpret_cast<const void*>(ptr), &mbi, sizeof(mbi)) != sizeof(mbi))
+		return false;
+	if (mbi.State != MEM_COMMIT)
+		return false;
+	if ((mbi.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) == 0)
+		return false;
+	if (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS))
+		return false;
+	return true;
+}
+
+static inline size_t SafeStrLen(DWORD_PTR ptr)
+{
+	if (!IsReadablePointer(ptr))
+		return 0;
+
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(reinterpret_cast<const void*>(ptr), &mbi, sizeof(mbi)) != sizeof(mbi))
+		return 0;
+
+	const uintptr_t pageEnd = reinterpret_cast<uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+	if (ptr >= pageEnd)
+		return 0;
+
+	const size_t maxReadable = static_cast<size_t>(pageEnd - ptr);
+	return strnlen(reinterpret_cast<const char*>(ptr), maxReadable);
+}
+
+static inline void SafeStrCopy(char* dest, DWORD_PTR src, size_t maxLen)
+{
+	if (!dest || maxLen == 0) return;
+	dest[0] = '\0';
+
+	const size_t len = SafeStrLen(src);
+	if (len == 0) return;
+
+	const size_t copyLen = (len < maxLen) ? len : (maxLen - 1);
+	memcpy(dest, reinterpret_cast<const void*>(src), copyLen);
+	dest[copyLen] = '\0';
+}
+
 ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////

@@ -116,13 +116,19 @@ void Destructor ( void )
 
 char* ENHANCEMENTSSetupString ( const char* szInput )
 {
-	char* pReturn = NULL;
+	if ( !szInput || !IsReadablePointer(reinterpret_cast<DWORD_PTR>(szInput)) )
+		return nullptr;
+
+	if ( !g_pGlob || !g_pGlob->CreateDeleteString )
+		return nullptr;
+
+	char* pReturn = nullptr;
 	DWORD dwSize  = static_cast<DWORD>( strlen ( szInput ) );
 	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
 	if ( !pReturn )
 	{
 		Error ( 2 );
-		return NULL;
+		return nullptr;
 	}
 	memcpy ( pReturn, szInput, dwSize );
 	pReturn [ dwSize ] = 0;

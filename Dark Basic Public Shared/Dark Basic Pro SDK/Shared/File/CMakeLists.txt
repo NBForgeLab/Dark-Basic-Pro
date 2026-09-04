@@ -42,3 +42,5 @@ target_link_libraries(dbp_plugin_file PRIVATE
     gdi32
     advapi32
 )
+
+dbp_deploy_target(dbp_plugin_file)

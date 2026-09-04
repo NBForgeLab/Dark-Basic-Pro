@@ -160,6 +160,15 @@ elseif(MODE STREQUAL "package")
     endif()
     dbp_require_file("${FPSC_PROJECT_DIR}/${dbpak_name}" "package")
     message(STATUS "[dbp-deploy] dbpakref references ${dbpak_name}")
+
+    if(DEFINED FPSC_EDITOR_FILES_DIR AND EXISTS "${FPSC_EDITOR_FILES_DIR}")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${exe_file}" "${FPSC_EDITOR_FILES_DIR}/${FPSC_ARTIFACT_NAME}.exe"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ref_file}" "${FPSC_EDITOR_FILES_DIR}/${FPSC_ARTIFACT_NAME}.dbpakref"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FPSC_PROJECT_DIR}/${dbpak_name}" "${FPSC_EDITOR_FILES_DIR}/${dbpak_name}"
+        )
+        message(STATUS "[dbp-deploy] synced trio to ${FPSC_EDITOR_FILES_DIR}")
+    endif()
 else()
     dbp_fail("unknown MODE '${MODE}' (expected verify|package)")
 endif()

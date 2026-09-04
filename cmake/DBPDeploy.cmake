@@ -97,6 +97,10 @@ if(DBP_DEPLOY_PHASE STREQUAL "SETTINGS")
         set(DBP_FPSC_FILES_DIR "${DBP_FPSC_PROJECT_DIR}/Files")
         set(DBP_FPSC_COMPILER_PLUGINS_DIR "${DBP_FPSC_COMPILER_DIR}/plugins")
         set(DBP_FPSC_FILES_PLUGINS_DIR "${DBP_FPSC_FILES_DIR}/plugins")
+        get_filename_component(DBP_FPSC_EDITOR_PLUGINS_DIR
+            "${DBP_FPSC_ROOT}/../../FPS Creator Editor/Files/plugins" ABSOLUTE)
+        get_filename_component(DBP_FPSC_EDITOR_FILES_DIR
+            "${DBP_FPSC_ROOT}/../../FPS Creator Editor/Files" ABSOLUTE)
         message(STATUS "FPSC deployment enabled: ${DBP_FPSC_ROOT}")
     endif()
 
@@ -117,10 +121,16 @@ if(DBP_DEPLOY_PHASE STREQUAL "SETTINGS")
             set(dest_dirs
                 "${DBP_FPSC_COMPILER_PLUGINS_DIR}"
                 "${DBP_FPSC_FILES_PLUGINS_DIR}")
+            if(EXISTS "${DBP_FPSC_EDITOR_PLUGINS_DIR}")
+                list(APPEND dest_dirs "${DBP_FPSC_EDITOR_PLUGINS_DIR}")
+            endif()
             if(target STREQUAL "DBProCore")
                 # The packaged editor also loads the core DLL from the Files
                 # root, so that historical copy must stay in sync as well.
                 list(APPEND dest_dirs "${DBP_FPSC_FILES_DIR}")
+                if(EXISTS "${DBP_FPSC_EDITOR_FILES_DIR}")
+                    list(APPEND dest_dirs "${DBP_FPSC_EDITOR_FILES_DIR}")
+                endif()
             endif()
         endif()
 
@@ -188,8 +198,14 @@ if(DBP_FPSC_DEPLOY_ENABLED)
             set(dest_dirs
                 "${DBP_FPSC_COMPILER_PLUGINS_DIR}"
                 "${DBP_FPSC_FILES_PLUGINS_DIR}")
+            if(EXISTS "${DBP_FPSC_EDITOR_PLUGINS_DIR}")
+                list(APPEND dest_dirs "${DBP_FPSC_EDITOR_PLUGINS_DIR}")
+            endif()
             if(target STREQUAL "DBProCore")
                 list(APPEND dest_dirs "${DBP_FPSC_FILES_DIR}")
+                if(EXISTS "${DBP_FPSC_EDITOR_FILES_DIR}")
+                    list(APPEND dest_dirs "${DBP_FPSC_EDITOR_FILES_DIR}")
+                endif()
             endif()
         endif()
 
@@ -257,15 +273,63 @@ if(DBP_FPSC_DEPLOY_ENABLED)
             "-DMODE=package"
             "-DFPSC_PROJECT_DIR=${DBP_FPSC_PROJECT_DIR}"
             "-DFPSC_ARTIFACT_NAME=${DBP_FPSC_MAPEDITOR_NAME}"
+            "-DFPSC_EDITOR_FILES_DIR=${DBP_FPSC_EDITOR_FILES_DIR}"
             -P "${CMAKE_CURRENT_LIST_DIR}/dbp_deploy_sync.cmake"
         WORKING_DIRECTORY "${DBP_FPSC_PROJECT_DIR}"
-        COMMENT "Re-packaging ${DBP_FPSC_MAPEDITOR_PROJECT} and verifying the trio in the project directory"
+        COMMENT "Re-packaging ${DBP_FPSC_MAPEDITOR_PROJECT} and verifying the trio"
+        VERBATIM)
+
+    set(DBP_FPSC_GAME_PROJECT "FPSC-Game (english).dbpro"
+        CACHE STRING "FPSC Game project re-packaged by fpsc-package-game")
+    set(DBP_FPSC_GAME_NAME "FPSC-Game"
+        CACHE STRING "Artifact base name produced for the packaged game project")
+
+    add_custom_target(fpsc-package-game
+        DEPENDS DBPCompiler DBProCore
+        COMMAND "${DBP_FPSC_COMPILER_DIR}/DBPCompiler.exe"
+            --json
+            --package-key-file "${DBP_FPSC_PACKAGE_KEY_FILE}"
+            "${DBP_FPSC_GAME_PROJECT}"
+        COMMAND ${CMAKE_COMMAND}
+            "-DMODE=package"
+            "-DFPSC_PROJECT_DIR=${DBP_FPSC_PROJECT_DIR}"
+            "-DFPSC_ARTIFACT_NAME=${DBP_FPSC_GAME_NAME}"
+            "-DFPSC_EDITOR_FILES_DIR=${DBP_FPSC_EDITOR_FILES_DIR}"
+            -P "${CMAKE_CURRENT_LIST_DIR}/dbp_deploy_sync.cmake"
+        WORKING_DIRECTORY "${DBP_FPSC_PROJECT_DIR}"
+        COMMENT "Re-packaging ${DBP_FPSC_GAME_PROJECT} and verifying the trio"
+        VERBATIM)
+
+    set(DBP_FPSC_SCREENS_PROJECT "FPSC-Screens.dbpro"
+        CACHE STRING "FPSC Screens project re-packaged by fpsc-package-screens")
+    set(DBP_FPSC_SCREENS_NAME "FPSC-Screens"
+        CACHE STRING "Artifact base name produced for the packaged screens project")
+
+    add_custom_target(fpsc-package-screens
+        DEPENDS DBPCompiler DBProCore
+        COMMAND "${DBP_FPSC_COMPILER_DIR}/DBPCompiler.exe"
+            --json
+            --package-key-file "${DBP_FPSC_PACKAGE_KEY_FILE}"
+            "${DBP_FPSC_SCREENS_PROJECT}"
+        COMMAND ${CMAKE_COMMAND}
+            "-DMODE=package"
+            "-DFPSC_PROJECT_DIR=${DBP_FPSC_PROJECT_DIR}"
+            "-DFPSC_ARTIFACT_NAME=${DBP_FPSC_SCREENS_NAME}"
+            "-DFPSC_EDITOR_FILES_DIR=${DBP_FPSC_EDITOR_FILES_DIR}"
+            -P "${CMAKE_CURRENT_LIST_DIR}/dbp_deploy_sync.cmake"
+        WORKING_DIRECTORY "${DBP_FPSC_PROJECT_DIR}"
+        COMMENT "Re-packaging ${DBP_FPSC_SCREENS_PROJECT} and verifying the trio"
+        VERBATIM)
+
+    add_custom_target(fpsc-package-all
+        DEPENDS fpsc-package fpsc-package-game fpsc-package-screens
+        COMMENT "Packaging all 3 DarkBasic Pro child projects (MapEditor, Game, Screens)"
         VERBATIM)
 
     list(LENGTH DBP_FPSC_ALL_DEPLOYABLE_TARGETS DBP_FPSC_DEPLOYED_COUNT)
     message(STATUS
         "FPSC deployment ready: ${DBP_FPSC_DEPLOYED_COUNT} deployable targets "
-        "(targets: fpsc-deploy, fpsc-verify, fpsc-package)")
+        "(targets: fpsc-deploy, fpsc-verify, fpsc-package, fpsc-package-game, fpsc-package-screens, fpsc-package-all)")
 endif()
 
 # Aggregate entry point: build every deployable target and sync all outputs

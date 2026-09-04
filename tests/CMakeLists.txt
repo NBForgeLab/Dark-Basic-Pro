@@ -101,6 +101,7 @@ add_executable(dbp_tests
     test_install_rules.cpp
     test_e2e_x64_compilation.cpp
     test_x64_intensive_verification.cpp
+    test_plugin_enhancements.cpp
 
     # --- Codegen verification suite (compiler + assembly generator) ---------
     # Shared in-process driver that runs the real emission pipeline without

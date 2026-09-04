@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
-
 #if defined(__has_include)
 #if __has_include("..\..\..\..\GameGuru\Include\preprocessor-flags.h")
 #include "..\..\..\..\GameGuru\Include\preprocessor-flags.h"
@@ -8,6 +6,10 @@
 
 #include "core.h"
 #include <vector>
+#include <string>
+#include <string_view>
+#include <cstdint>
+#include <cstring>
 #include "ipc.h"
 
 #ifdef ENABLEIMGUI
@@ -20,21 +22,10 @@
 
 struct sFileMap
 {
-	cIPC*  pIPC;
-	char   szName [ 256 ];
+	cIPC*  pIPC = nullptr;
+	char   szName [ 256 ] = {};
 
-	sFileMap ( )
-	{
-		pIPC = NULL;
-
-		strcpy ( szName, "" );
-
-		//hCreate = NULL;
-		//hOpen   = NULL;
-		//pData   = NULL;	
-	}
-
-	
+	sFileMap ( ) = default;
 };
 
 sFileMap g_FileMap [ 256 ];
@@ -80,13 +71,17 @@ DARKSDK void CreateFileMap ( int iID, DWORD_PTR dwName, DWORD dwSize )
 	if ( !CheckFileMapID ( iID ) )
 		return;
 
-	char* pName = ( char* ) ( uintptr_t ) dwName;
+	if ( !IsReadablePointer(dwName) )
+		return;
+
+	char szSafeName[256];
+	SafeStrCopy(szSafeName, dwName, sizeof(szSafeName));
+	if ( szSafeName[0] == '\0' )
+		return;
+
 	SAFE_DELETE ( g_FileMap [ iID ].pIPC );
-
-	g_FileMap [ iID ].pIPC = new cIPC ( pName, dwSize );
-
-	if ( pName )
-		strcpy ( g_FileMap [ iID ].szName, pName );
+	g_FileMap [ iID ].pIPC = new cIPC ( szSafeName, dwSize );
+	strcpy_s ( g_FileMap [ iID ].szName, sizeof(g_FileMap [ iID ].szName), szSafeName );
 }
 
 DARKSDK void OpenFileMap ( int iID, DWORD_PTR dwName )
@@ -94,22 +89,26 @@ DARKSDK void OpenFileMap ( int iID, DWORD_PTR dwName )
 	if ( !CheckFileMapID ( iID ) )
 		return;
 
-	char* pName = ( char* ) ( uintptr_t ) dwName;
-	if ( !pName )
+	if ( !IsReadablePointer(dwName) )
 		return;
 
-	if ( g_FileMap [ iID ].pIPC == NULL )
+	char szSafeName[256];
+	SafeStrCopy(szSafeName, dwName, sizeof(szSafeName));
+	if ( szSafeName[0] == '\0' )
+		return;
+
+	if ( g_FileMap [ iID ].pIPC == nullptr )
 	{		
-		g_FileMap [ iID ].pIPC = new cIPC ( pName, 0 );
-		strcpy ( g_FileMap [ iID ].szName, pName );
+		g_FileMap [ iID ].pIPC = new cIPC ( szSafeName, 0 );
+		strcpy_s ( g_FileMap [ iID ].szName, sizeof(g_FileMap [ iID ].szName), szSafeName );
 	}
 	else
 	{
-		if ( strcmp ( g_FileMap [ iID ].szName, pName ) != 0 )
+		if ( strcmp ( g_FileMap [ iID ].szName, szSafeName ) != 0 )
 		{
 			SAFE_DELETE ( g_FileMap [ iID ].pIPC );
-			g_FileMap [ iID ].pIPC = new cIPC ( pName, 0 );
-			strcpy ( g_FileMap [ iID ].szName, pName );
+			g_FileMap [ iID ].pIPC = new cIPC ( szSafeName, 0 );
+			strcpy_s ( g_FileMap [ iID ].szName, sizeof(g_FileMap [ iID ].szName), szSafeName );
 		}
 	}
 }
@@ -125,12 +124,12 @@ DARKSDK void DestroyFileMap ( int iID )
 		return;
 
 	SAFE_DELETE ( g_FileMap [ iID ].pIPC );
-	strcpy ( g_FileMap [ iID ].szName, "" );
+	g_FileMap [ iID ].szName[0] = '\0';
 }
 
 DARKSDK DWORD GetFileMapDWORD ( int iID, DWORD dwOffset )
 {
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return 0;
 
 	DWORD dwValue = 0;
@@ -145,14 +144,15 @@ DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffse
 		g_pGlob->CreateDeleteString ( (DWORD_PTR*)&dwDestStr, 0 );
 	}
 
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return 0;
 
-	char szString [ 256 ] = "";
-	g_FileMap [ iID ].pIPC->ReceiveBuffer ( &szString, dwOffset, sizeof ( szString ) );
+	char szString [ 256 ] = {};
+	g_FileMap [ iID ].pIPC->ReceiveBuffer ( szString, dwOffset, sizeof ( szString ) - 1 );
+	szString [ sizeof ( szString ) - 1 ] = '\0';
 
-	DWORD dwSize        = (DWORD)strlen ( szString );
-	char* pReturnString	= NULL;	
+	DWORD dwSize        = static_cast<DWORD>( strlen ( szString ) );
+	char* pReturnString	= nullptr;	
 	
 	if ( g_pGlob && g_pGlob->CreateDeleteString )
 	{
@@ -163,22 +163,24 @@ DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffse
 		strcpy_s ( pReturnString, dwSize + 1, szString );
 	}
 
-	return (DWORD_PTR)pReturnString;
+	return reinterpret_cast<DWORD_PTR>(pReturnString);
 }
 
 DARKSDK DWORD GetFileMapFloat ( int iID, DWORD dwOffset )
 {
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return 0;
 
-	float fValue = 0;
+	float fValue = 0.0f;
 	g_FileMap [ iID ].pIPC->ReceiveBuffer ( &fValue, dwOffset, sizeof ( fValue ) );
-	return *( DWORD* ) &fValue;
+	DWORD dwResult = 0;
+	memcpy ( &dwResult, &fValue, sizeof(dwResult) );
+	return dwResult;
 }
 
 DARKSDK void SetFileMapDWORD ( int iID, DWORD dwOffset, DWORD dwValue )
 {
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return;
 
 	g_FileMap [ iID ].pIPC->SendBuffer ( &dwValue, dwOffset, sizeof ( dwValue ) );
@@ -186,21 +188,28 @@ DARKSDK void SetFileMapDWORD ( int iID, DWORD dwOffset, DWORD dwValue )
 
 DARKSDK void SetFileMapString ( int iID, DWORD dwOffset, DWORD_PTR dwString )
 {
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return;
 
-	char* pString         = ( char* ) ( uintptr_t ) dwString;
-	if ( !pString )
+	if ( !IsReadablePointer(dwString) )
 		return;
 
-	char  szBlank [ 255 ] = "";
+	size_t stringLen = SafeStrLen(dwString);
+	const char* pString = reinterpret_cast<const char*>(dwString);
+
+	// Clear out destination slot
+	char szBlank [ 256 ] = {};
 	g_FileMap [ iID ].pIPC->SendBuffer ( szBlank, dwOffset, sizeof ( szBlank ) );
-	g_FileMap [ iID ].pIPC->SendBuffer ( pString, dwOffset, (DWORD)strlen ( pString ) * sizeof ( char ) );
+
+	if ( stringLen > 0 )
+	{
+		g_FileMap [ iID ].pIPC->SendBuffer ( pString, dwOffset, static_cast<DWORD>(stringLen) );
+	}
 }
 
 DARKSDK void SetFileMapFloat ( int iID, DWORD dwOffset, float fValue )
 {
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return;
 
 	g_FileMap [ iID ].pIPC->SendBuffer ( &fValue, dwOffset, sizeof ( fValue ) );
@@ -208,7 +217,7 @@ DARKSDK void SetFileMapFloat ( int iID, DWORD dwOffset, float fValue )
 
 DARKSDK void SetEventAndWait ( int iID )
 {
-	if ( !g_FileMap [ iID ].pIPC )
+	if ( !CheckFileMapID(iID) || !g_FileMap [ iID ].pIPC )
 		return;
 
 	HANDLE hEvent = g_FileMap [ iID ].pIPC->m_hDataEvent;
