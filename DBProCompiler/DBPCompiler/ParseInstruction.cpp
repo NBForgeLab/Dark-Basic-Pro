@@ -65,8 +65,16 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, uint32_t dwType, int
 		if ( dwAccessMode==static_cast<DWORD>(ParamMode::Mem) ) dwAccessMode=static_cast<DWORD>(ParamMode::MemOff);
 		if ( dwAccessMode==static_cast<DWORD>(ParamMode::Rbp) ) dwAccessMode=static_cast<DWORD>(ParamMode::RbpOff);
 
+		// An array element is addressed through the direct-layout element data, where
+		// the emitter selects its operand width from switch(dwPType-100). The bare
+		// field type underflows that switch into the relative-address default arm,
+		// which truncates the 8-byte string pointer to a DWORD on x64.
+		const bool bIsArrayElement = dwAccessMode==static_cast<DWORD>(ParamMode::MemArr)
+		                          || dwAccessMode==static_cast<DWORD>(ParamMode::RbpArr);
+		const uint32_t dwMemberType = bIsArrayElement ? dwType+100 : dwType;
+
 		// PUSH STRING FROM UDT TO STACK
-		g_pASMWriter->WriteASMXtoRAX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
+		g_pASMWriter->WriteASMXtoRAX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), dwMemberType, iDisplacement);
 		g_pASMWriter->WriteASMRAXtoX(static_cast<DWORD>(ParamMode::Stack), nullptr, nullptr, 3, iDisplacement);
 		g_pASMWriter->RecordPendingCallArg(3, 1u);
 		g_pASMWriter->WriteASMComment("PUSH TO STACK", "", "", "");
@@ -78,7 +86,7 @@ bool CParseInstruction::ActOnSingleVar ( CResultData* pVar, uint32_t dwType, int
 		g_pASMWriter->WriteASMCall(m_dwLineNumber, "dbprocore.dll", "?EquateSS@@YA_K_K0@Z");
 
 		// Put RAX overwrites DEST
-		g_pASMWriter->WriteASMRAXtoX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), 3, iDisplacement);
+		g_pASMWriter->WriteASMRAXtoX(dwAccessMode, pVar->m_pStringToken.get(), pVar->m_pAdditionalOffset.get(), dwMemberType, iDisplacement);
 		g_pASMWriter->WriteASMComment("ASSIGN RAX TO X", "", "", "");
 
 		// Pop param data

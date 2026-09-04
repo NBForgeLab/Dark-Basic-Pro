@@ -991,22 +991,17 @@ DARKSDK void CreateMemblockFromArray( int mbi, DWORD_PTR dwAllocation )
 		{
 			// leeadd - 140104 - create a memblock from entire contents of an array
 
-			// obtain array data ptr and size
-			LPSTR pData = NULL;
-			DWORD dwDataSizeInBytes = 0;
-			DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
-			if(dwSizeOfTable>0)
+			// Direct x64 array layout: the handle points at element zero and the
+			// 56-byte header sits immediately before it, so the element data needs
+			// no reference-table or flag-block skip.
+			LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
+			DWORD* pHeader	= (DWORD*)(pArrayPtr);
+			DWORD dwSizeOfArray = pHeader[10];
+			DWORD dwSizeOfOneDataItem = pHeader[11];
+			if(dwSizeOfArray>0)
 			{
-				// Get Array Information
-				LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
-				DWORD* pHeader	= (DWORD*)(pArrayPtr);
-				size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
-				DWORD dwSizeOfArray = pHeader[10];
-				DWORD dwSizeOfOneDataItem = pHeader[11];
-				size_t dwRefSizeInBytes = static_cast<size_t>(dwSizeOfArray) * sizeof(uintptr_t);
-				size_t dwFlagSizeInBytes = static_cast<size_t>(dwSizeOfArray) * 1;
+				LPSTR pData = (LPSTR)dwAllocation;
 				size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwSizeOfOneDataItem;
-				pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
 				// create memblock
 				gpMemblockSize[mbi] = static_cast<DWORD>(dwDataSizeInBytes);
@@ -1039,28 +1034,25 @@ DARKSDK void CreateArrayFromMemblock( DWORD_PTR dwAllocation, int mbi )
 		// If no array, leave now
 		if ( dwAllocation )
 		{
-			// obtain array data ptr and size
-			LPSTR pData = NULL;
-			DWORD dwSizeOfTable = *((DWORD*)dwAllocation-4);
-			if(dwSizeOfTable>0)
+			// Direct x64 array layout: the handle points at element zero and the
+			// 56-byte header sits immediately before it, so the element data needs
+			// no reference-table or flag-block skip.
+			LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
+			DWORD* pHeader	= (DWORD*)(pArrayPtr);
+			DWORD dwSizeOfArray = pHeader[10];
+			DWORD dwSizeOfOneDataItem = pHeader[11];
+			if(dwSizeOfArray>0)
 			{
-				// Get Array Information
-				LPSTR pArrayPtr = ((LPSTR)dwAllocation)-HEADERSIZEINBYTES;
-				DWORD* pHeader	= (DWORD*)(pArrayPtr);
-				size_t dwHeaderSizeInBytes = HEADERSIZEINBYTES;
-				DWORD dwSizeOfArray = pHeader[10];
-				DWORD dwSizeOfOneDataItem = pHeader[11];
-				size_t dwRefSizeInBytes = static_cast<size_t>(dwSizeOfArray) * sizeof(uintptr_t);
-				size_t dwFlagSizeInBytes = static_cast<size_t>(dwSizeOfArray) * 1;
+				LPSTR pData = (LPSTR)dwAllocation;
 				size_t dwDataSizeInBytes = static_cast<size_t>(dwSizeOfArray) * dwSizeOfOneDataItem;
-				pData = (LPSTR)(pArrayPtr+dwHeaderSizeInBytes+dwRefSizeInBytes+dwFlagSizeInBytes);
 
 				// memblock to array
 				if(gpMemblock[mbi])
 				{
 					// copy memblock data to array data
 					char* pMem = gpMemblock[mbi];
-					memcpy(pData, pMem, dwDataSizeInBytes);
+					size_t copySize = (dwDataSizeInBytes < gpMemblockSize[mbi]) ? dwDataSizeInBytes : gpMemblockSize[mbi];
+					memcpy(pData, pMem, copySize);
 				}
 			}
 			else

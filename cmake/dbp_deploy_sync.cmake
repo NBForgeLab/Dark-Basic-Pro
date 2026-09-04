@@ -5,10 +5,12 @@
 #       SHA-256 and fails when any deployed copy is stale or missing. Never
 #       writes. The manifest is generated per configuration by DBPDeploy.cmake.
 #
-#   cmake -DMODE=package -DFPSC_PROJECT_DIR=<dir> -DFPSC_FILES_DIR=<dir>
+#   cmake -DMODE=package -DFPSC_PROJECT_DIR=<dir>
 #         -DFPSC_ARTIFACT_NAME=<base> -P dbp_deploy_sync.cmake
-#       Syncs the freshly compiled project trio (exe, dbpakref, and the dbpak
-#       referenced by the dbpakref) from the project directory into Files/.
+#       Proves the freshly compiled project trio (exe, dbpakref, and the dbpak
+#       the dbpakref names) is complete in the project directory. Never writes:
+#       the compiler runs with that directory as its working directory, so it
+#       already emits the trio where the FPSC parent resolves the child from.
 
 function(dbp_fail message)
     message(FATAL_ERROR "[dbp-deploy] ${message}")
@@ -83,26 +85,11 @@ function(dbp_parse_dbpakref ref_path out_var)
     set(${out_var} "${name}" PARENT_SCOPE)
 endfunction()
 
-function(dbp_sync_file source_file dest_dir label)
-    if(NOT EXISTS "${source_file}")
-        dbp_fail("expected artifact is missing: ${source_file}")
+function(dbp_require_file expected_file label)
+    if(NOT EXISTS "${expected_file}")
+        dbp_fail("expected ${label} is missing: ${expected_file}")
     endif()
-    get_filename_component(file_name "${source_file}" NAME)
-    set(dest_file "${dest_dir}/${file_name}")
-    set(action "up to date")
-    if(NOT EXISTS "${dest_file}")
-        set(action "copied (was missing)")
-    else()
-        file(SHA256 "${source_file}" source_hash)
-        file(SHA256 "${dest_file}" dest_hash)
-        if(NOT source_hash STREQUAL dest_hash)
-            set(action "copied (was stale)")
-        endif()
-    endif()
-    if(action MATCHES "^copied")
-        file(COPY "${source_file}" DESTINATION "${dest_dir}")
-    endif()
-    message(STATUS "[dbp-deploy] ${label}: ${file_name} -> ${dest_dir} [${action}]")
+    message(STATUS "[dbp-deploy] ${label}: ${expected_file}")
 endfunction()
 
 if(NOT DEFINED MODE)
@@ -149,28 +136,30 @@ if(MODE STREQUAL "verify")
     endif()
     message(STATUS "[verify] all ${total} deployed artifacts match the current build")
 elseif(MODE STREQUAL "package")
-    foreach(required FPSC_PROJECT_DIR FPSC_FILES_DIR)
-        if(NOT DEFINED ${required})
-            dbp_fail("${required} must be set for package mode")
-        endif()
-    endforeach()
+    if(NOT DEFINED FPSC_PROJECT_DIR)
+        dbp_fail("FPSC_PROJECT_DIR must be set for package mode")
+    endif()
     if(NOT DEFINED FPSC_ARTIFACT_NAME)
         set(FPSC_ARTIFACT_NAME "FPSC-MapEditor")
     endif()
-    if(NOT IS_DIRECTORY "${FPSC_FILES_DIR}")
-        dbp_fail("Files directory does not exist: ${FPSC_FILES_DIR}")
+    if(NOT IS_DIRECTORY "${FPSC_PROJECT_DIR}")
+        dbp_fail("project directory does not exist: ${FPSC_PROJECT_DIR}")
     endif()
     set(exe_file "${FPSC_PROJECT_DIR}/${FPSC_ARTIFACT_NAME}.exe")
     set(ref_file "${FPSC_PROJECT_DIR}/${FPSC_ARTIFACT_NAME}.dbpakref")
+
+    # The parent launches the child as lpFile = <name>.exe with lpDirectory =
+    # the project directory (EditorDoc.cpp:298-300), so the trio belongs here
+    # and nowhere else. Files/ is the game-data root the editor reads media
+    # from; a second exe copy there is never loaded and only drifts.
+    dbp_require_file("${exe_file}" "executable")
+    dbp_require_file("${ref_file}" "reference")
     dbp_parse_dbpakref("${ref_file}" dbpak_name)
     if(NOT dbpak_name MATCHES "^data-[0-9a-fA-F]+\\.dbpak$")
         dbp_fail("dbpakref references an unexpected file name '${dbpak_name}'")
     endif()
-    set(dbpak_file "${FPSC_PROJECT_DIR}/${dbpak_name}")
+    dbp_require_file("${FPSC_PROJECT_DIR}/${dbpak_name}" "package")
     message(STATUS "[dbp-deploy] dbpakref references ${dbpak_name}")
-    dbp_sync_file("${exe_file}" "${FPSC_FILES_DIR}" "executable")
-    dbp_sync_file("${ref_file}" "${FPSC_FILES_DIR}" "reference")
-    dbp_sync_file("${dbpak_file}" "${FPSC_FILES_DIR}" "package")
 else()
     dbp_fail("unknown MODE '${MODE}' (expected verify|package)")
 endif()

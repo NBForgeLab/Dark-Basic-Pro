@@ -3550,25 +3550,175 @@ DARKSDK void ArrayIndexToQueue(DWORD_PTR dwArrayPtr)
 
 // HARDCODE COMMANDS
 
+// 32-bit address pool allocator for MakeByteMemory / DeleteByteMemory.
+// DarkBASIC variables (and arrays like refmap) store pointers as 32-bit DWORDs,
+// and x64 JIT dereferences pointers with 32-bit zero-extended instructions (e.g. mov eax, [ptr]; mov [rax], ecx).
+// Therefore, memory allocated by MakeByteMemory MUST be within the 32-bit virtual address range (< 4GB).
+namespace {
+
+struct ByteMemChunk {
+	uint32_t magic;         // 0x504F4F4C ('POOL')
+	uint32_t payload_size;  // User-requested byte size
+	uint32_t is_free;       // 1 if free, 0 if allocated
+	uint32_t total_size;    // Total size of this chunk including header (16-byte aligned)
+	ByteMemChunk* next_phys;// Physically adjacent next chunk in pool
+	ByteMemChunk* prev_phys;// Physically adjacent prev chunk in pool
+};
+
+static constexpr uint32_t kByteMemMagic = 0x504F4F4C;
+static constexpr size_t kByteMemPoolSize = 64 * 1024 * 1024; // 64 MB
+static void* g_pByteMemPool = nullptr;
+static ByteMemChunk* g_pFirstByteMemChunk = nullptr;
+static CRITICAL_SECTION g_ByteMemLock;
+static bool g_bByteMemLockInit = false;
+
+static void InitByteMemPool()
+{
+	if (!g_bByteMemLockInit)
+	{
+		InitializeCriticalSection(&g_ByteMemLock);
+		g_bByteMemLockInit = true;
+	}
+
+	EnterCriticalSection(&g_ByteMemLock);
+	if (!g_pByteMemPool)
+	{
+		// Probe 32-bit user space addresses (< 2GB / < 4GB)
+		for (uintptr_t addr = 0x20000000; addr <= 0x70000000; addr += 0x01000000)
+		{
+			void* p = VirtualAlloc(reinterpret_cast<void*>(addr), kByteMemPoolSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+			if (p)
+			{
+				g_pByteMemPool = p;
+				g_pFirstByteMemChunk = reinterpret_cast<ByteMemChunk*>(p);
+				g_pFirstByteMemChunk->magic = kByteMemMagic;
+				g_pFirstByteMemChunk->payload_size = 0;
+				g_pFirstByteMemChunk->is_free = 1;
+				g_pFirstByteMemChunk->total_size = static_cast<uint32_t>(kByteMemPoolSize);
+				g_pFirstByteMemChunk->next_phys = nullptr;
+				g_pFirstByteMemChunk->prev_phys = nullptr;
+				break;
+			}
+		}
+	}
+	LeaveCriticalSection(&g_ByteMemLock);
+}
+
+} // anonymous namespace
+
 DARKSDK DWORD_PTR MakeByteMemory(int iSize)
 {
+	if (iSize <= 0) return 0;
+	InitByteMemPool();
+
+	EnterCriticalSection(&g_ByteMemLock);
+	if (g_pByteMemPool)
+	{
+		uint32_t aligned_payload = (static_cast<uint32_t>(iSize) + 15u) & ~15u;
+		uint32_t needed_total = static_cast<uint32_t>(sizeof(ByteMemChunk)) + aligned_payload;
+
+		ByteMemChunk* cur = g_pFirstByteMemChunk;
+		while (cur)
+		{
+			if (cur->is_free && cur->total_size >= needed_total)
+			{
+				uint32_t remaining = cur->total_size - needed_total;
+				if (remaining >= sizeof(ByteMemChunk) + 16u)
+				{
+					ByteMemChunk* split = reinterpret_cast<ByteMemChunk*>(reinterpret_cast<char*>(cur) + needed_total);
+					split->magic = kByteMemMagic;
+					split->payload_size = 0;
+					split->is_free = 1;
+					split->total_size = remaining;
+					split->next_phys = cur->next_phys;
+					split->prev_phys = cur;
+					if (cur->next_phys)
+						cur->next_phys->prev_phys = split;
+					cur->next_phys = split;
+					cur->total_size = needed_total;
+				}
+				cur->is_free = 0;
+				cur->payload_size = static_cast<uint32_t>(iSize);
+				LeaveCriticalSection(&g_ByteMemLock);
+				return reinterpret_cast<DWORD_PTR>(reinterpret_cast<char*>(cur) + sizeof(ByteMemChunk));
+			}
+			cur = cur->next_phys;
+		}
+	}
+	LeaveCriticalSection(&g_ByteMemLock);
+
+	// Fallback: Individual page allocation below 4GB if 64MB pool ever runs out
+	for (uintptr_t addr = 0x20000000; addr <= 0x7FFF0000; addr += 0x00010000)
+	{
+		size_t alloc_sz = (static_cast<size_t>(iSize) + 4095u) & ~4095u;
+		void* p = VirtualAlloc(reinterpret_cast<void*>(addr), alloc_sz, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		if (p) return reinterpret_cast<DWORD_PTR>(p);
+	}
+
+	// Ultimate fallback
 	LPSTR pMem = new char[iSize];
-	return (DWORD_PTR)pMem;
+	return reinterpret_cast<DWORD_PTR>(pMem);
 }
 
 DARKSDK void DeleteByteMemory(DWORD_PTR dwMem)
 {
-	if(dwMem && IsDynamicArrayMemory((const void*)dwMem)) delete[] (LPSTR)dwMem;
+	if (!dwMem) return;
+
+	if (g_pByteMemPool && dwMem >= reinterpret_cast<DWORD_PTR>(g_pByteMemPool) &&
+		dwMem < reinterpret_cast<DWORD_PTR>(g_pByteMemPool) + kByteMemPoolSize)
+	{
+		EnterCriticalSection(&g_ByteMemLock);
+		ByteMemChunk* cur = reinterpret_cast<ByteMemChunk*>(reinterpret_cast<char*>(dwMem) - sizeof(ByteMemChunk));
+		if (cur->magic == kByteMemMagic && !cur->is_free)
+		{
+			cur->is_free = 1;
+			// Coalesce forward
+			if (cur->next_phys && cur->next_phys->is_free)
+			{
+				cur->total_size += cur->next_phys->total_size;
+				cur->next_phys = cur->next_phys->next_phys;
+				if (cur->next_phys)
+					cur->next_phys->prev_phys = cur;
+			}
+			// Coalesce backward
+			if (cur->prev_phys && cur->prev_phys->is_free)
+			{
+				cur->prev_phys->total_size += cur->total_size;
+				cur->prev_phys->next_phys = cur->next_phys;
+				if (cur->next_phys)
+					cur->next_phys->prev_phys = cur->prev_phys;
+			}
+		}
+		LeaveCriticalSection(&g_ByteMemLock);
+		return;
+	}
+
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(reinterpret_cast<const void*>(dwMem), &mbi, sizeof(mbi)) == sizeof(mbi))
+	{
+		if (mbi.AllocationBase == reinterpret_cast<void*>(dwMem))
+		{
+			VirtualFree(reinterpret_cast<void*>(dwMem), 0, MEM_RELEASE);
+			return;
+		}
+	}
+
+	if (IsDynamicArrayMemory(reinterpret_cast<const void*>(dwMem)))
+	{
+		delete[] reinterpret_cast<char*>(dwMem);
+	}
 }
 
 DARKSDK void FillByteMemory(DWORD_PTR dwDest, int iValue, int iSize)
 {
-	memset((LPSTR)dwDest, iValue, iSize);
+	if (dwDest && iSize > 0)
+		memset(reinterpret_cast<char*>(dwDest), iValue, iSize);
 }
 
 DARKSDK void CopyByteMemory(DWORD_PTR dwDest, DWORD_PTR dwSrc, int iSize)
 {
-	memcpy((LPSTR)dwDest, (LPSTR)dwSrc, iSize);
+	if (dwDest && dwSrc && iSize > 0)
+		memcpy(reinterpret_cast<char*>(dwDest), reinterpret_cast<const char*>(dwSrc), iSize);
 }
 
 // DATA STATEMENT COMMAND FUNCTIONS
@@ -3994,9 +4144,25 @@ DARKSDK DWORD LessEqualLFF(float fValueA, float fValueB)
 
 // STRING COMPARE MATHS
 
-static inline size_t SafeStrLen(DWORD_PTR ptr)
+static inline bool IsReadablePointer(DWORD_PTR ptr)
 {
 	if (ptr <= 0x10000 || ptr >= 0x00007FFFFFFFFFFFULL)
+		return false;
+	MEMORY_BASIC_INFORMATION mbi{};
+	if (VirtualQuery(reinterpret_cast<const void*>(ptr), &mbi, sizeof(mbi)) != sizeof(mbi))
+		return false;
+	if (mbi.State != MEM_COMMIT)
+		return false;
+	if ((mbi.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) == 0)
+		return false;
+	if (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS))
+		return false;
+	return true;
+}
+
+static inline size_t SafeStrLen(DWORD_PTR ptr)
+{
+	if (!IsReadablePointer(ptr))
 		return 0;
 	__try {
 		const char* s = reinterpret_cast<const char*>(ptr);
@@ -4011,7 +4177,7 @@ static inline void SafeStrCopy(char* dest, DWORD_PTR src, size_t maxLen)
 {
 	if (!dest || maxLen == 0) return;
 	dest[0] = '\0';
-	if (src <= 0x10000 || src >= 0x00007FFFFFFFFFFFULL)
+	if (!IsReadablePointer(src))
 		return;
 	__try {
 		const char* s = reinterpret_cast<const char*>(src);
@@ -4030,12 +4196,11 @@ static inline bool IsValidStringPointer(DWORD_PTR ptr)
 	return SafeStrLen(ptr) > 0;
 }
 
-// Range-check a candidate string pointer without touching memory; NULL and
-// out-of-range values are treated as the empty string (DBPro convention: an
-// unassigned or freed string variable is NULL and compares equal to "").
+// Range-check and probe a candidate string pointer; NULL and
+// invalid/uncommitted addresses are treated as the empty string (DBPro convention).
 static inline const char* StringPtrOrEmpty(DWORD_PTR ptr)
 {
-	if (ptr <= 0x10000 || ptr >= 0x00007FFFFFFFFFFFULL)
+	if (!IsReadablePointer(ptr))
 		return "";
 	return reinterpret_cast<const char*>(ptr);
 }

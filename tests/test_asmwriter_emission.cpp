@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <cstring>
+#include <vector>
 #include <windows.h>
 #include "DBPLogger.h"
 #include "ASMWriter.h"
@@ -151,6 +152,188 @@ TEST_F(ASMWriterEmissionTest, RegistersDllCommandInTable) {
     EXPECT_GT(m_pWriter->AddCommandToTable((LPSTR)"@mycore.dll", (LPSTR)"@myfunc"), 0u);
 }
 
+// A 32-bit ADD/SUB against RAX zero-extends into the full register, so the
+// accumulator forms (05 = ADD EAX,imm32 / 2D = SUB EAX,imm32) silently destroy
+// bits 32-63 of any pointer held in RAX. Every site that adjusts a pointer must
+// emit the REX.W forms instead: 48 81 C0 = ADD RAX,imm32, 48 81 E8 = SUB
+// RAX,imm32. Both keep the 4-byte immediate slot, so the reference-fixup width
+// recorded in the executable block is unchanged; only the instruction grows.
+namespace {
+
+// Returns the offset of the first occurrence of pNeedle in the window, or -1.
+ptrdiff_t FindBytes(const unsigned char* pWindow, size_t nWindow,
+                    const std::vector<unsigned char>& needle) {
+    if (needle.empty() || nWindow < needle.size()) return -1;
+    for (size_t i = 0; i + needle.size() <= nWindow; i++) {
+        if (memcmp(pWindow + i, needle.data(), needle.size()) == 0)
+            return static_cast<ptrdiff_t>(i);
+    }
+    return -1;
+}
+
+} // namespace
+
+// WriteASMARRtoRAX with a user-defined array element type (1101) has already
+// formed the 64-bit element address in RAX via ADD RAX,RBX; the field offset
+// that follows must not truncate it.
+TEST_F(ASMWriterEmissionTest, UdtArrayElementFieldOffsetUses64BitAddImmediate) {
+    CStr arr("@&udtarr");
+    CStr index("3");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    m_pWriter->WriteASMARRtoRAX(static_cast<DWORD>(ParamMode::MemArr), &arr, &index,
+                                static_cast<DWORD>(DBPType::UserDefinedArrayPtr), 0u);
+
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    ASSERT_GT(after, before);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+
+    // Anchor on POP RDX; ADD RAX,RBX - the direct-layout element address.
+    const ptrdiff_t anchor = FindBytes(code, after - before, {0x5A, 0x48, 0x01, 0xD8});
+    ASSERT_GE(anchor, 0) << "element address sequence not emitted";
+    EXPECT_EQ(code[anchor + 4], 0x48u);
+    EXPECT_EQ(code[anchor + 5], 0x81u);
+    EXPECT_EQ(code[anchor + 6], 0xC0u);
+}
+
+// PushAddress of a local (RBP-relative) operand: MOV RAX,RBP then the frame
+// offset. The frame offset arithmetic runs on a pointer.
+TEST_F(ASMWriterEmissionTest, PushAddressLocalOffsetUses64BitAddImmediate) {
+    CStr local("@:12");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCore(
+        1u, static_cast<DWORD>(ASMTask::PushAddress),
+        &local, nullptr, static_cast<DWORD>(DBPType::UserDefinedPtr), 0u,
+        nullptr, nullptr, 0u, 0u));
+
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    ASSERT_GT(after, before);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+
+    // MOV RAX,RBP (48 89 E8) | ADD RAX,imm32 (48 81 C0 + 4) | PUSH RAX (50)
+    EXPECT_EQ(after - before, 11u);
+    EXPECT_EQ(code[0], 0x48u);
+    EXPECT_EQ(code[1], 0x89u);
+    EXPECT_EQ(code[2], 0xE8u);
+    EXPECT_EQ(code[3], 0x48u);
+    EXPECT_EQ(code[4], 0x81u);
+    EXPECT_EQ(code[5], 0xC0u);
+    EXPECT_EQ(code[10], 0x50u);
+}
+
+// PushAddress of a global operand carrying an additional member offset:
+// MOVABS RAX,imm64 then ADD RAX,imm32.
+TEST_F(ASMWriterEmissionTest, PushAddressMemberOffsetUses64BitAddImmediate) {
+    CStr udtPtr("@myudtptr");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCore(
+        1u, static_cast<DWORD>(ASMTask::PushAddress),
+        &udtPtr, nullptr, static_cast<DWORD>(DBPType::UserDefinedPtr), 8u,
+        nullptr, nullptr, 0u, 0u));
+
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    ASSERT_GT(after, before);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+
+    // MOVABS RAX,imm64 (48 B8 + 8) | ADD RAX,imm32 (48 81 C0 + 4) | PUSH RAX
+    EXPECT_EQ(after - before, 18u);
+    EXPECT_EQ(code[0], 0x48u);
+    EXPECT_EQ(code[1], 0xB8u);
+    EXPECT_EQ(code[10], 0x48u);
+    EXPECT_EQ(code[11], 0x81u);
+    EXPECT_EQ(code[12], 0xC0u);
+    EXPECT_EQ(code[17], 0x50u);
+}
+
+// PushUdt of a local (RBP-relative) UDT: the frame offset and the advance to
+// the end of the UDT data both operate on a pointer.
+TEST_F(ASMWriterEmissionTest, PushUdtLocalOffsetsUse64BitAddImmediate) {
+    CStr local("@:12");
+    CStr udtSize("16");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCore(
+        1u, static_cast<DWORD>(ASMTask::PushUdt),
+        &local, nullptr, static_cast<DWORD>(DBPType::UserDefinedPtr), 0u,
+        &udtSize, nullptr, 0u, 0u));
+
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    ASSERT_GT(after, before);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+
+    // MOV RAX,RBP (3) | ADD RAX,imm32 (7) | ADD RAX,imm32 (7)
+    EXPECT_EQ(after - before, 17u);
+    EXPECT_EQ(code[0], 0x48u);
+    EXPECT_EQ(code[1], 0x89u);
+    EXPECT_EQ(code[2], 0xE8u);
+    EXPECT_EQ(code[3], 0x48u);
+    EXPECT_EQ(code[4], 0x81u);
+    EXPECT_EQ(code[5], 0xC0u);
+    EXPECT_EQ(code[10], 0x48u);
+    EXPECT_EQ(code[11], 0x81u);
+    EXPECT_EQ(code[12], 0xC0u);
+}
+
+// PushUdt of a global UDT carrying an additional member offset: both the member
+// offset and the advance to the end of the UDT data adjust a pointer.
+TEST_F(ASMWriterEmissionTest, PushUdtMemberOffsetsUse64BitAddImmediate) {
+    CStr udtPtr("@myudtptr");
+    CStr udtSize("16");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCore(
+        1u, static_cast<DWORD>(ASMTask::PushUdt),
+        &udtPtr, nullptr, static_cast<DWORD>(DBPType::UserDefinedPtr), 8u,
+        &udtSize, nullptr, 0u, 0u));
+
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    ASSERT_GT(after, before);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+
+    // MOV EAX,imm32 (5) | ADD RAX,imm32 (7) | ADD RAX,imm32 (7)
+    EXPECT_EQ(after - before, 19u);
+    EXPECT_EQ(code[0], 0xB8u);
+    EXPECT_EQ(code[5], 0x48u);
+    EXPECT_EQ(code[6], 0x81u);
+    EXPECT_EQ(code[7], 0xC0u);
+    EXPECT_EQ(code[12], 0x48u);
+    EXPECT_EQ(code[13], 0x81u);
+    EXPECT_EQ(code[14], 0xC0u);
+}
+
+// PushUdt walks the UDT's stack slots backwards from the end pointer, so the
+// per-slot decrement is pointer arithmetic too.
+TEST_F(ASMWriterEmissionTest, PushUdtSlotWalkUses64BitSubImmediate) {
+    CStr udtPtr("@myudtptr");
+    CStr udtSize("16");
+    const auto before = m_pWriter->GetCurrentMCPosition();
+
+    ASSERT_TRUE(m_pWriter->WriteASMTaskCore(
+        1u, static_cast<DWORD>(ASMTask::PushUdt),
+        &udtPtr, nullptr, static_cast<DWORD>(DBPType::UserDefinedPtr), 0u,
+        &udtSize, nullptr, 0u, 1u));
+
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    ASSERT_GT(after, before);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+
+    // MOV EAX,imm32 (5) | ADD RAX,imm32 (7) | SUB RAX,imm32 (7) | PUSH [RAX] (2)
+    EXPECT_EQ(after - before, 21u);
+    EXPECT_EQ(code[12], 0x48u);
+    EXPECT_EQ(code[13], 0x81u);
+    EXPECT_EQ(code[14], 0xE8u);
+    EXPECT_EQ(code[19], 0xFFu);
+    EXPECT_EQ(code[20], 0x30u);
+}
+
 // HideAnyHiddenCode replaces printable characters between HIDESTART and
 // HIDEEND markers with 'X', leaving the markers themselves and any code
 // outside the hidden region untouched.
@@ -178,3 +361,17 @@ TEST_F(ASMWriterEmissionTest, HideAnyHiddenCodeCaseInsensitiveMarkers) {
     ASSERT_TRUE(CDebuggerInterface::HideAnyHiddenCode(data, len));
     EXPECT_STREQ(data, "beforehidestartXXXXXXhideendafter");
 }
+
+TEST_F(ASMWriterEmissionTest, EmitsShlImm8ExactlyThreeBytes) {
+    const auto before = m_pWriter->GetCurrentMCPosition();
+    CStr val("20");
+    ASSERT_TRUE(m_pWriter->WriteASMLine2IMM(static_cast<DWORD>(ASMOp::SHLRAX4), nullptr, val.GetStr(), 0u));
+    const auto after = m_pWriter->GetCurrentMCPosition();
+    EXPECT_EQ(after - before, 3u);
+    const auto* code = reinterpret_cast<const unsigned char*>(
+        m_pWriter->GetMachineCodeBuffer().GetProgramStart()) + before;
+    EXPECT_EQ(code[0], 0xC1u);
+    EXPECT_EQ(code[1], 0xE0u);
+    EXPECT_EQ(code[2], 0x14u); // 20 decimal = 0x14
+}
+

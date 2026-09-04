@@ -256,11 +256,10 @@ if(DBP_FPSC_DEPLOY_ENABLED)
         COMMAND ${CMAKE_COMMAND}
             "-DMODE=package"
             "-DFPSC_PROJECT_DIR=${DBP_FPSC_PROJECT_DIR}"
-            "-DFPSC_FILES_DIR=${DBP_FPSC_FILES_DIR}"
             "-DFPSC_ARTIFACT_NAME=${DBP_FPSC_MAPEDITOR_NAME}"
             -P "${CMAKE_CURRENT_LIST_DIR}/dbp_deploy_sync.cmake"
         WORKING_DIRECTORY "${DBP_FPSC_PROJECT_DIR}"
-        COMMENT "Re-packaging ${DBP_FPSC_MAPEDITOR_PROJECT} and syncing the trio into Files/"
+        COMMENT "Re-packaging ${DBP_FPSC_MAPEDITOR_PROJECT} and verifying the trio in the project directory"
         VERBATIM)
 
     list(LENGTH DBP_FPSC_ALL_DEPLOYABLE_TARGETS DBP_FPSC_DEPLOYED_COUNT)

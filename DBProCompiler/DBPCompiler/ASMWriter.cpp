@@ -499,10 +499,15 @@ void CASMWriter::GenerateASMCodes(void)
 	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX1),		"ADD AL IMM1",		-1,		0x04,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX2),		"ADD AX IMM2",		0x66,	0x05,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::ADDRAX4),		"ADD EAX IMM",		-1,		0x05,	-1,		true);
+	// Pointer-safe forms: writing EAX zero-extends into RAX, so ADDRAX4 above
+	// destroys bits 32-63 of any pointer staged in the accumulator. Same
+	// 4-byte immediate slot, so reference fixup widths are unchanged.
+	DefineASM(static_cast<DWORD>(ASMOp::ADDRAXIMM8),	"ADD RAX IMM",		0x48,	0x81,	0xC0,	true);
 	
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX1),		"SUB AL IMM1",		-1,		0x2C,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX2),		"SUB AX IMM2",		0x66,	0x2D,	-1,		true);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAX4),		"SUB EAX IMM",		-1,		0x2D,	-1,		true);
+	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXIMM8),	"SUB RAX IMM",		0x48,	0x81,	0xE8,	true);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX1),	"SUB AL BL",		-1,		0x28,	0xD8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX2),	"SUB AX BX",		0x66,	0x29,	0xD8,	false);
 	DefineASM(static_cast<DWORD>(ASMOp::SUBRAXRBX4),	"SUB EAX EBX",		-1,		0x29,	0xD8,	false);
@@ -843,15 +848,23 @@ bool CASMWriter::CreateASMMiddleCore(int iPreOpCode, int iOpCode1, int iOpCode2,
 			CheckAndExpandREFMemory();
 
 			// REF or IMM
-			if(bSecondOpDataIsIMM==true && n==1)
+			const bool isImmediate = bSecondOpDataIsIMM && (n == 1 || !bHasOpData2);
+			if(isImmediate)
 			{
 				// WRITE IMM INTO MC
 				std::string strData(pData);
 				uint64_t dwDataAsQWORD = static_cast<uint64_t>(_atoi64(strData.c_str()));
-				DWORD dwByteSize = (iOpCode2 != -1)
-					? static_cast<DWORD>(DetermineSecondOpDataWidth(iPreOpCode, iOpCode1, iOpCode2))
-					: static_cast<DWORD>(DetermineOpDataWidth(iPreOpCode, iOpCode1, iOpCode2));
-				if (dwByteSize == 0) dwByteSize = 4;
+				DWORD dwByteSize = 0;
+				if (n == 1 && iOpData2Width > 0)
+					dwByteSize = static_cast<DWORD>(iOpData2Width);
+				else if (iOpDataWidth > 0)
+					dwByteSize = static_cast<DWORD>(iOpDataWidth);
+				else if (dwSecondOpDataIMMSize == 0) dwByteSize = 1;
+				else if (dwSecondOpDataIMMSize == 1) dwByteSize = 2;
+				else if (dwSecondOpDataIMMSize == 2) dwByteSize = 4;
+				else if (dwSecondOpDataIMMSize == 3) dwByteSize = 8;
+				else dwByteSize = 4;
+
 				m_machineCodeBuffer.WriteQWORD(dwDataAsQWORD, dwByteSize);
 			}
 			else
@@ -1837,13 +1850,13 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		if ( dwP1Mode==static_cast<DWORD>(ParamMode::Rbp) )
 		{
 			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXRBP), nullptr );
-			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAX4), pP1->GetStr()+2 );
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAXIMM8), pP1->GetStr()+2 );
 		}
 		if ( dwP1Offset>0 )
 		{
 			CStr num("");
 			num.SetNumericText(dwP1Offset);
-			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAX4), num.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAXIMM8), num.GetStr());
 		}
 		WriteASMLine(static_cast<DWORD>(ASMOp::PUSHRAX), nullptr);
 		RecordPendingCallArg(0, 1u);
@@ -2808,23 +2821,23 @@ bool CASMWriter::WriteASMTaskCore(DWORD dwLine, DWORD dwTask,	CStr* pP1, CStr* p
 		if ( dwP1Mode==static_cast<DWORD>(ParamMode::Rbp) )
 		{
 			WriteASMLine(static_cast<DWORD>(ASMOp::MOVRAXRBP), nullptr );
-			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAX4), pP1->GetStr()+2 );
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAXIMM8), pP1->GetStr()+2 );
 		}
 		if ( dwP1Offset>0 )
 		{
 			CStr num;
 			num.SetNumericText(dwP1Offset);
-			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAX4), num.GetStr());
+			WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAXIMM8), num.GetStr());
 		}
 
 		// Advance RAX to end of UDT data (UDT Size)
-		WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAX4), pP2->GetStr());
+		WriteASMLine(static_cast<DWORD>(ASMOp::ADDRAXIMM8), pP2->GetStr());
 
 		// advance to last data element
 		for ( DWORD n=0; n<dwP2Offset; n++)
 		{
 			// decrement udtptr (each slot on stack is 8 bytes on x64)
-			WriteASMLine(static_cast<DWORD>(ASMOp::SUBRAX4), "8");
+			WriteASMLine(static_cast<DWORD>(ASMOp::SUBRAXIMM8), "8");
 
 			// push udtptr to stack
 			WriteASMLine(static_cast<DWORD>(ASMOp::PUSHFROMRAX), nullptr);

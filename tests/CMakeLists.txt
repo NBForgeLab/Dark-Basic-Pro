@@ -117,6 +117,9 @@ add_executable(dbp_tests
     # Per-instruction and per-construct codegen matrices.
     codegen/test_codegen_instruction_matrix.cpp
     codegen/test_codegen_language_matrix.cpp
+    # A UDT array element's string member is an 8-byte pointer on x64; the
+    # compiler-generated deep clone must move it at pointer width.
+    codegen/test_codegen_udt_array_string_width.cpp
 
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"

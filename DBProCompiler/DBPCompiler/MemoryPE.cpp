@@ -295,6 +295,15 @@ HMODULE MemoryPE::LoadFromMemory(const char* data, size_t size, std::string_view
     MemoryModuleInfo* infoPtr = info.get();
     g_memoryModules[hModule] = std::move(info);
 
+#ifdef _WIN64
+    IMAGE_DATA_DIRECTORY* exceptionDir = &destNtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
+    if (exceptionDir->Size > 0 && exceptionDir->VirtualAddress != 0) {
+        PRUNTIME_FUNCTION pFunctionTable = (PRUNTIME_FUNCTION)(baseAddress + exceptionDir->VirtualAddress);
+        DWORD entryCount = exceptionDir->Size / sizeof(RUNTIME_FUNCTION);
+        RtlAddFunctionTable(pFunctionTable, entryCount, (DWORD64)baseAddress);
+    }
+#endif
+
     char dbgBuf[512];
     sprintf_s(dbgBuf, "[MemoryPE] Loaded module '%.*s' at %p (Entry=%x, Size=%x)\n", static_cast<int>(name.size()), name.data(), baseAddress, destNtHeaders->OptionalHeader.AddressOfEntryPoint, destNtHeaders->OptionalHeader.SizeOfImage);
     OutputDebugStringA(dbgBuf);
@@ -434,6 +443,14 @@ void MemoryPE::UnloadModule(HMODULE hModule) {
         DllMain_t pDllMain = (DllMain_t)(info->baseAddress + info->ntHeaders->OptionalHeader.AddressOfEntryPoint);
         pDllMain((HINSTANCE)info->baseAddress, DLL_PROCESS_DETACH, nullptr);
     }
+
+#ifdef _WIN64
+    IMAGE_DATA_DIRECTORY* exceptionDir = &info->ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
+    if (exceptionDir->Size > 0 && exceptionDir->VirtualAddress != 0) {
+        PRUNTIME_FUNCTION pFunctionTable = (PRUNTIME_FUNCTION)(info->baseAddress + exceptionDir->VirtualAddress);
+        RtlDeleteFunctionTable(pFunctionTable);
+    }
+#endif
     
     VirtualFree(info->baseAddress, 0, MEM_RELEASE);
     g_memoryModules.erase(it);
@@ -448,6 +465,13 @@ void MemoryPE::FreeAll() {
             DllMain_t pDllMain = (DllMain_t)(info->baseAddress + info->ntHeaders->OptionalHeader.AddressOfEntryPoint);
             pDllMain((HINSTANCE)info->baseAddress, DLL_PROCESS_DETACH, nullptr);
         }
+#ifdef _WIN64
+        IMAGE_DATA_DIRECTORY* exceptionDir = &info->ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
+        if (exceptionDir->Size > 0 && exceptionDir->VirtualAddress != 0) {
+            PRUNTIME_FUNCTION pFunctionTable = (PRUNTIME_FUNCTION)(info->baseAddress + exceptionDir->VirtualAddress);
+            RtlDeleteFunctionTable(pFunctionTable);
+        }
+#endif
         VirtualFree(info->baseAddress, 0, MEM_RELEASE);
         it = g_memoryModules.erase(it);
     }

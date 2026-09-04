@@ -79,6 +79,32 @@ enum class DataType : uint8_t {
     return IsPointerOrHandleType(static_cast<DBPType>(typeVal));
 }
 
+/**
+ * @brief True when the value being moved is itself a pointer, so it needs a
+ *        pointer-width operand.
+ *
+ * Distinct from IsPointerOrHandleType, which asks whether the variable slot
+ * holds a pointer and is therefore true for every array type (the handle is
+ * 64-bit even when the elements are bytes). This asks about the element value
+ * instead: a numeric array element is a value, while a string or user-defined
+ * element is an address.
+ */
+[[nodiscard]] constexpr bool IsPointerElementValue(DBPType type) noexcept {
+    switch (type) {
+        case DBPType::String:
+        case DBPType::StringArray:
+        case DBPType::UserDefinedPtr:
+        case DBPType::UserDefinedArrayPtr:
+            return true;
+        default:
+            return false;
+    }
+}
+
+[[nodiscard]] constexpr bool IsPointerElementValue(uint32_t typeVal) noexcept {
+    return IsPointerElementValue(static_cast<DBPType>(typeVal));
+}
+
 [[nodiscard]] constexpr bool IsNumericType(DBPType type) noexcept {
     switch (type) {
         case DBPType::Integer:

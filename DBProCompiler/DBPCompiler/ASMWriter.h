@@ -418,6 +418,13 @@ enum class ASMOp : int {
 	IMULRBXRDX                = 285, // IMUL RBX, RDX
 	ADDRAXRBX8                = 286, // ADD RAX, RBX (64-bit)
 	MOVRCXRAX8                = 287, // MOV RCX, RAX (full 64-bit value save)
+
+	// Accumulator adjust with a 32-bit immediate. The 05/2D forms (ADDRAX4,
+	// SUBRAX4) write EAX only, and writing a 32-bit register zero-extends into
+	// its 64-bit counterpart - so they silently clear bits 32-63 of any pointer
+	// staged in RAX. The REX.W forms below keep the same 4-byte immediate slot.
+	ADDRAXIMM8                = 288, // ADD RAX, imm32
+	SUBRAXIMM8                = 289, // SUB RAX, imm32
 };
 
 // Parameter mode codes (converted from #define constants)

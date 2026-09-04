@@ -1,0 +1,20 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "INT2MB_OK: 111,222,333"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+dim src(10)
+src(0) = 111
+src(1) = 222
+src(2) = 333
+make memblock from array 1, src(0)
+
+dim dst(10)
+make array from memblock dst(0), 1
+msg$ = "INT2MB_OK: " + str$(dst(0)) + "," + str$(dst(1)) + "," + str$(dst(2))
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end

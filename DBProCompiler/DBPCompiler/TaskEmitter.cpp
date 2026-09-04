@@ -52,6 +52,19 @@ uint32_t CTaskEmitter::DetermineASMCall(uint32_t dwASMCodeAsAByte, uint32_t dwTy
 
 uint32_t CTaskEmitter::DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, uint32_t dwTypeValue) const noexcept
 {
+	// A pointer-valued element is 8 bytes wide on x64, which base+{0,1,2} cannot
+	// express; it needs the dedicated 8-byte op.
+	if (IsPointerElementValue(dwTypeValue))
+	{
+		switch (dwASMCodeAsAByte)
+		{
+			case static_cast<uint32_t>(ASMOp::MOVRCXRAXOFF1): return static_cast<uint32_t>(ASMOp::MOVRCXRAXOFF8);
+			case static_cast<uint32_t>(ASMOp::MOVRAXRCX1):    return static_cast<uint32_t>(ASMOp::MOVRAXRCX8);
+			case static_cast<uint32_t>(ASMOp::MOVRAXOFFRCX1): return static_cast<uint32_t>(ASMOp::MOVRAXOFFRCX8);
+			default: break;
+		}
+	}
+
 	uint32_t dwAddressSizeCode = 0;
 	const auto type = static_cast<DBPType>(dwTypeValue);
 	switch (type)
@@ -63,12 +76,11 @@ uint32_t CTaskEmitter::DetermineASMCallForREL(uint32_t dwASMCodeAsAByte, uint32_
 			dwAddressSizeCode = 1; break; // RELATIVE ADDRESS TO A WORD
 		case DBPType::IntegerArray:
 		case DBPType::FloatArray:
-		case DBPType::StringArray:
 		case DBPType::DwordArray:
 		case DBPType::DoubleFloatArray:
 		case DBPType::DoubleIntegerArray:
 		default:
-			dwAddressSizeCode = 2; break; // RELATIVE ADDRESS TO A uint32_t / FLOAT / STRING PTR
+			dwAddressSizeCode = 2; break; // RELATIVE ADDRESS TO A uint32_t / FLOAT
 	}
 
 	return dwASMCodeAsAByte + dwAddressSizeCode;
@@ -116,9 +128,15 @@ uint32_t CTaskEmitter::DetermineParamMode(std::string_view p, uint32_t dwPType, 
 		// linearized index in the additional-offset token and must dereference
 		// through the direct-layout element data; a missing index token means
 		// the whole 64-bit handle is the operand (DIM/UNDIM/push-address).
+		//
+		// An 'H' command parameter wants the array base ADDRESS, so the caster
+		// retags the operand as Dword. Its "(0)" is mandatory syntax rather than
+		// an element selection, and the callee reads the header at negative
+		// offsets from the handle, so the whole handle must still be emitted.
 		if (isArrayHandle || IsArrayType(type))
 		{
-			if (pPIndex)
+			const bool wantsBaseAddress = isArrayHandle && type == DBPType::Dword;
+			if (pPIndex && !wantsBaseAddress)
 				return isRbp ? static_cast<uint32_t>(ParamMode::RbpArr) : static_cast<uint32_t>(ParamMode::MemArr);
 			return isRbp ? static_cast<uint32_t>(ParamMode::Rbp) : static_cast<uint32_t>(ParamMode::Mem);
 		}
@@ -178,7 +196,7 @@ void CTaskEmitter::WriteASMARRtoRAX(CASMWriter* pASMWriter, [[maybe_unused]] uin
 	switch(dwPType-100)
 	{
 		case 1001:
-					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::ADDRAX4), pOffset1Str->GetStr());
+					pASMWriter->WriteASMLine(static_cast<uint32_t>(ASMOp::ADDRAXIMM8), pOffset1Str->GetStr());
 					break;
 
 		case 3:

@@ -1,0 +1,15 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "ZEROELEM_OK"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+dim values(10)
+values(1) = 999
+make memblock from array 1, values(0)
+msg$ = "ZEROELEM_OK"
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end

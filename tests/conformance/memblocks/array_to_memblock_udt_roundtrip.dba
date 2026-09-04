@@ -1,0 +1,26 @@
+REM EXPECT: COMPILE_SUCCESS
+REM EXPECT: RUNTIME_OUTPUT "UDT2MB_OK: 42,43"
+REM EXPECT: EXIT_CODE 0
+REM EXPECT: TIMEOUT_SECONDS 5
+
+TYPE SegmentProfileType
+    id AS INTEGER
+    x AS FLOAT
+    y AS FLOAT
+ENDTYPE
+
+DIM src(8) AS SegmentProfileType
+src(0).id = 42
+src(0).x = 1.5
+src(1).id = 43
+make memblock from array 1, src(0)
+
+DIM dst(8) AS SegmentProfileType
+make array from memblock dst(0), 1
+msg$ = "UDT2MB_OK: " + str$(dst(0).id) + "," + str$(dst(1).id)
+
+if file exist("output.txt") = 1 then delete file "output.txt"
+open to write 1, "output.txt"
+write string 1, msg$
+close file 1
+end
