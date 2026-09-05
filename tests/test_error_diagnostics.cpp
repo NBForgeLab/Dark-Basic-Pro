@@ -15,14 +15,18 @@ namespace {
 class ErrorDiagnosticsTest : public ::testing::Test {
 protected:
     CRuntimeErrorHandler m_TestErrorHandler{0};
+    LPTOP_LEVEL_EXCEPTION_FILTER m_prevFilter{nullptr};
 
     void SetUp() override {
         m_TestErrorHandler.dwErrorCode = 0;
         g_pErrorHandler = &m_TestErrorHandler;
         ClearLastDiagnosticContext();
+        m_prevFilter = SetUnhandledExceptionFilter(nullptr);
+        SetUnhandledExceptionFilter(m_prevFilter);
     }
 
     void TearDown() override {
+        SetUnhandledExceptionFilter(m_prevFilter);
         ClearLastDiagnosticContext();
         g_pErrorHandler = nullptr;
     }
@@ -146,3 +150,205 @@ TEST_F(ErrorDiagnosticsTest, ConcurrentThreadsDiagnosticsSafety) {
     ASSERT_NE(ctx, nullptr);
     EXPECT_EQ(ctx->errorCode, static_cast<uint32_t>(RUNTIMEERROR_NOTENOUGHMEMORY));
 }
+
+TEST_F(ErrorDiagnosticsTest, RunTimeErrorExCapturesSourceFileAndLine) {
+    const char* clue = "File bounds check failed";
+    const char* fn = "OpenFileDirect";
+    const char* file = "FileCore.cpp";
+    const uint32_t line = 142;
+
+    RunTimeErrorEx(RUNTIMEERROR_CANNOTOPENFILEFORREADING, clue, fn, file, line);
+
+    const DBP_DiagnosticContext* ctx = GetLastDiagnosticContext();
+    ASSERT_NE(ctx, nullptr);
+    EXPECT_EQ(ctx->errorCode, static_cast<uint32_t>(RUNTIMEERROR_CANNOTOPENFILEFORREADING));
+    EXPECT_STREQ(ctx->clue, clue);
+    EXPECT_STREQ(ctx->sourceFunction, fn);
+    EXPECT_STREQ(ctx->sourceFile, file);
+    EXPECT_EQ(ctx->sourceLine, line);
+    EXPECT_STREQ(ctx->description, "Cannot open file for reading");
+}
+
+TEST_F(ErrorDiagnosticsTest, DbpRecordErrorMacroCapturesSourceLocation) {
+    const char* clue = "Database entry corrupt";
+    const int expectedLine = __LINE__ + 1;
+    DBP_RECORD_ERROR(RUNTIMEERROR_INVALIDFILE, clue);
+
+    const DBP_DiagnosticContext* ctx = GetLastDiagnosticContext();
+    ASSERT_NE(ctx, nullptr);
+    EXPECT_EQ(ctx->errorCode, static_cast<uint32_t>(RUNTIMEERROR_INVALIDFILE));
+    EXPECT_STREQ(ctx->clue, clue);
+    EXPECT_STRNE(ctx->sourceFunction, "");
+    EXPECT_NE(strstr(ctx->sourceFile, "test_error_diagnostics.cpp"), nullptr);
+    EXPECT_EQ(ctx->sourceLine, static_cast<uint32_t>(expectedLine));
+    EXPECT_STREQ(ctx->description, "Invalid file");
+}
+
+TEST_F(ErrorDiagnosticsTest, DbpHandlePluginExceptionLogsAndHandlesSafely) {
+    LONG resNull = DBP_HandlePluginException(nullptr, "NullTest");
+    EXPECT_EQ(resNull, EXCEPTION_CONTINUE_SEARCH);
+
+    EXCEPTION_RECORD record{};
+    record.ExceptionCode = static_cast<DWORD>(0xC0000005);
+    record.ExceptionAddress = reinterpret_cast<void*>(&GetRuntimeErrorDescription);
+
+    CONTEXT contextRecord{};
+    EXCEPTION_POINTERS exInfo{};
+    exInfo.ExceptionRecord = &record;
+    exInfo.ContextRecord = &contextRecord;
+
+    LONG res = DBP_HandlePluginException(&exInfo, "AccessViolationSimulated");
+    EXPECT_EQ(res, EXCEPTION_EXECUTE_HANDLER);
+
+    const DBP_DiagnosticContext* ctx = GetLastDiagnosticContext();
+    ASSERT_NE(ctx, nullptr);
+    EXPECT_EQ(ctx->errorCode, static_cast<uint32_t>(RUNTIMEERROR_GENERICERROR));
+    EXPECT_NE(strstr(ctx->clue, "0xC0000005"), nullptr);
+    EXPECT_NE(strstr(ctx->clue, "ACCESS_VIOLATION"), nullptr);
+    EXPECT_STREQ(ctx->sourceFunction, "AccessViolationSimulated");
+    EXPECT_NE(strstr(ctx->sourceFile, "dbp_tests"), nullptr);
+    EXPECT_EQ(m_TestErrorHandler.dwErrorCode, static_cast<DWORD>(RUNTIMEERROR_GENERICERROR));
+}
+
+TEST_F(ErrorDiagnosticsTest, DbpUnhandledExceptionFilterGeneratesDmpAndTxtReportsAndCleansUp) {
+    DBP_RECORD_ERROR(RUNTIMEERROR_NOTENOUGHMEMORY, "Allocation failed in mesh builder");
+
+    EXCEPTION_RECORD record{};
+    record.ExceptionCode = static_cast<DWORD>(0xC0000005);
+    record.ExceptionAddress = reinterpret_cast<void*>(&GetRuntimeErrorDescription);
+
+    CONTEXT contextRecord{};
+    contextRecord.ContextFlags = CONTEXT_FULL;
+    RtlCaptureContext(&contextRecord);
+
+    EXCEPTION_POINTERS exInfo{};
+    exInfo.ExceptionRecord = &record;
+    exInfo.ContextRecord = &contextRecord;
+
+    LONG res = DBP_UnhandledExceptionFilter(&exInfo);
+    EXPECT_EQ(res, EXCEPTION_EXECUTE_HANDLER);
+
+    WIN32_FIND_DATAA fd{};
+    HANDLE hFind = FindFirstFileA("*_Crash_*.txt", &fd);
+    std::vector<std::string> txtFiles;
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            txtFiles.push_back(fd.cFileName);
+        } while (FindNextFileA(hFind, &fd));
+        FindClose(hFind);
+    }
+
+    HANDLE hFindDmp = FindFirstFileA("*_Crash_*.dmp", &fd);
+    std::vector<std::string> dmpFiles;
+    if (hFindDmp != INVALID_HANDLE_VALUE) {
+        do {
+            dmpFiles.push_back(fd.cFileName);
+        } while (FindNextFileA(hFindDmp, &fd));
+        FindClose(hFindDmp);
+    }
+
+    EXPECT_FALSE(txtFiles.empty());
+    EXPECT_FALSE(dmpFiles.empty());
+
+    for (const auto& file : txtFiles) {
+        FILE* fp = nullptr;
+        fopen_s(&fp, file.c_str(), "r");
+        if (fp) {
+            char buffer[4096] = {};
+            fread(buffer, 1, sizeof(buffer) - 1, fp);
+            fclose(fp);
+
+            EXPECT_NE(strstr(buffer, "0xC0000005"), nullptr);
+            EXPECT_NE(strstr(buffer, "ACCESS_VIOLATION"), nullptr);
+            EXPECT_NE(strstr(buffer, "Allocation failed in mesh builder"), nullptr);
+            EXPECT_NE(strstr(buffer, "Not enough memory"), nullptr);
+            EXPECT_NE(strstr(buffer, "MiniDump File:"), nullptr);
+            EXPECT_NE(strstr(buffer, "MiniDump Written:  yes"), nullptr);
+            EXPECT_NE(strstr(buffer, "Source Line:"), nullptr);
+            EXPECT_NE(strstr(buffer, "Source File:"), nullptr);
+            EXPECT_NE(strstr(buffer, "Source Function:"), nullptr);
+        }
+        DeleteFileA(file.c_str());
+    }
+
+    for (const auto& file : dmpFiles) {
+        DeleteFileA(file.c_str());
+    }
+
+    EXPECT_EQ(FindFirstFileA("*_Crash_*.txt", &fd), INVALID_HANDLE_VALUE);
+    EXPECT_EQ(FindFirstFileA("*_Crash_*.dmp", &fd), INVALID_HANDLE_VALUE);
+}
+
+TEST_F(ErrorDiagnosticsTest, DbpUnhandledExceptionFilterWithoutPriorContextOutputsDefaultFieldsAndCleansUp) {
+    ClearLastDiagnosticContext();
+
+    EXCEPTION_RECORD record{};
+    record.ExceptionCode = static_cast<DWORD>(0xC0000005);
+    record.ExceptionAddress = reinterpret_cast<void*>(&GetRuntimeErrorDescription);
+
+    CONTEXT contextRecord{};
+    contextRecord.ContextFlags = CONTEXT_FULL;
+    RtlCaptureContext(&contextRecord);
+
+    EXCEPTION_POINTERS exInfo{};
+    exInfo.ExceptionRecord = &record;
+    exInfo.ContextRecord = &contextRecord;
+
+    LONG res = DBP_UnhandledExceptionFilter(&exInfo);
+    EXPECT_EQ(res, EXCEPTION_EXECUTE_HANDLER);
+
+    WIN32_FIND_DATAA fd{};
+    HANDLE hFind = FindFirstFileA("*_Crash_*.txt", &fd);
+    std::vector<std::string> txtFiles;
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            txtFiles.push_back(fd.cFileName);
+        } while (FindNextFileA(hFind, &fd));
+        FindClose(hFind);
+    }
+
+    HANDLE hFindDmp = FindFirstFileA("*_Crash_*.dmp", &fd);
+    std::vector<std::string> dmpFiles;
+    if (hFindDmp != INVALID_HANDLE_VALUE) {
+        do {
+            dmpFiles.push_back(fd.cFileName);
+        } while (FindNextFileA(hFindDmp, &fd));
+        FindClose(hFindDmp);
+    }
+
+    EXPECT_FALSE(txtFiles.empty());
+    EXPECT_FALSE(dmpFiles.empty());
+
+    for (const auto& file : txtFiles) {
+        FILE* fp = nullptr;
+        fopen_s(&fp, file.c_str(), "r");
+        if (fp) {
+            char buffer[4096] = {};
+            fread(buffer, 1, sizeof(buffer) - 1, fp);
+            fclose(fp);
+
+            EXPECT_NE(strstr(buffer, "0xC0000005"), nullptr);
+            EXPECT_NE(strstr(buffer, "ACCESS_VIOLATION"), nullptr);
+            EXPECT_NE(strstr(buffer, "Source Function:   None"), nullptr);
+            EXPECT_NE(strstr(buffer, "Source File:       None"), nullptr);
+            EXPECT_NE(strstr(buffer, "Source Line:       0"), nullptr);
+            EXPECT_NE(strstr(buffer, "No prior runtime error recorded in diagnostic context."), nullptr);
+            EXPECT_NE(strstr(buffer, "MiniDump Written:  yes"), nullptr);
+        }
+        DeleteFileA(file.c_str());
+    }
+
+    for (const auto& file : dmpFiles) {
+        DeleteFileA(file.c_str());
+    }
+
+    EXPECT_EQ(FindFirstFileA("*_Crash_*.txt", &fd), INVALID_HANDLE_VALUE);
+    EXPECT_EQ(FindFirstFileA("*_Crash_*.dmp", &fd), INVALID_HANDLE_VALUE);
+}
+
+TEST_F(ErrorDiagnosticsTest, DbpInstallCrashHandlerRegistersFilter) {
+    EXPECT_NO_THROW({
+        DBP_InstallCrashHandler();
+    });
+}
+

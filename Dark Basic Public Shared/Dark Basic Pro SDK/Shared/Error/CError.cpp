@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdint>
 #include <string_view>
+#include <DbgHelp.h>
 
 #pragma comment ( lib, "user32.lib" )
 #define DB_PRO 1
@@ -176,7 +177,7 @@ DARKSDK void ClearLastDiagnosticContext()
 	ReleaseSRWLockExclusive(&g_DiagLock);
 }
 
-void RunTimeErrorEx(DWORD dwErrorCode, const char* pStrClue, const char* pFunctionName)
+void RunTimeErrorEx(DWORD dwErrorCode, const char* pStrClue, const char* pFunctionName, const char* pSourceFile, uint32_t sourceLine)
 {
 	// 1. High-resolution timestamp
 	LARGE_INTEGER count{}, freq{};
@@ -214,6 +215,16 @@ void RunTimeErrorEx(DWORD dwErrorCode, const char* pStrClue, const char* pFuncti
 		g_LastDiagnosticContext.sourceFunction[0] = 0;
 	}
 
+	if (pSourceFile)
+	{
+		strncpy_s(g_LastDiagnosticContext.sourceFile, sizeof(g_LastDiagnosticContext.sourceFile), pSourceFile, _TRUNCATE);
+	}
+	else
+	{
+		g_LastDiagnosticContext.sourceFile[0] = 0;
+	}
+	g_LastDiagnosticContext.sourceLine = sourceLine;
+
 	// 3. Assign error code to engine error handler pointer (ABI-compatible)
 	if (g_pErrorHandler)
 	{
@@ -222,12 +233,16 @@ void RunTimeErrorEx(DWORD dwErrorCode, const char* pStrClue, const char* pFuncti
 
 	// 4. Non-blocking real-time diagnostic output via OutputDebugStringA
 	char szDbg[1024];
-	snprintf(szDbg, sizeof(szDbg), "[DBP_ERROR] Code %lu (%s): %s%s%s (Thread: %lu, Time: %llu us)\n",
+	snprintf(szDbg, sizeof(szDbg), "[DBP_ERROR] Code %lu (%s): %s%s%s%s%s%s%u (Thread: %lu, Time: %llu us)\n",
 		dwErrorCode,
 		desc,
 		pStrClue ? pStrClue : "No detail",
 		pFunctionName ? " in " : "",
 		pFunctionName ? pFunctionName : "",
+		pSourceFile ? " at " : "",
+		pSourceFile ? pSourceFile : "",
+		sourceLine ? ":" : "",
+		sourceLine,
 		dwThreadId,
 		static_cast<unsigned long long>(uTimestampUs));
 
@@ -260,12 +275,12 @@ void RunTimeErrorEx(DWORD dwErrorCode, const char* pStrClue, const char* pFuncti
 
 void RunTimeError(DWORD dwErrorCode)
 {
-	RunTimeErrorEx(dwErrorCode, nullptr, nullptr);
+	RunTimeErrorEx(dwErrorCode, nullptr, nullptr, nullptr, 0);
 }
 
 void RunTimeError(DWORD dwErrorCode, const char* pStrClue)
 {
-	RunTimeErrorEx(dwErrorCode, pStrClue, nullptr);
+	RunTimeErrorEx(dwErrorCode, pStrClue, nullptr, nullptr, 0);
 }
 
 void RunTimeWarning(DWORD dwErrorCode)
@@ -317,6 +332,8 @@ void LastSystemError()
 	}
 }
 
+static const char* DBP_GetExceptionCodeName(DWORD code);
+
 DARKSDK LONG WINAPI DBP_HandlePluginException(LPEXCEPTION_POINTERS pExInfo, const char* pContextTag)
 {
 	if (!pExInfo || !pExInfo->ExceptionRecord)
@@ -333,11 +350,200 @@ DARKSDK LONG WINAPI DBP_HandlePluginException(LPEXCEPTION_POINTERS pExInfo, cons
 		GetModuleFileNameA(hMod, moduleName, MAX_PATH);
 	}
 
+	char szClue[512] = {};
+	snprintf(szClue, sizeof(szClue), "Exception 0x%08lX (%s) at %p in %s",
+		code, DBP_GetExceptionCodeName(code), addr, moduleName);
+
+	RunTimeErrorEx(RUNTIMEERROR_GENERICERROR, szClue, pContextTag ? pContextTag : "DBP_HandlePluginException", moduleName, 0);
+
 	char szDbg[1024];
 	snprintf(szDbg, sizeof(szDbg),
 		"[DBP_CRITICAL] Exception 0x%08lX at %p in %s (Context: %s)\n",
 		code, addr, moduleName, pContextTag ? pContextTag : "None");
 
+	OutputDebugStringA(szDbg);
+	fputs(szDbg, stderr);
+	fflush(stderr);
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+static const char* DBP_GetExceptionCodeName(DWORD code)
+{
+	switch (code)
+	{
+		case 0xC0000005: return "ACCESS_VIOLATION";
+		case 0xC0000008: return "INVALID_HANDLE";
+		case 0xC000001D: return "ILLEGAL_INSTRUCTION";
+		case 0xC0000025: return "NONCONTINUABLE_EXCEPTION";
+		case 0xC000008C: return "ARRAY_BOUNDS_EXCEEDED";
+		case 0xC000008D: return "FLOAT_DENORMAL_OPERAND";
+		case 0xC000008E: return "FLOAT_DIVIDE_BY_ZERO";
+		case 0xC000008F: return "FLOAT_INEXACT_RESULT";
+		case 0xC0000090: return "FLOAT_INVALID_OPERATION";
+		case 0xC0000091: return "FLOAT_OVERFLOW";
+		case 0xC0000092: return "FLOAT_STACK_CHECK";
+		case 0xC0000093: return "FLOAT_UNDERFLOW";
+		case 0xC0000094: return "INTEGER_DIVIDE_BY_ZERO";
+		case 0xC0000095: return "INTEGER_OVERFLOW";
+		case 0xC0000096: return "PRIVILEGED_INSTRUCTION";
+		case 0xC00000FD: return "STACK_OVERFLOW";
+		case 0x80000003: return "BREAKPOINT";
+		default:         return "UNKNOWN_EXCEPTION";
+	}
+}
+
+DARKSDK void DBP_InstallCrashHandler()
+{
+	SetUnhandledExceptionFilter(DBP_UnhandledExceptionFilter);
+}
+
+DARKSDK LONG WINAPI DBP_UnhandledExceptionFilter(LPEXCEPTION_POINTERS pExInfo)
+{
+	char szExePath[MAX_PATH] = {};
+	GetModuleFileNameA(NULL, szExePath, MAX_PATH);
+
+	const char* pBaseName = strrchr(szExePath, '\\');
+	if (!pBaseName) pBaseName = strrchr(szExePath, '/');
+	pBaseName = pBaseName ? pBaseName + 1 : szExePath;
+
+	char szAppName[MAX_PATH] = "DBProApp";
+	if (pBaseName && pBaseName[0])
+	{
+		strncpy_s(szAppName, sizeof(szAppName), pBaseName, _TRUNCATE);
+		char* pDot = strrchr(szAppName, '.');
+		if (pDot && _stricmp(pDot, ".exe") == 0)
+			*pDot = '\0';
+	}
+
+	SYSTEMTIME st = {};
+	GetLocalTime(&st);
+	char szTimestamp[64] = {};
+	snprintf(szTimestamp, sizeof(szTimestamp), "%04u%02u%02u_%02u%02u%02u_%03u",
+		st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+	char szDmpFile[MAX_PATH] = {};
+	char szTxtFile[MAX_PATH] = {};
+	snprintf(szDmpFile, sizeof(szDmpFile), "%s_Crash_%s.dmp", szAppName, szTimestamp);
+	snprintf(szTxtFile, sizeof(szTxtFile), "%s_Crash_%s.txt", szAppName, szTimestamp);
+
+	DWORD exCode = (pExInfo && pExInfo->ExceptionRecord) ? pExInfo->ExceptionRecord->ExceptionCode : 0;
+	void* exAddr = (pExInfo && pExInfo->ExceptionRecord) ? pExInfo->ExceptionRecord->ExceptionAddress : nullptr;
+
+	char faultModule[MAX_PATH] = "UnknownModule";
+	if (exAddr)
+	{
+		HMODULE hMod = nullptr;
+		if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			reinterpret_cast<LPCSTR>(exAddr), &hMod) && hMod)
+		{
+			GetModuleFileNameA(hMod, faultModule, MAX_PATH);
+		}
+	}
+
+	BOOL bDumpWritten = FALSE;
+	DWORD dwDumpError = ERROR_SUCCESS;
+
+	// 1. Create MiniDump via dbghelp.dll
+	HMODULE hDbgHelp = LoadLibraryA("dbghelp.dll");
+	if (hDbgHelp)
+	{
+		typedef BOOL(WINAPI* PFN_MiniDumpWriteDump)(
+			HANDLE, DWORD, HANDLE, MINIDUMP_TYPE,
+			PMINIDUMP_EXCEPTION_INFORMATION,
+			PMINIDUMP_USER_STREAM_INFORMATION,
+			PMINIDUMP_CALLBACK_INFORMATION);
+
+		PFN_MiniDumpWriteDump pfnMiniDumpWriteDump =
+			reinterpret_cast<PFN_MiniDumpWriteDump>(GetProcAddress(hDbgHelp, "MiniDumpWriteDump"));
+		if (pfnMiniDumpWriteDump)
+		{
+			HANDLE hFile = CreateFileA(szDmpFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hFile != INVALID_HANDLE_VALUE)
+			{
+				MINIDUMP_EXCEPTION_INFORMATION mdei{};
+				mdei.ThreadId = GetCurrentThreadId();
+				mdei.ExceptionPointers = pExInfo;
+				mdei.ClientPointers = FALSE;
+
+				bDumpWritten = pfnMiniDumpWriteDump(
+					GetCurrentProcess(),
+					GetCurrentProcessId(),
+					hFile,
+					MiniDumpNormal,
+					pExInfo ? &mdei : nullptr,
+					nullptr,
+					nullptr);
+
+				if (!bDumpWritten)
+				{
+					dwDumpError = GetLastError();
+				}
+
+				CloseHandle(hFile);
+			}
+			else
+			{
+				dwDumpError = GetLastError();
+			}
+		}
+		else
+		{
+			dwDumpError = ERROR_PROC_NOT_FOUND;
+		}
+		FreeLibrary(hDbgHelp);
+	}
+	else
+	{
+		dwDumpError = GetLastError();
+	}
+
+	// 2. Write Diagnostic Report Text
+	const DBP_DiagnosticContext* ctx = GetLastDiagnosticContext();
+	FILE* fp = nullptr;
+	if (fopen_s(&fp, szTxtFile, "w") == 0 && fp)
+	{
+		fprintf(fp, "=== DarkBASIC Pro Crash Diagnostic Report ===\n");
+		fprintf(fp, "Application:       %s (%s)\n", szAppName, szExePath[0] ? szExePath : "Unknown");
+		fprintf(fp, "Timestamp:         %s\n", szTimestamp);
+		fprintf(fp, "Process ID:        %lu\n", GetCurrentProcessId());
+		fprintf(fp, "Thread ID:         %lu\n", GetCurrentThreadId());
+		fprintf(fp, "Exception Code:    0x%08lX (%s)\n", exCode, DBP_GetExceptionCodeName(exCode));
+		fprintf(fp, "Exception Address: %p\n", exAddr);
+		fprintf(fp, "Faulting Module:   %s\n", faultModule);
+		fprintf(fp, "MiniDump File:     %s\n", szDmpFile);
+		fprintf(fp, "MiniDump Written:  %s\n", bDumpWritten ? "yes" : "no");
+		if (!bDumpWritten)
+		{
+			fprintf(fp, "MiniDump Error:    %lu\n", dwDumpError);
+		}
+		fprintf(fp, "\n--- Last Recorded Diagnostic Context ---\n");
+		if (ctx && (ctx->errorCode != 0 || ctx->sourceFunction[0] || ctx->sourceFile[0] || ctx->sourceLine != 0))
+		{
+			fprintf(fp, "Error Code:        %u (%s)\n", ctx->errorCode, ctx->description[0] ? ctx->description : "None");
+			fprintf(fp, "Clue:              %s\n", ctx->clue[0] ? ctx->clue : "None");
+			fprintf(fp, "Source Function:   %s\n", ctx->sourceFunction[0] ? ctx->sourceFunction : "Unknown");
+			fprintf(fp, "Source File:       %s\n", ctx->sourceFile[0] ? ctx->sourceFile : "Unknown");
+			fprintf(fp, "Source Line:       %u\n", ctx->sourceLine);
+			fprintf(fp, "Thread ID:         %u\n", ctx->threadId);
+			fprintf(fp, "Timestamp (us):    %llu\n", static_cast<unsigned long long>(ctx->timestampUs));
+		}
+		else
+		{
+			fprintf(fp, "Source Function:   None\n");
+			fprintf(fp, "Source File:       None\n");
+			fprintf(fp, "Source Line:       0\n");
+			fprintf(fp, "No prior runtime error recorded in diagnostic context.\n");
+		}
+		fprintf(fp, "==============================================\n");
+		fclose(fp);
+	}
+
+	// 3. Debug Output
+	char szDbg[1024];
+	snprintf(szDbg, sizeof(szDbg),
+		"[DBP_CRASH] Process '%s' crashed! Exception 0x%08lX (%s) at %p in module '%s'. MiniDump: %s (%s), Report: %s\n",
+		szAppName, exCode, DBP_GetExceptionCodeName(exCode), exAddr, faultModule, szDmpFile, bDumpWritten ? "written" : "failed", szTxtFile);
 	OutputDebugStringA(szDbg);
 	fputs(szDbg, stderr);
 	fflush(stderr);

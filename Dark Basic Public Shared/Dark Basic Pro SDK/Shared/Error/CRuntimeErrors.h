@@ -334,6 +334,8 @@ struct DBP_DiagnosticContext
 	char     description[128];
 	char     clue[512];
 	char     sourceFunction[128];
+	uint32_t sourceLine;
+	char     sourceFile[260];
 };
 
 // Translation from error code to human-readable description
