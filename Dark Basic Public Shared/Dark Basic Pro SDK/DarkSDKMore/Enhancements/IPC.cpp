@@ -127,7 +127,7 @@ void cIPC::ReceiveBuffer ( LPVOID Buffer, DWORD dwOffset, DWORD Size )
 
 	// Strict mathematical bounds checking with 64-bit overflow prevention
 	const uint64_t reqEnd = static_cast<uint64_t>(dwOffset) + static_cast<uint64_t>(Size);
-	if ( m_nSize > 0 && ( reqEnd > static_cast<uint64_t>(m_nSize) || reqEnd < static_cast<uint64_t>(dwOffset) ) )
+	if ( m_nSize == 0 || reqEnd > static_cast<uint64_t>(m_nSize) )
 	{
 		char szDiag[256];
 		snprintf(szDiag, sizeof(szDiag), "[Enhancements IPC] ReceiveBuffer out of bounds in '%s': offset=%lu, size=%lu, capacity=%lu\n",
@@ -168,7 +168,7 @@ void cIPC::SendBuffer ( LPCVOID Buffer, DWORD dwOffset, DWORD Size )
 
 	// Strict mathematical bounds checking with 64-bit overflow prevention
 	const uint64_t reqEnd = static_cast<uint64_t>(dwOffset) + static_cast<uint64_t>(Size);
-	if ( m_nSize > 0 && ( reqEnd > static_cast<uint64_t>(m_nSize) || reqEnd < static_cast<uint64_t>(dwOffset) ) )
+	if ( m_nSize == 0 || reqEnd > static_cast<uint64_t>(m_nSize) )
 	{
 		char szDiag[256];
 		snprintf(szDiag, sizeof(szDiag), "[Enhancements IPC] SendBuffer out of bounds in '%s': offset=%lu, size=%lu, capacity=%lu\n",

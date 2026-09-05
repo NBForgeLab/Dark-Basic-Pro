@@ -1,37 +1,4 @@
-
-////////////////////////////////////////////////////////////////////
-// INFORMATION /////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-/*
-	CORE SET UP COMMANDS
-*/
-
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-// SOUND DLL
-// LPDIRECTSOUND8 GetSoundInterface ( void )
-
-/*
-*/
-
-////////////////////////////////////////////////////////////////////
-// DEFINES AND INCLUDES ////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-//#define INITGUID
-
-//#define DARKSDK	__declspec ( dllexport )
-#define DARKSDK	
-#define _CRT_SECURE_NO_WARNINGS
-#define _USING_V110_SDK71_
-
 #include "stdafx.h"
-
-#include <mmsystem.h>
-#include <mmreg.h>
-#include <dsound.h>
 #include "core.h"
 #include <stdio.h>
 
@@ -50,46 +17,22 @@ extern "C" HANDLE GG_CreateFileW( LPCWSTR lpFileName, DWORD dwDesiredAccess, DWO
 	return CreateFileW( lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile );
 }
 
-#include ".\globstruct.h"
-#include ".\..\..\Shared\Error\CError.h"
+#include "globstruct.h"
+#include "CError.h"
 
-//#define SAFE_DELETE( p )		{ if ( p ) { delete ( p );       ( p ) = NULL; } }
-//#define SAFE_RELEASE( p )		{ if ( p ) { ( p )->Release ( ); ( p ) = NULL; } }
-//#define SAFE_DELETE_ARRAY( p )	{ if ( p ) { delete [ ] ( p );   ( p ) = NULL; } }
-
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////
-// GLOBALS /////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
+// GLOBALS
 GlobStruct*				g_pGlob = NULL;
-//LPDIRECTSOUND8			g_pSound  = NULL;
 char					g_szErrorList [ 256 ] [ 256 ];
 bool					g_bErrorFile = false;
 
-GetSoundPFN				g_pGetSound       = NULL;
-GetSoundBufferPFN		g_pGetSoundBuffer = NULL;
-
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////
-// FUNCTIONS ///////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
+// FUNCTIONS
 DARKSDK void ReceiveCoreDataPtr ( LPVOID pCore );
 DARKSDK int  GetAssociatedDLLs  ( void );
 DARKSDK void Destructor         ( void );
 
-//extern void VoiceSetup	          ( void );
-extern void HardDriveSetup        ( void );
-		void LoadSystemDLL        ( void );
-		void LoadSoundDLL         ( void );
-		void SetupErrorCodes      ( void );
-		void SetupFileBlocks      ( void );
-		void DestroyFileBlocks    ( void );
+void SetupErrorCodes      ( void );
+void SetupFileBlocks      ( void );
+void DestroyFileBlocks    ( void );
 
 void ReceiveCoreDataPtr ( LPVOID pCore )
 {
@@ -102,7 +45,7 @@ void ReceiveCoreDataPtr ( LPVOID pCore )
 	}
 
 	SetupErrorCodes ( );
-	LoadSoundDLL    ( );
+	SetupFileBlocks ( );
 }
 
 int GetAssociatedDLLs ( void )
@@ -112,6 +55,7 @@ int GetAssociatedDLLs ( void )
 
 void Destructor ( void )
 {
+	DestroyFileBlocks ( );
 }
 
 char* ENHANCEMENTSSetupString ( const char* szInput )
@@ -119,17 +63,26 @@ char* ENHANCEMENTSSetupString ( const char* szInput )
 	if ( !szInput || !IsReadablePointer(reinterpret_cast<DWORD_PTR>(szInput)) )
 		return nullptr;
 
-	if ( !g_pGlob || !g_pGlob->CreateDeleteString )
-		return nullptr;
-
 	char* pReturn = nullptr;
 	DWORD dwSize  = static_cast<DWORD>( strlen ( szInput ) );
-	g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
-	if ( !pReturn )
+
+	if ( g_pGlob && g_pGlob->CreateDeleteString )
 	{
-		Error ( 2 );
-		return nullptr;
+		g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturn, dwSize + 1 );
+		if ( !pReturn )
+		{
+			Error ( 2 );
+			return nullptr;
+		}
 	}
+	else
+	{
+		// Standalone / test fallback when running outside DBPro engine core
+		pReturn = static_cast<char*>( HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSize + 1) );
+		if ( !pReturn )
+			return nullptr;
+	}
+
 	memcpy ( pReturn, szInput, dwSize );
 	pReturn [ dwSize ] = 0;
 	return pReturn;
@@ -138,10 +91,6 @@ char* ENHANCEMENTSSetupString ( const char* szInput )
 char* SetupString ( const char* szInput )
 {
 	return ENHANCEMENTSSetupString( szInput );
-}
-
-void LoadSoundDLL ( void )
-{
 }
 
 void SetupErrorCodes ( void )
@@ -153,25 +102,7 @@ void SetupErrorCodes ( void )
 
 void Error ( int iID )
 {
-	/*
-	if ( g_bErrorFile )
-	{
-		MessageBox ( NULL, g_szErrorList [ iID ], g_szErrorList [ 0 ], MB_ICONERROR | MB_OK );
-	}
-	else
-	{
-		char szNum [ 3 ];
-
-		//itoa ( iID, szNum, 10 );
-		_itoa ( iID, szNum, 10 );
-
-		MessageBox ( NULL, szNum, "Enhancement Runtime Error", MB_ICONERROR | MB_OK );
-	}
-	*/
 	char szNum[512];
 	sprintf ( szNum, "Enhancement Runtime Error %d", iID );
 	RunTimeError ( 0, szNum );
 }
-
-////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////

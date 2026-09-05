@@ -57,7 +57,7 @@ DARKSDK void  SetEventAndWait  ( int iID );
 
 bool CheckFileMapID ( int iID )
 {
-	if ( iID < 0 || iID > 255 )
+	if ( iID < 0 || iID >= 256 )
 	{
 		Error ( 7 );
 		return false;
@@ -113,7 +113,7 @@ DARKSDK void OpenFileMap ( int iID, DWORD_PTR dwName )
 	}
 }
 
-DARKSDK void CloseFileMap ( int iID )
+DARKSDK void CloseFileMap ( int /*iID*/ )
 {
 	return;
 }
@@ -151,18 +151,7 @@ DARKSDK DWORD_PTR GetFileMapString ( DWORD_PTR dwDestStr, int iID, DWORD dwOffse
 	g_FileMap [ iID ].pIPC->ReceiveBuffer ( szString, dwOffset, sizeof ( szString ) - 1 );
 	szString [ sizeof ( szString ) - 1 ] = '\0';
 
-	DWORD dwSize        = static_cast<DWORD>( strlen ( szString ) );
-	char* pReturnString	= nullptr;	
-	
-	if ( g_pGlob && g_pGlob->CreateDeleteString )
-	{
-		g_pGlob->CreateDeleteString((DWORD_PTR*)&pReturnString, dwSize + 1 );
-	}
-	if ( pReturnString )
-	{
-		strcpy_s ( pReturnString, dwSize + 1, szString );
-	}
-
+	char* pReturnString = SetupString ( szString );
 	return reinterpret_cast<DWORD_PTR>(pReturnString);
 }
 

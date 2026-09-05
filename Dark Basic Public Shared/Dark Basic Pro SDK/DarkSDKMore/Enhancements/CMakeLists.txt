@@ -2,14 +2,6 @@ project(DBPPluginEnhancements LANGUAGES C CXX)
 
 set(ENHANCEMENTS_SOURCES
     Core.cpp
-    EAX.cpp
-    CpuUsage.cpp
-    OSCpu.cpp
-    OSCpuInfo.cpp
-    OSHardDrive.cpp
-    OSComputerNames.cpp
-    OSDisplay.cpp
-    OSDialog.cpp
     OSMemory.cpp
     FileBlocks.cpp
     FileMapping.cpp
@@ -86,10 +78,6 @@ if(DXSDK_LIBRARY_DIR)
 endif()
 
 target_link_libraries(dbp_plugin_enhancements PRIVATE
-    winmm
-    netapi32
-    dxguid
-    gdi32
     user32
     advapi32
 )
