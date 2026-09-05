@@ -102,6 +102,10 @@ add_executable(dbp_tests
     test_e2e_x64_compilation.cpp
     test_x64_intensive_verification.cpp
     test_plugin_enhancements.cpp
+    test_plugin_system_api.cpp
+    test_error_diagnostics.cpp
+    test_plugin_file.cpp
+    test_plugin_memblocks.cpp
 
     # --- Codegen verification suite (compiler + assembly generator) ---------
     # Shared in-process driver that runs the real emission pipeline without
@@ -125,6 +129,7 @@ add_executable(dbp_tests
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE/RuntimePackageBootstrap.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/CInputC.cpp"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input/Controller.cpp"
+    "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error/CError.cpp"
 )
 
 dbp_apply_modern_cpp_options(dbp_tests)
@@ -153,6 +158,7 @@ target_include_directories(dbp_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/DBProCompiler/DBPCompilerEXE"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Input"
     "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Core"
+    "${PROJECT_SOURCE_DIR}/Dark Basic Public Shared/Dark Basic Pro SDK/Shared/Error"
     "${DXSDK_INCLUDE_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}"  # generated InstallConfig.h
 )

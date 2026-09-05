@@ -246,6 +246,11 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 {
 	// Held in Core, used here..
 	g_pGlob = (GlobStruct*)pGlobPtr;
+	if (!g_pGlob)
+	{
+		g_pCreateDeleteStringFunction = nullptr;
+		return;
+	}
 	g_pCreateDeleteStringFunction = g_pGlob->CreateDeleteString;
 
 	// Construct links to memblock access functions
@@ -728,15 +733,17 @@ DARKSDK BOOL DB_OpenToRead(int FileIndex, char* Filename)
 	{
 		// Uses actual or virtual file..
 		char VirtualFilename[_MAX_PATH];
-		strcpy(VirtualFilename, (LPSTR)Filename);
-		g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
+		strcpy_s(VirtualFilename, sizeof(VirtualFilename), Filename);
+		if (g_pGlob && g_pGlob->UpdateFilenameFromVirtualTable)
+			g_pGlob->UpdateFilenameFromVirtualTable( VirtualFilename);
 
 		CheckForWorkshopFile ( VirtualFilename );
 
 		// Decrypt and use media
-		g_pGlob->Decrypt( VirtualFilename );
+		if (g_pGlob && g_pGlob->Decrypt)
+			g_pGlob->Decrypt( VirtualFilename );
 		pVirtFileEncrypted[FileIndex] = new char[strlen(VirtualFilename)+1];
-		strcpy(pVirtFileEncrypted[FileIndex], VirtualFilename);
+		strcpy_s(pVirtFileEncrypted[FileIndex], strlen(VirtualFilename)+1, VirtualFilename);
 		bRes = DB_OpenToReadCore( FileIndex, VirtualFilename );
 	}
 	return bRes;
@@ -745,7 +752,7 @@ DARKSDK BOOL DB_OpenToRead(int FileIndex, char* Filename)
 DARKSDK BOOL DB_OpenToWrite(int FileIndex, char* Filename)
 {
 	// Create file WRITE
-	File[FileIndex] = CreateFile(Filename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	File[FileIndex] = CreateFileA(Filename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(File[FileIndex]==INVALID_HANDLE_VALUE)
 	{
 		File[FileIndex]=NULL;
@@ -766,8 +773,9 @@ DARKSDK BOOL DB_CloseFile(int FileIndex)
 		// Re-encrypt
 		if(pVirtFileEncrypted[FileIndex])
 		{
-			g_pGlob->Encrypt( pVirtFileEncrypted[FileIndex] );
-			delete pVirtFileEncrypted[FileIndex];
+			if (g_pGlob && g_pGlob->Encrypt)
+				g_pGlob->Encrypt( pVirtFileEncrypted[FileIndex] );
+			delete[] pVirtFileEncrypted[FileIndex];
 			pVirtFileEncrypted[FileIndex]=NULL;
 		}
 	}
@@ -1176,7 +1184,7 @@ DARKSDK int ReadByteFromFile( DWORD_PTR pFilename, int iPos )
 				// Read byte
 				int data = 0;
 				int offset = iPos;
-				if(offset>=0 && offset<filebuffersize) data = filebuffer[offset];
+				if(offset>=0 && offset<filebuffersize) data = static_cast<unsigned char>(filebuffer[offset]);
 				iResult=data;
 
 				// Discard memory used

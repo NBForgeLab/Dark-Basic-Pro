@@ -9,6 +9,7 @@
 #include ".\..\core\globstruct.h"
 
 #include <windows.h>
+#include <VersionHelpers.h>
 #include <tchar.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -228,12 +229,16 @@ DARKSDK DWORD_PTR CallDLL_Param( int dllid, LPSTR pDLLFunction, int paramnum, DW
 
 DARKSDK int TMEMAvailable(void)
 {
-	MEMORYSTATUS memoryStatus = { 0 };
-	memoryStatus.dwLength = sizeof ( MEMORYSTATUS );
-	::GlobalMemoryStatus ( &memoryStatus );
-	
-	// return mb of total memory installed
-	return ( int ) ceil ( ( double ) memoryStatus.dwTotalPhys / 1024 / 1024 );
+	MEMORYSTATUSEX memoryStatus{};
+	memoryStatus.dwLength = sizeof ( MEMORYSTATUSEX );
+	if ( ::GlobalMemoryStatusEx ( &memoryStatus ) )
+	{
+		DWORDLONG totalMB = ( memoryStatus.ullTotalPhys + ( 1024 * 1024 - 1 ) ) / ( 1024 * 1024 );
+		if ( totalMB > static_cast<DWORDLONG>( INT_MAX ) )
+			return INT_MAX;
+		return static_cast<int>( totalMB );
+	}
+	return 0;
 }
 
 // Define a function pointer to the Direct3DCreate9Ex function.
@@ -277,47 +282,6 @@ HRESULT CheckD3D9Ex( void )
     return hr;
 }
 
-typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
-typedef BOOL (WINAPI *PGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
-
-bool IsWindows8OrGreater ( void )
-{
-   OSVERSIONINFOEX osvi;
-   SYSTEM_INFO si;
-   PGNSI pGNSI;
-   PGPI pGPI;
-   BOOL bOsVersionInfoEx;
-   DWORD dwType;
-
-   ZeroMemory(&si, sizeof(SYSTEM_INFO));
-   ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-   osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-   bOsVersionInfoEx = GetVersionEx((OSVERSIONINFO*) &osvi);
-   if( ! bOsVersionInfoEx ) return false;
-
-   // Call GetNativeSystemInfo if supported or GetSystemInfo otherwise.
-   pGNSI = (PGNSI) GetProcAddress( GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo");
-   if(NULL != pGNSI)
-	   pGNSI(&si);
-   else 
-	   GetSystemInfo(&si);
-
-   if ( VER_PLATFORM_WIN32_NT==osvi.dwPlatformId && osvi.dwMajorVersion > 4 )
-   {
-      if ( osvi.dwMajorVersion == 6 )
-      {
-         if ( osvi.wProductType == VER_NT_WORKSTATION && osvi.dwMinorVersion >= 2 )
-		 {
-			 // Windows 8 or above
-			 return true;
-		 }
-	  }
-   }
-
-   // otherwise NOT Windows 8
-   return false;
-}
-
 DARKSDK int DMEMAvailable(void)
 {
 	static int Memory = 0;
@@ -325,10 +289,9 @@ DARKSDK int DMEMAvailable(void)
 	LONGLONG dedicatedBytesUsed = 0;
 	LONGLONG sharedBytesUsed = 0;
 	LONGLONG committedBytesUsed = 0;
-	HMODULE gdi32Handle;
-	PFND3DKMT_QUERYSTATISTICS queryD3DKMTStatistics;
-        
-	if (gdi32Handle = LoadLibraryEx(TEXT("gdi32.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32))
+	HMODULE gdi32Handle = LoadLibraryEx(TEXT("gdi32.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+	PFND3DKMT_QUERYSTATISTICS queryD3DKMTStatistics = nullptr;
+	if (gdi32Handle)
 		queryD3DKMTStatistics = (PFND3DKMT_QUERYSTATISTICS)GetProcAddress(gdi32Handle, "D3DKMTQueryStatistics");
         
 	if (queryD3DKMTStatistics && CheckD3D9Ex()==S_OK )
@@ -339,70 +302,64 @@ DARKSDK int DMEMAvailable(void)
 		g_Direct3DCreate9ExPtr ( D3D_SDK_VERSION, (void**)&pDX );
 		if ( pDX ) 
 		{
-			if ( pDX )
+			memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+			queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS;
+			pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
+			queryStatistics.hProcess = ProcessHandle;
+			if (queryD3DKMTStatistics(&queryStatistics)==0) 
 			{
-				memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-				queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS;
-				pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
-				queryStatistics.hProcess = ProcessHandle;
-				if (queryD3DKMTStatistics(&queryStatistics)==0) 
+				committedBytesUsed = queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesAllocated;
+			}
+			memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+			queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
+			pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
+			if (queryD3DKMTStatistics(&queryStatistics)==0) 
+			{
+				ULONG i;
+				ULONG segmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
+				for (i = 0; i < segmentCount; i++) 
 				{
-					committedBytesUsed = queryStatistics.QueryResult.ProcessInformation.SystemMemory.BytesAllocated;
-				}
-				memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-				queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
-				pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
-				if (queryD3DKMTStatistics(&queryStatistics)==0) 
-				{
-					ULONG i;
-					ULONG segmentCount = queryStatistics.QueryResult.AdapterInformation.NbSegments;
-					for (i = 0; i < segmentCount; i++) 
+					memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+					queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
+					pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
+					queryStatistics.QuerySegment.SegmentId = i;
+					if (queryD3DKMTStatistics(&queryStatistics)==0) 
 					{
+						// Aperture check
+						bool aperture = (queryStatistics.QueryResult.SegmentInformation.Aperture != 0);
+                    
 						memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-						queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
+						queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;
 						pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
-						queryStatistics.QuerySegment.SegmentId = i;
-						if (queryD3DKMTStatistics(&queryStatistics)==0) 
+						queryStatistics.hProcess = ProcessHandle;
+						queryStatistics.QueryProcessSegment.SegmentId = i;
+						if (queryD3DKMTStatistics(&queryStatistics)==0)
 						{
-							// Detect Windows OS
-							bool aperture = false;
-							if ( IsWindows8OrGreater() )
-							{
-								// Windows 8 and above is aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
-								aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
-							}
-								// Windows 7 and above
-								aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
-                        
-							memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
-							queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;
-							pDX->GetAdapterLUID(0,&queryStatistics.AdapterLuid);
-							queryStatistics.hProcess = ProcessHandle;
-							queryStatistics.QueryProcessSegment.SegmentId = i;
-							if (queryD3DKMTStatistics(&queryStatistics)==0)
-							{
-								if (aperture)
-									sharedBytesUsed += queryStatistics.QueryResult
+							if (aperture)
+								sharedBytesUsed += queryStatistics.QueryResult
+																	.ProcessSegmentInformation
+																	.BytesCommitted;
+							else
+								dedicatedBytesUsed += queryStatistics.QueryResult
 																		.ProcessSegmentInformation
 																		.BytesCommitted;
-								else
-									dedicatedBytesUsed += queryStatistics.QueryResult
-																			.ProcessSegmentInformation
-																			.BytesCommitted;
-							}
 						}
 					}
 				}
-
-				// free DX9Ex when done
-				pDX->Release();
 			}
+
+			// free DX9Ex when done
+			pDX->Release();
 		}
 	}
 	FreeD3D9Ex();
         
 	// free GDI DLL
-	FreeLibrary(gdi32Handle);
+	if ( gdi32Handle )
+	{
+		FreeLibrary(gdi32Handle);
+		gdi32Handle = nullptr;
+	}
 
 	// Pass dedicated memory used back to DBP
 	Memory = static_cast<int>(dedicatedBytesUsed / 1024 / 1024);
@@ -411,53 +368,48 @@ DARKSDK int DMEMAvailable(void)
 
 DARKSDK int SMEMAvailable(void)
 {
-	// mike - 240604 - no need for this now
-//	MEMORYSTATUS memstatus;
-//	memstatus.dwLength = sizeof(MEMORYSTATUS);
-//	GlobalMemoryStatus(&memstatus);
-//	return (int)memstatus.dwAvailPageFile;
-
-	// mike - 240604 - new code for getting available system memory
-
-		MEMORYSTATUS memoryStatus = { 0 };
-	
-	memoryStatus.dwLength = sizeof ( MEMORYSTATUS );
-	
-	::GlobalMemoryStatus ( &memoryStatus );
-
-	// return mb of total memory available
-	return ( int ) ceil ( ( double ) memoryStatus.dwAvailPhys / 1024 / 1024 );
+	MEMORYSTATUSEX memoryStatus{};
+	memoryStatus.dwLength = sizeof ( MEMORYSTATUSEX );
+	if ( ::GlobalMemoryStatusEx ( &memoryStatus ) )
+	{
+		DWORDLONG availMB = ( memoryStatus.ullAvailPhys + ( 1024 * 1024 - 1 ) ) / ( 1024 * 1024 );
+		if ( availMB > static_cast<DWORDLONG>( INT_MAX ) )
+			return INT_MAX;
+		return static_cast<int>( availMB );
+	}
+	return 0;
 }
 
 DARKSDK int SMEMAvailable( int iMode )
 {
-	if ( iMode==2 )
+	if ( iMode == 2 )
 	{
-		// U75 - 050510 - returns Virtual Size (most apps will crash if this goes above 2GB!)
-		MEMORYSTATUSEX statex;
+		// U75 - 050510 - returns Virtual Size in KB
+		MEMORYSTATUSEX statex{};
 		statex.dwLength = sizeof (statex);
-		GlobalMemoryStatusEx (&statex);
-		DWORDLONG dwVMSize1 = statex.ullTotalVirtual / 1024;
-		DWORDLONG dwVMSize2 = statex.ullAvailVirtual / 1024;
-		int dwVMSize = (int)(dwVMSize1-dwVMSize2);
-		return dwVMSize;
+		if ( GlobalMemoryStatusEx (&statex) )
+		{
+			DWORDLONG dwVMUsed = ( statex.ullTotalVirtual > statex.ullAvailVirtual )
+				? ( ( statex.ullTotalVirtual - statex.ullAvailVirtual ) / 1024 )
+				: 0;
+			if ( dwVMUsed > static_cast<DWORDLONG>( INT_MAX ) )
+				return INT_MAX;
+			return static_cast<int>( dwVMUsed );
+		}
+		return 0;
 	}
 	else
 	{
-		HANDLE hProcess;
-		PROCESS_MEMORY_COUNTERS pmc;
-		DWORD dwProcessID = GetCurrentProcessId();
-		memset ( &pmc, 0, sizeof(PROCESS_MEMORY_COUNTERS) );
+		PROCESS_MEMORY_COUNTERS pmc{};
 		pmc.cb = sizeof ( PROCESS_MEMORY_COUNTERS );
-		hProcess = OpenProcess(  PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessID );
-		if (NULL == hProcess)
-			return 0;
-		else
+		if ( GetProcessMemoryInfo ( GetCurrentProcess(), &pmc, sizeof(pmc) ) )
 		{
-			GetProcessMemoryInfo( hProcess, &pmc, sizeof(pmc) );
-			CloseHandle( hProcess );
-			return static_cast<int>( pmc.PagefileUsage / 1024 );
+			SIZE_T usageKB = pmc.PagefileUsage / 1024;
+			if ( usageKB > static_cast<SIZE_T>( INT_MAX ) )
+				return INT_MAX;
+			return static_cast<int>( usageKB );
 		}
+		return 0;
 	}
 }
 

@@ -108,6 +108,12 @@ DARKSDK void PassCoreData( LPVOID pGlobPtr )
 {
 	// Held in Core, used here..
 	g_pGlob = (GlobStruct*)pGlobPtr;
+	if (!g_pGlob)
+	{
+		g_pCreateDeleteStringFunction = nullptr;
+		GlobalHwndCopy = nullptr;
+		return;
+	}
 	g_pCreateDeleteStringFunction = g_pGlob->CreateDeleteString;
 
 	// Copy hWnd from global

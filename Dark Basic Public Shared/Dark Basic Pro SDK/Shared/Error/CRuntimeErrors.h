@@ -316,11 +316,27 @@
 
 #define			RUNTIMEERROR_OBJECTMANAGERFAILED		9706
 
-// Runtime Error Handler Class
+#include <cstdint>
+
+// Runtime Error Handler Class (Preserved for legacy engine ABI layout)
 class CRuntimeErrorHandler
 {
 	public:
-		DWORD dwErrorCode;
+		uint32_t dwErrorCode;
 };
 
-#endif _CRUNTIMERUNTIMEERROR_H_
+// Modern C++20 Structured Diagnostic Context
+struct DBP_DiagnosticContext
+{
+	uint32_t errorCode;
+	uint32_t threadId;
+	uint64_t timestampUs;
+	char     description[128];
+	char     clue[512];
+	char     sourceFunction[128];
+};
+
+// Translation from error code to human-readable description
+const char* GetRuntimeErrorDescription(uint32_t errorCode);
+
+#endif // _CRUNTIMERUNTIMEERROR_H_
